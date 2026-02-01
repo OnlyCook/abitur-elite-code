@@ -1,0 +1,59 @@
+{
+  "level_1": {
+    "hash": -3105394908673121583,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl1.png",
+    "section": "Sektion 1: OOP Grundlagen"
+  },
+  "level_2": {
+    "hash": -7266852742730443981,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl2.png",
+    "section": "Sektion 1: OOP Grundlagen"
+  },
+  "level_3": {
+    "hash": -840571697827219197,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl3.png",
+    "section": "Sektion 1: OOP Grundlagen"
+  },
+  "level_4": {
+    "hash": 1951437999701805324,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl4.png",
+    "section": "Sektion 1: OOP Grundlagen"
+  },
+  "level_5": {
+    "hash": 5797219087755012540,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl5.png",
+    "section": "Sektion 1: OOP Grundlagen"
+  },
+  "lvl_1_main": {
+    "hash": -9015812472661614576,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl1.png"
+  },
+  "lvl_2_main": {
+    "hash": 6959742047865050094,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl2.png"
+  },
+  "lvl_3_main": {
+    "hash": 868921146217328106,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl3.png"
+  },
+  "lvl_4_main": {
+    "hash": -8440130575431628208,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl4.png"
+  },
+  "lvl_5_main": {
+    "hash": 1195931211455103663,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\sec1\\lvl5.png"
+  },
+  "lvl_4_aux": {
+    "hash": 2400125948875210016,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\lvl4_aux.png"
+  },
+  "lvl_5_aux": {
+    "hash": 2400125948875210016,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\lvl5_aux.png"
+  },
+  "shared_ListT": {
+    "hash": 5716542372592268056,
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\bin\\Debug\\net10.0-windows\\img\\aux_ListT.png"
+  }
+}

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AbiturEliteCode")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f32510724b2c4135fc01fd77676887d10b5d02d0")]
 [assembly: System.Reflection.AssemblyProductAttribute("AbiturEliteCode")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AbiturEliteCode")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
