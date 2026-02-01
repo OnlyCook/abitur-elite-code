@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "RmhHmqAYlnk=",
+  "success": true,
+  "projectFilePath": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\AbiturEliteCode.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\nikoj\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.11.0\\microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
+    "C:\\Users\\nikoj\\.nuget\\packages\\microsoft.codeanalysis.common\\5.0.0\\microsoft.codeanalysis.common.5.0.0.nupkg.sha512",
+    "C:\\Users\\nikoj\\.nuget\\packages\\microsoft.codeanalysis.csharp\\5.0.0\\microsoft.codeanalysis.csharp.5.0.0.nupkg.sha512",
+    "C:\\Users\\nikoj\\.nuget\\packages\\microsoft.codeanalysis.csharp.scripting\\5.0.0\\microsoft.codeanalysis.csharp.scripting.5.0.0.nupkg.sha512",
+    "C:\\Users\\nikoj\\.nuget\\packages\\microsoft.codeanalysis.scripting.common\\5.0.0\\microsoft.codeanalysis.scripting.common.5.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
