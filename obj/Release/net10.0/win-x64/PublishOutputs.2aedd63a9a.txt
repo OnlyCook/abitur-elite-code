@@ -1,2 +1,0 @@
-F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Release\net10.0\win-x64\publish\AbiturEliteCode.pdb
-F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Release\net10.0\win-x64\publish\AbiturEliteCode.exe
