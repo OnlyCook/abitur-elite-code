@@ -137,7 +137,7 @@ def generate_single_diagram(source, output_path, cache_key, cache):
 def main():
     script_dir = Path(__file__).parent
     level_cs_path = script_dir / "Level.cs"
-    output_dir = script_dir / "bin" / "Debug" / "net10.0-windows" / "img"
+    output_dir = script_dir / "bin" / "Debug" / "net10.0" / "img"
     
     print("PlantUML Generator - Abitur Elite Code")
     if not level_cs_path.exists():

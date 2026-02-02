@@ -1,0 +1,143 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        mc:Ignorable="d" d:DesignWidth="1250" d:DesignHeight="850"
+        x:Class="AbiturEliteCode.MainWindow"
+        Title="Abitur Elite Code"
+        Width="1250" Height="850"
+        WindowStartupLocation="CenterScreen"
+        Background="#121212"
+        RequestedThemeVariant="Dark">
+
+	<!-- main layout -->
+	<Grid RowDefinitions="60,*">
+
+		<!-- TOP HEADER -->
+		<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
+			<Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto">
+				<!-- title -->
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
+					<TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="18"/>
+					<TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="18"/>
+				</StackPanel>
+
+				<!-- level select -->
+				<Button Grid.Column="1" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
+                        Background="#2D2D30" Foreground="White"
+						CornerRadius="4" Padding="15,8"
+                        VerticalAlignment="Center" Margin="20,0"
+						HorizontalAlignment="Left"
+						Click="BtnLevelSelect_Click"/>
+
+				<!-- code skipper -->
+				<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="0,0,20,0">
+					<TextBlock Text="Level Code:" Foreground="Gray" VerticalAlignment="Center" FontSize="14"/>
+					<TextBox Name="TxtSkipCode" Width="70" MaxLength="3"
+                             Background="#141414" Foreground="White"
+							 BorderBrush="#333" CornerRadius="4"
+                             HorizontalContentAlignment="Center" FontFamily="Consolas"
+                             TextChanged="TxtSkipCode_TextChanged"/>
+				</StackPanel>
+
+				<!-- mext level button -->
+				<Button Grid.Column="3" Name="BtnNextLevel" Content="NÄCHSTES LEVEL →"
+                        Background="RoyalBlue" Foreground="White" IsVisible="False"
+						CornerRadius="4" Padding="15,8" FontWeight="Bold"
+                        VerticalAlignment="Center" Margin="0,0,20,0"
+						Click="BtnNextLevel_Click"/>
+			</Grid>
+		</Border>
+
+		<!-- CONTENT AREA -->
+		<Grid Grid.Row="1" ColumnDefinitions="*, 4, *">
+
+			<!-- LEFT SIDE -->
+			<TabControl Grid.Column="0" Margin="10,5,5,10" Padding="0">
+				<TabControl.Styles>
+					<Style Selector="TabItem">
+						<Setter Property="FontSize" Value="15"/>
+						<Setter Property="Foreground" Value="#CCCCCC"/>
+						<Setter Property="Padding" Value="15,10"/>
+						<Setter Property="Margin" Value="0,0,0,0"/>
+						<Setter Property="MinHeight" Value="47"/>
+					</Style>
+					<Style Selector="TabItem:selected">
+						<Setter Property="Foreground" Value="#32A852"/>
+						<Setter Property="FontWeight" Value="SemiBold"/>
+					</Style>
+				</TabControl.Styles>
+
+				<TabItem Header="Aufgabe">
+					<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0">
+						<ScrollViewer>
+							<StackPanel Name="PnlTask" Spacing="10"/>
+						</ScrollViewer>
+					</Border>
+				</TabItem>
+
+				<TabItem Header="UML/Diagramme">
+					<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0">
+						<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+							<Image Name="ImgDiagram" Stretch="None"/>
+						</ScrollViewer>
+					</Border>
+				</TabItem>
+
+				<TabItem Header="Materialien">
+					<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0">
+						<ScrollViewer>
+							<StackPanel Name="PnlMaterials" Spacing="10"/>
+						</ScrollViewer>
+					</Border>
+				</TabItem>
+			</TabControl>
+
+			<!-- SPLITTER -->
+			<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns"/>
+
+			<!-- RIGHT SIDE -->
+			<Grid Grid.Column="2" RowDefinitions="Auto, *, 4, 180" Margin="5,10,10,10">
+
+				<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+						<Button Name="BtnReset" Background="#B43232" Width="40"
+								CornerRadius="5" Click="BtnReset_Click" ToolTip.Tip="Code zurücksetzen">
+							<svg:Svg Path="/icons/ic_restart.svg" Width="20" Height="20"/>
+						</Button>
+						<Button Name="BtnSave" Background="#464646" Width="50"
+								CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern">
+							<svg:Svg Path="/icons/ic_save.svg" Width="20" Height="20"/>
+						</Button>
+						<Button Content="▶ AUSFÜHREN" Background="#32A852" Foreground="White" FontWeight="Bold"
+								Padding="15,8" CornerRadius="5" Click="BtnRun_Click"/>
+					</StackPanel>
+				</Grid>
+
+				<Border Grid.Row="1" CornerRadius="10" ClipToBounds="True" Background="#1E1E1E" BorderBrush="#333" BorderThickness="1">
+					<ae:TextEditor Name="CodeEditor"
+									FontFamily="Consolas, Monospace"
+									FontSize="16"
+									ShowLineNumbers="True"
+									Background="Transparent"
+									Foreground="#D4D4D4"
+									HorizontalScrollBarVisibility="Auto"
+									VerticalScrollBarVisibility="Auto"/>
+				</Border>
+
+				<GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch"/>
+
+				<Border Grid.Row="3" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
+					<TextBox Name="TxtConsole"
+								FontFamily="Consolas, Monospace" FontSize="13"
+								Background="Transparent" Foreground="LightGray"
+								IsReadOnly="True" TextWrapping="Wrap"
+								BorderThickness="0"
+								Padding="15"/>
+				</Border>
+			</Grid>
+		</Grid>
+	</Grid>
+</Window>

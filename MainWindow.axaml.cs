@@ -1,0 +1,978 @@
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Avalonia.Svg.Skia;
+using AvaloniaEdit.Editing;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
+namespace AbiturEliteCode
+{
+    public partial class MainWindow : Window
+    {
+        private PlayerData playerData;
+        private Level currentLevel;
+        private List<Level> levels;
+        private System.Timers.Timer autoSaveTimer;
+
+        private SolidColorBrush BrushTextNormal = SolidColorBrush.Parse("#E6E6E6");
+        private SolidColorBrush BrushTextHighlight = SolidColorBrush.Parse("#6495ED"); // blue
+        private SolidColorBrush BrushBgPanel = SolidColorBrush.Parse("#202124");
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            levels = Curriculum.GetLevels();
+            playerData = SaveSystem.Load();
+
+            ConfigureEditor();
+
+            autoSaveTimer = new System.Timers.Timer(2000)
+            {
+                AutoReset = false
+            };
+            autoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
+
+            CodeEditor.TextChanged += (s, e) =>
+            {
+                autoSaveTimer.Stop();
+                autoSaveTimer.Start();
+            };
+
+            int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
+            var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
+            LoadLevel(startLevel);
+
+            this.Opened += (s, e) => CodeEditor.Focus();
+
+            // return focus to editor when clicking somewhere random (empty)
+            this.AddHandler(PointerPressedEvent, (s, e) =>
+            {
+                var source = e.Source as Control;
+
+                if (source is TextBox || source is Button || (source?.Parent is Button)) return;
+
+                Dispatcher.UIThread.Post(() => CodeEditor.Focus());
+            }, RoutingStrategies.Tunnel);
+
+            this.Loaded += (s, e) => // return focus on tab switch
+            {
+                var tabControl = this.GetVisualDescendants().OfType<TabControl>().FirstOrDefault();
+                if (tabControl != null)
+                {
+                    tabControl.SelectionChanged += (sender, args) =>
+                    {
+                        if (sender == tabControl && args.AddedItems.Count > 0 && args.AddedItems[0] is TabItem)
+                        {
+                            Dispatcher.UIThread.Post(() => CodeEditor.Focus(), DispatcherPriority.Input);
+                        }
+                    };
+                }
+            };
+        }
+
+        private Image LoadIcon(string path, double size)
+        {
+            var image = new Image
+            {
+                Width = size,
+                Height = size,
+                Stretch = Stretch.Uniform
+            };
+
+            string uriString = $"avares://AbiturEliteCode/{path}";
+
+            try
+            {
+                var svgImage = new SvgImage();
+                svgImage.Source = SvgSource.Load(uriString, null);
+                image.Source = svgImage;
+            }
+            catch
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not load SVG: {uriString}");
+            }
+
+            return image;
+        }
+
+        private void ConfigureEditor()
+        {
+            CodeEditor.SyntaxHighlighting = null;
+            CodeEditor.Options.ConvertTabsToSpaces = true;
+            CodeEditor.Options.IndentationSize = 4;
+            CodeEditor.Options.ShowSpaces = false;
+            CodeEditor.Options.ShowTabs = false;
+            CodeEditor.Options.EnableHyperlinks = false;
+            CodeEditor.Options.EnableEmailHyperlinks = false;
+
+            CodeEditor.FontFamily = new FontFamily("Consolas");
+            CodeEditor.FontSize = 16;
+            CodeEditor.Background = Brushes.Transparent;
+            CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
+
+            CodeEditor.TextArea.Caret.PositionChanged += (s, e) =>
+            {
+                CodeEditor.TextArea.Caret.BringCaretToView();
+            };
+
+            CodeEditor.TextArea.TextEntering += Editor_TextEntering;
+            CodeEditor.AddHandler(InputElement.KeyDownEvent, CodeEditor_KeyDown, RoutingStrategies.Tunnel);
+        }
+
+        private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Back)
+            {
+                int offset = CodeEditor.CaretOffset;
+
+                // smart delete pairs
+                if (offset > 0 && offset < CodeEditor.Document.TextLength)
+                {
+                    char charBefore = CodeEditor.Document.GetCharAt(offset - 1);
+                    char charAfter = CodeEditor.Document.GetCharAt(offset);
+
+                    if ((charBefore == '(' && charAfter == ')') ||
+                        (charBefore == '{' && charAfter == '}') ||
+                        (charBefore == '[' && charAfter == ']') ||
+                        (charBefore == '"' && charAfter == '"'))
+                    {
+                        CodeEditor.Document.Remove(offset - 1, 2);
+                        e.Handled = true;
+                        return;
+                    }
+                }
+
+                // remove whole indentation (4 spaces)
+                if (offset >= 4)
+                {
+                    string textToCheck = CodeEditor.Document.GetText(offset - 4, 4);
+                    if (textToCheck == "    ")
+                    {
+                        CodeEditor.Document.Remove(offset - 4, 4);
+                        e.Handled = true;
+                    }
+                }
+            }
+        }
+
+        private void Editor_TextEntering(object sender, TextInputEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.Text)) return;
+
+            char charTyped = e.Text[0];
+            TextArea textArea = (TextArea)sender;
+            int offset = textArea.Caret.Offset;
+
+            if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"')
+            {
+                string pair = charTyped == '(' ? ")" :
+                              charTyped == '{' ? "}" :
+                              charTyped == '[' ? "]" : "\"";
+
+                textArea.Document.Insert(offset, charTyped.ToString() + pair);
+                textArea.Caret.Offset = offset + 1;
+                e.Handled = true;
+                return;
+            }
+
+            if (charTyped == ')' || charTyped == '}' || charTyped == ']' || charTyped == '"')
+            {
+                if (offset < textArea.Document.TextLength &&
+                    textArea.Document.GetCharAt(offset) == charTyped)
+                {
+                    textArea.Caret.Offset += 1;
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            if (e.Text == "\n" || e.Text == "\r")
+            {
+                char prev = offset > 0 ? textArea.Document.GetCharAt(offset - 1) : '\0';
+                char next = offset < textArea.Document.TextLength ? textArea.Document.GetCharAt(offset) : '\0';
+
+                var currentLine = textArea.Document.GetLineByOffset(offset);
+                string lineText = textArea.Document.GetText(currentLine);
+
+                string indent = "";
+                foreach (char c in lineText)
+                {
+                    if (char.IsWhiteSpace(c)) indent += c;
+                    else break;
+                }
+
+                if (prev == '{' && next == '}')
+                {
+                    string insertion = "\n" + indent + "    " + "\n" + indent;
+                    textArea.Document.Insert(offset, insertion);
+                    textArea.Caret.Offset = offset + indent.Length + 5;
+                    e.Handled = true;
+                    return;
+                }
+
+                string trimmed = lineText.TrimEnd();
+                if (trimmed.EndsWith("{"))
+                {
+                    indent += "    ";
+                }
+
+                textArea.Document.Insert(offset, "\n" + indent);
+                e.Handled = true;
+            }
+        }
+
+        private void SaveCurrentProgress()
+        {
+            if (currentLevel != null)
+            {
+                playerData.UserCode[currentLevel.Id] = CodeEditor.Text;
+                SaveSystem.Save(playerData);
+            }
+        }
+
+        private void LoadLevel(Level level)
+        {
+            SaveCurrentProgress();
+            currentLevel = level;
+            BtnNextLevel.IsVisible = false;
+
+            string rawCode = playerData.UserCode.ContainsKey(level.Id) ? playerData.UserCode[level.Id] : level.StarterCode;
+            CodeEditor.Text = rawCode;
+
+            PnlTask.Children.Clear();
+            PnlTask.Children.Add(new TextBlock
+            {
+                Text = $"{level.Id}. {level.Title}",
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextNormal,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 20)
+            });
+
+            RenderRichText(PnlTask, level.Description);
+
+            try
+            {
+                if (!string.IsNullOrEmpty(level.DiagramPath))
+                {
+                    string safePath = level.DiagramPath.Replace("\\", Path.DirectorySeparatorChar.ToString());
+                    string fullPath = Path.Combine(AppContext.BaseDirectory, safePath);
+
+                    if (File.Exists(fullPath))
+                        ImgDiagram.Source = new Bitmap(fullPath);
+                    else
+                        ImgDiagram.Source = null;
+                }
+                else ImgDiagram.Source = null;
+            }
+            catch { ImgDiagram.Source = null; }
+
+            GenerateMaterials(level);
+
+            TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} geladen.";
+
+            Dispatcher.UIThread.Post(() => CodeEditor.Focus());
+        }
+
+        private void RenderRichText(StackPanel panel, string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
+            var parts = Regex.Split(safeText, @"(\[.*?\])");
+
+            var tb = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 15,
+                LineHeight = 24
+            };
+
+            foreach (var part in parts)
+            {
+                if (part.StartsWith("[") && part.EndsWith("]"))
+                {
+                    string content = part.Substring(1, part.Length - 2);
+                    content = content.Replace("\x01", "[").Replace("\x02", "]");
+                    tb.Inlines.Add(new Avalonia.Controls.Documents.Run
+                    {
+                        Text = content,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextHighlight,
+                        FontFamily = new FontFamily("Consolas")
+                    });
+                }
+                else
+                {
+                    string content = part.Replace("\x01", "[").Replace("\x02", "]");
+                    tb.Inlines.Add(new Avalonia.Controls.Documents.Run
+                    {
+                        Text = content,
+                        Foreground = BrushTextNormal
+                    });
+                }
+            }
+            panel.Children.Add(tb);
+        }
+
+        private void GenerateMaterials(Level level)
+        {
+            PnlMaterials.Children.Clear();
+
+            if (!string.IsNullOrEmpty(level.AuxiliaryId))
+            {
+                string auxPath = Path.Combine(AppContext.BaseDirectory, "img", $"aux_{level.AuxiliaryId}.png");
+                if (File.Exists(auxPath))
+                {
+                    PnlMaterials.Children.Add(new TextBlock
+                    {
+                        Text = "Referenz-Klassen:",
+                        FontWeight = FontWeight.Bold,
+                        Foreground = Brushes.LightGreen,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    });
+                    PnlMaterials.Children.Add(new Image
+                    {
+                        Source = new Bitmap(auxPath),
+                        Height = 150,
+                        Stretch = Stretch.Uniform,
+                        Margin = new Thickness(0, 0, 0, 15),
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    });
+                }
+            }
+
+            if (!string.IsNullOrEmpty(level.MaterialDocs))
+            {
+                var lines = level.MaterialDocs.Split('\n');
+                foreach (var line in lines)
+                {
+                    string trim = line.Trim();
+                    if (trim.StartsWith("Hinweis:") || trim.StartsWith("Tipp:"))
+                    {
+                        string preview = trim.Length > 25 ? trim.Substring(0, 22) + "..." : trim;
+                        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+                        var contentPanel = new StackPanel { IsVisible = false, Background = SolidColorBrush.Parse("#252526") };
+                        RenderRichText(contentPanel, trim);
+
+                        var btn = new Button
+                        {
+                            Content = "▶ " + preview,
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            Background = SolidColorBrush.Parse("#3C3C41"),
+                            Foreground = Brushes.White,
+                            HorizontalContentAlignment = HorizontalAlignment.Left
+                        };
+                        btn.Click += (s, e) =>
+                        {
+                            btn.IsVisible = false;
+                            contentPanel.IsVisible = true;
+                        };
+
+                        stack.Children.Add(btn);
+                        stack.Children.Add(contentPanel);
+                        PnlMaterials.Children.Add(stack);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(trim))
+                    {
+                        RenderRichText(PnlMaterials, trim);
+                    }
+                }
+            }
+        }
+
+        private void BtnRun_Click(object sender, RoutedEventArgs e)
+        {
+            TxtConsole.Foreground = Brushes.LightGray;
+            TxtConsole.Text = "Kompiliere...\n";
+            SaveCurrentProgress();
+
+            string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + CodeEditor.Text;
+
+            var syntaxTree = CSharpSyntaxTree.ParseText(fullCode);
+            var references = new List<MetadataReference>
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+                MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location),
+                MetadataReference.CreateFromFile(Assembly.Load("System.Collections").Location)
+            };
+
+            var compilation = CSharpCompilation.Create(
+                $"Level_{currentLevel.Id}_{Guid.NewGuid()}",
+                new[] { syntaxTree },
+                references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            using (var ms = new MemoryStream())
+            {
+                EmitResult result = compilation.Emit(ms);
+
+                if (!result.Success)
+                {
+                    TxtConsole.Foreground = Brushes.Red;
+                    TxtConsole.Text = "KOMPILIERFEHLER:\n";
+                    foreach (var diag in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
+                    {
+                        var lineSpan = diag.Location.GetLineSpan();
+                        int userLine = lineSpan.StartLinePosition.Line - 3;
+                        if (userLine < 0) userLine = 0;
+                        TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
+                    }
+                }
+                else
+                {
+                    ms.Seek(0, SeekOrigin.Begin);
+                    var assembly = Assembly.Load(ms.ToArray());
+                    RunTests(assembly);
+                }
+            }
+
+            CodeEditor.Focus();
+        }
+
+        private void RunTests(Assembly assembly)
+        {
+            bool success = false;
+            string feedback = "";
+
+            try
+            {
+                // --- LEVEL 1 ---
+                if (currentLevel.Id == 1)
+                {
+                    Type tierType = assembly.GetType("Tier");
+                    if (tierType == null) throw new Exception("Klasse 'Tier' nicht gefunden.");
+
+                    ConstructorInfo ctor = tierType.GetConstructor(new[] { typeof(string), typeof(int) });
+                    if (ctor == null) throw new Exception("Konstruktor Tier(string, int) fehlt.");
+
+                    object tier = ctor.Invoke(new object[] { "Löwe", 5 });
+                    FieldInfo fName = tierType.GetField("name", BindingFlags.NonPublic | BindingFlags.Instance);
+                    FieldInfo fAlter = tierType.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (fName == null) throw new Exception("Feld 'name' fehlt oder ist nicht private.");
+                    if (fAlter == null) throw new Exception("Feld 'alter' fehlt oder ist nicht private.");
+
+                    string actualName = (string)fName.GetValue(tier);
+                    int actualAlter = (int)fAlter.GetValue(tier);
+
+                    if (actualName == "Löwe" && actualAlter == 5)
+                    {
+                        success = true;
+                        feedback = "Klasse Tier korrekt implementiert!";
+                    }
+                    else
+                    {
+                        throw new Exception("Konstruktor setzt die Werte nicht korrekt.");
+                    }
+                }
+                // --- LEVEL 2 ---
+                else if (currentLevel.Id == 2)
+                {
+                    Type t = assembly.GetType("Tier");
+                    if (t == null) throw new Exception("Klasse 'Tier' nicht gefunden. Haben Sie sie gelöscht?");
+
+                    object obj = Activator.CreateInstance(t);
+
+                    MethodInfo mSet = t.GetMethod("SetAlter");
+                    MethodInfo mGet = t.GetMethod("GetAlter");
+                    FieldInfo fAlter = t.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (mSet == null) throw new Exception("Methode SetAlter fehlt.");
+                    if (mGet == null) throw new Exception("Methode GetAlter fehlt.");
+
+                    // initial value check
+                    fAlter.SetValue(obj, 10);
+
+                    // test 1: invalid (lower)
+                    mSet.Invoke(obj, new object[] { 5 });
+                    int val1 = (int)mGet.Invoke(obj, null);
+                    if (val1 != 10) throw new Exception("Fehler: Alter wurde trotz kleinerem Wert geändert! (Kapselung verletzt)");
+
+                    // test 2: valid (higher)
+                    mSet.Invoke(obj, new object[] { 12 });
+                    int val2 = (int)mGet.Invoke(obj, null);
+                    if (val2 != 12) throw new Exception("Fehler: Alter wurde trotz gültigem Wert nicht geändert.");
+
+                    success = true;
+                    feedback = "Kapselung und Logik erfolgreich!";
+                }
+                // --- LEVEL 3 ---
+                else if (currentLevel.Id == 3)
+                {
+                    Type tTier = assembly.GetType("Tier");
+                    Type tLoewe = assembly.GetType("Loewe");
+
+                    if (tTier == null) throw new Exception("Klasse Tier fehlt.");
+                    if (tLoewe == null) throw new Exception("Klasse Loewe fehlt.");
+
+                    if (!tTier.IsAbstract) throw new Exception("Klasse Tier muss 'abstract' sein.");
+                    if (!tLoewe.IsSubclassOf(tTier)) throw new Exception("Loewe erbt nicht von Tier.");
+
+                    // check constructor chaining
+                    ConstructorInfo ctor = tLoewe.GetConstructor(new[] { typeof(string), typeof(int) });
+                    if (ctor == null) throw new Exception("Konstruktor Loewe(string, int) fehlt.");
+
+                    // we cannot instantiate Tier, but we can instantiate Loewe
+                    object leo = ctor.Invoke(new object[] { "Simba", 50 });
+
+                    // check Bruellen
+                    MethodInfo mB = tLoewe.GetMethod("Bruellen");
+                    if (mB == null) throw new Exception("Methode Bruellen fehlt.");
+
+                    string sound = (string)mB.Invoke(leo, null);
+                    if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück.");
+
+                    success = true;
+                    feedback = "Vererbung und Abstraktion korrekt!";
+                }
+                // --- LEVEL 4 ---
+                else if (currentLevel.Id == 4)
+                {
+                    Type tG = assembly.GetType("Gehege");
+                    if (tG == null) throw new Exception("Klasse Gehege fehlt.");
+
+                    object g = Activator.CreateInstance(tG);
+                    MethodInfo mAdd = tG.GetMethod("Hinzufuegen");
+                    MethodInfo mCount = tG.GetMethod("AnzahlTiere");
+
+                    // dynamic creation of Tier (since it might be abstract or concrete depending on user implementation)
+                    Type tTier = assembly.GetType("Tier");
+                    object animal;
+                    if (tTier.IsAbstract)
+                    {
+                        // if user left Tier abstract from prev level, we need a concrete subclass to test list
+                        throw new Exception("Für dieses Level bitte Klasse Tier wieder 'konkret' (nicht abstract) machen, oder eine konkrete Unterklasse nutzen.");
+                    }
+                    else
+                    {
+                        animal = Activator.CreateInstance(tTier);
+                    }
+
+                    mAdd.Invoke(g, new object[] { animal });
+                    int count = (int)mCount.Invoke(g, null);
+
+                    if (count == 1)
+                    {
+                        success = true;
+                        feedback = "Tier erfolgreich zur Liste hinzugefügt.";
+                    }
+                    else throw new Exception("AnzahlTiere liefert falschen Wert.");
+                }
+                // --- LEVEL 5 ---
+                else if (currentLevel.Id == 5)
+                {
+                    Type tG = assembly.GetType("Gehege");
+                    if (tG == null) throw new Exception("Klasse 'Gehege' nicht gefunden.");
+                    object g = Activator.CreateInstance(tG);
+                    Type tT = assembly.GetType("Tier");
+
+                    object CreateTier(int age)
+                    {
+                        var t = Activator.CreateInstance(tT, new object[] { age });
+                        return t;
+                    }
+
+                    object t1 = CreateTier(5);
+                    object t2 = CreateTier(20);
+                    object t3 = CreateTier(10);
+
+                    FieldInfo fList = tG.GetField("bewohner");
+                    if (fList == null) throw new Exception("Feld 'bewohner' nicht gefunden.");
+
+                    MethodInfo mGetAlter = tT.GetMethod("GetAlter");
+                    if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' nicht gefunden in Klasse Tier.");
+
+                    var listInstance = fList.GetValue(g);
+                    MethodInfo listAdd = listInstance.GetType().GetMethod("Add");
+
+                    listAdd.Invoke(listInstance, new object[] { t1 });
+                    listAdd.Invoke(listInstance, new object[] { t2 });
+                    listAdd.Invoke(listInstance, new object[] { t3 });
+
+                    MethodInfo mAlgo = tG.GetMethod("ErmittleAeltestes") ?? throw new Exception("Methode 'ErmittleAeltestes' wurde nicht gefunden. Stelle sicher, dass der Name korrekt ist und die Methode 'public' ist.");
+                    object result = mAlgo.Invoke(g, null);
+
+                    int resultAge = (int)mGetAlter.Invoke(result, null);
+                    int t2Age = (int)mGetAlter.Invoke(t2, null);
+
+                    if (result == t2 && resultAge == 20)
+                    {
+                        success = true;
+                        feedback = "Algorithmus korrekt! Das älteste Tier (20) wurde gefunden.";
+                    }
+                    else throw new Exception("Algorithmus liefert nicht das älteste Tier.");
+                }
+
+                if (success)
+                {
+                    TxtConsole.Foreground = Brushes.LightGreen;
+                    TxtConsole.Text = "✓ TEST BESTANDEN: " + feedback + "\n\n";
+
+                    // unlock logic
+
+                    if (!playerData.CompletedLevelIds.Contains(currentLevel.Id))
+                    {
+                        playerData.CompletedLevelIds.Add(currentLevel.Id);
+                    }
+
+                    var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
+                    if (nextLvl != null && !playerData.UnlockedLevelIds.Contains(nextLvl.Id))
+                    {
+                        playerData.UnlockedLevelIds.Add(nextLvl.Id);
+                        SaveSystem.Save(playerData);
+                        TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                        TxtConsole.Text += $"Nächstes Level Code: {nextLvl.SkipCode}\n";
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                        BtnNextLevel.IsVisible = true;
+                    }
+                    else if (nextLvl != null)
+                    {
+                        TxtConsole.Text += $"\nNächstes Level Code: {nextLvl.SkipCode}";
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                        BtnNextLevel.IsVisible = true;
+                    }
+                    else // final level
+                    {
+                        TxtConsole.Text += "\n🎉 Das war das letzte Level dieser Sektion!";
+                        BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
+                        BtnNextLevel.IsVisible = true;
+                    }
+
+                    SaveSystem.Save(playerData);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtConsole.Foreground = Brushes.Orange;
+                string msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                TxtConsole.Text = "❌ LAUFZEITFEHLER / LOGIK:\n" + msg;
+            }
+        }
+
+        private void BtnNextLevel_Click(object sender, RoutedEventArgs e)
+        {
+            // check if button is in finish mode
+            if (BtnNextLevel.Content?.ToString()?.Contains("ABSCHLIESSEN") == true)
+            {
+                ShowCourseCompletedDialog();
+                return;
+            }
+
+            var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
+            if (nextLvl != null)
+            {
+                LoadLevel(nextLvl);
+            }
+
+            CodeEditor.Focus();
+        }
+
+        private async void ShowCourseCompletedDialog()
+        {
+            var dialog = new Window
+            {
+                Title = "Kurs Abgeschlossen",
+                Width = 450,
+                Height = 300,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#202124"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var rootBorder = new Border
+            {
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(20)
+            };
+
+            var rootGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*, Auto")
+            };
+
+            var contentStack = new StackPanel
+            {
+                Spacing = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            contentStack.Children.Add(new TextBlock
+            {
+                Text = "🎉 Herzlichen Glückwunsch! 🎉",
+                FontSize = 22,
+                FontWeight = FontWeight.Bold,
+                Foreground = SolidColorBrush.Parse("#32A852"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            contentStack.Children.Add(new TextBlock
+            {
+                Text = "Du hast alle Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für deine Abiturprüfung in Praktischer Informatik.\nViel Erfolg!",
+                FontSize = 16,
+                Foreground = Brushes.White,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 24
+            });
+
+            rootGrid.Children.Add(contentStack);
+
+            var btnClose = new Button
+            {
+                Content = "Schließen",
+                Background = SolidColorBrush.Parse("#32A852"),
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.Bold,
+                FontSize = 14,
+                Padding = new Thickness(30, 10),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                CornerRadius = new CornerRadius(4),
+                Margin = new Thickness(0, 20, 0, 0),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            btnClose.Click += (_, __) => dialog.Close();
+
+            Grid.SetRow(btnClose, 1);
+            rootGrid.Children.Add(btnClose);
+
+            rootBorder.Child = rootGrid;
+            dialog.Content = rootBorder;
+
+            await dialog.ShowDialog(this);
+        }
+
+        private async void BtnReset_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Window
+            {
+                Title = "Code zurücksetzen?",
+                Width = 350,
+                Height = 180,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var rootGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*, Auto"),
+                Margin = new Thickness(20)
+            };
+
+            rootGrid.Children.Add(new TextBlock
+            {
+                Text = "Möchtest du den Code wirklich zurücksetzen? Alle Änderungen gehen verloren.",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 15
+            });
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+            Grid.SetRow(btnPanel, 1);
+
+            var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+            var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+
+            bool result = false;
+            btnYes.Click += (_, __) => { result = true; dialog.Close(); };
+            btnNo.Click += (_, __) => { dialog.Close(); };
+
+            btnPanel.Children.Add(btnNo);
+            btnPanel.Children.Add(btnYes);
+            rootGrid.Children.Add(btnPanel);
+
+            dialog.Content = rootGrid;
+            await dialog.ShowDialog(this);
+
+            if (result)
+            {
+                CodeEditor.Text = currentLevel.StarterCode;
+                TxtConsole.Text += "\n> Code auf Standard zurückgesetzt.";
+            }
+
+            CodeEditor.Focus();
+        }
+
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            SaveCurrentProgress();
+            TxtConsole.Text += "\n> Gespeichert.";
+            CodeEditor.Focus();
+        }
+
+        private void BtnLevelSelect_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Window
+            {
+                Title = "Level Wählen",
+                Width = 450,
+                Height = 700,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Background = BrushBgPanel,
+                SystemDecorations = SystemDecorations.BorderOnly
+            };
+
+            var root = new Border { CornerRadius = new CornerRadius(8), Background = BrushBgPanel, BorderBrush = Brushes.Transparent, BorderThickness = new Thickness(1) };
+
+            var mainGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto, *, Auto"),
+                Margin = new Thickness(15)
+            };
+
+            mainGrid.Children.Add(new TextBlock
+            {
+                Text = "Level Auswählen",
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 15)
+            });
+
+            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetRow(scroll, 1);
+            var levelStack = new StackPanel { Spacing = 8 };
+
+            var groups = levels.GroupBy(l => l.Section);
+
+            foreach (var group in groups)
+            {
+                bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+
+                var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                headerPanel.Children.Add(new TextBlock
+                {
+                    Text = group.Key,
+                    Foreground = SolidColorBrush.Parse("#32A852"),
+                    FontWeight = FontWeight.Bold,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                if (isSectionComplete)
+                {
+                    headerPanel.Children.Add(LoadIcon("icons/ic_done.svg", 16));
+                }
+
+                var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+                foreach (var lvl in group)
+                {
+                    bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
+
+                    var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+
+                    string iconPath = unlocked ? "icons/ic_lock_open.svg" : "icons/ic_lock.svg";
+                    btnContent.Children.Add(LoadIcon(iconPath, 16));
+
+                    btnContent.Children.Add(new TextBlock
+                    {
+                        Text = $"{lvl.Id}. {lvl.Title}",
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+
+                    var btn = new Button
+                    {
+                        Content = btnContent,
+                        IsEnabled = unlocked,
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Left,
+                        Padding = new Thickness(10, 10),
+                        Background = unlocked ? SolidColorBrush.Parse("#2D2D30") : SolidColorBrush.Parse("#191919"),
+                        Foreground = unlocked ? Brushes.White : Brushes.Gray,
+                        CornerRadius = new CornerRadius(4)
+                    };
+                    btn.Click += (_, __) => { LoadLevel(lvl); win.Close(); };
+                    sectionContent.Children.Add(btn);
+                }
+
+                var expander = new Expander
+                {
+                    Header = headerPanel,
+                    Content = sectionContent,
+                    IsExpanded = !isSectionComplete,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    CornerRadius = new CornerRadius(4),
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+
+                levelStack.Children.Add(expander);
+            }
+
+            scroll.Content = levelStack;
+            mainGrid.Children.Add(scroll);
+
+            var closeBtn = new Button
+            {
+                Content = "Schließen",
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 15, 0, 0),
+                Padding = new Thickness(10),
+                CornerRadius = new CornerRadius(4),
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Foreground = Brushes.White
+            };
+            Grid.SetRow(closeBtn, 2);
+            closeBtn.Click += (_, __) => win.Close();
+            mainGrid.Children.Add(closeBtn);
+
+            root.Child = mainGrid;
+            win.Content = root;
+            win.ShowDialog(this);
+
+            CodeEditor.Focus();
+        }
+
+        private void TxtSkipCode_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TxtSkipCode.Text?.Length == 3)
+            {
+                string code = TxtSkipCode.Text.ToUpper();
+                var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
+
+                if (lvl != null)
+                {
+                    if (!playerData.UnlockedLevelIds.Contains(lvl.Id))
+                    {
+                        playerData.UnlockedLevelIds.Add(lvl.Id);
+                        SaveSystem.Save(playerData);
+                    }
+
+                    LoadLevel(lvl);
+                    TxtSkipCode.Text = "";
+                    CodeEditor.Focus();
+                }
+            }
+        }
+    }
+}

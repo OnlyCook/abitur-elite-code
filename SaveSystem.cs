@@ -1,9 +1,11 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 public class PlayerData
 {
     public List<int> UnlockedLevelIds { get; set; } = new List<int> { 1 };
+    public List<int> CompletedLevelIds { get; set; } = new List<int>(); // Added this
     public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
 }
 
@@ -14,8 +16,11 @@ public static class SaveSystem
     public static void Save(PlayerData data)
     {
         string ids = string.Join(",", data.UnlockedLevelIds);
+        string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        File.WriteAllText(path, $"{ids}|{codes}");
+
+        // format: unlocked|codes|completed
+        File.WriteAllText(path, $"{ids}|{codes}|{completed}");
     }
 
     public static PlayerData Load()
@@ -41,6 +46,11 @@ public static class SaveSystem
                     string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
                     if (!data.UserCode.ContainsKey(id)) data.UserCode.Add(id, code);
                 }
+            }
+
+            if (parts.Length > 2 && !string.IsNullOrEmpty(parts[2]))
+            {
+                data.CompletedLevelIds = parts[2].Split(',').Select(int.Parse).ToList();
             }
         }
         catch { }
