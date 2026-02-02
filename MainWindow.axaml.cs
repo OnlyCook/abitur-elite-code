@@ -148,6 +148,15 @@ namespace AbiturEliteCode
 
         private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
         {
+            // ctrl + s => save
+            if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+            {
+                SaveCurrentProgress();
+                TxtConsole.Text += "\n> Gespeichert.";
+                e.Handled = true;
+                return;
+            }
+
             if (e.Key == Key.Back)
             {
                 int offset = CodeEditor.CaretOffset;
@@ -311,6 +320,7 @@ namespace AbiturEliteCode
 
             GenerateMaterials(level);
 
+            TxtConsole.Foreground = Brushes.LightGray;
             TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.";
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
@@ -413,6 +423,18 @@ namespace AbiturEliteCode
             }
         }
 
+        private void BtnResetDiagram_Click(object sender, RoutedEventArgs e)
+        {
+            if (ImgScale != null && ImgTranslate != null)
+            {
+                _currentScale = 1.0;
+                ImgScale.ScaleX = _currentScale;
+                ImgScale.ScaleY = _currentScale;
+                ImgTranslate.X = 0;
+                ImgTranslate.Y = 0;
+            }
+        }
+
         private void GenerateMaterials(Level level)
         {
             PnlMaterials.Children.Clear();
@@ -426,7 +448,7 @@ namespace AbiturEliteCode
                     {
                         Text = "Referenz-Klassen:",
                         FontWeight = FontWeight.Bold,
-                        Foreground = Brushes.LightGreen,
+                        Foreground = SolidColorBrush.Parse("#32A852"),
                         Margin = new Thickness(0, 0, 0, 5)
                     });
                     PnlMaterials.Children.Add(new Image
@@ -450,8 +472,16 @@ namespace AbiturEliteCode
                     {
                         string preview = trim.Length > 18 ? trim.Substring(0, 15) + "..." : trim;
                         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-                        var contentPanel = new StackPanel { IsVisible = false, Background = SolidColorBrush.Parse("#252526"), Margin = new Thickness(10) };
-                        RenderRichText(contentPanel, trim);
+                        var contentPanel = new Border
+                        {
+                            IsVisible = false,
+                            Background = SolidColorBrush.Parse("#252526"),
+                            Margin = new Thickness(0, 5, 0, 0),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(10),
+                            Child = new StackPanel()
+                        };
+                        RenderRichText((StackPanel)contentPanel.Child, trim);
 
                         var btn = new Button
                         {
@@ -541,17 +571,17 @@ namespace AbiturEliteCode
                 if (currentLevel.Id == 1)
                 {
                     Type tierType = assembly.GetType("Tier");
-                    if (tierType == null) throw new Exception("Klasse 'Tier' nicht gefunden.");
+                    if (tierType == null) throw new Exception("Klasse 'Tier' nicht gefunden. Stelle sicher, dass du 'public class Tier' geschrieben hast.");
 
                     ConstructorInfo ctor = tierType.GetConstructor(new[] { typeof(string), typeof(int) });
-                    if (ctor == null) throw new Exception("Konstruktor Tier(string, int) fehlt.");
+                    if (ctor == null) throw new Exception("Konstruktor Tier(string, int) fehlt. Füge einen Konstruktor mit zwei Parametern hinzu: public Tier(string name, int alter)");
 
                     object tier = ctor.Invoke(new object[] { "Löwe", 5 });
                     FieldInfo fName = tierType.GetField("name", BindingFlags.NonPublic | BindingFlags.Instance);
                     FieldInfo fAlter = tierType.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
 
-                    if (fName == null) throw new Exception("Feld 'name' fehlt oder ist nicht private.");
-                    if (fAlter == null) throw new Exception("Feld 'alter' fehlt oder ist nicht private.");
+                    if (fName == null) throw new Exception("Feld 'name' fehlt oder ist nicht private. Füge hinzu: private string name;");
+                    if (fAlter == null) throw new Exception("Feld 'alter' fehlt oder ist nicht private. Füge hinzu: private int alter;");
 
                     string actualName = (string)fName.GetValue(tier);
                     int actualAlter = (int)fAlter.GetValue(tier);
@@ -559,18 +589,18 @@ namespace AbiturEliteCode
                     if (actualName == "Löwe" && actualAlter == 5)
                     {
                         success = true;
-                        feedback = "Klasse Tier korrekt implementiert!";
+                        feedback = "Klasse Tier korrekt implementiert! Felder und Konstruktor funktionieren.";
                     }
                     else
                     {
-                        throw new Exception("Konstruktor setzt die Werte nicht korrekt.");
+                        throw new Exception("Konstruktor setzt die Werte nicht korrekt. Im Konstruktor: this.name = name; und this.alter = alter;");
                     }
                 }
                 // --- LEVEL 2 ---
                 else if (currentLevel.Id == 2)
                 {
                     Type t = assembly.GetType("Tier");
-                    if (t == null) throw new Exception("Klasse 'Tier' nicht gefunden. Haben Sie sie gelöscht?");
+                    if (t == null) throw new Exception("Klasse 'Tier' nicht gefunden. Hast du sie gelöscht?");
 
                     object obj = Activator.CreateInstance(t);
 
@@ -578,8 +608,8 @@ namespace AbiturEliteCode
                     MethodInfo mGet = t.GetMethod("GetAlter");
                     FieldInfo fAlter = t.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
 
-                    if (mSet == null) throw new Exception("Methode SetAlter fehlt.");
-                    if (mGet == null) throw new Exception("Methode GetAlter fehlt.");
+                    if (mSet == null) throw new Exception("Methode SetAlter fehlt. Erstelle: public void SetAlter(int neuesAlter)");
+                    if (mGet == null) throw new Exception("Methode GetAlter fehlt. Erstelle: public int GetAlter()");
 
                     // initial value check
                     fAlter.SetValue(obj, 10);
@@ -587,15 +617,15 @@ namespace AbiturEliteCode
                     // test 1: invalid (lower)
                     mSet.Invoke(obj, new object[] { 5 });
                     int val1 = (int)mGet.Invoke(obj, null);
-                    if (val1 != 10) throw new Exception("Fehler: Alter wurde trotz kleinerem Wert geändert! (Kapselung verletzt)");
+                    if (val1 != 10) throw new Exception("Fehler: Alter wurde trotz kleinerem Wert geändert! SetAlter muss prüfen: if (neuesAlter > alter)");
 
                     // test 2: valid (higher)
                     mSet.Invoke(obj, new object[] { 12 });
                     int val2 = (int)mGet.Invoke(obj, null);
-                    if (val2 != 12) throw new Exception("Fehler: Alter wurde trotz gültigem Wert nicht geändert.");
+                    if (val2 != 12) throw new Exception("Fehler: Alter wurde trotz gültigem Wert nicht geändert. Setze alter = neuesAlter wenn die Bedingung erfüllt ist.");
 
                     success = true;
-                    feedback = "Kapselung und Logik erfolgreich!";
+                    feedback = "Kapselung und Validierung erfolgreich implementiert!";
                 }
                 // --- LEVEL 3 ---
                 else if (currentLevel.Id == 3)
@@ -603,74 +633,150 @@ namespace AbiturEliteCode
                     Type tTier = assembly.GetType("Tier");
                     Type tLoewe = assembly.GetType("Loewe");
 
-                    if (tTier == null) throw new Exception("Klasse Tier fehlt.");
-                    if (tLoewe == null) throw new Exception("Klasse Loewe fehlt.");
+                    if (tTier == null) throw new Exception("Klasse Tier fehlt. Erstelle: public abstract class Tier");
+                    if (tLoewe == null) throw new Exception("Klasse Loewe fehlt. Erstelle: public class Loewe : Tier");
 
-                    if (!tTier.IsAbstract) throw new Exception("Klasse Tier muss 'abstract' sein.");
-                    if (!tLoewe.IsSubclassOf(tTier)) throw new Exception("Loewe erbt nicht von Tier.");
+                    if (!tTier.IsAbstract) throw new Exception("Klasse Tier muss 'abstract' sein. Schreibe: public abstract class Tier");
+                    if (!tLoewe.IsSubclassOf(tTier)) throw new Exception("Loewe erbt nicht von Tier. Füge hinzu: public class Loewe : Tier");
 
                     // check constructor chaining
                     ConstructorInfo ctor = tLoewe.GetConstructor(new[] { typeof(string), typeof(int) });
-                    if (ctor == null) throw new Exception("Konstruktor Loewe(string, int) fehlt.");
+                    if (ctor == null) throw new Exception("Konstruktor Loewe(string, int) fehlt. Erstelle: public Loewe(string name, int laenge) : base(name)");
 
                     // we cannot instantiate Tier, but we can instantiate Loewe
                     object leo = ctor.Invoke(new object[] { "Simba", 50 });
 
                     // check Bruellen
                     MethodInfo mB = tLoewe.GetMethod("Bruellen");
-                    if (mB == null) throw new Exception("Methode Bruellen fehlt.");
+                    if (mB == null) throw new Exception("Methode Bruellen fehlt. Erstelle: public string Bruellen()");
 
                     string sound = (string)mB.Invoke(leo, null);
-                    if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück.");
+                    if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück. Die Methode sollte einen String zurückgeben.");
 
                     success = true;
-                    feedback = "Vererbung und Abstraktion korrekt!";
+                    feedback = "Vererbung und Abstraktion korrekt implementiert!";
                 }
                 // --- LEVEL 4 ---
                 else if (currentLevel.Id == 4)
                 {
                     Type tG = assembly.GetType("Gehege");
-                    if (tG == null) throw new Exception("Klasse Gehege fehlt.");
+                    Type tTier = assembly.GetType("Tier");
 
-                    object g = Activator.CreateInstance(tG);
+                    if (tG == null) throw new Exception("Klasse 'Gehege' nicht gefunden.");
+                    if (tTier == null) throw new Exception("Klasse 'Tier' nicht gefunden.");
+
+                    // check if Tier is abstract
+                    if (tTier.IsAbstract)
+                    {
+                        throw new Exception("Für dieses Level muss Klasse 'Tier' konkret (nicht abstract) sein.");
+                    }
+
+                    // create Gehege instance
+                    object g;
+                    try
+                    {
+                        g = Activator.CreateInstance(tG);
+                    }
+                    catch
+                    {
+                        throw new Exception("Gehege konnte nicht instanziiert werden. Prüfe den Konstruktor.");
+                    }
+
+                    if (g == null) throw new Exception("Gehege-Instanz ist null.");
+
+                    // find methods
                     MethodInfo mAdd = tG.GetMethod("Hinzufuegen");
                     MethodInfo mCount = tG.GetMethod("AnzahlTiere");
 
-                    // dynamic creation of Tier (since it might be abstract or concrete depending on user implementation)
-                    Type tTier = assembly.GetType("Tier");
-                    object animal;
-                    if (tTier.IsAbstract)
+                    if (mAdd == null) throw new Exception("Methode 'Hinzufuegen' nicht gefunden.");
+                    if (mCount == null) throw new Exception("Methode 'AnzahlTiere' nicht gefunden.");
+
+                    // check method signatures
+                    var addParams = mAdd.GetParameters();
+                    if (addParams.Length != 1 || addParams[0].ParameterType != tTier)
                     {
-                        // if user left Tier abstract from prev level, we need a concrete subclass to test list
-                        throw new Exception("Für dieses Level bitte Klasse Tier wieder 'konkret' (nicht abstract) machen, oder eine konkrete Unterklasse nutzen.");
+                        throw new Exception("Methode Hinzufuegen muss Parameter vom Typ Tier haben.");
                     }
-                    else
+
+                    if (mCount.ReturnType != typeof(int))
+                    {
+                        throw new Exception("Methode AnzahlTiere muss int zurückgeben.");
+                    }
+
+                    // create Tier instance
+                    object animal;
+                    try
                     {
                         animal = Activator.CreateInstance(tTier);
                     }
+                    catch
+                    {
+                        throw new Exception("Tier konnte nicht instanziiert werden. Tier braucht einen Konstruktor ohne Parameter.");
+                    }
 
-                    mAdd.Invoke(g, new object[] { animal });
-                    int count = (int)mCount.Invoke(g, null);
+                    if (animal == null) throw new Exception("Tier-Instanz ist null.");
 
-                    if (count == 1)
+                    // test initial count
+                    int initialCount;
+                    try
+                    {
+                        initialCount = (int)mCount.Invoke(g, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Fehler bei AnzahlTiere: {ex.Message}");
+                    }
+
+                    if (initialCount != 0)
+                    {
+                        throw new Exception($"AnzahlTiere sollte initial 0 sein, ist aber {initialCount}. Initialisiere die Liste im Konstruktor.");
+                    }
+
+                    // add one animal
+                    try
+                    {
+                        mAdd.Invoke(g, new object[] { animal });
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Fehler bei Hinzufuegen: {ex.Message}");
+                    }
+
+                    // test count after adding
+                    int countAfterAdd;
+                    try
+                    {
+                        countAfterAdd = (int)mCount.Invoke(g, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Fehler bei AnzahlTiere: {ex.Message}");
+                    }
+
+                    if (countAfterAdd == 1)
                     {
                         success = true;
-                        feedback = "Tier erfolgreich zur Liste hinzugefügt.";
+                        feedback = "Gehege und List<Tier> korrekt implementiert!";
                     }
-                    else throw new Exception("AnzahlTiere liefert falschen Wert.");
+                    else
+                    {
+                        throw new Exception($"AnzahlTiere gibt {countAfterAdd} statt 1 zurück. Prüfe die Liste.");
+                    }
                 }
                 // --- LEVEL 5 ---
                 else if (currentLevel.Id == 5)
                 {
                     Type tG = assembly.GetType("Gehege");
-                    if (tG == null) throw new Exception("Klasse 'Gehege' nicht gefunden.");
-                    object g = Activator.CreateInstance(tG);
+                    if (tG == null) throw new Exception("Klasse 'Gehege' fehlt.");
+
                     Type tT = assembly.GetType("Tier");
+                    if (tT == null) throw new Exception("Klasse 'Tier' fehlt.");
+
+                    object g = Activator.CreateInstance(tG);
 
                     object CreateTier(int age)
                     {
-                        var t = Activator.CreateInstance(tT, new object[] { age });
-                        return t;
+                        return Activator.CreateInstance(tT, new object[] { age });
                     }
 
                     object t1 = CreateTier(5);
@@ -678,30 +784,48 @@ namespace AbiturEliteCode
                     object t3 = CreateTier(10);
 
                     FieldInfo fList = tG.GetField("bewohner");
-                    if (fList == null) throw new Exception("Feld 'bewohner' nicht gefunden.");
+                    if (fList == null) throw new Exception("Feld 'bewohner' fehlt.");
 
                     MethodInfo mGetAlter = tT.GetMethod("GetAlter");
-                    if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' nicht gefunden in Klasse Tier.");
+                    if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' fehlt.");
 
                     var listInstance = fList.GetValue(g);
+                    if (listInstance == null) throw new Exception("Liste 'bewohner' ist null.");
+
                     MethodInfo listAdd = listInstance.GetType().GetMethod("Add");
 
                     listAdd.Invoke(listInstance, new object[] { t1 });
                     listAdd.Invoke(listInstance, new object[] { t2 });
                     listAdd.Invoke(listInstance, new object[] { t3 });
 
-                    MethodInfo mAlgo = tG.GetMethod("ErmittleAeltestes") ?? throw new Exception("Methode 'ErmittleAeltestes' wurde nicht gefunden. Stelle sicher, dass der Name korrekt ist und die Methode 'public' ist.");
+                    MethodInfo mAlgo = tG.GetMethod("ErmittleAeltestes");
+                    if (mAlgo == null) throw new Exception("Methode 'ErmittleAeltestes' fehlt.");
+
+                    if (mAlgo.ReturnType != tT) throw new Exception("Rückgabetyp muss 'Tier' sein.");
+
                     object result = mAlgo.Invoke(g, null);
 
+                    if (result == null) throw new Exception("Methode gibt null zurück.");
+
                     int resultAge = (int)mGetAlter.Invoke(result, null);
-                    int t2Age = (int)mGetAlter.Invoke(t2, null);
 
                     if (result == t2 && resultAge == 20)
                     {
                         success = true;
-                        feedback = "Algorithmus korrekt! Das älteste Tier (20) wurde gefunden.";
+                        feedback = "Mini-Prüfung bestanden! Algorithmus korrekt.";
                     }
-                    else throw new Exception("Algorithmus liefert nicht das älteste Tier.");
+                    else
+                    {
+                        throw new Exception($"Falsches Tier zurückgegeben (Alter: {resultAge}, erwartet: 20).");
+                    }
+
+                    // test empty list
+                    var emptyGehege = Activator.CreateInstance(tG);
+                    object emptyResult = mAlgo.Invoke(emptyGehege, null);
+                    if (emptyResult != null)
+                    {
+                        throw new Exception("Bei leerer Liste muss null zurückgegeben werden.");
+                    }
                 }
 
                 if (success)
@@ -933,18 +1057,46 @@ namespace AbiturEliteCode
                 Margin = new Thickness(15)
             };
 
-            mainGrid.Children.Add(new TextBlock
+            mainGrid.Children.Add(new StackPanel
             {
-                Text = "Level Auswählen",
-                FontSize = 20,
-                FontWeight = FontWeight.Bold,
-                Foreground = Brushes.White,
-                Margin = new Thickness(0, 0, 0, 15)
+                Orientation = Orientation.Horizontal,
+                Spacing = 15,
+                Margin = new Thickness(0, 0, 0, 15),
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "Level Auswählen",
+                        FontSize = 20,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = Brushes.White,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    new Border
+                    {
+                        Background = SolidColorBrush.Parse("#2D2D30"),
+                        CornerRadius = new CornerRadius(12),
+                        Padding = new Thickness(10, 5),
+                        Child = new TextBlock
+                        {
+                            Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}",
+                            Foreground = SolidColorBrush.Parse("#32A852"),
+                            FontWeight = FontWeight.Bold,
+                            FontSize = 14
+                        }
+                    }
+                }
             });
 
-            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            var scroll = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            };
             Grid.SetRow(scroll, 1);
-            var levelStack = new StackPanel { Spacing = 8 };
+            var levelStack = new StackPanel
+            {
+                Spacing = 8
+            };
 
             var groups = levels.GroupBy(l => l.Section);
 
@@ -952,7 +1104,11 @@ namespace AbiturEliteCode
             {
                 bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
 
-                var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                var headerPanel = new StackPanel 
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 10
+                };
                 headerPanel.Children.Add(new TextBlock
                 {
                     Text = group.Key,
@@ -966,14 +1122,22 @@ namespace AbiturEliteCode
                     headerPanel.Children.Add(LoadIcon("icons/ic_done.svg", 16));
                 }
 
-                var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+                var sectionContent = new StackPanel
+                { Spacing = 5,
+                    Margin = new Thickness(0, 5, 0, 0)
+                };
                 foreach (var lvl in group)
                 {
                     bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
+                    bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
 
-                    var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                    var btnContent = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 10
+                    };
 
-                    string iconPath = unlocked ? "icons/ic_lock_open.svg" : "icons/ic_lock.svg";
+                    string iconPath = completed ? "icons/ic_check.svg" : (unlocked ? "icons/ic_lock_open.svg" : "icons/ic_lock.svg");
                     btnContent.Children.Add(LoadIcon(iconPath, 16));
 
                     btnContent.Children.Add(new TextBlock
@@ -989,7 +1153,7 @@ namespace AbiturEliteCode
                         HorizontalAlignment = HorizontalAlignment.Stretch,
                         HorizontalContentAlignment = HorizontalAlignment.Left,
                         Padding = new Thickness(10, 10),
-                        Background = unlocked ? SolidColorBrush.Parse("#2D2D30") : SolidColorBrush.Parse("#191919"),
+                        Background = unlocked ? SolidColorBrush.Parse("#313133") : SolidColorBrush.Parse("#191919"),
                         Foreground = unlocked ? Brushes.White : Brushes.Gray,
                         CornerRadius = new CornerRadius(4)
                     };

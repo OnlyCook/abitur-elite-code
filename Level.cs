@@ -13,6 +13,8 @@ namespace AbiturEliteCode
     // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml object diagrams, uml sequence diagrams and Nassi–Shneiderman diagrams
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
+    
+    // note: in the RunTests method (in MainWindow.axaml.cs) the handholding with the error explanaitions should decrease the further the user progress to make them do more on their own, if we introduce something (moderate) handholding it accepted, but on the last level of a section (which is always a mini-test) we want to check whether the user can do what they were taught on their own
 
     public class Level
     {
@@ -40,10 +42,10 @@ namespace AbiturEliteCode
         {
             string listDocsHints =
                 @"Hinweis: In C# heißt die Klasse ebenfalls [List<T>]
-- Java: [list.get(i)] → C#: [list|[i|]] oder [list.ElementAt(i)]
-- Java: [list.size()] → C#: [list.Count]
-- Java: [boolean] → C#: [bool]
-- Listen müssen mit [new List<T>()] initialisiert werden";
+• Java: [list.get(i)] → C#: [list|[i|]] oder [list.ElementAt(i)]
+• Java: [list.size()] → C#: [list.Count]
+• Java: [boolean] → C#: [bool]
+• Listen müssen mit [new List<T>()] initialisiert werden";
 
             return new List<Level>
             {
@@ -104,9 +106,9 @@ namespace AbiturEliteCode
                     Title = "Gehege-Verwaltung mit List",
                     Description = "Erstellen Sie die Klasse [Gehege], die eine Liste von Tieren verwaltet.\n\n" +
                                   "Die Klasse soll folgende Funktionalität bieten:\n" +
-                                  "- Einen Konstruktor, der die Liste initialisiert\n" +
-                                  "- Eine Methode [Hinzufuegen(Tier t)], die ein Tier zur Liste hinzufügt\n" +
-                                  "- Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
+                                  "• Einen Konstruktor, der die Liste initialisiert\n" +
+                                  "• Eine Methode [Hinzufuegen(Tier t)], die ein Tier zur Liste hinzufügt\n" +
+                                  "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
                                   "Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse Tier.",
                     StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
                     DiagramPath = "img\\sec1\\lvl4.png",
@@ -123,11 +125,11 @@ namespace AbiturEliteCode
                     Title = "Algorithmus: Das Älteste Tier",
                     Description = "Implementieren Sie die Methode [ErmittleAeltestes()] in der Klasse [Gehege].\n\n" +
                                   "Die Methode soll:\n" +
-                                  "- Das Tier mit dem höchsten Alter zurückgeben\n" +
-                                  "- Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
-                                  "- Bei leerer Liste [null] zurückgeben\n\n" +
+                                  "• Das Tier mit dem höchsten Alter zurückgeben\n" +
+                                  "• Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
+                                  "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
-                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int a)\n    {\n        alter = a;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    public List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
+                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    public List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
                     DiagramPath = "img\\sec1\\lvl5.png",
                     MaterialDocs = listDocsHints + "\n\nTipp: Verwenden Sie eine Schleife, um durch alle Tiere zu iterieren.\n\nTipp: Denken Sie daran, den Rückgabetyp [Tier] zu verwenden. Die Methode muss ein Tier-Objekt oder [null] zurückgeben.\n\nHinweis: Prüfen Sie zuerst, ob die Liste leer ist ([bewohner.Count == 0]), bevor Sie iterieren.",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  - bewohner : List<Tier>\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege \"1\" o-- \"*\" Tier\n@enduml",

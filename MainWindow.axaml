@@ -87,6 +87,18 @@
 								</Image.RenderTransform>
 							</Image>
 
+							<Button Name="BtnResetDiagram"
+									Background="#3C3C3C"
+									Width="40" Height="40"
+									CornerRadius="5"
+									ToolTip.Tip="Diagramm zurücksetzen"
+									HorizontalAlignment="Left"
+									VerticalAlignment="Bottom"
+									Margin="10"
+									Click="BtnResetDiagram_Click">
+								<svg:Svg Path="/icons/ic_restart.svg" Width="20" Height="20"/>
+							</Button>
+
 							<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
 									   Foreground="#666" FontSize="12"
 									   HorizontalAlignment="Right" VerticalAlignment="Bottom"
