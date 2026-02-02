@@ -1,18 +1,20 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Svg.Skia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Avalonia.Svg.Skia;
 using AvaloniaEdit.Editing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
+using Svg.Transforms;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,6 +31,12 @@ namespace AbiturEliteCode
         private List<Level> levels;
         private System.Timers.Timer autoSaveTimer;
 
+        private ScaleTransform ImgScale;
+        private TranslateTransform ImgTranslate;
+        private Point _lastMousePoint;
+        private bool _isDragging = false;
+        private double _currentScale = 1.0;
+
         private SolidColorBrush BrushTextNormal = SolidColorBrush.Parse("#E6E6E6");
         private SolidColorBrush BrushTextHighlight = SolidColorBrush.Parse("#6495ED"); // blue
         private SolidColorBrush BrushBgPanel = SolidColorBrush.Parse("#202124");
@@ -36,6 +44,10 @@ namespace AbiturEliteCode
         public MainWindow()
         {
             InitializeComponent();
+
+            var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
+            ImgScale = (ScaleTransform)transformGroup.Children[0];
+            ImgTranslate = (TranslateTransform)transformGroup.Children[1];
 
             levels = Curriculum.GetLevels();
             playerData = SaveSystem.Load();
@@ -60,30 +72,29 @@ namespace AbiturEliteCode
 
             this.Opened += (s, e) => CodeEditor.Focus();
 
-            // return focus to editor when clicking somewhere random (empty)
+            // return focus to editor when clicking somewhere random
             this.AddHandler(PointerPressedEvent, (s, e) =>
             {
                 var source = e.Source as Control;
-
                 if (source is TextBox || source is Button || (source?.Parent is Button)) return;
+
+                if (source?.Name == "DiagramPanel" || source?.Name == "ImgDiagram") return;
 
                 Dispatcher.UIThread.Post(() => CodeEditor.Focus());
             }, RoutingStrategies.Tunnel);
 
-            this.Loaded += (s, e) => // return focus on tab switch
+            // handle tab switching focus
+            var tabs = this.FindControl<TabControl>("MainTabs");
+            if (tabs != null)
             {
-                var tabControl = this.GetVisualDescendants().OfType<TabControl>().FirstOrDefault();
-                if (tabControl != null)
+                tabs.SelectionChanged += (sender, args) =>
                 {
-                    tabControl.SelectionChanged += (sender, args) =>
+                    if (sender == tabs && args.AddedItems.Count > 0 && args.AddedItems[0] is TabItem)
                     {
-                        if (sender == tabControl && args.AddedItems.Count > 0 && args.AddedItems[0] is TabItem)
-                        {
-                            Dispatcher.UIThread.Post(() => CodeEditor.Focus(), DispatcherPriority.Input);
-                        }
-                    };
-                }
-            };
+                        Dispatcher.UIThread.Post(() => CodeEditor.Focus(), DispatcherPriority.Input);
+                    }
+                };
+            }
         }
 
         private Image LoadIcon(string path, double size)
@@ -121,7 +132,7 @@ namespace AbiturEliteCode
             CodeEditor.Options.EnableHyperlinks = false;
             CodeEditor.Options.EnableEmailHyperlinks = false;
 
-            CodeEditor.FontFamily = new FontFamily("Consolas");
+            CodeEditor.FontFamily = new FontFamily("Consolas, Monospace");
             CodeEditor.FontSize = 16;
             CodeEditor.Background = Brushes.Transparent;
             CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
@@ -159,7 +170,7 @@ namespace AbiturEliteCode
                 }
 
                 // remove whole indentation (4 spaces)
-                if (offset >= 4)
+                if (CodeEditor.SelectionLength == 0 && offset >= 4)
                 {
                     string textToCheck = CodeEditor.Document.GetText(offset - 4, 4);
                     if (textToCheck == "    ")
@@ -255,8 +266,22 @@ namespace AbiturEliteCode
             string rawCode = playerData.UserCode.ContainsKey(level.Id) ? playerData.UserCode[level.Id] : level.StarterCode;
             CodeEditor.Text = rawCode;
 
+            // reset uml zoom
+            _currentScale = 1.0;
+            if (ImgScale != null)
+            {
+                ImgScale.ScaleX = 1.0;
+                ImgScale.ScaleY = 1.0;
+            }
+            if (ImgTranslate != null)
+            {
+                ImgTranslate.X = 0;
+                ImgTranslate.Y = 0;
+            }
+
             PnlTask.Children.Clear();
-            PnlTask.Children.Add(new TextBlock
+
+            PnlTask.Children.Add(new SelectableTextBlock
             {
                 Text = $"{level.Id}. {level.Title}",
                 FontSize = 20,
@@ -286,7 +311,7 @@ namespace AbiturEliteCode
 
             GenerateMaterials(level);
 
-            TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} geladen.";
+            TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.";
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
         }
@@ -297,7 +322,7 @@ namespace AbiturEliteCode
             string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
             var parts = Regex.Split(safeText, @"(\[.*?\])");
 
-            var tb = new TextBlock
+            var tb = new SelectableTextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 15,
@@ -310,7 +335,7 @@ namespace AbiturEliteCode
                 {
                     string content = part.Substring(1, part.Length - 2);
                     content = content.Replace("\x01", "[").Replace("\x02", "]");
-                    tb.Inlines.Add(new Avalonia.Controls.Documents.Run
+                    tb.Inlines.Add(new Run
                     {
                         Text = content,
                         FontWeight = FontWeight.Bold,
@@ -321,7 +346,7 @@ namespace AbiturEliteCode
                 else
                 {
                     string content = part.Replace("\x01", "[").Replace("\x02", "]");
-                    tb.Inlines.Add(new Avalonia.Controls.Documents.Run
+                    tb.Inlines.Add(new Run
                     {
                         Text = content,
                         Foreground = BrushTextNormal
@@ -329,6 +354,63 @@ namespace AbiturEliteCode
                 }
             }
             panel.Children.Add(tb);
+        }
+
+
+        private void Diagram_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+        {
+            if (ImgScale == null || ImgTranslate == null) return;
+
+            double zoomSpeed = 0.1;
+            double oldScale = _currentScale;
+
+            if (e.Delta.Y > 0) _currentScale += zoomSpeed;
+            else _currentScale -= zoomSpeed;
+
+            if (_currentScale < 0.1) _currentScale = 0.1;
+            if (_currentScale > 5.0) _currentScale = 5.0;
+
+            ImgScale.ScaleX = _currentScale;
+            ImgScale.ScaleY = _currentScale;
+
+            e.Handled = true;
+        }
+
+        private void Diagram_PointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            var pointer = e.GetCurrentPoint(sender as Control);
+            if (pointer.Properties.IsLeftButtonPressed)
+            {
+                _isDragging = true;
+                _lastMousePoint = pointer.Position;
+                (sender as Control).Cursor = new Cursor(StandardCursorType.SizeAll);
+                e.Handled = true;
+            }
+        }
+
+        private void Diagram_PointerMoved(object sender, PointerEventArgs e)
+        {
+            if (!_isDragging || ImgTranslate == null) return;
+
+            var pointer = e.GetCurrentPoint(sender as Control);
+            var currentPos = pointer.Position;
+            var delta = currentPos - _lastMousePoint;
+
+            ImgTranslate.X += delta.X;
+            ImgTranslate.Y += delta.Y;
+
+            _lastMousePoint = currentPos;
+            e.Handled = true;
+        }
+
+        private void Diagram_PointerReleased(object sender, PointerReleasedEventArgs e)
+        {
+            if (_isDragging)
+            {
+                _isDragging = false;
+                (sender as Control).Cursor = Cursor.Default;
+                e.Handled = true;
+            }
         }
 
         private void GenerateMaterials(Level level)
@@ -340,7 +422,7 @@ namespace AbiturEliteCode
                 string auxPath = Path.Combine(AppContext.BaseDirectory, "img", $"aux_{level.AuxiliaryId}.png");
                 if (File.Exists(auxPath))
                 {
-                    PnlMaterials.Children.Add(new TextBlock
+                    PnlMaterials.Children.Add(new SelectableTextBlock
                     {
                         Text = "Referenz-Klassen:",
                         FontWeight = FontWeight.Bold,
@@ -366,9 +448,9 @@ namespace AbiturEliteCode
                     string trim = line.Trim();
                     if (trim.StartsWith("Hinweis:") || trim.StartsWith("Tipp:"))
                     {
-                        string preview = trim.Length > 25 ? trim.Substring(0, 22) + "..." : trim;
+                        string preview = trim.Length > 18 ? trim.Substring(0, 15) + "..." : trim;
                         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-                        var contentPanel = new StackPanel { IsVisible = false, Background = SolidColorBrush.Parse("#252526") };
+                        var contentPanel = new StackPanel { IsVisible = false, Background = SolidColorBrush.Parse("#252526"), Margin = new Thickness(10) };
                         RenderRichText(contentPanel, trim);
 
                         var btn = new Button

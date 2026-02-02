@@ -135,3 +135,8 @@ F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10
 F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\Svg.Skia.dll
 F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\Avalonia.Svg.Skia.dll
 F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\SkiaSharp.HarfBuzz.dll
+F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\obj\Debug\net10.0\AbiturEliteCode.sourcelink.json
+F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\runtimes\linux-arm\native\libSkiaSharp.so.116.0.0
+F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\runtimes\linux-arm64\native\libSkiaSharp.so.116.0.0
+F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\runtimes\linux-musl-x64\native\libSkiaSharp.so.116.0.0
+F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\bin\Debug\net10.0\runtimes\linux-x64\native\libSkiaSharp.so.116.0.0

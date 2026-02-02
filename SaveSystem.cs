@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Avalonia.Controls;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -11,10 +13,13 @@ public class PlayerData
 
 public static class SaveSystem
 {
-    private static string path = "savegame.elitedata";
+    private static string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
+    private static string path = Path.Combine(folder, "savegame.elitedata");
 
     public static void Save(PlayerData data)
     {
+        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));

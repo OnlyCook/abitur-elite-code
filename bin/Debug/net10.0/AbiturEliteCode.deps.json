@@ -16,7 +16,8 @@
           "Avalonia.Svg.Skia": "11.3.0",
           "Avalonia.Themes.Fluent": "11.3.11",
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
-          "Microsoft.CodeAnalysis.CSharp.Scripting": "5.0.0"
+          "Microsoft.CodeAnalysis.CSharp.Scripting": "5.0.0",
+          "SkiaSharp.NativeAssets.Linux": "3.116.1"
         },
         "runtime": {
           "AbiturEliteCode.dll": {}
@@ -199,7 +200,7 @@
           "HarfBuzzSharp": "8.3.1.1",
           "HarfBuzzSharp.NativeAssets.Linux": "8.3.1.1",
           "SkiaSharp": "3.116.1",
-          "SkiaSharp.NativeAssets.Linux": "2.88.9"
+          "SkiaSharp.NativeAssets.Linux": "3.116.1"
         },
         "runtime": {
           "lib/net8.0/Avalonia.Skia.dll": {
@@ -627,12 +628,14 @@
           }
         }
       },
-      "SkiaSharp.NativeAssets.Linux/2.88.9": {
-        "dependencies": {
-          "SkiaSharp": "3.116.1"
-        },
+      "SkiaSharp.NativeAssets.Linux/3.116.1": {
         "runtimeTargets": {
           "runtimes/linux-arm/native/libSkiaSharp.so": {
+            "rid": "linux-arm",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-arm/native/libSkiaSharp.so.116.0.0": {
             "rid": "linux-arm",
             "assetType": "native",
             "fileVersion": "0.0.0.0"
@@ -642,12 +645,27 @@
             "assetType": "native",
             "fileVersion": "0.0.0.0"
           },
+          "runtimes/linux-arm64/native/libSkiaSharp.so.116.0.0": {
+            "rid": "linux-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
           "runtimes/linux-musl-x64/native/libSkiaSharp.so": {
             "rid": "linux-musl-x64",
             "assetType": "native",
             "fileVersion": "0.0.0.0"
           },
+          "runtimes/linux-musl-x64/native/libSkiaSharp.so.116.0.0": {
+            "rid": "linux-musl-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
           "runtimes/linux-x64/native/libSkiaSharp.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x64/native/libSkiaSharp.so.116.0.0": {
             "rid": "linux-x64",
             "assetType": "native",
             "fileVersion": "0.0.0.0"
@@ -938,12 +956,12 @@
       "path": "skiasharp.harfbuzz/3.116.1",
       "hashPath": "skiasharp.harfbuzz.3.116.1.nupkg.sha512"
     },
-    "SkiaSharp.NativeAssets.Linux/2.88.9": {
+    "SkiaSharp.NativeAssets.Linux/3.116.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-cWSaJKVPWAaT/WIn9c8T5uT/l4ETwHxNJTkEOtNKjphNo8AW6TF9O32aRkxqw3l8GUdUo66Bu7EiqtFh/XG0Zg==",
-      "path": "skiasharp.nativeassets.linux/2.88.9",
-      "hashPath": "skiasharp.nativeassets.linux.2.88.9.nupkg.sha512"
+      "sha512": "sha512-f4OSsrMwe+Ei9KpNc3EMUiMcZkQSYepHCaDuvMyLBaHVQd+9Ywq/rlbmapqztsU6k2iPEVLD8ZuBJm9RDJsAow==",
+      "path": "skiasharp.nativeassets.linux/3.116.1",
+      "hashPath": "skiasharp.nativeassets.linux.3.116.1.nupkg.sha512"
     },
     "SkiaSharp.NativeAssets.macOS/3.116.1": {
       "type": "package",

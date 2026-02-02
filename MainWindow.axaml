@@ -12,37 +12,31 @@
         Background="#121212"
         RequestedThemeVariant="Dark">
 
-	<!-- main layout -->
 	<Grid RowDefinitions="60,*">
 
-		<!-- TOP HEADER -->
 		<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
-			<Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto">
-				<!-- title -->
+			<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
 				<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
 					<TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="18"/>
 					<TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="18"/>
 				</StackPanel>
 
-				<!-- level select -->
 				<Button Grid.Column="1" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
                         Background="#2D2D30" Foreground="White"
 						CornerRadius="4" Padding="15,8"
                         VerticalAlignment="Center" Margin="20,0"
-						HorizontalAlignment="Left"
+						HorizontalAlignment="Center"
 						Click="BtnLevelSelect_Click"/>
 
-				<!-- code skipper -->
 				<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="0,0,20,0">
 					<TextBlock Text="Level Code:" Foreground="Gray" VerticalAlignment="Center" FontSize="14"/>
 					<TextBox Name="TxtSkipCode" Width="70" MaxLength="3"
                              Background="#141414" Foreground="White"
 							 BorderBrush="#333" CornerRadius="4"
-                             HorizontalContentAlignment="Center" FontFamily="Consolas"
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontFamily="Consolas"
                              TextChanged="TxtSkipCode_TextChanged"/>
 				</StackPanel>
 
-				<!-- mext level button -->
 				<Button Grid.Column="3" Name="BtnNextLevel" Content="NÄCHSTES LEVEL →"
                         Background="RoyalBlue" Foreground="White" IsVisible="False"
 						CornerRadius="4" Padding="15,8" FontWeight="Bold"
@@ -51,11 +45,9 @@
 			</Grid>
 		</Border>
 
-		<!-- CONTENT AREA -->
 		<Grid Grid.Row="1" ColumnDefinitions="*, 4, *">
 
-			<!-- LEFT SIDE -->
-			<TabControl Grid.Column="0" Margin="10,5,5,10" Padding="0">
+			<TabControl Grid.Column="0" Name="MainTabs" Margin="10,5,5,10" Padding="0">
 				<TabControl.Styles>
 					<Style Selector="TabItem">
 						<Setter Property="FontSize" Value="15"/>
@@ -79,10 +71,27 @@
 				</TabItem>
 
 				<TabItem Header="UML/Diagramme">
-					<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0">
-						<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-							<Image Name="ImgDiagram" Stretch="None"/>
-						</ScrollViewer>
+					<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
+						<Panel Name="DiagramPanel" Background="Transparent"
+							   PointerWheelChanged="Diagram_PointerWheelChanged"
+							   PointerPressed="Diagram_PointerPressed"
+							   PointerMoved="Diagram_PointerMoved"
+							   PointerReleased="Diagram_PointerReleased">
+
+							<Image Name="ImgDiagram" Stretch="None" RenderTransformOrigin="0.5,0.5">
+								<Image.RenderTransform>
+									<TransformGroup>
+										<ScaleTransform/>
+										<TranslateTransform/>
+									</TransformGroup>
+								</Image.RenderTransform>
+							</Image>
+
+							<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
+									   Foreground="#666" FontSize="12"
+									   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+									   Margin="10"/>
+						</Panel>
 					</Border>
 				</TabItem>
 
@@ -95,10 +104,8 @@
 				</TabItem>
 			</TabControl>
 
-			<!-- SPLITTER -->
 			<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns"/>
 
-			<!-- RIGHT SIDE -->
 			<Grid Grid.Column="2" RowDefinitions="Auto, *, 4, 180" Margin="5,10,10,10">
 
 				<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,8">

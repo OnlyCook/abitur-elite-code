@@ -25,14 +25,14 @@ build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.TargetFrameworkIdentifier = .NETCoreApp
 build_property.TargetFrameworkVersion = v10.0
 build_property.RootNamespace = AbiturEliteCode
-build_property.ProjectDir = f:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\
+build_property.ProjectDir = F:\PERSONAL DATA\coding projects\AbiturEliteCode\AbiturEliteCode\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[f:/PERSONAL DATA/coding projects/AbiturEliteCode/AbiturEliteCode/App.axaml]
+[F:/PERSONAL DATA/coding projects/AbiturEliteCode/AbiturEliteCode/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[f:/PERSONAL DATA/coding projects/AbiturEliteCode/AbiturEliteCode/MainWindow.axaml]
+[F:/PERSONAL DATA/coding projects/AbiturEliteCode/AbiturEliteCode/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

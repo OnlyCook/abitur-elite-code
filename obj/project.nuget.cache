@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "kD9t73FicDg=",
+  "dgSpecHash": "VYwb4iIkNvY=",
   "success": true,
   "projectFilePath": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\AbiturEliteCode.csproj",
   "expectedPackageFiles": [
@@ -36,7 +36,7 @@
     "C:\\Users\\nikoj\\.nuget\\packages\\shimskiasharp\\3.0.2\\shimskiasharp.3.0.2.nupkg.sha512",
     "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp\\3.116.1\\skiasharp.3.116.1.nupkg.sha512",
     "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.harfbuzz\\3.116.1\\skiasharp.harfbuzz.3.116.1.nupkg.sha512",
-    "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.nativeassets.linux\\2.88.9\\skiasharp.nativeassets.linux.2.88.9.nupkg.sha512",
+    "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.nativeassets.linux\\3.116.1\\skiasharp.nativeassets.linux.3.116.1.nupkg.sha512",
     "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.nativeassets.macos\\3.116.1\\skiasharp.nativeassets.macos.3.116.1.nupkg.sha512",
     "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.nativeassets.webassembly\\2.88.9\\skiasharp.nativeassets.webassembly.2.88.9.nupkg.sha512",
     "C:\\Users\\nikoj\\.nuget\\packages\\skiasharp.nativeassets.win32\\3.116.1\\skiasharp.nativeassets.win32.3.116.1.nupkg.sha512",
