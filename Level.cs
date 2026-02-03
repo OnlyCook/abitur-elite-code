@@ -10,11 +10,9 @@ namespace AbiturEliteCode
     // every section should work on 1 broad topic, thus the lower levels are easier/introducing it, the last level is a mini-exam which includes most (if not all) elements learned in said section (plus elements from previous sections -> they build on each other)
     // every used external reference/implementation (for example List<T> or a custom class such as Server) must be attached to the materials tab (also in java, difference with c# explained through hints)
     // (nearly) every single level is bound to a diagram of any kind as the abitur is structure like this, the only exception to this may be given pseudo code which has to be translated to c# code
-    // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml object diagrams, uml sequence diagrams and Nassi–Shneiderman diagrams
+    // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml sequence diagrams, and Nassi–Shneiderman diagrams, also given can be pseudo-code
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
-    
-    // note: in the RunTests method (in MainWindow.axaml.cs) the handholding with the error explanaitions should decrease the further the user progress to make them do more on their own, if we introduce something (moderate) handholding it accepted, but on the last level of a section (which is always a mini-test) we want to check whether the user can do what they were taught on their own
 
     public class Level
     {

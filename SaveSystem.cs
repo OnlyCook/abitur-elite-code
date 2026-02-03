@@ -4,11 +4,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+public class PlayerSettings
+{
+    public bool IsVimEnabled { get; set; } = false;
+    public bool IsSyntaxHighlightingEnabled { get; set; } = false;
+    public double UiScale { get; set; } = 1.0;
+}
+
 public class PlayerData
 {
     public List<int> UnlockedLevelIds { get; set; } = new List<int> { 1 };
-    public List<int> CompletedLevelIds { get; set; } = new List<int>(); // Added this
+    public List<int> CompletedLevelIds { get; set; } = new List<int>();
     public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
+    public PlayerSettings Settings { get; set; } = new PlayerSettings();
 }
 
 public static class SaveSystem
@@ -24,8 +32,11 @@ public static class SaveSystem
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
 
-        // format: unlocked|codes|completed
-        File.WriteAllText(path, $"{ids}|{codes}|{completed}");
+        // Settings serialization
+        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};scale:{data.Settings.UiScale}";
+
+        // format: unlocked|codes|completed|settings
+        File.WriteAllText(path, $"{ids}|{codes}|{completed}|{settings}");
     }
 
     public static PlayerData Load()
@@ -47,6 +58,8 @@ public static class SaveSystem
                 {
                     if (string.IsNullOrWhiteSpace(item)) continue;
                     var pair = item.Split(':');
+                    if (pair.Length < 2) continue;
+
                     int id = int.Parse(pair[0]);
                     string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
                     if (!data.UserCode.ContainsKey(id)) data.UserCode.Add(id, code);
@@ -56,6 +69,20 @@ public static class SaveSystem
             if (parts.Length > 2 && !string.IsNullOrEmpty(parts[2]))
             {
                 data.CompletedLevelIds = parts[2].Split(',').Select(int.Parse).ToList();
+            }
+
+            if (parts.Length > 3 && !string.IsNullOrEmpty(parts[3]))
+            {
+                var settingsParts = parts[3].Split(';');
+                foreach (var s in settingsParts)
+                {
+                    var kv = s.Split(':');
+                    if (kv.Length != 2) continue;
+
+                    if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
+                }
             }
         }
         catch { }
