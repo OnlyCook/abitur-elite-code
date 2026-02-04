@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -51,10 +52,13 @@ namespace AbiturEliteCode
         private UnusedCodeTransformer _unusedCodeTransformer;
         private DispatcherTimer _diagnosticTimer;
 
+        private bool _hasRunOnce = false;
+
         private enum VimMode { Normal, Insert, CommandPending, CommandLine, Search }
         private VimMode _vimMode = VimMode.Normal;
         private string _vimCommandBuffer = ""; // for multi char commands
         private string _vimClipboard = "";
+        private int _vimDesiredColumn = -1;
 
         private SolidColorBrush BrushTextNormal = SolidColorBrush.Parse("#E6E6E6");
         private SolidColorBrush BrushTextHighlight = SolidColorBrush.Parse("#6495ED"); // blue
@@ -119,6 +123,50 @@ namespace AbiturEliteCode
             );
 
             UpdateVimUI();
+        }
+
+        private List<MetadataReference> GetSafeReferences()
+        {
+            var references = new List<MetadataReference>();
+
+            // list of assemblies needed for compilation
+            var assemblies = new List<Assembly>
+            {
+                typeof(object).Assembly,
+                typeof(Console).Assembly,
+                typeof(Enumerable).Assembly,
+                Assembly.Load("System.Runtime"),
+                Assembly.Load("System.Collections")
+            };
+
+            foreach (var asm in assemblies.Distinct())
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(asm.Location))
+                    {
+                        references.Add(MetadataReference.CreateFromFile(asm.Location));
+                    }
+                    else
+                    {
+                        unsafe
+                        {
+                            if (asm.TryGetRawMetadata(out byte* blob, out int length))
+                            {
+                                var moduleMetadata = ModuleMetadata.CreateFromMetadata((IntPtr)blob, length);
+                                var assemblyMetadata = AssemblyMetadata.Create(moduleMetadata);
+                                references.Add(assemblyMetadata.GetReference());
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load reference {asm.FullName}: {ex.Message}");
+                }
+            }
+
+            return references;
         }
 
         private void ConfigureEditor()
@@ -291,6 +339,30 @@ namespace AbiturEliteCode
             TextArea textArea = (TextArea)sender;
             int offset = textArea.Caret.Offset;
 
+            // surround selection logic
+            if (textArea.Selection.Length > 0)
+            {
+                if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' || charTyped == '\'')
+                {
+                    string startChar = charTyped.ToString();
+                    string endChar = charTyped == '(' ? ")"
+                                   : charTyped == '{' ? "}"
+                                   : charTyped == '[' ? "]"
+                                   : charTyped.ToString();
+
+                    string selectedText = textArea.Selection.GetText();
+
+                    int selectionStart = textArea.Selection.SurroundingSegment.Offset;
+
+                    textArea.Selection.ReplaceSelectionWithText(startChar + selectedText + endChar);
+
+                    textArea.Caret.Offset = selectionStart + selectedText.Length + 2;
+
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"')
             {
                 string pair =
@@ -445,39 +517,125 @@ namespace AbiturEliteCode
         {
             if (string.IsNullOrEmpty(text))
                 return;
-            string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
-            var parts = Regex.Split(safeText, @"(\[.*?\])");
 
-            var tb = new SelectableTextBlock
+            string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
+            var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*)");
+
+            SelectableTextBlock CreateTextBlock() => new SelectableTextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 15,
-                LineHeight = 24
+                LineHeight = 24,
+                Margin = new Thickness(0, 0, 0, 10)
             };
+
+            var currentTb = CreateTextBlock();
 
             foreach (var part in parts)
             {
-                if (part.StartsWith("[") && part.EndsWith("]"))
+                if (string.IsNullOrEmpty(part)) continue;
+
+                // code block
+                if (part.StartsWith("{|") && part.EndsWith("|}") && part.Length >= 4)
+                {
+                    if (currentTb.Inlines.Count > 0)
+                    {
+                        var lastRun = currentTb.Inlines.LastOrDefault() as Run;
+                        if (lastRun != null && !string.IsNullOrEmpty(lastRun.Text))
+                        {
+                            lastRun.Text = lastRun.Text.TrimEnd();
+                        }
+
+                        bool hasContent = currentTb.Inlines.OfType<Run>().Any(r => !string.IsNullOrEmpty(r.Text));
+                        if (hasContent)
+                        {
+                            currentTb.Margin = new Thickness(0, 0, 0, 2);
+                            panel.Children.Add(currentTb);
+                        }
+
+                        currentTb = CreateTextBlock();
+                    }
+
+                    string codeContent = part.Substring(2, part.Length - 4).Trim();
+                    codeContent = codeContent.Replace("\x01", "[").Replace("\x02", "]");
+
+                    var codeBlockEditor = new TextEditor
+                    {
+                        Document = new TextDocument(codeContent),
+                        SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting(),
+                        FontFamily = new FontFamily("Consolas, Monospace"),
+                        FontSize = 14,
+                        IsReadOnly = true,
+                        ShowLineNumbers = false,
+                        Background = Brushes.Transparent,
+                        Foreground = Brushes.White,
+                        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                        VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                        Padding = new Thickness(10, 6, 10, 6),
+                        MinHeight = 0
+                    };
+
+                    codeBlockEditor.Options.ShowSpaces = false;
+                    codeBlockEditor.Options.ShowTabs = false;
+                    codeBlockEditor.Options.HighlightCurrentLine = false;
+
+                    var border = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#1A1A1A"),
+                        CornerRadius = new CornerRadius(6),
+                        ClipToBounds = true,
+                        Margin = new Thickness(0, 0, 0, 10),
+                        Child = codeBlockEditor
+                    };
+
+                    panel.Children.Add(border);
+                }
+                // highlight
+                else if (part.StartsWith("[") && part.EndsWith("]"))
                 {
                     string content = part.Substring(1, part.Length - 2);
                     content = content.Replace("\x01", "[").Replace("\x02", "]");
-                    tb.Inlines.Add(
-                        new Run
-                        {
-                            Text = content,
-                            FontWeight = FontWeight.Bold,
-                            Foreground = BrushTextHighlight,
-                            FontFamily = new FontFamily("Consolas")
-                        }
-                    );
+
+                    currentTb.Inlines.Add(new Run
+                    {
+                        Text = content,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextHighlight,
+                        FontFamily = new FontFamily("Consolas")
+                    });
                 }
+                // bold text
+                else if (part.StartsWith("**") && part.EndsWith("**") && part.Length >= 4)
+                {
+                    string content = part.Substring(2, part.Length - 4);
+                    content = content.Replace("\x01", "[").Replace("\x02", "]");
+
+                    currentTb.Inlines.Add(new Run
+                    {
+                        Text = content,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextNormal
+                    });
+                }
+                // normal text
                 else
                 {
                     string content = part.Replace("\x01", "[").Replace("\x02", "]");
-                    tb.Inlines.Add(new Run { Text = content, Foreground = BrushTextNormal });
+                    if (!string.IsNullOrEmpty(content))
+                    {
+                        currentTb.Inlines.Add(new Run
+                        {
+                            Text = content,
+                            Foreground = BrushTextNormal
+                        });
+                    }
                 }
             }
-            panel.Children.Add(tb);
+
+            if (currentTb.Inlines.Count > 0)
+            {
+                panel.Children.Add(currentTb);
+            }
         }
 
         private async void UpdateDiagnostics()
@@ -489,23 +647,27 @@ namespace AbiturEliteCode
             }
 
             string code = CodeEditor.Text;
+            string auxId = currentLevel.AuxiliaryId;
 
-            // background ui thread
             var diagnostics = await System.Threading.Tasks.Task.Run(() =>
             {
                 string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + code;
 
-                var syntaxTree = CSharpSyntaxTree.ParseText(fullCode);
+                var userTree = CSharpSyntaxTree.ParseText(fullCode);
+                var trees = new List<SyntaxTree> { userTree };
 
-                var references = new List<MetadataReference>
+                if (!string.IsNullOrEmpty(auxId))
                 {
-                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-                    MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location)
-                };
+                    string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                    if (!string.IsNullOrEmpty(auxCode))
+                    {
+                        trees.Add(CSharpSyntaxTree.ParseText(auxCode));
+                    }
+                }
 
-                var compilation = CSharpCompilation.Create("Analysis", new[] { syntaxTree }, references);
+                var references = GetSafeReferences();
+
+                var compilation = CSharpCompilation.Create("Analysis", trees, references);
                 return compilation.GetDiagnostics();
             });
 
@@ -728,6 +890,7 @@ namespace AbiturEliteCode
         {
             PnlMaterials.Children.Clear();
 
+            // load image
             if (!string.IsNullOrEmpty(level.AuxiliaryId))
             {
                 string auxPath = Path.Combine(
@@ -758,108 +921,245 @@ namespace AbiturEliteCode
                     );
                 }
             }
+
             if (!string.IsNullOrEmpty(level.MaterialDocs))
-                if (!string.IsNullOrEmpty(level.MaterialDocs))
+            {
+                var lines = level.MaterialDocs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+                var textBuffer = new System.Text.StringBuilder();
+
+                void FlushBuffer()
                 {
-                    var lines = level.MaterialDocs.Split('\n');
-                    foreach (var line in lines)
+                    if (textBuffer.Length > 0)
                     {
-                        string trim = line.Trim();
-                        if (trim.StartsWith("Hinweis:") || trim.StartsWith("Tipp:"))
-                        {
-                            string preview =
-                                trim.Length > 18 ? trim.Substring(0, 15) + "..." : trim;
-                            var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-                            var contentPanel = new Border
-                            {
-                                IsVisible = false,
-                                Background = SolidColorBrush.Parse("#252526"),
-                                Margin = new Thickness(0, 5, 0, 0),
-                                CornerRadius = new CornerRadius(6),
-                                Padding = new Thickness(10),
-                                Child = new StackPanel()
-                            };
-                            RenderRichText((StackPanel)contentPanel.Child, trim);
-                            var btn = new Button
-                            {
-                                Content = "▶ " + preview,
-                                HorizontalAlignment = HorizontalAlignment.Stretch,
-                                Background = SolidColorBrush.Parse("#3C3C41"),
-                                Foreground = Brushes.White,
-                                HorizontalContentAlignment = HorizontalAlignment.Left
-                            };
-                            btn.Click += (s, e) =>
-                            {
-                                btn.IsVisible = false;
-                                contentPanel.IsVisible = true;
-                            };
-                            stack.Children.Add(btn);
-                            stack.Children.Add(contentPanel);
-                            PnlMaterials.Children.Add(stack);
-                        }
-                        else if (!string.IsNullOrWhiteSpace(trim))
-                        {
-                            RenderRichText(PnlMaterials, trim);
-                        }
+                        RenderRichText(PnlMaterials, textBuffer.ToString().TrimEnd());
+                        textBuffer.Clear();
                     }
                 }
+
+                foreach (var line in lines)
+                {
+                    string trim = line.Trim();
+
+                    if (trim.StartsWith("Hinweis:") || trim.StartsWith("Tipp:"))
+                    {
+                        FlushBuffer();
+
+                        // hint button
+                        string preview = trim.Length > 25 ? trim.Substring(0, 22) + "..." : trim;
+
+                        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+                        var contentPanel = new Border
+                        {
+                            IsVisible = false,
+                            Background = SolidColorBrush.Parse("#252526"),
+                            Margin = new Thickness(0, 5, 0, 0),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(10),
+                            Child = new StackPanel()
+                        };
+
+                        var innerStack = (StackPanel)contentPanel.Child;
+                        RenderRichText(innerStack, trim);
+
+                        if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
+                        {
+                            lastChild.Margin = new Thickness(0);
+                        }
+
+                        var btn = new Button
+                        {
+                            Content = "▶ " + preview,
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            Background = SolidColorBrush.Parse("#3C3C41"),
+                            Foreground = Brushes.White,
+                            HorizontalContentAlignment = HorizontalAlignment.Left,
+                            Cursor = Cursor.Parse("Hand")
+                        };
+
+                        btn.Click += (s, e) =>
+                        {
+                            btn.IsVisible = false;
+                            contentPanel.IsVisible = true;
+                        };
+
+                        stack.Children.Add(btn);
+                        stack.Children.Add(contentPanel);
+                        PnlMaterials.Children.Add(stack);
+                    }
+                    else
+                    {
+                        // normal line
+                        if (textBuffer.Length > 0)
+                            textBuffer.AppendLine();
+
+                        textBuffer.Append(line);
+                    }
+                }
+
+                FlushBuffer();
+            }
         }
 
-        private void BtnRun_Click(object sender, RoutedEventArgs e)
+        private async void BtnRun_Click(object sender, RoutedEventArgs e)
         {
             TxtConsole.Foreground = Brushes.LightGray;
-            TxtConsole.Text = "Kompiliere...\n";
+            TxtConsole.Text = "";
+
+            if (!_hasRunOnce)
+            {
+                TxtConsole.Text += "> Compiler wird gestartet...\n";
+                _hasRunOnce = true;
+            }
+
+            TxtConsole.Text += "> Kompiliere...\n";
             SaveCurrentProgress();
 
-            string fullCode =
-                "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n"
-                + CodeEditor.Text;
+            string codeText = CodeEditor.Text;
+            var levelContext = currentLevel;
 
-            var syntaxTree = CSharpSyntaxTree.ParseText(fullCode);
-            var references = new List<MetadataReference>
-            {
-                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-                MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location),
-                MetadataReference.CreateFromFile(Assembly.Load("System.Collections").Location)
-            };
-            var compilation = CSharpCompilation.Create(
-                $"Level_{currentLevel.Id}_{Guid.NewGuid()}",
-                new[] { syntaxTree },
-                references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-            );
-            using (var ms = new MemoryStream())
-            {
-                EmitResult result = compilation.Emit(ms);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-                if (!result.Success)
+            var processingTask = System.Threading.Tasks.Task.Run<(bool Success, System.Collections.Immutable.ImmutableArray<Diagnostic>? Diagnostics, dynamic TestResult)>(() =>
+            {
+                string fullCode =
+                    "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n"
+                    + codeText;
+
+                var syntaxTree = CSharpSyntaxTree.ParseText(fullCode);
+                var trees = new List<SyntaxTree> { syntaxTree };
+
+                if (!string.IsNullOrEmpty(levelContext.AuxiliaryId))
                 {
-                    TxtConsole.Foreground = Brushes.Red;
-                    TxtConsole.Text = "KOMPILIERFEHLER:\n";
-                    foreach (
-                        var diag in result.Diagnostics.Where(
-                            d => d.Severity == DiagnosticSeverity.Error
-                        )
-                    )
+                    string auxCode = AuxiliaryImplementations.GetCode(levelContext.AuxiliaryId);
+                    if (!string.IsNullOrEmpty(auxCode))
                     {
-                        var lineSpan = diag.Location.GetLineSpan();
-                        int userLine = lineSpan.StartLinePosition.Line - 3;
-                        if (userLine < 0)
-                            userLine = 0;
-                        TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
+                        trees.Add(CSharpSyntaxTree.ParseText(auxCode));
                     }
                 }
-                else
+
+                var references = GetSafeReferences();
+
+                var compilation = CSharpCompilation.Create(
+                    $"Level_{levelContext.Id}_{Guid.NewGuid()}",
+                    trees,
+                    references,
+                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                );
+
+                using (var ms = new MemoryStream())
                 {
-                    ms.Seek(0, SeekOrigin.Begin);
-                    var assembly = Assembly.Load(ms.ToArray());
-                    RunTests(assembly);
+                    EmitResult emitResult = compilation.Emit(ms);
+
+                    if (!emitResult.Success)
+                    {
+                        return (Success: false, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)emitResult.Diagnostics, TestResult: (dynamic)null);
+                    }
+                    else
+                    {
+                        ms.Seek(0, SeekOrigin.Begin);
+                        var assembly = Assembly.Load(ms.ToArray());
+                        var testResult = LevelTester.Run(levelContext.Id, assembly);
+
+                        return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
+                    }
                 }
+            });
+
+            var completedTask = await System.Threading.Tasks.Task.WhenAny(processingTask, System.Threading.Tasks.Task.Delay(60000));
+
+            if (completedTask != processingTask)
+            {
+                stopwatch.Stop();
+                TxtConsole.Foreground = Brushes.Red;
+                TxtConsole.Text += "\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 1 Minute überschritten.";
+                return;
+            }
+
+            var result = await processingTask;
+            stopwatch.Stop();
+
+            if (!result.Success && result.Diagnostics != null)
+            {
+                TxtConsole.Foreground = Brushes.Red;
+                TxtConsole.Text += "KOMPILIERFEHLER:\n";
+                foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+                {
+                    var lineSpan = diag.Location.GetLineSpan();
+                    int userLine = lineSpan.StartLinePosition.Line - 3;
+                    if (userLine < 0) userLine = 0;
+                    TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
+                }
+            }
+            else
+            {
+                ProcessTestResult(levelContext, result.TestResult, stopwatch.Elapsed);
             }
 
             CodeEditor.Focus();
+        }
+
+        private void ProcessTestResult(Level levelContext, dynamic result, TimeSpan duration)
+        {
+            TxtConsole.Text = "";
+
+            if (result.Success)
+            {
+                TxtConsole.Foreground = Brushes.LightGreen;
+                TxtConsole.Text += $"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n";
+
+                if (!playerData.CompletedLevelIds.Contains(levelContext.Id))
+                    playerData.CompletedLevelIds.Add(levelContext.Id);
+
+                var nextLvl = levels.FirstOrDefault(l => l.SkipCode == levelContext.NextLevelCode);
+
+                if (nextLvl != null)
+                {
+                    // unlock the next level
+                    if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
+                    {
+                        playerData.UnlockedLevelIds.Add(nextLvl.Id);
+                        TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                    }
+
+                    TxtConsole.Text += $"Nächstes Level Code: {nextLvl.SkipCode}\n";
+
+                    // check if we are switching sections
+                    if (nextLvl.Section != levelContext.Section)
+                    {
+                        TxtConsole.Text += "\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?";
+                        BtnNextLevel.Content = "NÄCHSTE SEKTION →";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                    }
+
+                    BtnNextLevel.IsVisible = true;
+                }
+                else
+                {
+                    // no next level -> course completed
+                    TxtConsole.Text += "\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.";
+                    BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
+                    BtnNextLevel.IsVisible = true;
+                }
+
+                SaveSystem.Save(playerData);
+            }
+            else
+            {
+                TxtConsole.Foreground = Brushes.Orange;
+                string msg =
+                    result.Error != null
+                        ? (
+                              result.Error.InnerException != null
+                                  ? result.Error.InnerException.Message
+                                  : result.Error.Message
+                          )
+                        : "Unbekannter Fehler";
+                TxtConsole.Text = "❌ LAUFZEITFEHLER / LOGIK:\n" + msg;
+            }
         }
 
         private void RunTests(Assembly assembly)
@@ -869,27 +1169,40 @@ namespace AbiturEliteCode
             {
                 TxtConsole.Foreground = Brushes.LightGreen;
                 TxtConsole.Text = "✓ TEST BESTANDEN: " + result.Feedback + "\n\n";
+
                 if (!playerData.CompletedLevelIds.Contains(currentLevel.Id))
                     playerData.CompletedLevelIds.Add(currentLevel.Id);
+
                 var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
-                if (nextLvl != null && !playerData.UnlockedLevelIds.Contains(nextLvl.Id))
+
+                if (nextLvl != null)
                 {
-                    playerData.UnlockedLevelIds.Add(nextLvl.Id);
-                    SaveSystem.Save(playerData);
-                    TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                    // unlock the next level
+                    if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
+                    {
+                        playerData.UnlockedLevelIds.Add(nextLvl.Id);
+                        TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                    }
+
                     TxtConsole.Text += $"Nächstes Level Code: {nextLvl.SkipCode}\n";
-                    BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                    BtnNextLevel.IsVisible = true;
-                }
-                else if (nextLvl != null)
-                {
-                    TxtConsole.Text += $"\nNächstes Level Code: {nextLvl.SkipCode}";
-                    BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+
+                    // check if we are switching sections
+                    if (nextLvl.Section != currentLevel.Section)
+                    {
+                        TxtConsole.Text += "\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?";
+                        BtnNextLevel.Content = "NÄCHSTE SEKTION →";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                    }
+
                     BtnNextLevel.IsVisible = true;
                 }
                 else
                 {
-                    TxtConsole.Text += "\n🎉 Das war das letzte Level dieser Sektion!";
+                    // no next level -> course completed
+                    TxtConsole.Text += "\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.";
                     BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                     BtnNextLevel.IsVisible = true;
                 }
@@ -1987,6 +2300,12 @@ namespace AbiturEliteCode
                 CompleteVimCommand(keyChar);
                 return;
             }
+               
+            // reset saved pos
+            if (keyChar != "j" && keyChar != "k")
+            {
+                _vimDesiredColumn = -1;
+            }
 
             // single key commands
             switch (keyChar)
@@ -2032,20 +2351,36 @@ namespace AbiturEliteCode
                     int lineStart = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).Offset;
                     if (CodeEditor.CaretOffset > lineStart)
                         CodeEditor.CaretOffset--;
+                    _vimDesiredColumn = -1;
                     break;
                 case "l":
-                    int lineEnd = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).EndOffset;
-                    if (CodeEditor.CaretOffset < lineEnd)
+                    int lineEndL = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).EndOffset;
+                    if (CodeEditor.CaretOffset < lineEndL)
                         CodeEditor.CaretOffset++;
+                    _vimDesiredColumn = -1;
                     break;
                 case "j":
-                    if (CodeEditor.TextArea.Caret.Line < CodeEditor.Document.LineCount)
-                        CodeEditor.TextArea.Caret.Line++;
+                    var currentLineJ = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    if (currentLineJ.LineNumber < CodeEditor.Document.LineCount)
+                    {   
+                        if (_vimDesiredColumn == -1)
+                            _vimDesiredColumn = CodeEditor.CaretOffset - currentLineJ.Offset;
+                        var nextLine = CodeEditor.Document.GetLineByNumber(currentLineJ.LineNumber + 1);
+                        int newOffset = nextLine.Offset + Math.Min(_vimDesiredColumn, nextLine.Length);
+                        CodeEditor.CaretOffset = newOffset;
+                    }
                     CodeEditor.TextArea.Caret.BringCaretToView();
                     break;
                 case "k":
-                    if (CodeEditor.TextArea.Caret.Line > 1)
-                        CodeEditor.TextArea.Caret.Line--;
+                    var currentLineK = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    if (currentLineK.LineNumber > 1)
+                    {
+                        if (_vimDesiredColumn == -1)
+                            _vimDesiredColumn = CodeEditor.CaretOffset - currentLineK.Offset;
+                        var prevLine = CodeEditor.Document.GetLineByNumber(currentLineK.LineNumber - 1);
+                        int newOffset = prevLine.Offset + Math.Min(_vimDesiredColumn, prevLine.Length);
+                        CodeEditor.CaretOffset = newOffset;
+                    }
                     CodeEditor.TextArea.Caret.BringCaretToView();
                     break;
                 case "w": // simple word forward
@@ -2113,6 +2448,7 @@ namespace AbiturEliteCode
                 case "y":
                     _vimCommandBuffer = keyChar;
                     _vimMode = VimMode.CommandPending;
+                    _vimDesiredColumn = -1;
                     break;
             }
 

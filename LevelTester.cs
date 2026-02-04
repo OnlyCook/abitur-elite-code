@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace AbiturEliteCode
@@ -21,27 +23,20 @@ namespace AbiturEliteCode
                 string feedback = "";
                 bool success = false;
 
-                switch (levelId)
+                success = levelId switch
                 {
-                    case 1:
-                        success = TestLevel1(assembly, out feedback);
-                        break;
-                    case 2:
-                        success = TestLevel2(assembly, out feedback);
-                        break;
-                    case 3:
-                        success = TestLevel3(assembly, out feedback);
-                        break;
-                    case 4:
-                        success = TestLevel4(assembly, out feedback);
-                        break;
-                    case 5:
-                        success = TestLevel5(assembly, out feedback);
-                        break;
-                    default:
-                        throw new Exception($"Keine Tests für Level {levelId} definiert.");
-                }
-
+                    1 => TestLevel1(assembly, out feedback),
+                    2 => TestLevel2(assembly, out feedback),
+                    3 => TestLevel3(assembly, out feedback),
+                    4 => TestLevel4(assembly, out feedback),
+                    5 => TestLevel5(assembly, out feedback),
+                    6 => TestLevel6(assembly, out feedback),
+                    7 => TestLevel7(assembly, out feedback),
+                    8 => TestLevel8(assembly, out feedback),
+                    9 => TestLevel9(assembly, out feedback),
+                    10 => TestLevel10(assembly, out feedback),
+                    _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
+                };
                 return new TestResult { Success = success, Feedback = feedback };
             }
             catch (Exception ex)
@@ -300,6 +295,241 @@ namespace AbiturEliteCode
             {
                 throw new Exception($"Falsches Tier zurückgegeben (Alter: {resultAge}, erwartet: 20).");
             }
+        }
+
+        private static object SafeCreatePaket(Type tPaket, string ort, double gewicht)
+        {
+            // try finding correct constructor: (string, double)
+            ConstructorInfo ctorCorrect = tPaket.GetConstructor(new[] { typeof(string), typeof(double) });
+            if (ctorCorrect != null)
+            {
+                return ctorCorrect.Invoke(new object[] { ort, gewicht });
+            }
+
+            // try finding reversed constructor: (double, string) -> common mistake
+            ConstructorInfo ctorReversed = tPaket.GetConstructor(new[] { typeof(double), typeof(string) });
+            if (ctorReversed != null)
+            {
+                throw new Exception("Fehler im Konstruktor von 'Paket': Die Reihenfolge der Parameter ist falsch.\nErwartet: Paket(string ziel, double gewicht)\nGefunden: Paket(double gewicht, string ziel)\nBitte passen Sie die Reihenfolge an das Diagramm an.");
+            }
+
+            throw new Exception("Konstruktor für 'Paket' nicht gefunden. Erwartet: public Paket(string ziel, double gewicht).");
+        }
+
+        private static bool TestLevel6(Assembly assembly, out string feedback)
+        {
+            Type tPaket = assembly.GetType("Paket");
+            if (tPaket == null) throw new Exception("Klasse 'Paket' nicht gefunden.");
+
+            Type tLager = assembly.GetType("Lager");
+            if (tLager == null) throw new Exception("Klasse 'Lager' nicht gefunden.");
+
+            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen");
+            if (mAdd == null) throw new Exception("Methode 'Hinzufuegen' fehlt in der Klasse Lager.");
+
+            MethodInfo mErmittle = tLager.GetMethod("ErmittleSchwerstes");
+            if (mErmittle == null) throw new Exception("Methode 'ErmittleSchwerstes' fehlt in der Klasse Lager.");
+
+            object lager = Activator.CreateInstance(tLager);
+
+            // test case 1: empty list
+            object resultEmpty = mErmittle.Invoke(lager, null);
+            if (resultEmpty != null)
+                throw new Exception("ErmittleSchwerstes() muss 'null' zurückgeben, wenn das Lager leer ist.");
+
+            // test case 2: filled list
+            try
+            {
+                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 5.0) });
+                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Hamburg", 50.5) });
+                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "München", 10.0) });
+            }
+            catch (TargetInvocationException ex)
+            {
+                throw new Exception($"Fehler beim Hinzufügen von Paketen: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            object result = mErmittle.Invoke(lager, null);
+
+            if (result == null) throw new Exception("ErmittleSchwerstes() liefert 'null', obwohl Pakete im Lager sind.");
+
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
+            if (mGetW == null) throw new Exception("Methode 'GetGewicht()' fehlt in Klasse Paket.");
+
+            double resWeight = (double)mGetW.Invoke(result, null);
+
+            if (Math.Abs(resWeight - 50.5) < 0.01)
+            {
+                feedback = "Algorithmus korrekt implementiert! Das schwerste Paket wurde gefunden.";
+                return true;
+            }
+            throw new Exception($"Falsches Paket ermittelt. Gewicht des zurückgegebenen Pakets: {resWeight}, Erwartet: 50.5.");
+        }
+
+        private static bool TestLevel7(Assembly assembly, out string feedback)
+        {
+            Type tLager = assembly.GetType("Lager");
+            Type tPaket = assembly.GetType("Paket");
+            if (tLager == null || tPaket == null) throw new Exception("Klasse Lager oder Paket fehlt.");
+
+            object lager = Activator.CreateInstance(tLager);
+            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen");
+            MethodInfo mFilter = tLager.GetMethod("FilterePakete");
+
+            if (mAdd == null) throw new Exception("Methode Hinzufuegen fehlt.");
+            if (mFilter == null) throw new Exception("Methode FilterePakete fehlt.");
+
+            mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 15.0) }); // match
+            mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "München", 20.0) }); // wrong city
+            mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 5.0) }); // too light
+            mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 10.0) }); // boundary (not > 10)
+
+            object resObj = mFilter.Invoke(lager, new object[] { "Berlin" });
+
+            IList list = resObj as IList;
+            if (list == null) throw new Exception("Rückgabewert ist keine Liste (List<Paket>).");
+
+            if (list.Count == 1)
+            {
+                feedback = "Filterung erfolgreich! Nur Pakete > 10kg und passender Ort wurden übernommen.";
+                return true;
+            }
+
+            throw new Exception($"Falsche Anzahl Pakete zurückgegeben. Erwartet: 1, Erhalten: {list.Count}. Prüfen Sie die Bedingungen (ort == ziel && gewicht > 10).");
+        }
+
+        private static bool TestLevel8(Assembly assembly, out string feedback)
+        {
+            Type tLager = assembly.GetType("Lager");
+            Type tPaket = assembly.GetType("Paket");
+            if (tLager == null) throw new Exception("Klasse Lager fehlt.");
+
+            object lager = Activator.CreateInstance(tLager);
+
+            FieldInfo fPakete = tLager.GetField("pakete", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fPakete == null) throw new Exception("Feld 'pakete' (List<Paket>) fehlt oder ist nicht private.");
+
+            Type listType = typeof(List<>).MakeGenericType(tPaket);
+            IList list = (IList)Activator.CreateInstance(listType);
+
+            list.Add(SafeCreatePaket(tPaket, "A", 100.0));
+            list.Add(SafeCreatePaket(tPaket, "B", 10.0));
+            list.Add(SafeCreatePaket(tPaket, "C", 50.0));
+
+            fPakete.SetValue(lager, list);
+
+            MethodInfo mSort = tLager.GetMethod("Sortiere");
+            if (mSort == null) throw new Exception("Methode 'Sortiere' fehlt.");
+
+            try
+            {
+                mSort.Invoke(lager, null);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Fehler beim Ausführen von Sortiere(): " + (ex.InnerException?.Message ?? ex.Message));
+            }
+
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
+            double w1 = (double)mGetW.Invoke(list[0], null);
+            double w2 = (double)mGetW.Invoke(list[1], null);
+            double w3 = (double)mGetW.Invoke(list[2], null);
+
+            if (w1 <= w2 && w2 <= w3)
+            {
+                feedback = "Bubble Sort korrekt implementiert! Die Liste ist aufsteigend sortiert.";
+                return true;
+            }
+            throw new Exception($"Sortierung fehlerhaft. Reihenfolge: {w1}, {w2}, {w3}.");
+        }
+
+        private static bool TestLevel9(Assembly assembly, out string feedback)
+        {
+            Type tKnoten = assembly.GetType("Knoten");
+            Type tBand = assembly.GetType("Foerderband");
+            Type tPaket = assembly.GetType("Paket");
+
+            if (tKnoten == null) throw new Exception("Klasse 'Knoten' fehlt.");
+            if (tBand == null) throw new Exception("Klasse 'Foerderband' fehlt.");
+
+            object band = Activator.CreateInstance(tBand);
+            MethodInfo mAnh = tBand.GetMethod("Anhaengen");
+            if (mAnh == null) throw new Exception("Methode 'Anhaengen' fehlt.");
+
+            object p1 = SafeCreatePaket(tPaket, "A", 10.0);
+            object p2 = SafeCreatePaket(tPaket, "B", 20.0);
+
+            // add 1
+            mAnh.Invoke(band, new object[] { p1 });
+
+            FieldInfo fKopf = tBand.GetField("kopf", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fKopf == null) throw new Exception("Feld 'kopf' in Foerderband fehlt.");
+
+            object kopfNode = fKopf.GetValue(band);
+            if (kopfNode == null) throw new Exception("Kopf ist null nach dem ersten Einfügen.");
+
+            // check content of head
+            FieldInfo fInhalt = tKnoten.GetField("inhalt", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fInhalt == null) throw new Exception("Feld 'inhalt' in Knoten fehlt.");
+            if (fInhalt.GetValue(kopfNode) != p1) throw new Exception("Erster Knoten enthält nicht das korrekte Paket.");
+
+            // add 2
+            mAnh.Invoke(band, new object[] { p2 });
+
+            // check linking
+            FieldInfo fNachfolger = tKnoten.GetField("nachfolger", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fNachfolger == null) throw new Exception("Feld 'nachfolger' in Knoten fehlt.");
+
+            object secondNode = fNachfolger.GetValue(kopfNode);
+            if (secondNode == null) throw new Exception("Verkettung fehlerhaft. 'nachfolger' vom Kopf ist null.");
+
+            if (fInhalt.GetValue(secondNode) != p2) throw new Exception("Zweiter Knoten enthält falsches Paket.");
+
+            feedback = "Verkettete Liste funktioniert!";
+            return true;
+        }
+
+        private static bool TestLevel10(Assembly assembly, out string feedback)
+        {
+            Type tLogistik = assembly.GetType("LogistikZentrum");
+            Type tPaket = assembly.GetType("Paket");
+            if (tLogistik == null) throw new Exception("Klasse LogistikZentrum fehlt.");
+
+            object zentrum = Activator.CreateInstance(tLogistik);
+            FieldInfo fList = tLogistik.GetField("allePakete", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fList == null) throw new Exception("Feld 'allePakete' fehlt.");
+
+            IList list = fList.GetValue(zentrum) as IList;
+
+            list.Add(SafeCreatePaket(tPaket, "Berlin", 10.0));
+            list.Add(SafeCreatePaket(tPaket, "Berlin", 90.0)); // 2nd
+            list.Add(SafeCreatePaket(tPaket, "München", 99.0));
+            list.Add(SafeCreatePaket(tPaket, "Berlin", 100.0)); // 1st
+            list.Add(SafeCreatePaket(tPaket, "Berlin", 5.0));
+            list.Add(SafeCreatePaket(tPaket, "Berlin", 50.0)); // 3rd
+
+            MethodInfo mTop3 = tLogistik.GetMethod("GetTop3Schwere");
+            if (mTop3 == null) throw new Exception("Methode GetTop3Schwere fehlt.");
+
+            object resObj = mTop3.Invoke(zentrum, new object[] { "Berlin" });
+            IList resList = resObj as IList;
+
+            if (resList == null) throw new Exception("Keine Liste zurückgegeben.");
+            if (resList.Count != 3) throw new Exception($"Liste sollte genau 3 Elemente enthalten, hat aber {resList.Count}.");
+
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
+            double w1 = (double)mGetW.Invoke(resList[0], null);
+            double w2 = (double)mGetW.Invoke(resList[1], null);
+            double w3 = (double)mGetW.Invoke(resList[2], null);
+
+            // expecting: 100, 90, 50
+            if (Math.Abs(w1 - 100.0) < 0.1 && Math.Abs(w2 - 90.0) < 0.1 && Math.Abs(w3 - 50.0) < 0.1)
+            {
+                feedback = "Mini-Exam bestanden! Filterung und Sortierung korrekt.";
+                return true;
+            }
+
+            throw new Exception($"Falsche Reihenfolge oder Pakete. Erhalten: {w1}, {w2}, {w3}. Erwartet: 100, 90, 50.");
         }
     }
 }

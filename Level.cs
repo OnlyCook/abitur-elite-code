@@ -13,6 +13,14 @@ namespace AbiturEliteCode
     // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml sequence diagrams, and Nassi–Shneiderman diagrams, also given can be pseudo-code
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
+    // in the abitur basically all classes have a constructor which should be represented in the uml class diagram is given
+    // note: adequate abitur level language should be used as well as technical vocabulary
+
+    // for sequence diagrams: keeping the exact given order of calls is important
+    // null/out of bounds checks should be included by the user (in the abitur these commonly make the students lose points)
+    // pseudo-code is not attached to the uml/diagrams but the materials tab as plain text
+
+    // if the plantuml should actually add a new line instead of converting it by the python script that reads the plantuml source code, then use: "\n/"
 
     public class Level
     {
@@ -29,9 +37,45 @@ namespace AbiturEliteCode
         public string AuxiliaryId { get; set; }
     }
 
+    public static class LevelCodes
+    {
+        public static string[] CodesList = {
+            "ZOO", "CAP", "ABS", "LST", "ALG",
+            "LOG", "INV", "SRT", "LNK", "EXP",
+        };
+    }
+
     public static class SharedDiagrams
     {
         public static string ListT = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass \"List<T>\" {\n  + add(item : T) : void\n  + remove(item : T) : void\n  + get(index : int) : T\n  + size() : int\n  + contains(item : T) : boolean\n}\n@enduml";
+
+        public static string Paket = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n  + getZielort() : String\n}\n@enduml";
+    }
+
+    public static class AuxiliaryImplementations
+    {
+        public static string GetCode(string auxId)
+        {
+            return auxId switch
+            {
+                "Paket" => @"
+                    public class Paket
+                    {
+                        private double gewicht;
+                        private string zielort;
+                        
+                        public Paket(string ziel, double gew) 
+                        { 
+                            this.zielort = ziel; 
+                            this.gewicht = gew; 
+                        }
+
+                        public double GetGewicht() { return gewicht; }
+                        public string GetZielort() { return zielort; }
+                    }",
+                _ => ""
+            };
+        }
     }
 
     public static class Curriculum
@@ -47,12 +91,13 @@ namespace AbiturEliteCode
 
             return new List<Level>
             {
+                // --- SECTION 1 ---
                 new Level
                 {
                     Id = 1,
                     Section = "Sektion 1: OOP Grundlagen",
-                    SkipCode = "ZOO",
-                    NextLevelCode = "CAP",
+                    SkipCode = LevelCodes.CodesList[0],
+                    NextLevelCode = LevelCodes.CodesList[1],
                     Title = "Klasse Tier Implementieren",
                     Description = "Überführen Sie die Klasse [Tier] aus dem UML-Klassendiagramm in C#-Code.\n\n" +
                                   "Das Diagramm zeigt die Java-Notation. Beachten Sie die Unterschiede zu C#.",
@@ -65,8 +110,8 @@ namespace AbiturEliteCode
                 {
                     Id = 2,
                     Section = "Sektion 1: OOP Grundlagen",
-                    SkipCode = "CAP",
-                    NextLevelCode = "ABS",
+                    SkipCode = LevelCodes.CodesList[1],
+                    NextLevelCode = LevelCodes.CodesList[2],
                     Title = "Kapselung und Validierung",
                     Description = "Implementieren Sie Datenkapselung für das Attribut [alter].\n\n" +
                                   "Aufgaben:\n" +
@@ -82,8 +127,8 @@ namespace AbiturEliteCode
                 {
                     Id = 3,
                     Section = "Sektion 1: OOP Grundlagen",
-                    SkipCode = "ABS",
-                    NextLevelCode = "LST",
+                    SkipCode = LevelCodes.CodesList[2],
+                    NextLevelCode = LevelCodes.CodesList[3],
                     Title = "Abstrakte Klassen und Vererbung",
                     Description = "Implementieren Sie die abstrakte Klasse [Tier] und die abgeleitete Klasse [Loewe].\n\n" +
                                   "Anforderungen:\n" +
@@ -99,8 +144,8 @@ namespace AbiturEliteCode
                 {
                     Id = 4,
                     Section = "Sektion 1: OOP Grundlagen",
-                    SkipCode = "LST",
-                    NextLevelCode = "ALG",
+                    SkipCode = LevelCodes.CodesList[3],
+                    NextLevelCode = LevelCodes.CodesList[4],
                     Title = "Gehege-Verwaltung mit List",
                     Description = "Erstellen Sie die Klasse [Gehege], die eine Liste von Tieren verwaltet.\n\n" +
                                   "Die Klasse soll folgende Funktionalität bieten:\n" +
@@ -118,8 +163,8 @@ namespace AbiturEliteCode
                 {
                     Id = 5,
                     Section = "Sektion 1: OOP Grundlagen",
-                    SkipCode = "ALG",
-                    NextLevelCode = "FIN",
+                    SkipCode = LevelCodes.CodesList[4],
+                    NextLevelCode = LevelCodes.CodesList[5],
                     Title = "Algorithmus: Das Älteste Tier",
                     Description = "Implementieren Sie die Methode [ErmittleAeltestes()] in der Klasse [Gehege].\n\n" +
                                   "Die Methode soll:\n" +
@@ -132,6 +177,103 @@ namespace AbiturEliteCode
                     MaterialDocs = listDocsHints + "\n\nTipp: Verwenden Sie eine Schleife, um durch alle Tiere zu iterieren.\n\nTipp: Denken Sie daran, den Rückgabetyp [Tier] zu verwenden. Die Methode muss ein Tier-Objekt oder [null] zurückgeben.\n\nHinweis: Prüfen Sie zuerst, ob die Liste leer ist ([bewohner.Count == 0]), bevor Sie iterieren.",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  - bewohner : List<Tier>\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege \"1\" o-- \"*\" Tier\n@enduml",
                     AuxiliaryId = "ListT"
+                },
+
+                // --- SECTION 2 ---
+                new Level
+                {
+                    Id = 6,
+                    Section = "Sektion 2: Datenstrukturen & Algorithmen",
+                    SkipCode = LevelCodes.CodesList[5],
+                    NextLevelCode = LevelCodes.CodesList[6],
+                    Title = "Das Warenlager (Suche)",
+                    Description = "Das Logistik-Zentrum benötigt eine Funktion, um das schwerste Paket in einem Regal zu finden.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
+                                  "2. Implementieren Sie [ermittleSchwerstes()], die das Paket mit dem höchsten Gewicht zurückgibt.\n\n" +
+                                  "Hinweis: Beachten Sie die Reihenfolge der Parameter im Konstruktor von Paket (siehe Diagramm).",
+                    StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
+                    DiagramPath = "img\\sec2\\lvl6.png",
+                    MaterialDocs = listDocsHints + "\n\nTipp: Nutzen Sie eine Variable [maxPaket], die Sie initial auf das erste Element oder null setzen, und vergleichen Sie in einer Schleife.",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  - pakete : List<Paket>\n  + Lager()\n  + hinzufuegen(p : Paket) : void\n  + ermittleSchwerstes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager \"1\" o-- \"*\" Paket : -enthält\n@enduml",
+                    AuxiliaryId = "ListT"
+                },
+                new Level
+                {
+                    Id = 7,
+                    Section = "Sektion 2: Datenstrukturen & Algorithmen",
+                    SkipCode = LevelCodes.CodesList[6],
+                    NextLevelCode = LevelCodes.CodesList[7],
+                    Title = "Die Inventur (Filtern)",
+                    Description = "Für den Versand müssen Pakete gefiltert werden.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Implementieren Sie die Klasse [Lager].\n" +
+                                  "Die [filterePakete(String ort)] Methode soll eine **neue Liste** zurückgeben, die nur Pakete enthält, die:\n" +
+                                  "1. An den übergebenen [ort] adressiert sind.\n" +
+                                  "2. **Und** schwerer als 10.0 kg sind.",
+                    StarterCode = "public class Lager\n{\n    private List<Paket> pakete = new List<Paket>();\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
+                    DiagramPath = "img\\sec2\\lvl7.png",
+                    MaterialDocs = "Hinweis: Strings vergleicht man in C# mit [==] oder [Equals()].\n\nTipp: [&&] ist der Operator für das logische UND.",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  -  : List<Paket>\n    + hinzufuegen(Paket p) : void\n  + filterePakete(ort : String) : List<Paket>\n}\n@enduml",
+                    AuxiliaryId = "Paket"
+                },
+                new Level
+                {
+                    Id = 8,
+                    Section = "Sektion 2: Datenstrukturen & Algorithmen",
+                    SkipCode = LevelCodes.CodesList[7],
+                    NextLevelCode = LevelCodes.CodesList[8],
+                    Title = "Die Sortiermaschine (Bubble Sort)",
+                    Description = "Die Pakete müssen vor dem Verladen nach Gewicht aufsteigend sortiert werden.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [sortiere()].\n" +
+                                  "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
+                    StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
+                    DiagramPath = "img\\sec2\\lvl8.png",
+                    MaterialDocs = "Bubble Sort Logik:\n1. Äußere Schleife von [i=0] bis [n-1]\n2. Innere Schleife von [j=0] bis [n-i-1]\n3. Wenn [pakete|[j|]] schwerer als [pakete|[j+1|]] -> Tauschen.\n\nTausch-Logik:\n{|Paket temp = pakete[j];\npakete[j] = pakete[j+1];\npakete[j+1] = temp;|}",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  - pakete : List<Paket>\n  + sortiere() : void\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\n@enduml",
+                    AuxiliaryId = "Paket"
+                },
+                new Level
+                {
+                    Id = 9,
+                    Section = "Sektion 2: Datenstrukturen & Algorithmen",
+                    SkipCode = LevelCodes.CodesList[8],
+                    NextLevelCode = LevelCodes.CodesList[9],
+                    Title = "Der Gabelstapler (Verkettete Liste)",
+                    Description = "Das Förderband wird als einfach verkettete Liste modelliert. Jedes Element ist ein [Knoten].\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klasse [Knoten] gemäß Diagramm.\n" +
+                                  "2. Implementieren Sie die Methode [anhaengen(Paket p)] in der Klasse [Foerderband].\n\n" +
+                                  "Logik für Anhaengen:\n" +
+                                  "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
+                                  "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
+                    StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
+                    DiagramPath = "img\\sec2\\lvl9.png",
+                    MaterialDocs = "Hinweis: Verkettete Listen sind ein Klassiker im Abitur.\n\nTraversierung:\n{|Knoten aktuell = kopf;\nwhile(aktuell.GetNachfolger() != null) {\n   aktuell = aktuell.GetNachfolger();\n}|}",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  - inhalt : Paket\n  - nachfolger : Knoten\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten) : void\n}\nclass Foerderband {\n  - kopf : Knoten\n  + anhaengen(p : Paket) : void\n}\nFoerderband \"1\" o-- \"0..1\" Knoten : -kopf\nKnoten \"1\" o-- \"0..1\" Knoten : -nachfolger\n@enduml",
+                    AuxiliaryId = "Paket"
+                },
+                new Level
+                {
+                    Id = 10,
+                    Section = "Sektion 2: Datenstrukturen & Algorithmen",
+                    SkipCode = LevelCodes.CodesList[9],
+                    NextLevelCode = "",
+                    Title = "Die Express-Lieferung",
+                    Description = "Dies ist die Abschlussprüfung für Sektion 2.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Implementieren Sie die Methode [getTop3Schwere(String ort)].\n" +
+                                  "Die Methode soll die **3 schwersten Pakete** für einen Zielort zurückgeben, sortiert nach Gewicht (absteigend).\n\n" +
+                                  "Anforderungen:\n" +
+                                  "• Filtern nach Ort\n" +
+                                  "• Sortieren nach Gewicht (Absteigend)\n" +
+                                  "• Maximal 3 Elemente zurückgeben (oder weniger, wenn keine 3 da sind).",
+                    StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete = new List<Paket>();\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        // Viel Erfolg!\n        return null;\n    }\n}",
+                    DiagramPath = "img\\sec2\\lvl10.png",
+                    MaterialDocs = "Tipp: Sie können Ihre Bubble-Sort Logik wiederverwenden/anpassen oder (da dies eine Transferleistung ist) Hilfslisten nutzen.\n\nBeachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass LogistikZentrum {\n  - allePakete : List<Paket>\n  + getTop3Schwere(ort : String) : List<Paket>\n}\n@enduml",
+                    AuxiliaryId = "Paket"
                 }
             };
         }

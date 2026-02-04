@@ -8,6 +8,7 @@ import re
 import zlib
 import requests
 import json
+import hashlib
 from pathlib import Path
 
 # PlantUML server URL
@@ -53,27 +54,42 @@ def encode_plantuml(plantuml_text):
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            print("Warning: Corrupt cache file found. Starting fresh.")
+            return {}
     return {}
 
 def save_cache(cache):
+    """Saves the cache to disk immediately."""
     with open(CACHE_FILE, 'w', encoding='utf-8') as f:
         json.dump(cache, indent=2, fp=f)
 
 def clean_source(source):
     if not source: return None
-    # Remove C# verbatim string literals @ or standard quotes
-    return source.replace('\\n', '\n').replace('\\r', '').replace('""', '"').replace('\\"', '"').strip('"').strip()
+    
+    # 1. Protect the custom escape sequence "\n/" using a placeholder
+    #    We replace it with a unique token that won't be affected by standard replacements
+    PLACEHOLDER = "###PLANTUML_LITERAL_NEWLINE###"
+    source = source.replace('\\n/', PLACEHOLDER)
+    
+    # 2. Perform standard C# string cleanups
+    #    This turns "\\n" into a real newline character (which you wanted for normal breaks)
+    source = source.replace('\\n', '\n').replace('\\r', '').replace('""', '"').replace('\\"', '"').strip('"').strip()
+    
+    # 3. Restore the placeholder to "\n"
+    #    This puts a literal backslash and 'n' back into the text for PlantUML to read
+    source = source.replace(PLACEHOLDER, '\\n')
+    
+    return source
 
 def extract_level_data(level_cs_path):
     with open(level_cs_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 1. Extract Shared Diagrams from static class SharedDiagrams
     shared_diagrams = {}
-    # Finds: public static string Key = "..."
-    # Handles verbatim @"..." and normal "..."
     shared_pattern = re.compile(r'public static string (\w+)\s*=\s*(@"(?:[^"]|"")*"|"(?:[^"\\]|\\.)*");', re.DOTALL)
     
     for match in shared_pattern.finditer(content):
@@ -81,7 +97,6 @@ def extract_level_data(level_cs_path):
         source = clean_source(match.group(2))
         shared_diagrams[key] = source
 
-    # 2. Extract Level objects
     level_blocks = re.findall(r'new Level\s*\{(.*?)\}\s*(?:,|;)', content, re.DOTALL)
     levels = []
     
@@ -114,8 +129,13 @@ def add_blueprint_theme(plantuml_source):
 def generate_single_diagram(source, output_path, cache_key, cache):
     if not source: return False
     
-    source_hash = hash(source)
-    if cache_key in cache and cache[cache_key]['hash'] == source_hash and output_path.exists():
+    # Calculate stable MD5 hash of the source content
+    source_hash = hashlib.md5(source.encode('utf-8')).hexdigest()
+    
+    # CHECK: Does the cache exist? Do the hashes match? Does the file actually exist on disk?
+    if (cache_key in cache and 
+        str(cache[cache_key].get('hash')) == str(source_hash) and 
+        output_path.exists()):
         return False 
 
     themed_source = add_blueprint_theme(source)
@@ -128,7 +148,11 @@ def generate_single_diagram(source, output_path, cache_key, cache):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'wb') as f:
             f.write(response.content)
+            
+        # UPDATE CACHE IMMEDIATELY
         cache[cache_key] = {'hash': source_hash, 'path': str(output_path)}
+        save_cache(cache) # Save to disk now!
+        
         return True
     except Exception as e:
         print(f"    Error: {e}")
@@ -153,12 +177,11 @@ def main():
     # 1. Generate Shared Diagrams
     print("--- Shared Diagrams ---")
     for key, source in shared_diags.items():
-        # Output: img/aux_Key.png
         out_path = output_dir / f"aux_{key}.png"
         cache_key = f"shared_{key}"
         print(f"Processing Shared: {key}...")
         if generate_single_diagram(source, out_path, cache_key, cache):
-            print("  -> Generated")
+            print("  -> Generated & Saved")
             gen_count += 1
         else:
             print("  -> Cached")
@@ -174,12 +197,11 @@ def main():
         
         print(f"Processing Level {level_id}...")
         if generate_single_diagram(item['main'], main_path, key_main, cache):
-            print("  -> Generated")
+            print("  -> Generated & Saved")
             gen_count += 1
         else:
             print("  -> Cached")
 
-    save_cache(cache)
     print(f"Done. Generated {gen_count} new images.")
 
 if __name__ == "__main__":
