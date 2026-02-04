@@ -12,20 +12,17 @@ using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
-using AvaloniaEdit.Highlighting;
-using AvaloniaEdit.Highlighting.Xshd;
 using AvaloniaEdit.Rendering;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
-using Svg.Transforms;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Xml;
 
 namespace AbiturEliteCode
 {
@@ -86,6 +83,7 @@ namespace AbiturEliteCode
             BuildVimCheatSheet();
 
             ConfigureEditor();
+            UpdateShortcutsAndTooltips();
 
             autoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
             autoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
@@ -172,6 +170,24 @@ namespace AbiturEliteCode
             };
         }
 
+        private void UpdateShortcutsAndTooltips()
+        {
+            bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            string ctrlKey = isMac ? "Cmd" : "Ctrl";
+
+            // update tooltips
+            ToolTip.SetTip(BtnSave, $"Code speichern ({ctrlKey} + S)");
+
+            if (BtnSettings.Parent is Panel parentPanel)
+            {
+                var runBtn = parentPanel.Children.LastOrDefault() as Button;
+                if (runBtn != null)
+                {
+                    ToolTip.SetTip(runBtn, $"Ausführen (F5)");
+                }
+            }
+        }
+
         private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
         {
             // ctrl + s => save
@@ -179,6 +195,14 @@ namespace AbiturEliteCode
             {
                 SaveCurrentProgress();
                 TxtConsole.Text += "\n> Gespeichert.";
+                e.Handled = true;
+                return;
+            }
+
+            // f5 => run
+            if (e.Key == Key.F5)
+            {
+                BtnRun_Click(this, new RoutedEventArgs());
                 e.Handled = true;
                 return;
             }
@@ -219,6 +243,11 @@ namespace AbiturEliteCode
             }
 
             // -- vim logic --
+
+            if (!AppSettings.IsVimEnabled)
+            {
+                return;
+            }
 
             if (e.Key == Key.Escape)
             {
@@ -934,7 +963,7 @@ namespace AbiturEliteCode
                 new TextBlock
                 {
                     Text =
-                        "Du hast alle Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für deine Abiturprüfung in Praktischer Informatik.\nViel Erfolg!",
+                        "Du hast alle Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für den Programmier-Teil der Abiturprüfung in Praktischer Informatik.\nViel Erfolg!",
                     FontSize = 16,
                     Foreground = Brushes.White,
                     TextAlignment = TextAlignment.Center,
@@ -1058,6 +1087,7 @@ namespace AbiturEliteCode
                 Background = BrushBgPanel,
                 SystemDecorations = SystemDecorations.BorderOnly
             };
+
             var root = new Border
             {
                 CornerRadius = new CornerRadius(8),
@@ -1065,60 +1095,120 @@ namespace AbiturEliteCode
                 BorderBrush = Brushes.Transparent,
                 BorderThickness = new Thickness(1)
             };
+
             var mainGrid = new Grid
             {
                 RowDefinitions = new RowDefinitions("Auto, *, Auto"),
                 Margin = new Thickness(15)
             };
-            mainGrid.Children.Add(
-                new StackPanel
+
+            var headerGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto, Auto, *, Auto"),
+                Margin = new Thickness(0, 0, 0, 15)
+            };
+
+            headerGrid.Children.Add(new TextBlock
+            {
+                Text = "Level Auswählen",
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 15, 0)
+            });
+
+            var countBadge = new Border
+            {
+                Background = SolidColorBrush.Parse("#2D2D30"),
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(10, 5),
+                Child = new TextBlock
                 {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 15,
-                    Margin = new Thickness(0, 0, 0, 15),
-                    Children =
+                    Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}",
+                    Foreground = BrushTextTitle,
+                    FontWeight = FontWeight.Bold,
+                    FontSize = 14
+                }
+            };
+            Grid.SetColumn(countBadge, 1);
+            headerGrid.Children.Add(countBadge);
+
+            var codeInputPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            Grid.SetColumn(codeInputPanel, 3);
+
+            codeInputPanel.Children.Add(new TextBlock 
+            { 
+                Text = "Code:", 
+                Foreground = Brushes.Gray, 
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var txtLevelCode = new TextBox
+            {
+                Width = 60,
+                MaxLength = 3,
+                Background = SolidColorBrush.Parse("#141414"),
+                Foreground = Brushes.White,
+                BorderBrush = SolidColorBrush.Parse("#333"),
+                CornerRadius = new CornerRadius(4),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                FontFamily = new FontFamily("Consolas")
+            };
+
+            txtLevelCode.TextChanged += (s, ev) =>
+            {
+                if (txtLevelCode.Text?.Length == 3)
+                {
+                    string code = txtLevelCode.Text.ToUpper();
+                    var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
+                    if (lvl != null)
                     {
-                        new TextBlock
+                        if (!playerData.UnlockedLevelIds.Contains(lvl.Id))
                         {
-                            Text = "Level Auswählen",
-                            FontSize = 20,
-                            FontWeight = FontWeight.Bold,
-                            Foreground = Brushes.White,
-                            VerticalAlignment = VerticalAlignment.Center
-                        },
-                        new Border
-                        {
-                            Background = SolidColorBrush.Parse("#2D2D30"),
-                            CornerRadius = new CornerRadius(12),
-                            Padding = new Thickness(10, 5),
-                            Child = new TextBlock
-                            {
-                                Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}",
-                                Foreground = BrushTextTitle,
-                                FontWeight = FontWeight.Bold,
-                                FontSize = 14
-                            }
+                            playerData.UnlockedLevelIds.Add(lvl.Id);
+                            SaveSystem.Save(playerData);
                         }
+                        LoadLevel(lvl);
+                        win.Close(); // auto close
                     }
                 }
-            );
+            };
+
+            codeInputPanel.Children.Add(txtLevelCode);
+            headerGrid.Children.Add(codeInputPanel);
+
+            mainGrid.Children.Add(headerGrid);
+
             var scroll = new ScrollViewer
             {
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto
             };
             Grid.SetRow(scroll, 1);
-            var levelStack = new StackPanel { Spacing = 8 };
+
+            var levelStack = new StackPanel
+            {
+                Spacing = 8
+            };
             var groups = levels.GroupBy(l => l.Section);
+
             foreach (var group in groups)
             {
                 bool isSectionComplete = group.All(
                     l => playerData.CompletedLevelIds.Contains(l.Id)
                 );
+
                 var headerPanel = new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
                     Spacing = 10
                 };
+
                 headerPanel.Children.Add(
                     new TextBlock
                     {
@@ -1128,15 +1218,18 @@ namespace AbiturEliteCode
                         VerticalAlignment = VerticalAlignment.Center
                     }
                 );
+
                 if (isSectionComplete)
                 {
                     headerPanel.Children.Add(LoadIcon("icons/ic_done.svg", 16));
                 }
+
                 var sectionContent = new StackPanel
                 {
                     Spacing = 5,
                     Margin = new Thickness(0, 5, 0, 0)
                 };
+
                 foreach (var lvl in group)
                 {
                     bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
@@ -1157,6 +1250,7 @@ namespace AbiturEliteCode
                             VerticalAlignment = VerticalAlignment.Center
                         }
                     );
+
                     var btn = new Button
                     {
                         Content = btnContent,
@@ -1170,11 +1264,13 @@ namespace AbiturEliteCode
                         Foreground = unlocked ? Brushes.White : Brushes.Gray,
                         CornerRadius = new CornerRadius(4)
                     };
+
                     btn.Click += (_, __) =>
                     {
                         LoadLevel(lvl);
                         win.Close();
                     };
+
                     sectionContent.Children.Add(btn);
                 }
                 var expander = new Expander
@@ -1186,10 +1282,13 @@ namespace AbiturEliteCode
                     CornerRadius = new CornerRadius(4),
                     Margin = new Thickness(0, 0, 0, 5)
                 };
+
                 levelStack.Children.Add(expander);
             }
+
             scroll.Content = levelStack;
             mainGrid.Children.Add(scroll);
+
             var closeBtn = new Button
             {
                 Content = "Schließen",
@@ -1201,6 +1300,7 @@ namespace AbiturEliteCode
                 Background = SolidColorBrush.Parse("#3C3C3C"),
                 Foreground = Brushes.White
             };
+
             Grid.SetRow(closeBtn, 2);
             closeBtn.Click += (_, __) => win.Close();
             mainGrid.Children.Add(closeBtn);
@@ -1227,32 +1327,14 @@ namespace AbiturEliteCode
             return image;
         }
 
-        private void TxtSkipCode_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (TxtSkipCode.Text?.Length == 3)
-            {
-                string code = TxtSkipCode.Text.ToUpper();
-                var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
-                if (lvl != null)
-                {
-                    if (!playerData.UnlockedLevelIds.Contains(lvl.Id))
-                    {
-                        playerData.UnlockedLevelIds.Add(lvl.Id);
-                        SaveSystem.Save(playerData);
-                    }
-                    LoadLevel(lvl);
-                    TxtSkipCode.Text = "";
-                    CodeEditor.Focus();
-                }
-            }
-        }
-
         private void BtnSettings_Click(object sender, RoutedEventArgs e)
         {
             bool originalVimEnabled = AppSettings.IsVimEnabled;
             bool originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
             bool originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
             double originalUiScale = AppSettings.UiScale;
+            bool isPortable = SaveSystem.IsPortableModeEnabled();
+            bool originalPortableState = isPortable;
 
             var settingsWin = new Window
             {
@@ -1274,7 +1356,7 @@ namespace AbiturEliteCode
 
             var mainGrid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("150, *"),
+                ColumnDefinitions = new ColumnDefinitions("160, *"),
                 RowDefinitions = new RowDefinitions("*, Auto"),
                 Margin = new Thickness(0)
             };
@@ -1287,30 +1369,6 @@ namespace AbiturEliteCode
 
             var categoriesPanel = new StackPanel();
 
-            var btnCatEditor = new Button
-            {
-                Content = "Editor",
-                Background = Brushes.Transparent,
-                Foreground = Brushes.White,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Padding = new Thickness(15),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(2),
-                HorizontalContentAlignment = HorizontalAlignment.Left
-            };
-
-            var btnCatDisplay = new Button
-            {
-                Content = "Darstellung",
-                Background = Brushes.Transparent,
-                Foreground = Brushes.White,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Padding = new Thickness(15),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(2),
-                HorizontalContentAlignment = HorizontalAlignment.Left
-            };
-
             categoriesPanel.Children.Add(
                 new TextBlock
                 {
@@ -1321,8 +1379,29 @@ namespace AbiturEliteCode
                     Margin = new Thickness(15)
                 }
             );
+
+            Button CreateCatBtn(string text)
+            {
+                return new Button
+                {
+                    Content = text,
+                    Background = Brushes.Transparent,
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Padding = new Thickness(15),
+                    CornerRadius = new CornerRadius(4),
+                    Margin = new Thickness(2),
+                    HorizontalContentAlignment = HorizontalAlignment.Left
+                };
+            }
+
+            var btnCatEditor = CreateCatBtn("Editor");
+            var btnCatDisplay = CreateCatBtn("Darstellung");
+            var btnCatData = CreateCatBtn("Daten");
+
             categoriesPanel.Children.Add(btnCatEditor);
             categoriesPanel.Children.Add(btnCatDisplay);
+            categoriesPanel.Children.Add(btnCatData);
 
             leftPanelGrid.Children.Add(categoriesPanel);
 
@@ -1369,6 +1448,8 @@ namespace AbiturEliteCode
             Grid.SetColumn(rightPanel, 1);
             mainGrid.Children.Add(rightPanel);
 
+            // --- CONTROLS CREATION ---
+
             // controls creation
 
             // syntax highlighting
@@ -1395,7 +1476,7 @@ namespace AbiturEliteCode
                 Foreground = Brushes.White
             };
 
-            // ui scale
+            // display settings
             var sliderScale = new Slider
             {
                 Minimum = 0.5,
@@ -1404,12 +1485,34 @@ namespace AbiturEliteCode
                 Width = 200,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            var txtScaleVal = new TextBlock
+            var txtScaleVal = new TextBlock { Text = $"{AppSettings.UiScale:P0}", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+
+            // data settings
+            var chkPortable = new CheckBox
             {
-                Text = $"{AppSettings.UiScale:P0}",
-                Foreground = Brushes.White,
-                VerticalAlignment = VerticalAlignment.Center
+                Content = "Portable Mode",
+                IsChecked = isPortable,
+                Foreground = Brushes.White
             };
+            var txtPortableInfo = new TextBlock
+            {
+                Text = "Wenn aktiviert, wird der Speicherstand direkt neben der ausführbaren Datei gespeichert. Ideal für USB-Sticks.",
+                Foreground = Brushes.Gray,
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(25, 0, 0, 0)
+            };
+
+            // check permissions
+            bool canWriteRoot = SaveSystem.CanWriteToRoot();
+            if (!canWriteRoot)
+            {
+                chkPortable.IsEnabled = false;
+                chkPortable.Content += " (Keine Schreibrechte)";
+                chkPortable.Foreground = Brushes.Gray;
+                txtPortableInfo.Text = "Portable Mode ist hier nicht verfügbar, da keine Schreibrechte im Programmordner bestehen.";
+                txtPortableInfo.Foreground = Brushes.Red;
+            }
 
             void CheckChanges()
             {
@@ -1417,17 +1520,15 @@ namespace AbiturEliteCode
                     (chkVim.IsChecked != originalVimEnabled) ||
                     (chkSyntax.IsChecked != originalSyntaxEnabled) ||
                     (chkError.IsChecked != originalErrorEnabled) ||
+                    (chkPortable.IsChecked != isPortable) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
                 btnSave.IsEnabled = hasChanges;
                 btnSave.Opacity = hasChanges ? 1.0 : 0.5;
-
-                btnSave.Background = hasChanges
-                    ? SolidColorBrush.Parse("#32A852")
-                    : SolidColorBrush.Parse("#464646");
+                btnSave.Background = hasChanges ? SolidColorBrush.Parse("#32A852") : SolidColorBrush.Parse("#464646");
             }
 
-            // event handlers
+            // --- EVENT HANDLERS ---
 
             chkSyntax.IsCheckedChanged += async (s, ev) =>
             {
@@ -1464,12 +1565,8 @@ namespace AbiturEliteCode
                 CheckChanges();
             };
 
-            chkVim.IsCheckedChanged += (s, ev) =>
-            {
-                AppSettings.IsVimEnabled = chkVim.IsChecked ?? false;
-                UpdateVimState();
-                CheckChanges();
-            };
+            chkVim.IsCheckedChanged += (s, ev) => { AppSettings.IsVimEnabled = chkVim.IsChecked ?? false; UpdateVimState(); CheckChanges(); };
+            chkPortable.IsCheckedChanged += (s, ev) => { CheckChanges(); };
 
             sliderScale.ValueChanged += (s, ev) =>
             {
@@ -1479,55 +1576,47 @@ namespace AbiturEliteCode
                 CheckChanges();
             };
 
-            // layout assembling
+            // --- LAYOUT ASSEMBLY ---
 
+            // editor
             var editorSettings = new StackPanel { Spacing = 15 };
-            editorSettings.Children.Add(
-                new TextBlock
-                {
-                    Text = "Code Editor",
-                    FontSize = 18,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 0, 0, 10)
-                }
-            );
+            editorSettings.Children.Add(new TextBlock { Text = "Code Editor", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
             editorSettings.Children.Add(chkSyntax);
             editorSettings.Children.Add(chkError);
             editorSettings.Children.Add(chkVim);
 
+            // display
             var displaySettings = new StackPanel { Spacing = 15 };
             var scalePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
             scalePanel.Children.Add(sliderScale);
             scalePanel.Children.Add(txtScaleVal);
-
-            displaySettings.Children.Add(
-                new TextBlock
-                {
-                    Text = "Darstellung",
-                    FontSize = 18,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 0, 0, 10)
-                }
-            );
-            displaySettings.Children.Add(
-                new TextBlock { Text = "UI Skalierung (Layout)", Foreground = Brushes.LightGray }
-            );
+            displaySettings.Children.Add(new TextBlock { Text = "Darstellung", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
+            displaySettings.Children.Add(new TextBlock { Text = "UI Skalierung", Foreground = Brushes.LightGray });
             displaySettings.Children.Add(scalePanel);
+
+            // data
+            var dataSettingsPanel = new StackPanel { Spacing = 15 };
+            dataSettingsPanel.Children.Add(new TextBlock { Text = "Daten & Speicher", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
+            dataSettingsPanel.Children.Add(chkPortable);
+            dataSettingsPanel.Children.Add(txtPortableInfo);
 
             void ShowCategory(Button activeBtn, Control content)
             {
                 btnCatEditor.Background = Brushes.Transparent;
                 btnCatDisplay.Background = Brushes.Transparent;
+                btnCatData.Background = Brushes.Transparent;
+
                 activeBtn.Background = SolidColorBrush.Parse("#3E3E42");
                 rightPanel.Child = content;
             }
 
             btnCatEditor.Click += (s, ev) => ShowCategory(btnCatEditor, editorSettings);
             btnCatDisplay.Click += (s, ev) => ShowCategory(btnCatDisplay, displaySettings);
+            btnCatData.Click += (s, ev) => ShowCategory(btnCatData, dataSettingsPanel);
 
             ShowCategory(btnCatEditor, editorSettings);
+
+            // --- WINDOW CONTROLS ---
 
             var closeBtn = new Button
             {
@@ -1546,6 +1635,7 @@ namespace AbiturEliteCode
             Grid.SetColumn(closeBtn, 1);
             mainGrid.Children.Add(closeBtn);
 
+            // save logic
             btnSave.Click += (s, ev) =>
             {
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
@@ -1554,14 +1644,30 @@ namespace AbiturEliteCode
 
                 SaveSystem.Save(playerData);
 
+                if (chkPortable.IsChecked != originalPortableState)
+                {
+                    try
+                    {
+                        SaveSystem.SetPortableMode(chkPortable.IsChecked == true);
+                        isPortable = chkPortable.IsChecked == true;
+                        originalPortableState = isPortable;
+
+                        string location = isPortable ? "Programmordner" : "AppData";
+                        TxtConsole.Text += $"\n> Speicherort geändert auf: {location}";
+                    }
+                    catch (Exception ex)
+                    {
+                        TxtConsole.Text += $"\n> Fehler beim Ändern des Speicherorts: {ex.Message}";
+                    }
+                }
+
                 btnSave.IsEnabled = false;
+                btnSave.Opacity = 0.5;
             };
 
-            closeBtn.Click += (s, ev) =>
-            {
-                settingsWin.Close();
-            };
+            closeBtn.Click += (s, ev) => settingsWin.Close();
 
+            // reset logic
             btnReset.Click += async (s, ev) =>
             {
                 var confirmDialog = new Window
@@ -1575,61 +1681,18 @@ namespace AbiturEliteCode
                     CornerRadius = new CornerRadius(8)
                 };
 
-                var confirmGrid = new Grid
-                {
-                    RowDefinitions = new RowDefinitions("*, Auto"),
-                    Margin = new Thickness(20)
-                };
+                var confirmGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+                confirmGrid.Children.Add(new TextBlock { Text = "Möchtest du alle Einstellungen auf die Standardwerte zurücksetzen?", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, FontSize = 15 });
 
-                confirmGrid.Children.Add(
-                    new TextBlock
-                    {
-                        Text = "Möchtest du alle Einstellungen auf die Standardwerte zurücksetzen?",
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = Brushes.White,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        FontSize = 15
-                    }
-                );
-
-                var btnPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 10,
-                    Margin = new Thickness(0, 20, 0, 0)
-                };
-
+                var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10, Margin = new Thickness(0, 20, 0, 0) };
                 Grid.SetRow(btnPanel, 1);
 
-                var btnYes = new Button
-                {
-                    Content = "Ja, zurücksetzen",
-                    Background = SolidColorBrush.Parse("#B43232"),
-                    Foreground = Brushes.White,
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(15, 8)
-                };
-
-                var btnNo = new Button
-                {
-                    Content = "Abbrechen",
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
-                    Foreground = Brushes.White,
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(15, 8)
-                };
+                var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4), Padding = new Thickness(15, 8) };
+                var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4), Padding = new Thickness(15, 8) };
 
                 bool resetConfirmed = false;
-                btnYes.Click += (_, __) =>
-                {
-                    resetConfirmed = true;
-                    confirmDialog.Close();
-                };
-                btnNo.Click += (_, __) =>
-                {
-                    confirmDialog.Close();
-                };
+                btnYes.Click += (_, __) => { resetConfirmed = true; confirmDialog.Close(); };
+                btnNo.Click += (_, __) => { confirmDialog.Close(); };
 
                 btnPanel.Children.Add(btnNo);
                 btnPanel.Children.Add(btnYes);
@@ -1643,6 +1706,8 @@ namespace AbiturEliteCode
                     chkVim.IsChecked = false;
                     chkSyntax.IsChecked = false;
                     chkError.IsChecked = false;
+                    sliderScale.Value = 1.0;
+                    if (canWriteRoot) chkPortable.IsChecked = false;
                 }
             };
 
@@ -1748,9 +1813,15 @@ namespace AbiturEliteCode
             if (TabVim != null)
             {
                 TabVim.IsVisible = AppSettings.IsVimEnabled;
-                UpdateVimUI();
-                if (AppSettings.IsVimEnabled)
+
+                if (!AppSettings.IsVimEnabled)
                 {
+                    CodeEditor.Cursor = Cursor.Default;
+                    VimStatusBorder.IsVisible = false;
+                }
+                else
+                {
+                    UpdateVimUI();
                     if (PnlVimCheatSheet != null && VimCol1.Children.Count == 0)
                         BuildVimCheatSheet();
                 }
@@ -1877,271 +1948,11 @@ namespace AbiturEliteCode
         {
             if (AppSettings.IsSyntaxHighlightingEnabled)
             {
-                CodeEditor.SyntaxHighlighting = GetDarkCsharpHighlighting();
+                CodeEditor.SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting();
             }
             else
             {
                 CodeEditor.SyntaxHighlighting = null;
-            }
-        }
-
-        private IHighlightingDefinition GetDarkCsharpHighlighting()
-        {
-            string xshd =
-                @"
-<SyntaxDefinition name=""C# Dark"" extensions="".cs"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
-	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""// comment"" />
-	<Color name=""String"" foreground=""#CE9178"" exampleText=""string text = &quot;Hello&quot;"" />
-	<Color name=""Char"" foreground=""#D7BA7D"" exampleText=""char linefeed = '\n';"" />
-	<Color name=""Preprocessor"" foreground=""#9B9B9B"" exampleText=""#region Title"" />
-	<Color name=""Punctuation"" foreground=""#D4D4D4"" exampleText=""a(b.c);"" />
-	<Color name=""ValueTypeKeywords"" foreground=""#569CD6"" exampleText=""bool b = true;"" />
-	<Color name=""ReferenceTypeKeywords"" foreground=""#569CD6"" exampleText=""object o;"" />
-	<Color name=""MethodCall"" foreground=""#DCDCAA"" exampleText=""o.ToString();""/>
-	<Color name=""NumberLiteral"" foreground=""#B5CEA8"" exampleText=""3.1415f""/>
-	<Color name=""ThisOrBaseReference"" foreground=""#569CD6"" exampleText=""this.Do(); base.Do();""/>
-	<Color name=""NullOrValueKeywords"" foreground=""#569CD6"" exampleText=""if (value == null)""/>
-	<Color name=""Keywords"" foreground=""#C586C0"" exampleText=""if (a) {} else {}""/>
-	<Color name=""GotoKeywords"" foreground=""#C586C0"" exampleText=""continue; return;""/>
-	<Color name=""ContextKeywords"" foreground=""#569CD6"" exampleText=""var a = from x in y select z;""/>
-	<Color name=""ExceptionKeywords"" foreground=""#C586C0"" exampleText=""try {} catch {} finally {}""/>
-	<Color name=""CheckedKeyword"" foreground=""#569CD6"" exampleText=""checked {}""/>
-	<Color name=""UnsafeKeywords"" foreground=""#569CD6"" exampleText=""unsafe { fixed (..) {} }"" />
-	<Color name=""OperatorKeywords"" foreground=""#569CD6"" exampleText=""public static implicit operator..."" />
-	<Color name=""ParameterModifiers"" foreground=""#569CD6"" exampleText=""(ref int a, params int[] b)"" />
-	<Color name=""Modifiers"" foreground=""#569CD6"" exampleText=""public static override"" />
-	<Color name=""Visibility"" foreground=""#569CD6"" exampleText=""public internal"" />
-	<Color name=""NamespaceKeywords"" foreground=""#569CD6"" exampleText=""namespace A.B { using System; }"" />
-	<Color name=""GetSetAddRemove"" foreground=""#569CD6"" exampleText=""int Prop { get; set; }"" />
-	<Color name=""TrueFalse"" foreground=""#569CD6"" exampleText=""b = false; a = true;"" />
-	<Color name=""TypeKeywords"" foreground=""#569CD6"" exampleText=""if (x is int) { a = x as int; type = typeof(int); size = sizeof(int); c = new object(); }"" />
-    <Color name=""SemanticType"" foreground=""#4EC9B0"" exampleText=""List&lt;int&gt; list;"" />
-
-	<RuleSet name=""CommentMarkerSet"">
-		<Keywords fontWeight=""bold"" foreground=""#969696"">
-			<Word>TODO</Word>
-			<Word>FIXME</Word>
-		</Keywords>
-		<Keywords fontWeight=""bold"" foreground=""#969696"">
-			<Word>HACK</Word>
-			<Word>UNDONE</Word>
-		</Keywords>
-	</RuleSet>
-
-	<RuleSet>
-		<Span color=""Comment"">
-			<Begin>//</Begin>
-			<RuleSet>
-				<Import ruleSet=""CommentMarkerSet""/>
-			</RuleSet>
-		</Span>
-		<Span color=""Comment"" multiline=""true"">
-			<Begin>/\*</Begin>
-			<End>\*/</End>
-			<RuleSet>
-				<Import ruleSet=""CommentMarkerSet""/>
-			</RuleSet>
-		</Span>
-		<Span color=""String"">
-			<Begin>""</Begin>
-			<End>""</End>
-			<RuleSet>
-				<Span begin=""\\"" end="".""/>
-			</RuleSet>
-		</Span>
-		<Span color=""Char"">
-			<Begin>'</Begin>
-			<End>'</End>
-			<RuleSet>
-				<Span begin=""\\"" end="".""/>
-			</RuleSet>
-		</Span>
-		<Span color=""Preprocessor"">
-			<Begin>\#</Begin>
-			<RuleSet name=""PreprocessorSet"">
-				<Span> <!-- preprocessor directives that allow comments -->
-					<Begin fontWeight=""bold"">region</Begin>
-					<RuleSet>
-						<Span color=""Comment"">
-							<Begin>//</Begin>
-							<RuleSet>
-								<Import ruleSet=""CommentMarkerSet""/>
-							</RuleSet>
-						</Span>
-						<Span color=""Comment"" multiline=""true"">
-							<Begin>/\*</Begin>
-							<End>\*/</End>
-							<RuleSet>
-								<Import ruleSet=""CommentMarkerSet""/>
-							</RuleSet>
-						</Span>
-					</RuleSet>
-				</Span>
-			</RuleSet>
-		</Span>
-		<Keywords color=""TrueFalse"">
-			<Word>true</Word>
-			<Word>false</Word>
-		</Keywords>
-		<Keywords color=""Keywords"">
-			<Word>else</Word>
-			<Word>if</Word>
-			<Word>switch</Word>
-			<Word>case</Word>
-			<Word>default</Word>
-			<Word>do</Word>
-			<Word>for</Word>
-			<Word>foreach</Word>
-			<Word>in</Word>
-			<Word>while</Word>
-			<Word>lock</Word>
-		</Keywords>
-		<Keywords color=""GotoKeywords"">
-			<Word>break</Word>
-			<Word>continue</Word>
-			<Word>goto</Word>
-			<Word>return</Word>
-		</Keywords>
-		<Keywords color=""ContextKeywords"">
-			<Word>yield</Word>
-			<Word>partial</Word>
-			<Word>global</Word>
-			<Word>where</Word>
-			<Word>select</Word>
-			<Word>group</Word>
-			<Word>by</Word>
-			<Word>into</Word>
-			<Word>from</Word>
-			<Word>ascending</Word>
-			<Word>descending</Word>
-			<Word>orderby</Word>
-			<Word>let</Word>
-			<Word>join</Word>
-			<Word>on</Word>
-			<Word>equals</Word>
-		</Keywords>
-		<Keywords color=""ExceptionKeywords"">
-			<Word>try</Word>
-			<Word>throw</Word>
-			<Word>catch</Word>
-			<Word>finally</Word>
-		</Keywords>
-		<Keywords color=""CheckedKeyword"">
-			<Word>checked</Word>
-			<Word>unchecked</Word>
-		</Keywords>
-		<Keywords color=""UnsafeKeywords"">
-			<Word>fixed</Word>
-			<Word>unsafe</Word>
-		</Keywords>
-		<Keywords color=""ValueTypeKeywords"">
-			<Word>bool</Word>
-			<Word>byte</Word>
-			<Word>char</Word>
-			<Word>decimal</Word>
-			<Word>double</Word>
-			<Word>enum</Word>
-			<Word>float</Word>
-			<Word>int</Word>
-			<Word>long</Word>
-			<Word>sbyte</Word>
-			<Word>short</Word>
-			<Word>struct</Word>
-			<Word>uint</Word>
-			<Word>ushort</Word>
-			<Word>ulong</Word>
-		</Keywords>
-		<Keywords color=""ReferenceTypeKeywords"">
-			<Word>class</Word>
-			<Word>interface</Word>
-			<Word>delegate</Word>
-			<Word>object</Word>
-			<Word>string</Word>
-			<Word>void</Word>
-		</Keywords>
-		<Keywords color=""OperatorKeywords"">
-			<Word>explicit</Word>
-			<Word>implicit</Word>
-			<Word>operator</Word>
-		</Keywords>
-		<Keywords color=""ParameterModifiers"">
-			<Word>params</Word>
-			<Word>ref</Word>
-			<Word>out</Word>
-		</Keywords>
-		<Keywords color=""Modifiers"">
-			<Word>abstract</Word>
-			<Word>const</Word>
-			<Word>event</Word>
-			<Word>extern</Word>
-			<Word>override</Word>
-			<Word>readonly</Word>
-			<Word>sealed</Word>
-			<Word>static</Word>
-			<Word>virtual</Word>
-			<Word>volatile</Word>
-			<Word>async</Word>
-		</Keywords>
-		<Keywords color=""Visibility"">
-			<Word>public</Word>
-			<Word>protected</Word>
-			<Word>private</Word>
-			<Word>internal</Word>
-		</Keywords>
-		<Keywords color=""NamespaceKeywords"">
-			<Word>namespace</Word>
-			<Word>using</Word>
-		</Keywords>
-		<Keywords color=""GetSetAddRemove"">
-			<Word>get</Word>
-			<Word>set</Word>
-			<Word>add</Word>
-			<Word>remove</Word>
-		</Keywords>
-		<Keywords color=""NullOrValueKeywords"">
-			<Word>null</Word>
-			<Word>value</Word>
-		</Keywords>
-		<Keywords color=""TypeKeywords"">
-			<Word>as</Word>
-			<Word>is</Word>
-			<Word>new</Word>
-			<Word>sizeof</Word>
-			<Word>typeof</Word>
-			<Word>stackalloc</Word>
-		</Keywords>
-		<Keywords color=""ThisOrBaseReference"">
-			<Word>this</Word>
-			<Word>base</Word>
-		</Keywords>
-        <!-- Fallback for standard types often found in Abitur code -->
-        <Keywords color=""SemanticType"">
-             <Word>List</Word>
-             <Word>Dictionary</Word>
-             <Word>Console</Word>
-             <Word>Math</Word>
-             <Word>Convert</Word>
-             <Word>Array</Word>
-        </Keywords>
-		<Rule color=""MethodCall"">
-			\b
-			[\d\w_]+  # an identifier
-			(?=\s*\() # followed by (
-		</Rule>
-		<Rule color=""NumberLiteral"">
-			\b0[xX][0-9a-fA-F]+  # hex number
-		|	
-			(	\b\d+(\.[0-9]+)?   #number with optional floating point
-			|	\.[0-9]+           #or just starting with floating point
-			)
-			([eE][+-]?[0-9]+)? # optional exponent
-		</Rule>
-	</RuleSet>
-</SyntaxDefinition>";
-
-            using (var reader = XmlReader.Create(new StringReader(xshd)))
-            {
-                return HighlightingLoader.Load(reader, HighlightingManager.Instance);
             }
         }
 
@@ -2185,7 +1996,11 @@ namespace AbiturEliteCode
                     _vimMode = VimMode.Insert;
                     break;
                 case "a":
-                    CodeEditor.CaretOffset = Math.Min(CodeEditor.Document.TextLength, CodeEditor.CaretOffset + 1);
+                    var lineA = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    if (CodeEditor.CaretOffset < lineA.EndOffset)
+                    {
+                        CodeEditor.CaretOffset++;
+                    }
                     _vimMode = VimMode.Insert;
                     break;
                 case "o":
@@ -2243,8 +2058,12 @@ namespace AbiturEliteCode
                     else CodeEditor.CaretOffset = 0;
                     break;
                 case "0": // line start
-                    var lineStart1 = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    CodeEditor.CaretOffset = lineStart1.Offset;
+                    var line0 = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    string text0 = CodeEditor.Document.GetText(line0);
+                    int indent = 0;
+                    while (indent < text0.Length && char.IsWhiteSpace(text0[indent]))
+                        indent++;
+                    CodeEditor.CaretOffset = line0.Offset + indent;
                     break;
 
                 case "$": // line end
@@ -2252,12 +2071,26 @@ namespace AbiturEliteCode
                     CodeEditor.CaretOffset = lineEnd1.EndOffset;
                     break;
 
+                case "G": // file end
+                    CodeEditor.CaretOffset = CodeEditor.Document.TextLength;
+                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    break;
+                case "D": // delete till line end
+                    var lineD = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    int lenD = (lineD.Offset + lineD.Length) - CodeEditor.CaretOffset;
+                    if (lenD > 0)
+                    {
+                        _vimClipboard = CodeEditor.Document.GetText(CodeEditor.CaretOffset, lenD);
+                        CodeEditor.Document.Remove(CodeEditor.CaretOffset, lenD);
+                    }
+                    break;
+
                 // --- EDITING ---
                 case "x": // delete char
                     if (CodeEditor.Document.TextLength > CodeEditor.CaretOffset)
                         CodeEditor.Document.Remove(CodeEditor.CaretOffset, 1);
                     break;
-                case "u": // Undo
+                case "u": // undo
                     CodeEditor.Undo();
                     break;
                 case "r": // replace single char
@@ -2296,10 +2129,6 @@ namespace AbiturEliteCode
             {
                 CodeEditor.CaretOffset = 0;
             }
-            else if (cmd == "G" || (_vimCommandBuffer == "" && key == "G"))
-            {
-                CodeEditor.CaretOffset = CodeEditor.Document.TextLength;
-            }
 
             // --- DELETION COMMANDS ---
             else if (cmd == "dd")
@@ -2318,16 +2147,6 @@ namespace AbiturEliteCode
                 int len = nextSpace - start;
                 _vimClipboard = CodeEditor.Document.GetText(start, len);
                 CodeEditor.Document.Remove(start, len);
-            }
-            else if (cmd == "D")
-            {
-                var line = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                int len = (line.Offset + line.Length) - CodeEditor.CaretOffset;
-                if (len > 0)
-                {
-                    _vimClipboard = CodeEditor.Document.GetText(CodeEditor.CaretOffset, len);
-                    CodeEditor.Document.Remove(CodeEditor.CaretOffset, len);
-                }
             }
 
             // --- YANK ---

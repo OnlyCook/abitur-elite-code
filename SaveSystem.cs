@@ -1,5 +1,4 @@
-﻿using Avalonia.Controls;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,12 +20,68 @@ public class PlayerData
 
 public static class SaveSystem
 {
-    private static string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
-    private static string path = Path.Combine(folder, "savegame.elitedata");
+    private static string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
+    private static string rootFolder = AppContext.BaseDirectory; // portable location
 
-    public static void Save(PlayerData data)
+    private static string AppDataPath => Path.Combine(appDataFolder, "savegame.elitedata");
+    private static string RootPath => Path.Combine(rootFolder, "savegame.elitedata");
+
+    private static string GetActivePath()
     {
-        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+        if (File.Exists(RootPath)) return RootPath;
+        return AppDataPath;
+    }
+
+    public static bool IsPortableModeEnabled() => File.Exists(RootPath);
+
+    public static bool CanWriteToRoot()
+    {
+        try
+        {
+            // permission check
+            string testFile = Path.Combine(rootFolder, ".permtest");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static void SetPortableMode(bool enabled)
+    {
+        if (enabled)
+        {
+            // switch to portable mode
+            if (File.Exists(AppDataPath))
+            {
+                File.Copy(AppDataPath, RootPath, true);
+            }
+            else
+            {
+                Save(new PlayerData(), forcePath: RootPath);
+            }
+        }
+        else
+        {
+            // switch to appdata
+            if (File.Exists(RootPath))
+            {
+                if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+                File.Copy(RootPath, AppDataPath, true);
+                File.Delete(RootPath);
+            }
+        }
+    }
+
+    public static void Save(PlayerData data, string forcePath = null)
+    {
+        string targetPath = forcePath ?? GetActivePath();
+        string directory = Path.GetDirectoryName(targetPath);
+
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
@@ -36,17 +91,19 @@ public static class SaveSystem
         string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};scale:{data.Settings.UiScale}";
 
         // format: unlocked|codes|completed|settings
-        File.WriteAllText(path, $"{ids}|{codes}|{completed}|{settings}");
+        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}");
     }
 
     public static PlayerData Load()
     {
+        string targetPath = GetActivePath();
         PlayerData data = new PlayerData();
-        if (!File.Exists(path)) return data;
+
+        if (!File.Exists(targetPath)) return data;
 
         try
         {
-            string content = File.ReadAllText(path);
+            string content = File.ReadAllText(targetPath);
             string[] parts = content.Split('|');
 
             if (parts.Length > 0 && !string.IsNullOrEmpty(parts[0]))

@@ -29,15 +29,6 @@
 							HorizontalAlignment="Center"
 							Click="BtnLevelSelect_Click"/>
 
-					<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="0,0,20,0">
-						<TextBlock Text="Level Code:" Foreground="Gray" VerticalAlignment="Center" FontSize="14"/>
-						<TextBox Name="TxtSkipCode" Width="70" MaxLength="3"
-								 Background="#141414" Foreground="White"
-								 BorderBrush="#333" CornerRadius="4"
-								 HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontFamily="Consolas"
-								 TextChanged="TxtSkipCode_TextChanged"/>
-					</StackPanel>
-
 					<Button Grid.Column="3" Name="BtnNextLevel" Content="NÄCHSTES LEVEL →"
 							Background="RoyalBlue" Foreground="White" IsVisible="False"
 							CornerRadius="4" Padding="15,8" FontWeight="Bold"
@@ -155,10 +146,10 @@
 								<svg:Svg Path="/icons/ic_restart.svg" Width="20" Height="20"/>
 							</Button>
 							<Button Name="BtnSave" Background="#464646" Width="50"
-									CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern">
+									CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern (Ctrl + S)">
 								<svg:Svg Path="/icons/ic_save.svg" Width="20" Height="20"/>
 							</Button>
-							<Button Content="▶ AUSFÜHREN" Background="#32A852" Foreground="White" FontWeight="Bold"
+							<Button Name="BtnRun" Content="▶ AUSFÜHREN" Background="#32A852" Foreground="White" FontWeight="Bold"
 									Padding="15,8" CornerRadius="5" Click="BtnRun_Click"/>
 						</StackPanel>
 					</Grid>
