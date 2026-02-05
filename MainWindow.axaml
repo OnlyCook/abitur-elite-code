@@ -150,7 +150,7 @@
 								<svg:Svg Path="/icons/ic_save.svg" Width="20" Height="20"/>
 							</Button>
 							<Button Name="BtnRun" Content="▶ AUSFÜHREN" Background="#32A852" Foreground="White" FontWeight="Bold"
-									Padding="15,8" CornerRadius="5" Click="BtnRun_Click"/>
+									Padding="15,8" CornerRadius="5" Click="BtnRun_Click" Width="135" HorizontalContentAlignment="Center"/>
 						</StackPanel>
 					</Grid>
 

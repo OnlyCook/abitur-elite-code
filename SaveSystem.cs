@@ -28,8 +28,16 @@ public static class SaveSystem
 
     private static string GetActivePath()
     {
+        // first check for existing local save
         if (File.Exists(RootPath)) return RootPath;
-        return AppDataPath;
+
+        // then existing appdata save
+        if (File.Exists(AppDataPath)) return AppDataPath;
+
+        // if none on both -> prioritize local save
+        if (CanWriteToRoot()) return RootPath;
+
+        return AppDataPath; // fallback appdata
     }
 
     public static bool IsPortableModeEnabled() => File.Exists(RootPath);

@@ -48,9 +48,13 @@ namespace AbiturEliteCode
         private bool _isDragging = false;
         private double _currentScale = 1.0;
 
+        private System.Threading.CancellationTokenSource? _compilationCts;
         private TextMarkerService _textMarkerService;
         private UnusedCodeTransformer _unusedCodeTransformer;
         private DispatcherTimer _diagnosticTimer;
+        private GhostCharacterTransformer _ghostCharTransformer;
+        private BracketHighlightRenderer _bracketHighlightRenderer;
+        private IndentationGuideRenderer _indentationGuideRenderer;
 
         private bool _hasRunOnce = false;
 
@@ -183,11 +187,20 @@ namespace AbiturEliteCode
             CodeEditor.Background = Brushes.Transparent;
             CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
 
+            _indentationGuideRenderer = new IndentationGuideRenderer(CodeEditor);
+            CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_indentationGuideRenderer);
+
+            _bracketHighlightRenderer = new BracketHighlightRenderer(CodeEditor);
+            CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_bracketHighlightRenderer);
+
             _textMarkerService = new TextMarkerService(CodeEditor);
             CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_textMarkerService);
 
             _unusedCodeTransformer = new UnusedCodeTransformer();
             CodeEditor.TextArea.TextView.LineTransformers.Add(_unusedCodeTransformer);
+
+            _ghostCharTransformer = new GhostCharacterTransformer(CodeEditor);
+            CodeEditor.TextArea.TextView.LineTransformers.Add(_ghostCharTransformer);
 
             // wait 600ms after typing
             _diagnosticTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
@@ -200,6 +213,7 @@ namespace AbiturEliteCode
             CodeEditor.TextArea.Caret.PositionChanged += (s, e) =>
             {
                 CodeEditor.TextArea.Caret.BringCaretToView();
+                CodeEditor.TextArea.TextView.Redraw();
             };
 
             CodeEditor.TextArea.TextEntering += Editor_TextEntering;
@@ -270,6 +284,7 @@ namespace AbiturEliteCode
                         || (charBefore == '{' && charAfter == '}')
                         || (charBefore == '[' && charAfter == ']')
                         || (charBefore == '"' && charAfter == '"')
+                        || (charBefore == '<' && charAfter == '>')
                     )
                     {
                         CodeEditor.Document.Remove(offset - 1, 2);
@@ -339,23 +354,34 @@ namespace AbiturEliteCode
             TextArea textArea = (TextArea)sender;
             int offset = textArea.Caret.Offset;
 
+            // auto remove auto added chevron
+            if (charTyped == ' ')
+            {
+                if (offset > 0 && offset < textArea.Document.TextLength)
+                {
+                    if (textArea.Document.GetCharAt(offset - 1) == '<' && textArea.Document.GetCharAt(offset) == '>')
+                    {
+                        textArea.Document.Remove(offset, 1);
+                    }
+                }
+            }
+
             // surround selection logic
             if (textArea.Selection.Length > 0)
             {
-                if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' || charTyped == '\'')
+                if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' || charTyped == '\'' || charTyped == '<')
                 {
                     string startChar = charTyped.ToString();
                     string endChar = charTyped == '(' ? ")"
                                    : charTyped == '{' ? "}"
                                    : charTyped == '[' ? "]"
+                                   : charTyped == '<' ? ">"
                                    : charTyped.ToString();
 
                     string selectedText = textArea.Selection.GetText();
-
                     int selectionStart = textArea.Selection.SurroundingSegment.Offset;
 
                     textArea.Selection.ReplaceSelectionWithText(startChar + selectedText + endChar);
-
                     textArea.Caret.Offset = selectionStart + selectedText.Length + 2;
 
                     e.Handled = true;
@@ -363,17 +389,39 @@ namespace AbiturEliteCode
                 }
             }
 
-            if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"')
+            // auto add designated pair
+            if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' || charTyped == '<')
             {
+                if (charTyped == '<')
+                {
+                    bool isGenericContext = false;
+                    if (offset > 0)
+                    {
+                        char prevChar = textArea.Document.GetCharAt(offset - 1);
+                        if (char.IsLetterOrDigit(prevChar) || prevChar == '>')
+                        {
+                            isGenericContext = true;
+                        }
+                    }
+
+                    if (!isGenericContext) return; // let insert normally
+                }
+
                 string pair =
-                    charTyped == '(' ? ")" : charTyped == '{' ? "}" : charTyped == '[' ? "]" : "\"";
+                    charTyped == '(' ? ")"
+                    : charTyped == '{' ? "}"
+                    : charTyped == '[' ? "]"
+                    : charTyped == '<' ? ">"
+                    : "\"";
+
                 textArea.Document.Insert(offset, charTyped.ToString() + pair);
                 textArea.Caret.Offset = offset + 1;
                 e.Handled = true;
                 return;
             }
 
-            if (charTyped == ')' || charTyped == '}' || charTyped == ']' || charTyped == '"')
+            // skip closing pair
+            if (charTyped == ')' || charTyped == '}' || charTyped == ']' || charTyped == '"' || charTyped == '>')
             {
                 if (
                     offset < textArea.Document.TextLength
@@ -812,6 +860,266 @@ namespace AbiturEliteCode
             }
         }
 
+        public class GhostCharacterTransformer : DocumentColorizingTransformer
+        {
+            private readonly TextEditor _editor;
+
+            public GhostCharacterTransformer(TextEditor editor)
+            {
+                _editor = editor;
+            }
+
+            protected override void ColorizeLine(DocumentLine line)
+            {
+                int offset = _editor.CaretOffset;
+
+                // only check if caret is on this line and not at the very end of document
+                if (offset >= line.Offset && offset < line.EndOffset)
+                {
+                    char nextChar = _editor.Document.GetCharAt(offset);
+
+                    // check for closing pairs
+                    if (nextChar == ')' || nextChar == '}' || nextChar == ']' || nextChar == '"' || nextChar == '>')
+                    {
+                        // apply opacity to the single character at the caret position
+                        ChangeLinePart(offset, offset + 1, element =>
+                        {
+                            element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#66D4D4D4")));
+                        });
+                    }
+                }
+            }
+        }
+
+        public class IndentationGuideRenderer : IBackgroundRenderer
+        {
+            private readonly TextEditor _editor;
+            private readonly Pen _guidePen;
+
+            public IndentationGuideRenderer(TextEditor editor)
+            {
+                _editor = editor;
+                _guidePen = new Pen(new SolidColorBrush(Color.Parse("#3E3E42")), 1);
+            }
+
+            public KnownLayer Layer => KnownLayer.Background;
+
+            public void Draw(TextView textView, DrawingContext drawingContext)
+            {
+                if (_editor.Document == null) return;
+
+                double spaceWidth = textView.WideSpaceWidth;
+                if (double.IsNaN(spaceWidth) || spaceWidth == 0) spaceWidth = _editor.FontSize / 2;
+
+                double indentWidth = _editor.Options.IndentationSize * spaceWidth;
+
+                int lastIndent = 0;
+
+                foreach (var line in textView.VisualLines)
+                {
+                    string text = _editor.Document.GetText(line.FirstDocumentLine.Offset, line.FirstDocumentLine.Length);
+
+                    int indentLevel = 0;
+
+                    if (string.IsNullOrWhiteSpace(text))
+                    {
+                        indentLevel = lastIndent;
+                    }
+                    else
+                    {
+                        int spaces = 0;
+                        foreach (char c in text)
+                        {
+                            if (c == ' ') spaces++;
+                            else if (c == '\t') spaces += _editor.Options.IndentationSize;
+                            else break;
+                        }
+                        indentLevel = spaces / _editor.Options.IndentationSize;
+                        lastIndent = indentLevel;
+                    }
+
+                    for (int i = 0; i < indentLevel; i++) // draw line
+                    {
+                        double x = (i * indentWidth) + (spaceWidth / 2) - textView.ScrollOffset.X;
+
+                        if (x < 0) continue;
+
+                        var top = new Point(x, line.VisualTop - textView.ScrollOffset.Y);
+                        var bottom = new Point(x, line.VisualTop + line.Height - textView.ScrollOffset.Y);
+
+                        drawingContext.DrawLine(_guidePen, top, bottom);
+                    }
+                }
+            }
+        }
+
+        public class BracketHighlightRenderer : IBackgroundRenderer
+        {
+            private readonly TextEditor _editor;
+            private readonly SolidColorBrush _highlightBrush;
+            private readonly Pen _highlightPen;
+
+            public BracketHighlightRenderer(TextEditor editor)
+            {
+                _editor = editor;
+                _highlightBrush = new SolidColorBrush(Color.Parse("#33007ACC")); // faint blue background
+                _highlightPen = new Pen(new SolidColorBrush(Color.Parse("#007ACC")), 1); // blue border
+            }
+
+            public KnownLayer Layer => KnownLayer.Selection;
+
+            public void Draw(TextView textView, DrawingContext drawingContext)
+            {
+                int offset = _editor.CaretOffset;
+                if (offset == 0 && offset == _editor.Document.TextLength) return;
+
+                var result = FindMatchingBracket(offset);
+
+                if (result.HasValue)
+                {
+                    DrawHighlight(textView, drawingContext, result.Value.Open);
+                    DrawHighlight(textView, drawingContext, result.Value.Close);
+                }
+            }
+
+            private void DrawHighlight(TextView textView, DrawingContext ctx, int offset)
+            {
+                if (offset < 0 || offset >= _editor.Document.TextLength) return; // safety
+
+                var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, new TextSegment { StartOffset = offset, Length = 1 });
+                foreach (var rect in rects)
+                {
+                    ctx.DrawRectangle(_highlightBrush, _highlightPen, rect);
+                }
+            }
+
+            private (int Open, int Close)? FindMatchingBracket(int caretOffset)
+            {
+                if (_editor.Document.TextLength == 0) return null;
+
+                char cLeft = caretOffset > 0 ? _editor.Document.GetCharAt(caretOffset - 1) : '\0';
+                char cRight = caretOffset < _editor.Document.TextLength ? _editor.Document.GetCharAt(caretOffset) : '\0';
+
+                int searchStart = -1;
+                bool searchForward = true;
+                char openChar = '\0';
+                char closeChar = '\0';
+
+                // check char to the right
+                if (IsStartBracket(cRight) && IsValidBracket(caretOffset))
+                {
+                    searchStart = caretOffset;
+                    searchForward = true;
+                    openChar = cRight;
+                    closeChar = GetMatching(cRight);
+                }
+                else if (IsEndBracket(cRight) && IsValidBracket(caretOffset))
+                {
+                    searchStart = caretOffset;
+                    searchForward = false;
+                    closeChar = cRight;
+                    openChar = GetMatching(cRight);
+                }
+                // check char to the left
+                else if (IsStartBracket(cLeft) && IsValidBracket(caretOffset - 1))
+                {
+                    searchStart = caretOffset - 1;
+                    searchForward = true;
+                    openChar = cLeft;
+                    closeChar = GetMatching(cLeft);
+                }
+                else if (IsEndBracket(cLeft) && IsValidBracket(caretOffset - 1))
+                {
+                    searchStart = caretOffset - 1;
+                    searchForward = false;
+                    closeChar = cLeft;
+                    openChar = GetMatching(cLeft);
+                }
+
+                if (searchStart == -1) return null;
+
+                int match = ScanForMatch(searchStart, searchForward, openChar, closeChar);
+                if (match != -1)
+                {
+                    return searchForward ? (searchStart, match) : (match, searchStart);
+                }
+
+                return null;
+            }
+
+            private int ScanForMatch(int start, bool forward, char open, char close)
+            {
+                int balance = 0;
+                int docLength = _editor.Document.TextLength;
+                int step = forward ? 1 : -1;
+
+                for (int i = start; i >= 0 && i < docLength; i += step)
+                {
+                    char c = _editor.Document.GetCharAt(i);
+
+                    if (!IsValidBracket(i)) continue;
+
+                    if (c == open) balance++;
+                    else if (c == close) balance--;
+
+                    if (balance == 0) return i;
+
+                    if (Math.Abs(i - start) > 20000) break;
+                }
+                return -1;
+            }
+
+            private bool IsValidBracket(int offset) // filter edge cases
+            {
+                char c = _editor.Document.GetCharAt(offset);
+                if (c != '<' && c != '>') return true;
+
+                if (c == '<')
+                {
+                    if (offset + 1 < _editor.Document.TextLength)
+                    {
+                        char next = _editor.Document.GetCharAt(offset + 1);
+                        if (next == '=' || next == '<') return false;
+                    }
+                    if (offset > 0 && _editor.Document.GetCharAt(offset - 1) == '<') return false;
+                }
+                else if (c == '>')
+                {
+                    if (offset > 0)
+                    {
+                        char prev = _editor.Document.GetCharAt(offset - 1);
+                        if (prev == '=' || prev == '>') return false;
+                    }
+                    if (offset + 1 < _editor.Document.TextLength && _editor.Document.GetCharAt(offset + 1) == '>') return false;
+                }
+
+                var line = _editor.Document.GetLineByOffset(offset);
+                string lineText = _editor.Document.GetText(line.Offset, offset - line.Offset);
+                if (lineText.Contains("//") || lineText.Contains("/*")) return false;
+
+                return true;
+            }
+
+            private bool IsStartBracket(char c) => c == '(' || c == '{' || c == '[' || c == '<';
+            private bool IsEndBracket(char c) => c == ')' || c == '}' || c == ']' || c == '>';
+
+            private char GetMatching(char c)
+            {
+                switch (c)
+                {
+                    case '(': return ')';
+                    case ')': return '(';
+                    case '{': return '}';
+                    case '}': return '{';
+                    case '[': return ']';
+                    case ']': return '[';
+                    case '<': return '>';
+                    case '>': return '<';
+                    default: return '\0';
+                }
+            }
+        }
+
         private void Diagram_PointerWheelChanged(object sender, PointerWheelEventArgs e)
         {
             if (ImgScale == null || ImgTranslate == null)
@@ -923,7 +1231,7 @@ namespace AbiturEliteCode
             }
 
             if (!string.IsNullOrEmpty(level.MaterialDocs))
-            {
+            { 
                 var lines = level.MaterialDocs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
                 var textBuffer = new System.Text.StringBuilder();
@@ -946,7 +1254,7 @@ namespace AbiturEliteCode
                         FlushBuffer();
 
                         // hint button
-                        string preview = trim.Length > 25 ? trim.Substring(0, 22) + "..." : trim;
+                        string preview = trim.Length > 18 ? trim.Substring(0, 15) + "..." : trim;
 
                         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
                         var contentPanel = new Border
@@ -1003,6 +1311,20 @@ namespace AbiturEliteCode
 
         private async void BtnRun_Click(object sender, RoutedEventArgs e)
         {
+            if (_compilationCts != null)
+            {
+                _compilationCts.Cancel();
+                TxtConsole.Text += "\n> Vorgang wird abgebrochen...";
+                BtnRun.IsEnabled = false;
+                return;
+            }
+
+            _compilationCts = new System.Threading.CancellationTokenSource();
+            BtnRun.Content = "■ ABBRECHEN";
+            BtnRun.Width = 135;
+            BtnRun.Background = SolidColorBrush.Parse("#B43232");
+            ToolTip.SetTip(BtnRun, "Ausführung stoppen");
+
             TxtConsole.Foreground = Brushes.LightGray;
             TxtConsole.Text = "";
 
@@ -1017,86 +1339,122 @@ namespace AbiturEliteCode
 
             string codeText = CodeEditor.Text;
             var levelContext = currentLevel;
+            var token = _compilationCts.Token;
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            var processingTask = System.Threading.Tasks.Task.Run<(bool Success, System.Collections.Immutable.ImmutableArray<Diagnostic>? Diagnostics, dynamic TestResult)>(() =>
+            try
             {
-                string fullCode =
-                    "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n"
-                    + codeText;
-
-                var syntaxTree = CSharpSyntaxTree.ParseText(fullCode);
-                var trees = new List<SyntaxTree> { syntaxTree };
-
-                if (!string.IsNullOrEmpty(levelContext.AuxiliaryId))
+                var processingTask = System.Threading.Tasks.Task.Run<(bool Success, System.Collections.Immutable.ImmutableArray<Diagnostic>? Diagnostics, dynamic TestResult)>(() =>
                 {
-                    string auxCode = AuxiliaryImplementations.GetCode(levelContext.AuxiliaryId);
-                    if (!string.IsNullOrEmpty(auxCode))
+                    if (token.IsCancellationRequested) return (false, null, null);
+
+                    string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + codeText;
+
+                    var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
+                    var trees = new List<SyntaxTree> { syntaxTree };
+
+                    if (!string.IsNullOrEmpty(levelContext.AuxiliaryId))
                     {
-                        trees.Add(CSharpSyntaxTree.ParseText(auxCode));
+                        string auxCode = AuxiliaryImplementations.GetCode(levelContext.AuxiliaryId);
+                        if (!string.IsNullOrEmpty(auxCode))
+                        {
+                            trees.Add(CSharpSyntaxTree.ParseText(auxCode, cancellationToken: token));
+                        }
+                    }
+
+                    var references = GetSafeReferences();
+
+                    var compilation = CSharpCompilation.Create(
+                        $"Level_{levelContext.Id}_{Guid.NewGuid()}",
+                        trees,
+                        references,
+                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                    );
+
+                    using (var ms = new MemoryStream())
+                    {
+                        try
+                        {
+                            EmitResult emitResult = compilation.Emit(ms, cancellationToken: token);
+
+                            if (!emitResult.Success)
+                            {
+                                return (Success: false, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)emitResult.Diagnostics, TestResult: (dynamic)null);
+                            }
+
+                            if (token.IsCancellationRequested) return (false, null, null);
+
+                            ms.Seek(0, SeekOrigin.Begin);
+                            var assembly = Assembly.Load(ms.ToArray());
+                            var testResult = LevelTester.Run(levelContext.Id, assembly);
+
+                            return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return (false, null, null);
+                        }
+                    }
+                }, token);
+
+                var timeoutTask = System.Threading.Tasks.Task.Delay(60000, token);
+                var completedTask = await System.Threading.Tasks.Task.WhenAny(processingTask, timeoutTask);
+
+                if (token.IsCancellationRequested)
+                {
+                    TxtConsole.Foreground = Brushes.Orange;
+                    TxtConsole.Text += "\n⚠ Abbruch durch Benutzer.";
+                }
+                else if (completedTask == timeoutTask)
+                {
+                    stopwatch.Stop();
+                    TxtConsole.Foreground = Brushes.Red;
+                    TxtConsole.Text += "\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 1 Minute überschritten.";
+                }
+                else
+                {
+                    var result = await processingTask;
+                    stopwatch.Stop();
+
+                    if (!result.Success && result.Diagnostics != null)
+                    {
+                        TxtConsole.Foreground = Brushes.Red;
+                        TxtConsole.Text += "KOMPILIERFEHLER:\n";
+                        foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+                        {
+                            var lineSpan = diag.Location.GetLineSpan();
+                            int userLine = lineSpan.StartLinePosition.Line - 3;
+                            if (userLine < 0) userLine = 0;
+                            TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
+                        }
+                    }
+                    else if (result.Success)
+                    {
+                        ProcessTestResult(levelContext, result.TestResult, stopwatch.Elapsed);
                     }
                 }
-
-                var references = GetSafeReferences();
-
-                var compilation = CSharpCompilation.Create(
-                    $"Level_{levelContext.Id}_{Guid.NewGuid()}",
-                    trees,
-                    references,
-                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-                );
-
-                using (var ms = new MemoryStream())
-                {
-                    EmitResult emitResult = compilation.Emit(ms);
-
-                    if (!emitResult.Success)
-                    {
-                        return (Success: false, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)emitResult.Diagnostics, TestResult: (dynamic)null);
-                    }
-                    else
-                    {
-                        ms.Seek(0, SeekOrigin.Begin);
-                        var assembly = Assembly.Load(ms.ToArray());
-                        var testResult = LevelTester.Run(levelContext.Id, assembly);
-
-                        return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
-                    }
-                }
-            });
-
-            var completedTask = await System.Threading.Tasks.Task.WhenAny(processingTask, System.Threading.Tasks.Task.Delay(60000));
-
-            if (completedTask != processingTask)
-            {
-                stopwatch.Stop();
-                TxtConsole.Foreground = Brushes.Red;
-                TxtConsole.Text += "\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 1 Minute überschritten.";
-                return;
             }
-
-            var result = await processingTask;
-            stopwatch.Stop();
-
-            if (!result.Success && result.Diagnostics != null)
+            catch (OperationCanceledException)
             {
-                TxtConsole.Foreground = Brushes.Red;
-                TxtConsole.Text += "KOMPILIERFEHLER:\n";
-                foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
-                {
-                    var lineSpan = diag.Location.GetLineSpan();
-                    int userLine = lineSpan.StartLinePosition.Line - 3;
-                    if (userLine < 0) userLine = 0;
-                    TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
-                }
+                TxtConsole.Foreground = Brushes.Orange;
+                TxtConsole.Text += "\n⚠ Abbruch durch Benutzer.";
             }
-            else
+            catch (Exception ex)
             {
-                ProcessTestResult(levelContext, result.TestResult, stopwatch.Elapsed);
+                TxtConsole.Text += $"\nSystem Fehler: {ex.Message}";
             }
-
-            CodeEditor.Focus();
+            finally // reset
+            {
+                _compilationCts?.Dispose();
+                _compilationCts = null;
+                BtnRun.Content = "▶ AUSFÜHREN";
+                BtnRun.Width = 135;
+                BtnRun.Background = SolidColorBrush.Parse("#32A852");
+                BtnRun.IsEnabled = true;
+                ToolTip.SetTip(BtnRun, "Ausführen (F5)");
+                CodeEditor.Focus();
+            }
         }
 
         private void ProcessTestResult(Level levelContext, dynamic result, TimeSpan duration)
@@ -1242,8 +1600,8 @@ namespace AbiturEliteCode
             var dialog = new Window
             {
                 Title = "Kurs Abgeschlossen",
-                Width = 450,
-                Height = 300,
+                Width = 500,
+                Height = 380,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 SystemDecorations = SystemDecorations.BorderOnly,
                 Background = SolidColorBrush.Parse("#202124"),
@@ -1282,6 +1640,18 @@ namespace AbiturEliteCode
                     TextAlignment = TextAlignment.Center,
                     TextWrapping = TextWrapping.Wrap,
                     LineHeight = 24
+                }
+            );
+            contentStack.Children.Add(
+                new TextBlock
+                {
+                    Text = "Rechtlicher Hinweis: Diese Software dient ausschließlich Übungszwecken. Der Entwickler übernimmt keine Gewähr für die Vollständigkeit der Inhalte oder den tatsächlichen Erfolg in der Abiturprüfung.",
+                    FontSize = 11,
+                    Foreground = Brushes.Gray,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(10, 20, 10, 0),
+                    FontStyle = FontStyle.Italic
                 }
             );
             rootGrid.Children.Add(contentStack);
@@ -1949,7 +2319,7 @@ namespace AbiturEliteCode
             mainGrid.Children.Add(closeBtn);
 
             // save logic
-            btnSave.Click += (s, ev) =>
+            Action performSave = () =>
             {
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
@@ -1978,49 +2348,67 @@ namespace AbiturEliteCode
                 btnSave.Opacity = 0.5;
             };
 
-            closeBtn.Click += (s, ev) => settingsWin.Close();
+            // btnSave click uses the Action
+            btnSave.Click += (s, ev) => performSave();
 
-            // reset logic
-            btnReset.Click += async (s, ev) =>
+            closeBtn.Click += async (s, ev) =>
             {
-                var confirmDialog = new Window
+                if (btnSave.IsEnabled)
                 {
-                    Title = "Einstellungen zurücksetzen?",
-                    Width = 350,
-                    Height = 180,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    SystemDecorations = SystemDecorations.BorderOnly,
-                    Background = SolidColorBrush.Parse("#252526"),
-                    CornerRadius = new CornerRadius(8)
-                };
+                    var unsavedDialog = new Window
+                    {
+                        Title = "Ungespeicherte Änderungen",
+                        Width = 350,
+                        Height = 160,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        SystemDecorations = SystemDecorations.BorderOnly,
+                        Background = SolidColorBrush.Parse("#252526"),
+                        CornerRadius = new CornerRadius(8)
+                    };
 
-                var confirmGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
-                confirmGrid.Children.Add(new TextBlock { Text = "Möchtest du alle Einstellungen auf die Standardwerte zurücksetzen?", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, FontSize = 15 });
+                    var dGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+                    dGrid.Children.Add(new TextBlock
+                    {
+                        Text = "Du hast ungespeicherte Änderungen. Möchtest du diese speichern?",
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = Brushes.White,
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
 
-                var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10, Margin = new Thickness(0, 20, 0, 0) };
-                Grid.SetRow(btnPanel, 1);
+                    var dBtnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10, Margin = new Thickness(0, 15, 0, 0) };
+                    Grid.SetRow(dBtnPanel, 1);
 
-                var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4), Padding = new Thickness(15, 8) };
-                var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4), Padding = new Thickness(15, 8) };
+                    var btnSaveClose = new Button { Content = "Speichern", Background = SolidColorBrush.Parse("#32A852"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                    var btnDiscard = new Button { Content = "Verwerfen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                    var btnCancel = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
 
-                bool resetConfirmed = false;
-                btnYes.Click += (_, __) => { resetConfirmed = true; confirmDialog.Close(); };
-                btnNo.Click += (_, __) => { confirmDialog.Close(); };
+                    btnSaveClose.Click += (_, __) =>
+                    {
+                        performSave();
+                        unsavedDialog.Close();
+                        settingsWin.Close();
+                    };
 
-                btnPanel.Children.Add(btnNo);
-                btnPanel.Children.Add(btnYes);
-                confirmGrid.Children.Add(btnPanel);
-                confirmDialog.Content = confirmGrid;
+                    btnDiscard.Click += (_, __) =>
+                    {
+                        unsavedDialog.Close();
+                        settingsWin.Close();
+                    };
 
-                await confirmDialog.ShowDialog(settingsWin);
+                    btnCancel.Click += (_, __) => unsavedDialog.Close();
 
-                if (resetConfirmed)
+                    dBtnPanel.Children.Add(btnCancel);
+                    dBtnPanel.Children.Add(btnDiscard);
+                    dBtnPanel.Children.Add(btnSaveClose);
+
+                    dGrid.Children.Add(dBtnPanel);
+                    unsavedDialog.Content = dGrid;
+
+                    await unsavedDialog.ShowDialog(settingsWin);
+                }
+                else
                 {
-                    chkVim.IsChecked = false;
-                    chkSyntax.IsChecked = false;
-                    chkError.IsChecked = false;
-                    sliderScale.Value = 1.0;
-                    if (canWriteRoot) chkPortable.IsChecked = false;
+                    settingsWin.Close();
                 }
             };
 

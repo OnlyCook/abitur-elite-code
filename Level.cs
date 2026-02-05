@@ -21,6 +21,9 @@ namespace AbiturEliteCode
     // pseudo-code is not attached to the uml/diagrams but the materials tab as plain text
 
     // if the plantuml should actually add a new line instead of converting it by the python script that reads the plantuml source code, then use: "\n/"
+    // note: in the abitur association attributes arent included in the actual class, but are indicated on the association only (this also includes its access modifiers: +/-/#), the attribute should be placed on the side of the class its referencing (and not on the side of the class which is referencing it), lists are marked with an asterisk and single attributes with a number (multiplicity)
+    // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference ot it)
+    // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur) [this contraint is exluded from auxiliary class diagrams]
 
     public class Level
     {
@@ -84,6 +87,7 @@ namespace AbiturEliteCode
         {
             string listDocsHints =
                 @"Hinweis: In C# heißt die Klasse ebenfalls [List<T>]
+• Java: [list.add(item)] → C#: [list.Add(item)] usw.
 • Java: [list.get(i)] → C#: [list|[i|]] oder [list.ElementAt(i)]
 • Java: [list.size()] → C#: [list.Count]
 • Java: [boolean] → C#: [bool]
@@ -121,7 +125,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
                     DiagramPath = "img\\sec1\\lvl2.png",
                     MaterialDocs = "Hinweis: In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n\nTipp: Verwenden Sie eine [if]-Bedingung im Setter, um zu prüfen, ob [neuesAlter > alter] ist.",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int) : void\n  + getAlter() : int\n}\n@enduml"
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int)\n  + getAlter() : int\n}\n@enduml"
                 },
                 new Level
                 {
@@ -156,7 +160,7 @@ namespace AbiturEliteCode
                     StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
                     DiagramPath = "img\\sec1\\lvl4.png",
                     MaterialDocs = listDocsHints,
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  - bewohner : List<Tier>\n  + Gehege()\n  + hinzufuegen(t : Tier) : void\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege \"1\" o-- \"*\" Tier : -verwaltet\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
                     AuxiliaryId = "ListT"
                 },
                 new Level
@@ -172,10 +176,16 @@ namespace AbiturEliteCode
                                   "• Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
                                   "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
-                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    public List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
+                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
                     DiagramPath = "img\\sec1\\lvl5.png",
-                    MaterialDocs = listDocsHints + "\n\nTipp: Verwenden Sie eine Schleife, um durch alle Tiere zu iterieren.\n\nTipp: Denken Sie daran, den Rückgabetyp [Tier] zu verwenden. Die Methode muss ein Tier-Objekt oder [null] zurückgeben.\n\nHinweis: Prüfen Sie zuerst, ob die Liste leer ist ([bewohner.Count == 0]), bevor Sie iterieren.",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  - bewohner : List<Tier>\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege \"1\" o-- \"*\" Tier\n@enduml",
+                    MaterialDocs = listDocsHints + "\n\n" +
+                                   "Tipp: Strategie für die Suche:\n" +
+                                   "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = null;].\n" +
+                                   "2. Iterieren Sie durch alle Tiere ([foreach]).\n" +
+                                   "3. Prüfen Sie: Ist [aeltestes] noch null? ODER ist das aktuelle Tier älter als [aeltestes]?\n" +
+                                   "4. Wenn ja: Setzen Sie [aeltestes] auf das aktuelle Tier.\n" +
+                                   "5. Geben Sie am Ende [aeltestes] zurück.",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
                     AuxiliaryId = "ListT"
                 },
 
@@ -187,15 +197,15 @@ namespace AbiturEliteCode
                     SkipCode = LevelCodes.CodesList[5],
                     NextLevelCode = LevelCodes.CodesList[6],
                     Title = "Das Warenlager (Suche)",
-                    Description = "Das Logistik-Zentrum benötigt eine Funktion, um das schwerste Paket in einem Regal zu finden.\n\n" +
+                    Description = "Das Logistik-Zentrum benötigt eine Funktion, um das **leichteste** Paket für Eil-Kurierfahrten zu finden.\n\n" +
                                   "Aufgabe:\n" +
                                   "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
-                                  "2. Implementieren Sie [ermittleSchwerstes()], die das Paket mit dem höchsten Gewicht zurückgibt.\n\n" +
+                                  "2. Implementieren Sie [ermittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n\n" +
                                   "Hinweis: Beachten Sie die Reihenfolge der Parameter im Konstruktor von Paket (siehe Diagramm).",
                     StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
                     DiagramPath = "img\\sec2\\lvl6.png",
-                    MaterialDocs = listDocsHints + "\n\nTipp: Nutzen Sie eine Variable [maxPaket], die Sie initial auf das erste Element oder null setzen, und vergleichen Sie in einer Schleife.",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  - pakete : List<Paket>\n  + Lager()\n  + hinzufuegen(p : Paket) : void\n  + ermittleSchwerstes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager \"1\" o-- \"*\" Paket : -enthält\n@enduml",
+                    MaterialDocs = listDocsHints + "\n\nTipp: Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + ermittleLeichtestes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
                     AuxiliaryId = "ListT"
                 },
                 new Level
@@ -214,7 +224,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete = new List<Paket>();\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl7.png",
                     MaterialDocs = "Hinweis: Strings vergleicht man in C# mit [==] oder [Equals()].\n\nTipp: [&&] ist der Operator für das logische UND.",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  -  : List<Paket>\n    + hinzufuegen(Paket p) : void\n  + filterePakete(ort : String) : List<Paket>\n}\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
                     AuxiliaryId = "Paket"
                 },
                 new Level
@@ -231,7 +241,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl8.png",
                     MaterialDocs = "Bubble Sort Logik:\n1. Äußere Schleife von [i=0] bis [n-1]\n2. Innere Schleife von [j=0] bis [n-i-1]\n3. Wenn [pakete|[j|]] schwerer als [pakete|[j+1|]] -> Tauschen.\n\nTausch-Logik:\n{|Paket temp = pakete[j];\npakete[j] = pakete[j+1];\npakete[j+1] = temp;|}",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  - pakete : List<Paket>\n  + sortiere() : void\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml",
                     AuxiliaryId = "Paket"
                 },
                 new Level
@@ -251,7 +261,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl9.png",
                     MaterialDocs = "Hinweis: Verkettete Listen sind ein Klassiker im Abitur.\n\nTraversierung:\n{|Knoten aktuell = kopf;\nwhile(aktuell.GetNachfolger() != null) {\n   aktuell = aktuell.GetNachfolger();\n}|}",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  - inhalt : Paket\n  - nachfolger : Knoten\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten) : void\n}\nclass Foerderband {\n  - kopf : Knoten\n  + anhaengen(p : Paket) : void\n}\nFoerderband \"1\" o-- \"0..1\" Knoten : -kopf\nKnoten \"1\" o-- \"0..1\" Knoten : -nachfolger\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten \"1\" x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
                     AuxiliaryId = "Paket"
                 },
                 new Level
@@ -272,7 +282,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete = new List<Paket>();\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        // Viel Erfolg!\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl10.png",
                     MaterialDocs = "Tipp: Sie können Ihre Bubble-Sort Logik wiederverwenden/anpassen oder (da dies eine Transferleistung ist) Hilfslisten nutzen.\n\nBeachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass LogistikZentrum {\n  - allePakete : List<Paket>\n  + getTop3Schwere(ort : String) : List<Paket>\n}\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass LogistikZentrum {\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
                     AuxiliaryId = "Paket"
                 }
             };

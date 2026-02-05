@@ -83,6 +83,19 @@ namespace AbiturEliteCode
 
             MethodInfo mSet = t.GetMethod("SetAlter");
             MethodInfo mGet = t.GetMethod("GetAlter");
+
+            if (mSet == null)
+            {
+                if (t.GetMethod("setAlter") != null)
+                    throw new Exception("Du hast 'setAlter' (Java-Stil) verwendet. In C# nutzen wir PascalCase: 'SetAlter'.");
+                throw new Exception("Methode SetAlter fehlt. Erstelle: public void SetAlter(int neuesAlter)");
+            }
+            if (mGet == null)
+            {
+                if (t.GetMethod("getAlter") != null)
+                    throw new Exception("Du hast 'getAlter' (Java-Stil) verwendet. In C# nutzen wir PascalCase: 'GetAlter'.");
+                throw new Exception("Methode GetAlter fehlt. Erstelle: public int GetAlter()");
+            }
             FieldInfo fAlter = t.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
 
             if (mSet == null) throw new Exception("Methode SetAlter fehlt. Erstelle: public void SetAlter(int neuesAlter)");
@@ -125,7 +138,13 @@ namespace AbiturEliteCode
 
             // check Bruellen
             MethodInfo mB = tLoewe.GetMethod("Bruellen");
-            if (mB == null) throw new Exception("Methode Bruellen fehlt. Erstelle: public string Bruellen()");
+
+            if (mB == null)
+            {
+                if (tLoewe.GetMethod("bruellen") != null)
+                    throw new Exception("Du hast 'bruellen' (Java-Stil) verwendet. In C# schreiben wir Methoden groß: 'Bruellen' (in den nächsten Levels wird dieser Fehler nicht erneut explizit erwähnt).");
+                throw new Exception("Methode Bruellen fehlt. Erstelle: public string Bruellen()");
+            }
 
             string sound = (string)mB.Invoke(leo, null);
             if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück. Die Methode sollte einen String zurückgeben.");
@@ -327,21 +346,27 @@ namespace AbiturEliteCode
             MethodInfo mAdd = tLager.GetMethod("Hinzufuegen");
             if (mAdd == null) throw new Exception("Methode 'Hinzufuegen' fehlt in der Klasse Lager.");
 
-            MethodInfo mErmittle = tLager.GetMethod("ErmittleSchwerstes");
-            if (mErmittle == null) throw new Exception("Methode 'ErmittleSchwerstes' fehlt in der Klasse Lager.");
+            MethodInfo mErmittle = tLager.GetMethod("ErmittleLeichtestes");
+            if (mErmittle == null)
+            {
+                if (tLager.GetMethod("ErmittleSchwerstes") != null)
+                    throw new Exception("Achtung: Die Aufgabe wurde geändert! Wir suchen nun das *leichteste* Paket. Bitte benennen Sie die Methode 'ErmittleLeichtestes'.");
+
+                throw new Exception("Methode 'ErmittleLeichtestes' fehlt in der Klasse Lager.");
+            }
 
             object lager = Activator.CreateInstance(tLager);
 
             // test case 1: empty list
             object resultEmpty = mErmittle.Invoke(lager, null);
             if (resultEmpty != null)
-                throw new Exception("ErmittleSchwerstes() muss 'null' zurückgeben, wenn das Lager leer ist.");
+                throw new Exception("ErmittleLeichtestes() muss 'null' zurückgeben, wenn das Lager leer ist.");
 
             // test case 2: filled list
             try
             {
-                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 5.0) });
-                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Hamburg", 50.5) });
+                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Berlin", 50.0) });
+                mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "Hamburg", 5.5) }); // The lightest
                 mAdd.Invoke(lager, new object[] { SafeCreatePaket(tPaket, "München", 10.0) });
             }
             catch (TargetInvocationException ex)
@@ -351,19 +376,19 @@ namespace AbiturEliteCode
 
             object result = mErmittle.Invoke(lager, null);
 
-            if (result == null) throw new Exception("ErmittleSchwerstes() liefert 'null', obwohl Pakete im Lager sind.");
+            if (result == null) throw new Exception("ErmittleLeichtestes() liefert 'null', obwohl Pakete im Lager sind.");
 
             MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
             if (mGetW == null) throw new Exception("Methode 'GetGewicht()' fehlt in Klasse Paket.");
 
             double resWeight = (double)mGetW.Invoke(result, null);
 
-            if (Math.Abs(resWeight - 50.5) < 0.01)
+            if (Math.Abs(resWeight - 5.5) < 0.01)
             {
-                feedback = "Algorithmus korrekt implementiert! Das schwerste Paket wurde gefunden.";
+                feedback = "Algorithmus korrekt implementiert! Das leichteste Paket wurde gefunden.";
                 return true;
             }
-            throw new Exception($"Falsches Paket ermittelt. Gewicht des zurückgegebenen Pakets: {resWeight}, Erwartet: 50.5.");
+            throw new Exception($"Falsches Paket ermittelt. Gewicht des zurückgegebenen Pakets: {resWeight}, Erwartet: 5.5 (das Leichteste).");
         }
 
         private static bool TestLevel7(Assembly assembly, out string feedback)
