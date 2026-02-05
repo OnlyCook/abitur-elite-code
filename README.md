@@ -1,0 +1,15 @@
+<h1 align="center">
+  Abitur Elite Code
+</h1>
+
+Eine Open-Source-Desktop-Anwendung zur gezielten Vorbereitung auf den Programmierteil (OOP) des Praktische Informatik-Abiturs in Hessen.
+
+<p align="center" id="download">
+  <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-win.zip">
+    <img src="https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge" alt="Download für Windows">
+  </a>
+</p>
+
+## Über das Projekt
+
+Abitur Elite Code bietet eine strukturierte Lernumgebung ähnlich wie LeetCode, jedoch speziell auf die Anforderungen des hessischen Informatik-Abiturs zugeschnitten. Die App ermöglicht es Schülern, praxisnah zu üben und ihre Programmierkenntnisse systematisch aufzubauen.
