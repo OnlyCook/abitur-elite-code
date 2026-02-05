@@ -727,12 +727,23 @@ namespace AbiturEliteCode
 
                 var references = GetSafeReferences();
 
-                var compilation = CSharpCompilation.Create("Analysis", trees, references);
+                var compilation = CSharpCompilation.Create(
+                    "Analysis",
+                    trees,
+                    references,
+                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                );
+
                 return compilation.GetDiagnostics();
             });
 
             _textMarkerService.Clear();
             _unusedCodeTransformer.UnusedSegments.Clear();
+
+            var unusedWarningIds = new HashSet<string>
+            {
+                "CS0168", "CS0219", "CS8019", "CS0169", "CS0414", "CS0649"
+            };
 
             foreach (var diag in diagnostics)
             {
@@ -751,7 +762,7 @@ namespace AbiturEliteCode
                 else if (diag.Severity == DiagnosticSeverity.Warning)
                 {
                     // unused vars
-                    if (diag.Id == "CS0168" || diag.Id == "CS0219" || diag.Id == "CS8019")
+                    if (unusedWarningIds.Contains(diag.Id))
                     {
                         _unusedCodeTransformer.UnusedSegments.Add((start, length));
                     }
@@ -865,7 +876,7 @@ namespace AbiturEliteCode
 
                         ChangeLinePart(start, end, element =>
                         {
-                            element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#808080"))); // half opacity
+                            element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
                         });
                     }
                 }
@@ -1295,9 +1306,27 @@ namespace AbiturEliteCode
                         // parse hint title
                         int colonIndex = trim.IndexOf(':');
                         if (colonIndex != -1 && colonIndex < trim.Length - 1)
-                            currentHintTitle = trim.Substring(colonIndex + 1).Trim();
+                        {
+                            if (trim.StartsWith("start-hint:"))
+                            {
+                                currentHintTitle = "Hinweis: " + trim.Substring(colonIndex + 1).Trim();
+                            }
+                            else
+                            {
+                                currentHintTitle = "Tipp: " + trim.Substring(colonIndex + 1).Trim();
+                            }
+                        }
                         else
-                            currentHintTitle = "Hinweis";
+                        {
+                            if (trim.StartsWith("start-hint:"))
+                            {
+                                currentHintTitle = "Hinweis";
+                            }
+                            else
+                            {
+                                currentHintTitle = "Tipp";
+                            }
+                        }
 
                         continue;
                     }

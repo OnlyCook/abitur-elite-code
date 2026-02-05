@@ -108,7 +108,7 @@ namespace AbiturEliteCode
                     StarterCode = "public class Tier\n{\n    // Implementation hier\n}",
                     DiagramPath = "img\\sec1\\lvl1.png",
                     MaterialDocs = "start-hint: Datentypen & Modifier\n" +
-                                   "Hinweis: In Java schreibt man [String], in C# [string].\n" +
+                                   "In Java schreibt man [String], in C# [string].\n" +
                                    "Beide Sprachen verwenden [int] für Ganzzahlen.\n" +
                                    "Private Felder werden mit [-], public mit [+] markiert.\n" +
                                    ":end-hint",
@@ -129,8 +129,8 @@ namespace AbiturEliteCode
                     StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
                     DiagramPath = "img\\sec1\\lvl2.png",
                     MaterialDocs = "start-hint: Namenskonventionen\n" +
-                                   "Hinweis: In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n" +
-                                   ":end-hint\n\n" +
+                                   "In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n" +
+                                   ":end-hint\n" +
                                    "start-tipp: Logik im Setter\n" +
                                    "Verwenden Sie eine [if]-Bedingung im Setter, um zu prüfen, ob [neuesAlter > alter] ist.\n" +
                                    ":end-hint",
@@ -151,11 +151,13 @@ namespace AbiturEliteCode
                     StarterCode = "// Implementieren Sie beide Klassen vollständig\n",
                     DiagramPath = "img\\sec1\\lvl3.png",
                     MaterialDocs = "start-hint: Syntax für Vererbung\n" +
-                                   "Hinweis: In Java schreibt man [public abstract class Tier], in C# identisch.\n" +
+                                   "In Java schreibt man [public abstract class Tier], in C# identisch.\n" +
                                    "Vererbung: Java verwendet [extends], C# verwendet [:].\n" +
                                    ":end-hint\n\n" +
                                    "start-tipp: Konstruktor & Basis\n" +
                                    "Der Konstruktor von Loewe sollte [base(name)] aufrufen, um den Konstruktor der Basisklasse aufzurufen.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Methode Bruellen\n" +
                                    "Die Methode [Bruellen()] kann einen beliebigen String zurückgeben, z.B. \"ROAR!\"\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nabstract class Tier {\n  # name : String\n  + Tier(name : String)\n}\nclass Loewe {\n  - laenge : int\n  + Loewe(name : String, laenge : int)\n  + bruellen() : String\n}\nTier <|-- Loewe\n@enduml"
@@ -167,8 +169,8 @@ namespace AbiturEliteCode
                     SkipCode = LevelCodes.CodesList[3],
                     NextLevelCode = LevelCodes.CodesList[4],
                     Title = "Gehege-Verwaltung mit List",
-                    Description = "Erstellen Sie die Klasse [Gehege], die eine Liste von Tieren verwaltet.\n\n" +
-                                  "Die Klasse soll folgende Funktionalität bieten:\n" +
+                    Description = "Erstellen Sie die Klassen [Tier] sowie [Gehege], letztere soll eine Liste von Tieren verwalten.\n\n" +
+                                  "Die Klasse [Gehege] soll folgende Funktionalität bieten:\n" +
                                   "• Einen Konstruktor, der die Liste initialisiert\n" +
                                   "• Eine Methode [Hinzufuegen(Tier t)], die ein Tier zur Liste hinzufügt\n" +
                                   "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
@@ -217,7 +219,7 @@ namespace AbiturEliteCode
                     Description = "Das Logistik-Zentrum benötigt eine Funktion, um das **leichteste** Paket für Eil-Kurierfahrten zu finden.\n\n" +
                                   "Aufgabe:\n" +
                                   "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
-                                  "2. Implementieren Sie [ermittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n\n" +
+                                  "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n\n" +
                                   "Hinweis: Beachten Sie die Reihenfolge der Parameter im Konstruktor von Paket (siehe Diagramm).",
                     StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
                     DiagramPath = "img\\sec2\\lvl6.png",
@@ -238,14 +240,14 @@ namespace AbiturEliteCode
                     Description = "Für den Versand müssen Pakete gefiltert werden.\n\n" +
                                   "Aufgabe:\n" +
                                   "Implementieren Sie die Klasse [Lager].\n" +
-                                  "Die [filterePakete(String ort)] Methode soll eine **neue Liste** zurückgeben, die nur Pakete enthält, die:\n" +
+                                  "Die [FilterePakete(String ort)] Methode soll eine **neue Liste** zurückgeben, die nur Pakete enthält, die:\n" +
                                   "1. An den übergebenen [ort] adressiert sind.\n" +
                                   "2. **Und** schwerer als 10.0 kg sind.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete = new List<Paket>();\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl7.png",
                     MaterialDocs = "start-hint: C# Operatoren\n" +
-                                   "Hinweis: Strings vergleicht man in C# mit [==] oder [Equals()].\n" +
-                                   "Tipp: [&&] ist der Operator für das logische UND.\n" +
+                                   "Strings vergleicht man in C# mit [==] oder [Equals()].\n" +
+                                   "[&&] ist der Operator für das logische UND.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
                     AuxiliaryId = "Paket"
@@ -259,7 +261,7 @@ namespace AbiturEliteCode
                     Title = "Die Sortiermaschine (Bubble Sort)",
                     Description = "Die Pakete müssen vor dem Verladen nach Gewicht aufsteigend sortiert werden.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [sortiere()].\n" +
+                                  "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [Sortiere()].\n" +
                                   "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl8.png",
@@ -286,14 +288,16 @@ namespace AbiturEliteCode
                     Description = "Das Förderband wird als einfach verkettete Liste modelliert. Jedes Element ist ein [Knoten].\n\n" +
                                   "Aufgabe:\n" +
                                   "1. Implementieren Sie die Klasse [Knoten] gemäß Diagramm.\n" +
-                                  "2. Implementieren Sie die Methode [anhaengen(Paket p)] in der Klasse [Foerderband].\n\n" +
+                                  "2. Implementieren Sie die Methode [Anhaengen(Paket p)] in der Klasse [Foerderband].\n\n" +
                                   "Logik für Anhaengen:\n" +
                                   "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
                                   "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
                     StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl9.png",
-                    MaterialDocs = "start-hint: Traversierung\n" +
-                                   "Hinweis: Verkettete Listen sind ein Klassiker im Abitur.\n\n" +
+                    MaterialDocs = "start-hint: Verkettete Listen\n" +
+                                   "Verkettete Listen sind ein Klassiker im Abitur!🗣️🙏\n\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Traversierung\n" +
                                    "Traversierung (zum Ende laufen):\n" +
                                    "{|Knoten aktuell = kopf;\n" +
                                    "while(aktuell.GetNachfolger() != null) {\n" +
@@ -312,7 +316,7 @@ namespace AbiturEliteCode
                     Title = "Die Express-Lieferung",
                     Description = "Dies ist die Abschlussprüfung für Sektion 2.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Implementieren Sie die Methode [getTop3Schwere(String ort)].\n" +
+                                  "Implementieren Sie die Methode [GetTop3Schwere(String ort)].\n" +
                                   "Die Methode soll die **3 schwersten Pakete** für einen Zielort zurückgeben, sortiert nach Gewicht (absteigend).\n\n" +
                                   "Anforderungen:\n" +
                                   "• Filtern nach Ort\n" +
@@ -322,6 +326,8 @@ namespace AbiturEliteCode
                     DiagramPath = "img\\sec2\\lvl10.png",
                     MaterialDocs = "start-tipp: Transferleistung\n" +
                                    "Sie können Ihre Bubble-Sort Logik wiederverwenden/anpassen oder (da dies eine Transferleistung ist) Hilfslisten nutzen.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Unzureichend Pakete\n" +
                                    "Beachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass LogistikZentrum {\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
