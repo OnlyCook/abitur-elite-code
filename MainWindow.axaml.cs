@@ -398,13 +398,25 @@ namespace AbiturEliteCode
                     if (offset > 0)
                     {
                         char prevChar = textArea.Document.GetCharAt(offset - 1);
-                        if (char.IsLetterOrDigit(prevChar) || prevChar == '>')
+
+                        // if preceded by whitespace -> its likely an operator
+                        // if preceded by a digit -> its likely an operator
+                        if (!char.IsWhiteSpace(prevChar) && !char.IsDigit(prevChar))
                         {
-                            isGenericContext = true;
+                            // check for control structures
+                            var line = textArea.Document.GetLineByOffset(offset);
+                            string lineTextToCaret = textArea.Document.GetText(line.Offset, offset - line.Offset);
+
+                            bool isInsideControlCondition = Regex.IsMatch(lineTextToCaret, @"\b(if|while|for)\s*\(");
+
+                            if (!isInsideControlCondition)
+                            {
+                                isGenericContext = true;
+                            }
                         }
                     }
 
-                    if (!isGenericContext) return; // let insert normally
+                    if (!isGenericContext) return; // let insert normally as operator
                 }
 
                 string pair =
@@ -1053,6 +1065,8 @@ namespace AbiturEliteCode
                 int docLength = _editor.Document.TextLength;
                 int step = forward ? 1 : -1;
 
+                bool isChevron = (open == '<' || close == '<');
+
                 for (int i = start; i >= 0 && i < docLength; i += step)
                 {
                     char c = _editor.Document.GetCharAt(i);
@@ -1064,9 +1078,28 @@ namespace AbiturEliteCode
 
                     if (balance == 0) return i;
 
+                    // abort if we hit invalid generic characters
+                    if (isChevron && balance != 0)
+                    {
+                        // if we are "inside" the brackets -> ensure the content is valid for generics
+                        if (!IsValidGenericContentChar(c))
+                        {
+                            return -1; // not a generic pair
+                        }
+                    }
+
                     if (Math.Abs(i - start) > 20000) break;
                 }
                 return -1;
+            }
+
+            // determine if a character is allowed inside a generic declaration <T>
+            private bool IsValidGenericContentChar(char c)
+            {
+                if (char.IsLetterOrDigit(c) || c == '_' || c == ' ' || c == ',' || c == '.' || c == '?' || c == '[' || c == ']' || c == '<' || c == '>')
+                    return true;
+
+                return false;
             }
 
             private bool IsValidBracket(int offset) // filter edge cases
@@ -1088,7 +1121,8 @@ namespace AbiturEliteCode
                     if (offset > 0)
                     {
                         char prev = _editor.Document.GetCharAt(offset - 1);
-                        if (prev == '=' || prev == '>') return false;
+                        if (prev == '=' || prev == '>') return false; // arrows => or >>
+                        if (prev == '-') return false; // arrow ->
                     }
                     if (offset + 1 < _editor.Document.TextLength && _editor.Document.GetCharAt(offset + 1) == '>') return false;
                 }
@@ -1231,17 +1265,20 @@ namespace AbiturEliteCode
             }
 
             if (!string.IsNullOrEmpty(level.MaterialDocs))
-            { 
+            {
                 var lines = level.MaterialDocs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
-                var textBuffer = new System.Text.StringBuilder();
+                var normalTextBuffer = new System.Text.StringBuilder();
+                var hintBuffer = new System.Text.StringBuilder();
+                bool inHintBlock = false;
+                string currentHintTitle = "";
 
-                void FlushBuffer()
+                void FlushNormalBuffer()
                 {
-                    if (textBuffer.Length > 0)
+                    if (normalTextBuffer.Length > 0)
                     {
-                        RenderRichText(PnlMaterials, textBuffer.ToString().TrimEnd());
-                        textBuffer.Clear();
+                        RenderRichText(PnlMaterials, normalTextBuffer.ToString().TrimEnd());
+                        normalTextBuffer.Clear();
                     }
                 }
 
@@ -1249,63 +1286,89 @@ namespace AbiturEliteCode
                 {
                     string trim = line.Trim();
 
-                    if (trim.StartsWith("Hinweis:") || trim.StartsWith("Tipp:"))
+                    // start of hint
+                    if (trim.StartsWith("start-hint:") || trim.StartsWith("start-tipp:"))
                     {
-                        FlushBuffer();
+                        FlushNormalBuffer();
+                        inHintBlock = true;
 
-                        // hint button
-                        string preview = trim.Length > 18 ? trim.Substring(0, 15) + "..." : trim;
+                        // parse hint title
+                        int colonIndex = trim.IndexOf(':');
+                        if (colonIndex != -1 && colonIndex < trim.Length - 1)
+                            currentHintTitle = trim.Substring(colonIndex + 1).Trim();
+                        else
+                            currentHintTitle = "Hinweis";
 
-                        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-                        var contentPanel = new Border
+                        continue;
+                    }
+
+                    // end of hint
+                    if (trim.StartsWith(":end-hint") || trim.StartsWith(":end-tipp"))
+                    {
+                        if (inHintBlock)
                         {
-                            IsVisible = false,
-                            Background = SolidColorBrush.Parse("#252526"),
-                            Margin = new Thickness(0, 5, 0, 0),
-                            CornerRadius = new CornerRadius(6),
-                            Padding = new Thickness(10),
-                            Child = new StackPanel()
-                        };
+                            var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
 
-                        var innerStack = (StackPanel)contentPanel.Child;
-                        RenderRichText(innerStack, trim);
+                            var contentPanel = new Border
+                            {
+                                IsVisible = false,
+                                Background = SolidColorBrush.Parse("#252526"),
+                                Margin = new Thickness(0, 5, 0, 0),
+                                CornerRadius = new CornerRadius(6),
+                                Padding = new Thickness(10),
+                                Child = new StackPanel()
+                            };
 
-                        if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
-                        {
-                            lastChild.Margin = new Thickness(0);
+                            var innerStack = (StackPanel)contentPanel.Child;
+                            RenderRichText(innerStack, hintBuffer.ToString().Trim());
+
+                            if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
+                            {
+                                lastChild.Margin = new Thickness(0);
+                            }
+
+                            string capturedTitle = currentHintTitle;
+
+                            var btn = new Button
+                            {
+                                Content = "▶ " + capturedTitle,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                Background = SolidColorBrush.Parse("#3C3C41"),
+                                Foreground = Brushes.White,
+                                HorizontalContentAlignment = HorizontalAlignment.Left,
+                                Cursor = Cursor.Parse("Hand")
+                            };
+
+                            btn.Click += (s, e) =>
+                            {
+                                bool isExpanded = contentPanel.IsVisible;
+                                contentPanel.IsVisible = !isExpanded;
+                                btn.Content = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
+                            };
+
+                            stack.Children.Add(btn);
+                            stack.Children.Add(contentPanel);
+                            PnlMaterials.Children.Add(stack);
+
+                            hintBuffer.Clear();
+                            inHintBlock = false;
                         }
+                        continue;
+                    }
 
-                        var btn = new Button
-                        {
-                            Content = "▶ " + preview,
-                            HorizontalAlignment = HorizontalAlignment.Stretch,
-                            Background = SolidColorBrush.Parse("#3C3C41"),
-                            Foreground = Brushes.White,
-                            HorizontalContentAlignment = HorizontalAlignment.Left,
-                            Cursor = Cursor.Parse("Hand")
-                        };
-
-                        btn.Click += (s, e) =>
-                        {
-                            btn.IsVisible = false;
-                            contentPanel.IsVisible = true;
-                        };
-
-                        stack.Children.Add(btn);
-                        stack.Children.Add(contentPanel);
-                        PnlMaterials.Children.Add(stack);
+                    if (inHintBlock)
+                    {
+                        if (hintBuffer.Length > 0) hintBuffer.AppendLine();
+                        hintBuffer.Append(line);
                     }
                     else
                     {
-                        // normal line
-                        if (textBuffer.Length > 0)
-                            textBuffer.AppendLine();
-
-                        textBuffer.Append(line);
+                        if (normalTextBuffer.Length > 0) normalTextBuffer.AppendLine();
+                        normalTextBuffer.Append(line);
                     }
                 }
 
-                FlushBuffer();
+                FlushNormalBuffer();
             }
         }
 
