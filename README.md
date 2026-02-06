@@ -13,3 +13,6 @@ Eine Open-Source-Desktop-Anwendung zur gezielten Vorbereitung auf den Programmie
 ## Über das Projekt
 
 Abitur Elite Code bietet eine strukturierte Lernumgebung ähnlich wie LeetCode, jedoch speziell auf die Anforderungen des hessischen Informatik-Abiturs zugeschnitten. Die App ermöglicht es Schülern, praxisnah zu üben und ihre Programmierkenntnisse systematisch aufzubauen.
+
+## Skip-Codes
+> *Die Liste aller Level-Codes findest du [hier](py/LEVEL_CODES.md).*
