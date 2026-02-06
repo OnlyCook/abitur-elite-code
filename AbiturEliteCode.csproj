@@ -6,7 +6,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <StartupObject></StartupObject>
-    <ApplicationIcon>icons\app_icon.ico</ApplicationIcon>
+    <ApplicationIcon>assets\icons\app_icon.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -29,16 +29,28 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<None Update="img\**">
+		<None Update="assets\img\**">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 
 	<ItemGroup>
-		<AvaloniaResource Include="icons\*.svg" />
+		<AvaloniaResource Include="assets\icons\*.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Include="icons\app_icon.ico" />
+	  <Content Include="assets\icons\app_icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="assets\img\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <AvaloniaResource Remove="assets\icons\app_icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="assets\prerequisites.txt" />
 	</ItemGroup>
 </Project>

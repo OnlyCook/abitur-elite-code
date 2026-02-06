@@ -1,0 +1,270 @@
+> Hello World
+Console printing|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/console-printing-69955572/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/tour-of-csharp/tutorials/hello-world
+Console.Write|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/console-write-69955573/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/main-and-command-args/
+Console.ReadLine|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/console-readline-69955770/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/main-and-command-args/
+Single line comments|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/single-line-comments-69955574/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/tokens/comments
+Multi line comments|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/multi-line-comments-69955575/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/tokens/comments
+Variables|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/variables-69955576/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/tour-of-csharp/tutorials/hello-world
+Constants|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/constants-69955784/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/constants
+The var keyword|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-var-keyword-69955587/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/declarations
+
+> Basic Types
+Integers|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/integers-69955579/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/integral-numeric-types
+Doubles|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/doubles-69955580/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types
+Decimals|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/decimals-69955581/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types
+Strings|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/strings-69955582/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Escape Sequences|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/escape-sequences-69955782/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Verbatim Strings|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/verbatim-strings-69955783/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+String concatenation|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/string-concatenation-69955583/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/how-to/concatenate-multiple-strings
+String interpolation|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/string-interpolation-69955584/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/tokens/interpolated
+Chars|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/chars-69955585/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/char
+Booleans|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/booleans-69955586/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/bool
+Floats|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/floats-69955794/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types
+
+> Operators
+Addition|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-1-69955588/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Subtraction|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/subtraction-69955589/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Multiplication|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/multiplication-69955590/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Division|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/division-69955591/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+The Modulo operator|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-modulo-operator-69955592/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Order of operations|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/order-of-operations-69955593/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/
+Compound assignment operators|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/compound-assignment-operators-69955594/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Increment and Decrement|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/increment-and-decrement-69955595/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/arithmetic-operators
+Comparison operators|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/comparison-operators-69955596/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/comparison-operators
+Logical AND|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/logical-and-69955597/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/boolean-logical-operators
+Logical OR|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/logical-or-69955598/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/boolean-logical-operators
+Logical NOT|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/logical-not-69955599/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/boolean-logical-operators
+
+> Control Flow
+If statements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/if-statements-69955601/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/selection-statements
+If-Else statements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/if-else-statements-69955602/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/selection-statements
+Else-If chains|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/else-if-chains-69955603/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/selection-statements
+Logical patterns|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/logical-patterns-69955600/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+Switch statements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/switch-statements-69955604/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/selection-statements
+Switch expressions|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/switch-expressions-69955605/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/switch-expression
+The Ternary operator|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-ternary-operator-69955606/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/conditional-operator
+
+> Loops
+While Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/while-loops-69955607/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+Avoiding Infinite Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-2-69955608/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+Do-While Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/do-while-loops-69955609/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+For Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/for-loops-69955610/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+For Loop Counting Down|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/for-loop-counting-down-69955611/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+For-Each Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/for-each-loops-69955612/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+The break statement|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-break-statement-69955613/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/jump-statements
+The continue statement|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-continue-statement-69955614/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/jump-statements
+Nested Loops|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/nested-loops-69955615/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/iteration-statements
+
+> Methods
+Defining void methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-void-methods-69955616/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/methods
+Method parameters|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/method-parameters-69955617/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/methods
+Return values|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/return-values-69955618/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/methods
+Using return values|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/using-return-values-69955619/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/methods
+Method overloading|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/method-overloading-69955620/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/methods
+Optional parameters|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/optional-parameters-69955621/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/named-and-optional-arguments
+Named arguments|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/named-arguments-69955622/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/named-and-optional-arguments
+Params arguments|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/param-arguments-69955623/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/params
+ref Parameters|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/ref-parameters-69955787/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/ref
+out Parameters|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/out-parameters-69955788/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/out-parameter-modifier
+in Parameters|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/in-parameters-69955789/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/in-parameter-modifier
+
+> Arrays
+Creating Arrays|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-arrays-69955624/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/
+Array Initializer Syntax|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/array-initializer-syntax-69955625/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/
+Modifying Array Elements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/modifying-array-elements-69955626/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/
+Looping Arrays with for|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/looping-arrays-with-for-69955627/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/
+Looping Arrays with foreach|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/looping-arrays-with-foreach-69955628/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/
+Multi-Dimensional Arrays|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/multi-dimensional-arrays-69955629/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/multidimensional-arrays
+Jagged Arrays|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/jagged-arrays-69955790/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/arrays/jagged-arrays
+Ranges and Indices|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/ranges-and-indices-69955791/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/proposals/csharp-8.0/ranges
+
+> Collections
+Creating Lists|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-lists-69955630/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Adding to Lists|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-2-69955631/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Accessing List Elements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/accessing-list-elements-69955632/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Removing from Lists|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/removing-from-lists-69955633/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Checking List Contents|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/checking-list-contents-69955634/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Sorting Lists|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/sorting-lists-69955635/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Creating Dictionaries|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-dictionaries-69955636/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Adding and Accessing Dictionary Items|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/adding-and-accessing-dictionary-items-69955637/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Checking Dictionary Keys|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/checking-dictionary-keys-69955638/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+Looping Through Dictionaries|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/looping-through-dictionaries-69955639/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/collections
+
+> Classes and Objects
+Defining a Class|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-a-class-69955640/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/types/classes
+Fields|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/fields-69955641/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/fields
+Default Constructors|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/default-constructors-69955642/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/constructors
+Parameterized Constructors|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/parameterized-constructors-69955643/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/constructors
+Constructor Overloading|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/constructor-overloading-69955644/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/constructors
+Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/properties-69955968/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/properties
+Auto-Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/auto-properties-69955645/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/auto-implemented-properties
+Read-Only Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/read-only-properties-69955646/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/properties
+Private Set Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/private-set-properties-69955647/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/properties
+The this Keyword|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-this-keyword-69955649/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/this
+Public Access Modifier|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/public-access-modifier-69955650/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/access-modifiers
+Private Access Modifier|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/private-access-modifier-69955651/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/access-modifiers
+
+> Object-Oriented Programming
+The static keyword|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-static-keyword-69955793/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/static
+Static Fields|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/static-fields-69955652/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/static-classes-and-static-class-members
+Static Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/static-methods-69955653/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/static-classes-and-static-class-members
+Inheritance Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/inheritance-basics-69955654/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/object-oriented/inheritance
+The base Keyword|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-base-keyword-69955655/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/base
+Virtual Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/virtual-methods-69955656/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/virtual
+Method Overriding|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/method-overriding-69955657/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/versioning-with-the-override-and-new-keywords
+Abstract Classes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/abstract-classes-69955658/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/abstract
+Abstract Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/abstract-methods-69955659/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/abstract
+Defining Interfaces|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-interfaces-69955660/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/types/interfaces
+Implementing Interfaces|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/implementing-interfaces-69955661/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/types/interfaces
+Multiple Interfaces|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/multiple-interfaces-69955662/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/types/interfaces
+Default interface methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/default-interface-methods-69955663/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/whats-new/csharp-8#default-interface-methods
+
+> Structs, Records, and Enums
+Defining Structs|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-structs-69955664/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/struct
+Value Type Behavior|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/value-type-behavior-69955665/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/value-types
+Defining Enums|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-enums-69955666/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/enum
+Enum Values|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/enum-values-69955667/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/enum
+Enums in Switch|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/enums-in-switch-69955668/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/enum
+Defining Records|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-records-69955669/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/record
+Record With Expressions|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/record-with-expressions-69955671/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/record
+
+> Exception Handling
+Try-Catch Blocks|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/try-catch-blocks-69955672/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/exceptions/exception-handling
+Exception Messages|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/exception-messages-69955673/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/exceptions/exception-handling
+Multiple Catch Blocks|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/multiple-catch-blocks-69955674/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/exceptions/exception-handling
+The Finally Block|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-finally-block-69955675/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/try-finally
+Throwing Exceptions|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/throwing-exceptions-69955676/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/exceptions/creating-and-throwing-exceptions
+Custom Exception Messages|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/custom-exception-messages-69955677/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/exceptions/creating-and-throwing-exceptions
+
+> Generics
+Generic Classes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-1-69955678/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/generics/generic-classes
+Using Generic Classes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/using-generic-classes-69955679/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/generics/
+Generic Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/generic-methods-69955680/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/generics/generic-methods
+Generic Constraints|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/generic-constraints-69955681/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/generics/constraints-on-type-parameters
+
+> Delegates and Lambdas
+Defining Delegates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/defining-delegates-69955682/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/delegates/
+Using Delegates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/using-delegates-69955683/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/delegates/using-delegates
+Action Delegates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/action-delegates-69955684/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/delegates-lambdas
+Func Delegates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/func-delegates-69955685/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/delegates-lambdas
+Lambda Expression Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/lambda-expression-basics-69955686/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/lambda-expressions
+Lambda with Multiple Statements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/lambda-with-multiple-statements-69955687/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/lambda-expressions
+Events|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/events-69955688/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/events/
+Subscribing to Events|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/subscribing-to-events-69955689/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/events/
+
+> LINQ Basics
+Introduction to LINQ|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/introduction-to-linq-69955690/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/
+LINQ Query Syntax|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/linq-query-syntax-69955691/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/query-syntax-and-method-syntax-in-linq
+Where for Filtering|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/where-for-filtering-69955692/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+Select for Transforming|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/select-for-transforming-69955693/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+OrderBy for Sorting|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/orderby-for-sorting-69955694/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+ThenBy for Secondary Sorting|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/thenby-for-secondary-sorting-69955695/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+Count and Sum|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/count-and-sum-69955696/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+Average, Min, and Max|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/average-min-and-max-69955697/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+First and FirstOrDefault|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/first-and-firstordefault-69955698/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+Single and SingleOrDefault|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/single-and-singleordefault-69955699/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+Any and All|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/any-and-all-69955700/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/linq/standard-query-operators-overview
+
+> Async Programming
+Async and Await|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/async-and-await-69955701/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/async/
+Returning Values from Async|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/returning-values-from-async-69955702/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/concepts/async/async-return-types
+Task.WhenAll|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/task-whenall-69955703/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/parallel-programming/task-parallel-library-tpl
+Task.WhenAny|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/task-whenany-69955704/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/parallel-programming/task-parallel-library-tpl
+
+> String Operations
+ToUpper and ToLower|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/toupper-and-tolower-69955705/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Trim|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/trim-69955706/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Substring|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/substring-69955707/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Replace|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/replace-69955708/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Split|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/split-69955709/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Join|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/join-69955710/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Contains and IndexOf|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/contains-and-indexof-69955711/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+StartsWith and EndsWith|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/startswith-and-endswith-69955712/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+String Comparisons|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/string-comparisons-69955781/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/strings/
+Format Specifiers|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/format-specifiers-69955713/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/formatting-types
+Interpolation Format|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/interpolation-format-69955714/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/tokens/interpolated
+StringBuilder|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/stringbuilder-69955715/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/stringbuilder
+
+> Date and Time
+DateTime Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/datetime-basics-69955772/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+Creating DateTime Values|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-datetime-values-69955773/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+Formatting Dates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/formatting-dates-69955774/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/standard-date-and-time-format-strings
+Parsing Dates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/parsing-dates-69955775/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+Date Arithmetic|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/date-arithmetic-69955776/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+TimeSpan Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/timespan-basics-69955777/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+Comparing Dates|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/comparing-dates-69955778/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+DateOnly Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-8-69955779/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+TimeOnly Basics|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/timeonly-basics-69955780/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/datetime/
+
+> Nullable Types
+Nullable Value Types|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/nullable-value-types-69955716/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/nullable-value-types
+The Null-Coalescing Operator|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-null-coalescing-operator-69955717/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/null-coalescing-operator
+Nullable Reference Types|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/nullable-reference-types-69955718/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/nullable-reference-types
+The Null-Conditional Operator|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-null-conditional-operator-69955719/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/member-access-operators
+The Null-Forgiving Operator|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-null-forgiving-operator-69955720/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/null-forgiving
+
+> Pattern Matching
+Type Checking with is|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/type-checking-with-is-69955721/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/is
+Type Patterns with Variables|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/type-patterns-with-variables-69955722/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+Switch with Type Patterns|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/switch-with-type-patterns-69955723/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+Property Patterns|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/property-patterns-69955724/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+Relational Patterns|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/relational-patterns-69955725/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+Switch Expressions|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/switch-expressions-69955726/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/switch-expression
+When Guards|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/when-guards-69955727/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/patterns
+
+> Advanced Types
+Creating Tuples|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-tuples-69955728/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/value-tuples
+Named Tuple Elements|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/named-tuple-elements-69955729/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/value-tuples
+Returning Tuples from Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/returning-tuples-from-methods-69955730/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/value-tuples
+Tuple Deconstruction|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/tuple-deconstruction-69955731/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/builtin-types/value-tuples
+Anonymous Types|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/anonymous-types-69955732/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/types/anonymous-types
+Extension Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/extension-methods-69955733/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/extension-methods
+Understanding Attributes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/understanding-attributes-69955785/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/advanced-topics/reflection-and-attributes/
+Creating Custom Attributes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/creating-custom-attributes-69955786/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/advanced-topics/reflection-and-attributes/
+The using Statement|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-using-statement-69955792/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/using
+
+> Modern C# Features
+Init-Only Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/new-lesson-1-69955734/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/init
+Required Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/required-properties-69955735/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/required
+Raw String Literals|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/raw-string-literals-69955736/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/tokens/raw-string
+Collection Expression Syntax|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/collection-expression-syntax-69955737/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/collection-expressions
+Spread Operator in Collections|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/spread-operator-in-collections-69955738/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/operators/collection-expressions
+Primary Constructors|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/primary-constructors-69955739/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/instance-constructors
+
+> Type Conversions
+Implicit Conversion|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/implicit-conversion-69955740/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/types/casting-and-type-conversions
+Explicit Conversion (Casting)|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/explicit-conversion-casting-69955741/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/types/casting-and-type-conversions
+The Convert Class|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-convert-class-69955742/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/type-conversion
+Parse Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/parse-methods-69955743/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/parsing-numeric
+TryParse Methods|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/tryparse-methods-69955744/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/base-types/parsing-numeric
+Checked Arithmetic|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/checked-arithmetic-69955745/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/checked-and-unchecked
+Unchecked Arithmetic|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/unchecked-arithmetic-69955746/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/checked-and-unchecked
+
+> File I/O
+Writing Text Files|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/writing-text-files-69955747/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/io/how-to-write-text-to-a-file
+Reading Text Files|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/reading-text-files-69955748/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/io/how-to-read-text-from-a-file
+File Lines|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/file-lines-69955749/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/io/
+Checking File Existence|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/checking-file-existence-69955750/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/io/
+Path Manipulation|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/path-manipulation-69955751/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/io/
+JSON Serialization|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/json-serialization-69955752/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/serialization/system-text-json/how-to
+JSON Deserialization|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/json-deserialization-69955753/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/standard/serialization/system-text-json/how-to
+
+> HTTP Requests
+Introduction to HttpClient|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/introduction-to-httpclient-69955754/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Making GET Requests|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/making-get-requests-69955755/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+HttpResponseMessage|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/httpresponsemessage-69955756/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Checking Status Codes|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/checking-status-codes-69955757/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Using BaseAddress|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/using-baseaddress-69955758/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Making POST Requests|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/making-post-requests-69955759/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Sending JSON with POST|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/sending-json-with-post-69955760/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Deserializing JSON Responses|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/deserializing-json-responses-69955761/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Setting Request Headers|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/setting-request-headers-69955762/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Handling HTTP Errors|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/handling-http-errors-69955763/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+PUT and DELETE Requests|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/put-and-delete-requests-69955764/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+Async HTTP Operations|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/async-http-operations-69955765/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/fundamentals/networking/http/httpclient
+
+> C# 13 and C# 14 Features
+Params Collections|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/params-collections-69955766/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/params
+The Lock Type|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-lock-type-69955767/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/statements/lock
+Partial Properties|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/partial-properties-69955768/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/programming-guide/classes-and-structs/partial-classes-and-methods
+The field Keyword|dometrain:/take/course/hands-on-csharp-for-beginners-3256091/the-field-keyword-69955769/|docs:https://learn.microsoft.com/de-de/dotnet/csharp/language-reference/keywords/field

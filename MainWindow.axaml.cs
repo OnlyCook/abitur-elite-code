@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Svg.Skia;
 using Avalonia.Threading;
 using AvaloniaEdit;
@@ -19,6 +20,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -75,6 +77,8 @@ namespace AbiturEliteCode
         public MainWindow()
         {
             InitializeComponent();
+
+            PrerequisiteSystem.Initialize();
 
             var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
             ImgScale = (ScaleTransform)transformGroup.Children[0];
@@ -507,28 +511,32 @@ namespace AbiturEliteCode
             }
         }
 
-        private Avalonia.Media.IImage LoadDiagramImage(string path)
+        private Avalonia.Media.IImage LoadDiagramImage(string relativePath)
         {
-            if (!File.Exists(path)) return null;
+            relativePath = relativePath.Replace("\\", "/");
+            string uriString = $"avares://AbiturEliteCode/assets/{relativePath}";
 
             try
             {
-                if (path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                var uri = new Uri(uriString);
+                if (AssetLoader.Exists(uri))
                 {
-                    var svgSource = SvgSource.Load(path, null);
-                    var svgImage = new SvgImage { Source = svgSource };
-                    return svgImage;
-                }
-                else
-                {
-                    return new Bitmap(path); // fallback (png)
+                    if (relativePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var svgSource = SvgSource.Load(uriString, null);
+                        return new SvgImage { Source = svgSource };
+                    }
+                    else
+                    {
+                        return new Bitmap(AssetLoader.Open(uri));
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load image {path}: {ex.Message}");
-                return null;
+                System.Diagnostics.Debug.WriteLine($"Failed to load asset {uriString}: {ex.Message}");
             }
+            return null;
         }
 
         private void LoadLevel(Level level)
@@ -585,13 +593,7 @@ namespace AbiturEliteCode
             {
                 if (!string.IsNullOrEmpty(level.DiagramPath))
                 {
-                    string safePath = level.DiagramPath.Replace(
-                        "\\",
-                        Path.DirectorySeparatorChar.ToString()
-                    );
-                    string fullPath = Path.Combine(AppContext.BaseDirectory, safePath);
-
-                    ImgDiagram.Source = LoadDiagramImage(fullPath);
+                    ImgDiagram.Source = LoadDiagramImage(level.DiagramPath);
                 }
                 else
                     ImgDiagram.Source = null;
@@ -1284,11 +1286,7 @@ namespace AbiturEliteCode
             // load image
             if (!string.IsNullOrEmpty(level.AuxiliaryId))
             {
-                string auxPath = Path.Combine(
-                    AppContext.BaseDirectory,
-                    "img",
-                    $"aux_{level.AuxiliaryId}.svg"
-                );
+                string auxPath = $"img/aux_{level.AuxiliaryId}.svg";
 
                 var auxImage = LoadDiagramImage(auxPath);
 
@@ -1316,6 +1314,7 @@ namespace AbiturEliteCode
                 }
             }
 
+            // hints
             if (!string.IsNullOrEmpty(level.MaterialDocs))
             {
                 var lines = level.MaterialDocs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
@@ -1439,6 +1438,149 @@ namespace AbiturEliteCode
                 }
 
                 FlushNormalBuffer();
+            }
+
+            // prerequisites
+            bool hasRequired = level.Prerequisites != null && level.Prerequisites.Count > 0;
+            bool hasOptional = level.OptionalPrerequisites != null && level.OptionalPrerequisites.Count > 0;
+
+            if (hasRequired || hasOptional)
+            {
+                var prereqStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
+
+                var contentPanel = new Border
+                {
+                    IsVisible = false,
+                    Background = SolidColorBrush.Parse("#252526"),
+                    Margin = new Thickness(0, 5, 0, 0),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(10),
+                    Child = new StackPanel()
+                };
+
+                var innerList = (StackPanel)contentPanel.Child;
+
+                void RenderPrereqRows(List<string> topics, bool isOptional)
+                {
+                    if (topics == null) return;
+
+                    foreach (var reqTitle in topics)
+                    {
+                        var lesson = PrerequisiteSystem.GetLesson(reqTitle);
+                        if (lesson == null) continue;
+
+                        var row = new Grid
+                        {
+                            ColumnDefinitions = new ColumnDefinitions("*, Auto, Auto"),
+                            Margin = new Thickness(0, 2, 0, 2)
+                        };
+
+                        // title
+                        var titleStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+
+                        var txtTitle = new TextBlock
+                        {
+                            Text = "• " + lesson.Title,
+                            Foreground = Brushes.LightGray,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            TextWrapping = TextWrapping.Wrap
+                        };
+                        titleStack.Children.Add(txtTitle);
+
+                        if (isOptional)
+                        {
+                            var badge = new Border
+                            {
+                                Background = SolidColorBrush.Parse("#333333"),
+                                BorderBrush = Brushes.Gray,
+                                BorderThickness = new Thickness(1),
+                                CornerRadius = new CornerRadius(3),
+                                Padding = new Thickness(4, 1),
+                                VerticalAlignment = VerticalAlignment.Center,
+                                Child = new TextBlock
+                                {
+                                    Text = "Optional",
+                                    FontSize = 10,
+                                    Foreground = Brushes.Gray
+                                }
+                            };
+                            titleStack.Children.Add(badge);
+                        }
+
+                        // dometrain
+                        var btnDt = new Button
+                        {
+                            Content = "Kurs",
+                            FontSize = 11,
+                            Padding = new Thickness(8, 4),
+                            Margin = new Thickness(0, 0, 5, 0),
+                            Background = SolidColorBrush.Parse("#5D3FD3"),
+                            Foreground = Brushes.White,
+                            CornerRadius = new CornerRadius(4),
+                            Cursor = Cursor.Parse("Hand")
+                        };
+                        ToolTip.SetTip(btnDt, "Zu Dometrain.com");
+                        btnDt.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DometrainUrl);
+
+                        // docs
+                        var btnDoc = new Button
+                        {
+                            Content = "Docs",
+                            FontSize = 11,
+                            Padding = new Thickness(8, 4),
+                            Background = SolidColorBrush.Parse("#0078D4"),
+                            Foreground = Brushes.White,
+                            CornerRadius = new CornerRadius(4),
+                            Cursor = Cursor.Parse("Hand")
+                        };
+                        ToolTip.SetTip(btnDoc, "Zu Microsoft Learn");
+                        btnDoc.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DocsUrl);
+
+                        Grid.SetColumn(titleStack, 0);
+                        Grid.SetColumn(btnDt, 1);
+                        Grid.SetColumn(btnDoc, 2);
+
+                        row.Children.Add(titleStack);
+                        row.Children.Add(btnDt);
+                        row.Children.Add(btnDoc);
+
+                        innerList.Children.Add(row);
+                    }
+                }
+
+                RenderPrereqRows(level.Prerequisites, false);
+
+                if (hasRequired && hasOptional)
+                {
+                    innerList.Children.Add(new Separator { Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 5, 0, 5) });
+                }
+
+                RenderPrereqRows(level.OptionalPrerequisites, true);
+
+                if (innerList.Children.Count > 0)
+                {
+                    var btnToggle = new Button
+                    {
+                        Content = "▶ Voraussetzungen / Grundlagen",
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        Background = SolidColorBrush.Parse("#2b2b2b"),
+                        Foreground = Brushes.White,
+                        HorizontalContentAlignment = HorizontalAlignment.Left,
+                        Cursor = Cursor.Parse("Hand")
+                    };
+
+                    btnToggle.Click += (s, e) =>
+                    {
+                        bool isExpanded = contentPanel.IsVisible;
+                        contentPanel.IsVisible = !isExpanded;
+                        btnToggle.Content = (isExpanded ? "▶ " : "▼ ") + "Voraussetzungen / Grundlagen";
+                        if (!isExpanded) contentPanel.CornerRadius = new CornerRadius(6);
+                    };
+
+                    prereqStack.Children.Add(btnToggle);
+                    prereqStack.Children.Add(contentPanel);
+                    PnlMaterials.Children.Add(prereqStack);
+                }
             }
         }
 
@@ -2037,7 +2179,7 @@ namespace AbiturEliteCode
 
                 if (isSectionComplete)
                 {
-                    headerPanel.Children.Add(LoadIcon("icons/ic_done.svg", 16));
+                    headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
                 }
 
                 var sectionContent = new StackPanel
@@ -2056,8 +2198,8 @@ namespace AbiturEliteCode
                         Spacing = 10
                     };
                     string iconPath = completed
-                        ? "icons/ic_check.svg"
-                        : (unlocked ? "icons/ic_lock_open.svg" : "icons/ic_lock.svg");
+                        ? "assets/icons/ic_check.svg"
+                        : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
                     btnContent.Children.Add(LoadIcon(iconPath, 16));
                     btnContent.Children.Add(
                         new TextBlock
@@ -2238,7 +2380,7 @@ namespace AbiturEliteCode
                 IsEnabled = false,
                 Opacity = 0.5
             };
-            btnSave.Content = LoadIcon("icons/ic_save.svg", 20);
+            btnSave.Content = LoadIcon("assets/icons/ic_save.svg", 20);
             ToolTip.SetTip(btnSave, "Einstellungen speichern");
 
             var btnReset = new Button
@@ -2248,7 +2390,7 @@ namespace AbiturEliteCode
                 Background = SolidColorBrush.Parse("#B43232"),
                 CornerRadius = new CornerRadius(5)
             };
-            btnReset.Content = LoadIcon("icons/ic_restart.svg", 20);
+            btnReset.Content = LoadIcon("assets/icons/ic_restart.svg", 20);
             ToolTip.SetTip(btnReset, "Auf Standard zurücksetzen");
 
             actionButtonsPanel.Children.Add(btnSave);

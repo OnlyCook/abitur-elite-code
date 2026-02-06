@@ -38,6 +38,8 @@ namespace AbiturEliteCode.cs
         public string MaterialDocs { get; set; }
         public string PlantUMLSource { get; set; }
         public string AuxiliaryId { get; set; }
+        public List<string> Prerequisites { get; set; } = new List<string>();
+        public List<string> OptionalPrerequisites { get; set; } = new List<string>();
     }
 
     public static class LevelCodes
@@ -112,7 +114,12 @@ namespace AbiturEliteCode.cs
                                    "Beide Sprachen verwenden [int] für Ganzzahlen.\n" +
                                    "Private Felder werden mit [-], public mit [+] markiert.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - name : String\n  - alter : int\n  + Tier(name : String, alter : int)\n}\n@enduml"
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - name : String\n  - alter : int\n  + Tier(name : String, alter : int)\n}\n@enduml",
+                    Prerequisites = new List<string>
+                    {
+                        "Defining a Class", "Fields", "Public Access Modifier", "Private Access Modifier",
+                        "Basic Types", "Strings", "Integers", "Default Constructors", "Parameterized Constructors"
+                    }
                 },
                 new Level
                 {
@@ -134,7 +141,11 @@ namespace AbiturEliteCode.cs
                                    "start-tipp: Logik im Setter\n" +
                                    "Verwenden Sie eine [if]-Bedingung im Setter, um zu prüfen, ob [neuesAlter > alter] ist.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int)\n  + getAlter() : int\n}\n@enduml"
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int)\n  + getAlter() : int\n}\n@enduml",
+                    Prerequisites = new List<string>
+                    {
+                        "Properties", "If statements", "Comparison operators", "Return values", "Defining void methods"
+                    }
                 },
                 new Level
                 {
@@ -160,7 +171,11 @@ namespace AbiturEliteCode.cs
                                    "start-hint: Methode Bruellen\n" +
                                    "Die Methode [Bruellen()] kann einen beliebigen String zurückgeben, z.B. \"ROAR!\"\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nabstract class Tier {\n  # name : String\n  + Tier(name : String)\n}\nclass Loewe {\n  - laenge : int\n  + Loewe(name : String, laenge : int)\n  + bruellen() : String\n}\nTier <|-- Loewe\n@enduml"
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nabstract class Tier {\n  # name : String\n  + Tier(name : String)\n}\nclass Loewe {\n  - laenge : int\n  + Loewe(name : String, laenge : int)\n  + bruellen() : String\n}\nTier <|-- Loewe\n@enduml",
+                    Prerequisites = new List<string>
+                    {
+                        "Inheritance Basics", "Abstract Classes", "The base Keyword", "Abstract Methods", "Method Overriding"
+                    }
                 },
                 new Level
                 {
@@ -179,7 +194,11 @@ namespace AbiturEliteCode.cs
                     DiagramPath = "img\\sec1\\lvl4.svg",
                     MaterialDocs = listDocsHints,
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
-                    AuxiliaryId = "ListT"
+                    AuxiliaryId = "ListT",
+                    Prerequisites = new List<string>
+                    {
+                        "Creating Lists", "Adding to Lists", "Accessing List Elements", "Count and Sum"
+                    }
                 },
                 new Level
                 {
@@ -205,7 +224,11 @@ namespace AbiturEliteCode.cs
                                    "5. Geben Sie am Ende [aeltestes] zurück.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
-                    AuxiliaryId = "ListT"
+                    AuxiliaryId = "ListT",
+                    Prerequisites = new List<string>
+                    {
+                        "For-Each Loops", "If statements", "Comparison operators", "Returning Values"
+                    }
                 },
 
                 // --- SECTION 2 ---
@@ -227,7 +250,11 @@ namespace AbiturEliteCode.cs
                                    "Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + ermittleLeichtestes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "ListT"
+                    AuxiliaryId = "ListT",
+                    Prerequisites = new List<string>
+                    {
+                        "Creating Lists", "For-Each Loops", "Doubles", "If statements"
+                    }
                 },
                 new Level
                 {
@@ -249,7 +276,11 @@ namespace AbiturEliteCode.cs
                                    "[&&] ist der Operator für das logische UND.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "Paket"
+                    AuxiliaryId = "Paket",
+                    Prerequisites = new List<string>
+                    {
+                        "Logical AND", "String Comparisons", "Adding to Lists", "Return values"
+                    }
                 },
                 new Level
                 {
@@ -275,7 +306,11 @@ namespace AbiturEliteCode.cs
                                    "pakete[j+1] = temp;|}\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "Paket"
+                    AuxiliaryId = "Paket",
+                    Prerequisites = new List<string>
+                    {
+                        "For Loops", "Accessing List Elements", "Modifying Array Elements", "Variables"
+                    }
                 },
                 new Level
                 {
@@ -304,7 +339,11 @@ namespace AbiturEliteCode.cs
                                    "}|}\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
-                    AuxiliaryId = "Paket"
+                    AuxiliaryId = "Paket",
+                    Prerequisites = new List<string>
+                    {
+                        "Defining a Class", "Fields", "While Loops", "Variables"
+                    }
                 },
                 new Level
                 {
@@ -330,7 +369,15 @@ namespace AbiturEliteCode.cs
                                    "Beachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass LogistikZentrum {\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
-                    AuxiliaryId = "Paket"
+                    AuxiliaryId = "Paket",
+                    Prerequisites = new List<string>
+                    {
+                        "Sorting Lists", "Accessing List Elements"
+                    },
+                    OptionalPrerequisites = new List<string>
+                    {
+                        "Where for Filtering"
+                    }
                 }
             };
         }

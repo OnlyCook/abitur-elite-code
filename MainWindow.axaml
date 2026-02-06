@@ -90,7 +90,7 @@
 										VerticalAlignment="Bottom"
 										Margin="10"
 										Click="BtnResetDiagram_Click">
-									<svg:Svg Path="/icons/ic_restart.svg" Width="20" Height="20"/>
+									<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
 								</Button>
 
 								<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
@@ -140,16 +140,16 @@
 
 							<Button Name="BtnSettings" Background="#464646" Width="40"
 									CornerRadius="5" Click="BtnSettings_Click" ToolTip.Tip="Einstellungen">
-								<svg:Svg Path="/icons/ic_settings.svg" Width="20" Height="20"/>
+								<svg:Svg Path="/assets/icons/ic_settings.svg" Width="20" Height="20"/>
 							</Button>
 
 							<Button Name="BtnReset" Background="#B43232" Width="40"
 									CornerRadius="5" Click="BtnReset_Click" ToolTip.Tip="Code zurücksetzen">
-								<svg:Svg Path="/icons/ic_restart.svg" Width="20" Height="20"/>
+								<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
 							</Button>
 							<Button Name="BtnSave" Background="#464646" Width="50"
 									CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern (Ctrl + S)">
-								<svg:Svg Path="/icons/ic_save.svg" Width="20" Height="20"/>
+								<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20"/>
 							</Button>
 							<Button Name="BtnRun" Content="▶ AUSFÜHREN" Background="#32A852" Foreground="White" FontWeight="Bold"
 									Padding="15,8" CornerRadius="5" Click="BtnRun_Click" Width="135" HorizontalContentAlignment="Center"/>
