@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace AbiturEliteCode
+namespace AbiturEliteCode.cs
 {
     // LEVEL CREATION GUIDE
     // bound to the abitur in hesse (PI - Praktische Informatik), must use their syntax and structure

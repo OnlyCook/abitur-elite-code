@@ -6,7 +6,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <StartupObject></StartupObject>
-    <ApplicationIcon>app_icon.ico</ApplicationIcon>
+    <ApplicationIcon>icons\app_icon.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -39,6 +39,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Include="app_icon.ico" />
+	  <Content Include="icons\app_icon.ico" />
 	</ItemGroup>
 </Project>

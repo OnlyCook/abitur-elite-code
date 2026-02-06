@@ -3,7 +3,7 @@ using AvaloniaEdit.Highlighting.Xshd;
 using System.IO;
 using System.Xml;
 
-namespace AbiturEliteCode
+namespace AbiturEliteCode.cs
 {
     internal class CsharpCodeEditor
     {

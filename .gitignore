@@ -41,3 +41,6 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+
+# manual
+Properties/
