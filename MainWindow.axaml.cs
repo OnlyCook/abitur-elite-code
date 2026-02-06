@@ -58,6 +58,8 @@ namespace AbiturEliteCode
 
         private bool _hasRunOnce = false;
 
+        private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
+
         private enum VimMode { Normal, Insert, CommandPending, CommandLine, Search }
         private VimMode _vimMode = VimMode.Normal;
         private string _vimCommandBuffer = ""; // for multi char commands
@@ -182,7 +184,7 @@ namespace AbiturEliteCode
             CodeEditor.Options.EnableHyperlinks = false;
             CodeEditor.Options.EnableEmailHyperlinks = false;
 
-            CodeEditor.FontFamily = new FontFamily("Consolas, Monospace");
+            CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
             CodeEditor.FontSize = 16;
             CodeEditor.Background = Brushes.Transparent;
             CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
@@ -271,6 +273,12 @@ namespace AbiturEliteCode
 
             if (e.Key == Key.Back)
             {
+                if (AppSettings.IsVimEnabled && _vimMode == VimMode.Normal)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 int offset = CodeEditor.CaretOffset;
 
                 // smart delete pairs
@@ -498,6 +506,30 @@ namespace AbiturEliteCode
             }
         }
 
+        private Avalonia.Media.IImage LoadDiagramImage(string path)
+        {
+            if (!File.Exists(path)) return null;
+
+            try
+            {
+                if (path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                {
+                    var svgSource = SvgSource.Load(path, null);
+                    var svgImage = new SvgImage { Source = svgSource };
+                    return svgImage;
+                }
+                else
+                {
+                    return new Bitmap(path); // fallback (png)
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load image {path}: {ex.Message}");
+                return null;
+            }
+        }
+
         private void LoadLevel(Level level)
         {
             SaveCurrentProgress();
@@ -515,16 +547,21 @@ namespace AbiturEliteCode
             CodeEditor.Text = rawCode;
 
             // reset uml zoom
-            _currentScale = 1.0;
+            _currentScale = 0.5;
             if (ImgScale != null)
             {
-                ImgScale.ScaleX = 1.0;
-                ImgScale.ScaleY = 1.0;
+                ImgScale.ScaleX = _currentScale;
+                ImgScale.ScaleY = _currentScale;
             }
             if (ImgTranslate != null)
             {
                 ImgTranslate.X = 0;
                 ImgTranslate.Y = 0;
+            }
+            if (ImgDiagram != null)
+            {
+                ImgDiagram.HorizontalAlignment = HorizontalAlignment.Center;
+                ImgDiagram.VerticalAlignment = VerticalAlignment.Center;
             }
 
             PnlTask.Children.Clear();
@@ -552,10 +589,8 @@ namespace AbiturEliteCode
                         Path.DirectorySeparatorChar.ToString()
                     );
                     string fullPath = Path.Combine(AppContext.BaseDirectory, safePath);
-                    if (File.Exists(fullPath))
-                        ImgDiagram.Source = new Bitmap(fullPath);
-                    else
-                        ImgDiagram.Source = null;
+
+                    ImgDiagram.Source = LoadDiagramImage(fullPath);
                 }
                 else
                     ImgDiagram.Source = null;
@@ -623,7 +658,7 @@ namespace AbiturEliteCode
                     {
                         Document = new TextDocument(codeContent),
                         SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting(),
-                        FontFamily = new FontFamily("Consolas, Monospace"),
+                        FontFamily = new FontFamily(MonospaceFontFamily),
                         FontSize = 14,
                         IsReadOnly = true,
                         ShowLineNumbers = false,
@@ -658,10 +693,10 @@ namespace AbiturEliteCode
 
                     currentTb.Inlines.Add(new Run
                     {
-                        Text = content,
+                        Text = content, 
                         FontWeight = FontWeight.Bold,
                         Foreground = BrushTextHighlight,
-                        FontFamily = new FontFamily("Consolas")
+                        FontFamily = new FontFamily(MonospaceFontFamily)
                     });
                 }
                 // bold text
@@ -1172,16 +1207,15 @@ namespace AbiturEliteCode
 
             double zoomSpeed = 0.1;
 
+            ImgDiagram.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+
             if (e.Delta.Y > 0)
                 _currentScale += zoomSpeed;
             else
                 _currentScale -= zoomSpeed;
-            if (_currentScale < 0.1)
-                _currentScale = 0.1;
-            if (_currentScale < 0.1)
-                _currentScale = 0.1;
-            if (_currentScale > 5.0)
-                _currentScale = 5.0;
+
+            if (_currentScale < 0.1) _currentScale = 0.1;
+            if (_currentScale > 5.0) _currentScale = 5.0;
 
             ImgScale.ScaleX = _currentScale;
             ImgScale.ScaleY = _currentScale;
@@ -1231,11 +1265,14 @@ namespace AbiturEliteCode
         {
             if (ImgScale != null && ImgTranslate != null)
             {
-                _currentScale = 1.0;
+                _currentScale = 0.5;
                 ImgScale.ScaleX = _currentScale;
                 ImgScale.ScaleY = _currentScale;
                 ImgTranslate.X = 0;
                 ImgTranslate.Y = 0;
+
+                ImgDiagram.HorizontalAlignment = HorizontalAlignment.Center;
+                ImgDiagram.VerticalAlignment = VerticalAlignment.Center;
             }
         }
 
@@ -1249,9 +1286,12 @@ namespace AbiturEliteCode
                 string auxPath = Path.Combine(
                     AppContext.BaseDirectory,
                     "img",
-                    $"aux_{level.AuxiliaryId}.png"
+                    $"aux_{level.AuxiliaryId}.svg"
                 );
-                if (File.Exists(auxPath))
+
+                var auxImage = LoadDiagramImage(auxPath);
+
+                if (auxImage != null)
                 {
                     PnlMaterials.Children.Add(
                         new SelectableTextBlock
@@ -1265,7 +1305,7 @@ namespace AbiturEliteCode
                     PnlMaterials.Children.Add(
                         new Image
                         {
-                            Source = new Bitmap(auxPath),
+                            Source = auxImage,
                             Height = 150,
                             Stretch = Stretch.Uniform,
                             Margin = new Thickness(0, 0, 0, 15),

@@ -12,7 +12,7 @@ import hashlib
 from pathlib import Path
 
 # PlantUML server URL
-PLANTUML_SERVER = "http://www.plantuml.com/plantuml/png/"
+PLANTUML_SERVER = "http://www.plantuml.com/plantuml/svg/"
 CACHE_FILE = "plantuml_cache.json"
 
 def encode_plantuml(plantuml_text):
@@ -116,6 +116,12 @@ def extract_level_data(level_cs_path):
 
 def add_blueprint_theme(plantuml_source):
     if not plantuml_source: return ""
+    
+    # 1. Fix Clipping: Add a trailing space to lines starting with -, +, or #
+    # This prevents the last character from touching the class border
+    plantuml_source = re.sub(r'(?m)^(\s*[-+#].*?)$', r'\1 ', plantuml_source)
+
+    # 2. Add Theme and Transparency
     if '!theme' not in plantuml_source:
         lines = plantuml_source.split('\n')
         new_lines = []
@@ -123,7 +129,9 @@ def add_blueprint_theme(plantuml_source):
             new_lines.append(line)
             if line.strip().startswith('@startuml'):
                 new_lines.append('!theme blueprint')
+                new_lines.append('skinparam backgroundcolor transparent')
         return '\n'.join(new_lines)
+        
     return plantuml_source
 
 def generate_single_diagram(source, output_path, cache_key, cache):
@@ -177,7 +185,7 @@ def main():
     # 1. Generate Shared Diagrams
     print("--- Shared Diagrams ---")
     for key, source in shared_diags.items():
-        out_path = output_dir / f"aux_{key}.png"
+        out_path = output_dir / f"aux_{key}.svg" 
         cache_key = f"shared_{key}"
         print(f"Processing Shared: {key}...")
         if generate_single_diagram(source, out_path, cache_key, cache):
@@ -191,8 +199,8 @@ def main():
     for item in levels:
         level_id = item['id']
         section_folder = item['section'].replace('Sektion ', 'sec').split(':')[0].strip()
-        
-        main_path = output_dir / section_folder / f"lvl{level_id}.png"
+
+        main_path = output_dir / section_folder / f"lvl{level_id}.svg"
         key_main = f"lvl_{level_id}_main"
         
         print(f"Processing Level {level_id}...")

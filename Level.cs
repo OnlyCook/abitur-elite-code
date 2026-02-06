@@ -106,7 +106,7 @@ namespace AbiturEliteCode
                     Description = "Überführen Sie die Klasse [Tier] aus dem UML-Klassendiagramm in C#-Code.\n\n" +
                                   "Das Diagramm zeigt die Java-Notation. Beachten Sie die Unterschiede zu C#.",
                     StarterCode = "public class Tier\n{\n    // Implementation hier\n}",
-                    DiagramPath = "img\\sec1\\lvl1.png",
+                    DiagramPath = "img\\sec1\\lvl1.svg",
                     MaterialDocs = "start-hint: Datentypen & Modifier\n" +
                                    "In Java schreibt man [String], in C# [string].\n" +
                                    "Beide Sprachen verwenden [int] für Ganzzahlen.\n" +
@@ -127,7 +127,7 @@ namespace AbiturEliteCode
                                   "2. Der Setter darf das Alter nur ändern, wenn der neue Wert größer als der alte ist.\n" +
                                   "3. Der Getter gibt den aktuellen Wert des Alters zurück.",
                     StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
-                    DiagramPath = "img\\sec1\\lvl2.png",
+                    DiagramPath = "img\\sec1\\lvl2.svg",
                     MaterialDocs = "start-hint: Namenskonventionen\n" +
                                    "In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n" +
                                    ":end-hint\n" +
@@ -149,7 +149,7 @@ namespace AbiturEliteCode
                                   "2. [Loewe] erbt von [Tier] und implementiert die Methode [Bruellen()].\n" +
                                   "3. Der Konstruktor von [Loewe] ruft den Basis-Konstruktor auf.",
                     StarterCode = "// Implementieren Sie beide Klassen vollständig\n",
-                    DiagramPath = "img\\sec1\\lvl3.png",
+                    DiagramPath = "img\\sec1\\lvl3.svg",
                     MaterialDocs = "start-hint: Syntax für Vererbung\n" +
                                    "In Java schreibt man [public abstract class Tier], in C# identisch.\n" +
                                    "Vererbung: Java verwendet [extends], C# verwendet [:].\n" +
@@ -176,7 +176,7 @@ namespace AbiturEliteCode
                                   "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
                                   "Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse Tier.",
                     StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
-                    DiagramPath = "img\\sec1\\lvl4.png",
+                    DiagramPath = "img\\sec1\\lvl4.svg",
                     MaterialDocs = listDocsHints,
                     PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
                     AuxiliaryId = "ListT"
@@ -195,7 +195,7 @@ namespace AbiturEliteCode
                                   "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
                     StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
-                    DiagramPath = "img\\sec1\\lvl5.png",
+                    DiagramPath = "img\\sec1\\lvl5.svg",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Strategie für die Suche\n" +
                                    "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = null;].\n" +
@@ -219,10 +219,9 @@ namespace AbiturEliteCode
                     Description = "Das Logistik-Zentrum benötigt eine Funktion, um das **leichteste** Paket für Eil-Kurierfahrten zu finden.\n\n" +
                                   "Aufgabe:\n" +
                                   "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
-                                  "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n\n" +
-                                  "Hinweis: Beachten Sie die Reihenfolge der Parameter im Konstruktor von Paket (siehe Diagramm).",
+                                  "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n",
                     StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
-                    DiagramPath = "img\\sec2\\lvl6.png",
+                    DiagramPath = "img\\sec2\\lvl6.svg",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Startwert für Suche\n" +
                                    "Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.\n" +
@@ -244,7 +243,7 @@ namespace AbiturEliteCode
                                   "1. An den übergebenen [ort] adressiert sind.\n" +
                                   "2. **Und** schwerer als 10.0 kg sind.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete = new List<Paket>();\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl7.png",
+                    DiagramPath = "img\\sec2\\lvl7.svg",
                     MaterialDocs = "start-hint: C# Operatoren\n" +
                                    "Strings vergleicht man in C# mit [==] oder [Equals()].\n" +
                                    "[&&] ist der Operator für das logische UND.\n" +
@@ -264,7 +263,7 @@ namespace AbiturEliteCode
                                   "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [Sortiere()].\n" +
                                   "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl8.png",
+                    DiagramPath = "img\\sec2\\lvl8.svg",
                     MaterialDocs = "start-hint: Bubble Sort Logik\n" +
                                    "1. Äußere Schleife von [i=0] bis [n-1]\n" +
                                    "2. Innere Schleife von [j=0] bis [n-i-1]\n" +
@@ -293,18 +292,18 @@ namespace AbiturEliteCode
                                   "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
                                   "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
                     StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl9.png",
+                    DiagramPath = "img\\sec2\\lvl9.svg",
                     MaterialDocs = "start-hint: Verkettete Listen\n" +
-                                   "Verkettete Listen sind ein Klassiker im Abitur!🗣️🙏\n\n" +
+                                   "Verkettete Listen sind ein Klassiker im Abitur!\n\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Traversierung\n" +
-                                   "Traversierung (zum Ende laufen):\n" +
+                                   "Traversierung (zum Ende laufen) in Java:\n" +
                                    "{|Knoten aktuell = kopf;\n" +
-                                   "while(aktuell.GetNachfolger() != null) {\n" +
-                                   "   aktuell = aktuell.GetNachfolger();\n" +
+                                   "while(aktuell.getNachfolger() != null) {\n" +
+                                   "   aktuell = aktuell.getNachfolger();\n" +
                                    "}|}\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten \"1\" x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
+                    PlantUMLSource = "@startuml\nskinparam classAttributeIconSize 0\nskinparam monochrome true\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
                     AuxiliaryId = "Paket"
                 },
                 new Level
@@ -321,9 +320,9 @@ namespace AbiturEliteCode
                                   "Anforderungen:\n" +
                                   "• Filtern nach Ort\n" +
                                   "• Sortieren nach Gewicht (Absteigend)\n" +
-                                  "• Maximal 3 Elemente zurückgeben (oder weniger, wenn keine 3 da sind).",
+                                  "• Maximal 3 Elemente zurückgeben.",
                     StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete = new List<Paket>();\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        // Viel Erfolg!\n        return null;\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl10.png",
+                    DiagramPath = "img\\sec2\\lvl10.svg",
                     MaterialDocs = "start-tipp: Transferleistung\n" +
                                    "Sie können Ihre Bubble-Sort Logik wiederverwenden/anpassen oder (da dies eine Transferleistung ist) Hilfslisten nutzen.\n" +
                                    ":end-hint\n" +

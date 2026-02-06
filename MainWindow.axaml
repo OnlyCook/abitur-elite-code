@@ -70,7 +70,9 @@
 								   PointerMoved="Diagram_PointerMoved"
 								   PointerReleased="Diagram_PointerReleased">
 
-								<Image Name="ImgDiagram" Stretch="None" RenderTransformOrigin="0.5,0.5">
+								<Image Name="ImgDiagram" Stretch="Uniform"
+									   HorizontalAlignment="Center"
+									   VerticalAlignment="Center">
 									<Image.RenderTransform>
 										<TransformGroup>
 											<ScaleTransform/>
@@ -158,7 +160,7 @@
 						<Grid RowDefinitions="*, Auto">
 							<ae:TextEditor Name="CodeEditor"
 										   Grid.Row="0"
-										   FontFamily="Consolas, Monospace"
+										   FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
 										   FontSize="16"
 										   ShowLineNumbers="True"
 										   Background="Transparent"
@@ -181,7 +183,8 @@
 
 					<Border Grid.Row="3" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
 						<TextBox Name="TxtConsole"
-									FontFamily="Consolas, Monospace" FontSize="13"
+									FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
+									FontSize="13"
 									Background="Transparent" Foreground="LightGray"
 									IsReadOnly="True" TextWrapping="Wrap"
 									BorderThickness="0"
