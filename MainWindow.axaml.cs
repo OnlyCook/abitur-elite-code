@@ -26,7 +26,10 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using static AbiturEliteCode.cs.LevelDraft;
 
 namespace AbiturEliteCode
 {
@@ -63,6 +66,30 @@ namespace AbiturEliteCode
 
         private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
+        private string _currentCustomValidationCode = null;
+        private bool _isCustomLevelMode = false;
+
+        private bool _isLoadingDesigner = false;
+        private bool _isDesignerMode = false;
+        private string _currentDraftPath = "";
+        private LevelDraft _currentDraft = new LevelDraft();
+        private System.Timers.Timer _designerAutoSaveTimer;
+        private DispatcherTimer _designerSyncTimer;
+        private string _lastSavedDraftJson = "";
+        private bool _originalSyntaxSetting;
+        private bool _originalErrorSetting;
+        private LevelDraft _verifiedDraftState = null;
+        private const int MaxPrerequisites = 8;
+        private int _activeDiagramIndex = 0;
+        private enum DesignerSource
+        {
+            None,
+            StarterCode,
+            Validation,
+            TestingCode
+        }
+        private DesignerSource _activeDesignerSource = DesignerSource.None;
+
         private enum VimMode { Normal, Insert, CommandPending, CommandLine, Search }
         private VimMode _vimMode = VimMode.Normal;
         private string _vimCommandBuffer = ""; // for multi char commands
@@ -73,6 +100,14 @@ namespace AbiturEliteCode
         private SolidColorBrush BrushTextHighlight = SolidColorBrush.Parse("#6495ED"); // blue
         private SolidColorBrush BrushTextTitle = SolidColorBrush.Parse("#32A852"); // green
         private SolidColorBrush BrushBgPanel = SolidColorBrush.Parse("#202124");
+
+        private class CustomLevelInfo
+        {
+            public string Name { get; set; }
+            public string Author { get; set; }
+            public string FilePath { get; set; }
+            public bool IsDraft { get; set; } // .elitelvldraft = true; .elitelvl = false
+        }
 
         public MainWindow()
         {
@@ -103,10 +138,30 @@ namespace AbiturEliteCode
             autoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
             autoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
 
+            _designerSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            _designerSyncTimer.Tick += (s, e) =>
+            {
+                _designerSyncTimer.Stop();
+                SyncEditorToDesigner();
+            };
+
             CodeEditor.TextChanged += (s, e) =>
             {
                 autoSaveTimer.Stop();
                 autoSaveTimer.Start();
+
+                // trigger sync timer
+                if (_isDesignerMode && _activeDesignerSource != DesignerSource.None)
+                {
+                    _designerSyncTimer.Stop();
+                    _designerSyncTimer.Start();
+                }
+
+                if (AppSettings.IsErrorHighlightingEnabled)
+                {
+                    _diagnosticTimer.Stop();
+                    _diagnosticTimer.Start();
+                }
             };
 
             int maxId =
@@ -134,6 +189,66 @@ namespace AbiturEliteCode
             );
 
             UpdateVimUI();
+
+            // level designer
+            _designerAutoSaveTimer = new System.Timers.Timer(2000)
+            {
+                AutoReset = false
+            };
+            _designerAutoSaveTimer.Elapsed += async (s, e) =>
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (ChkDesignerAutoSave.IsChecked == true)
+                        SaveDesignerDraft();
+                });
+            };
+
+            TxtDesignName.TextChanged += OnDesignerInputChanged;
+            TxtDesignAuthor.TextChanged += OnDesignerInputChanged;
+            TxtDesignDesc.TextChanged += OnDesignerInputChanged;
+            TxtDesignMaterials.TextChanged += OnDesignerInputChanged;
+            TxtDesignStarter.TextChanged += OnDesignerInputChanged;
+            TxtDesignValidation.TextChanged += OnDesignerInputChanged;
+            TxtDesignTesting.TextChanged += OnDesignerInputChanged;
+            TxtDesignPlantUml.TextChanged += OnDesignerInputChanged;
+            TxtDesignPrereqInput.TextChanged += (s, e) =>
+            {
+                string query = TxtDesignPrereqInput.Text?.Trim() ?? "";
+                if (string.IsNullOrEmpty(query))
+                {
+                    PopupPrereqSuggestions.IsVisible = false;
+                    return;
+                }
+
+                var matches = PrerequisiteSystem.AllTopics
+                    .Where(t => t.Contains(query, StringComparison.OrdinalIgnoreCase)
+                             && !_currentDraft.Prerequisites.Contains(t))
+                    .Take(5)
+                    .ToList();
+
+                if (matches.Count > 0)
+                {
+                    LstPrereqSuggestions.ItemsSource = matches;
+                    PopupPrereqSuggestions.IsVisible = true;
+                }
+                else
+                {
+                    PopupPrereqSuggestions.IsVisible = false;
+                }
+            };
+
+            LstPrereqSuggestions.SelectionChanged += (s, e) =>
+            {
+                if (LstPrereqSuggestions.SelectedItem is string selected)
+                {
+                    AddDesignerPrerequisite(selected);
+                    TxtDesignPrereqInput.Text = "";
+                    PopupPrereqSuggestions.IsVisible = false;
+                    LstPrereqSuggestions.SelectionChanged -= (s, e) => { };
+                    LstPrereqSuggestions.SelectedItem = null;
+                }
+            };
         }
 
         private List<MetadataReference> GetSafeReferences()
@@ -262,6 +377,13 @@ namespace AbiturEliteCode
             // ctrl + s => save
             if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
             {
+                if (_isDesignerMode)
+                {
+                    SaveDesignerDraft();
+                    e.Handled = true;
+                    return;
+                }
+
                 SaveCurrentProgress();
                 TxtConsole.Text += "\n> Gespeichert.";
                 e.Handled = true;
@@ -271,6 +393,21 @@ namespace AbiturEliteCode
             // f5 => run
             if (e.Key == Key.F5)
             {
+                if (_isDesignerMode)
+                {
+                    // only allow if currently editing test code
+                    if (_activeDesignerSource == DesignerSource.TestingCode)
+                    {
+                        BtnRun_Click(this, new RoutedEventArgs());
+                    }
+                    else
+                    {
+                        TxtConsole.Text += "\n> Ausführen im Designer nur im 'Test-Code' Editor möglich.";
+                    }
+                    e.Handled = true;
+                    return;
+                }
+
                 BtnRun_Click(this, new RoutedEventArgs());
                 e.Handled = true;
                 return;
@@ -499,6 +636,8 @@ namespace AbiturEliteCode
 
         private void SaveCurrentProgress()
         {
+            if (_isDesignerMode) return;
+
             if (currentLevel != null)
             {
                 playerData.UserCode[currentLevel.Id] = CodeEditor.Text;
@@ -513,6 +652,21 @@ namespace AbiturEliteCode
 
         private Avalonia.Media.IImage LoadDiagramImage(string relativePath)
         {
+            // check if its a full file path (custom levels)
+            if (File.Exists(relativePath))
+            {
+                try
+                {
+                    if (relativePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var svgSource = SvgSource.Load(relativePath, null);
+                        return new SvgImage { Source = svgSource };
+                    }
+                    return new Bitmap(relativePath);
+                }
+                catch { return null; }
+            }
+
             relativePath = relativePath.Replace("\\", "/");
             string uriString = $"avares://AbiturEliteCode/assets/{relativePath}";
 
@@ -541,6 +695,12 @@ namespace AbiturEliteCode
 
         private void LoadLevel(Level level)
         {
+            if (level.Id > 0)
+            {
+                _isCustomLevelMode = false;
+                _currentCustomValidationCode = null;
+            }
+
             SaveCurrentProgress();
 
             // reset error highlighting on every load
@@ -746,10 +906,21 @@ namespace AbiturEliteCode
 
             string code = CodeEditor.Text;
             string auxId = currentLevel.AuxiliaryId;
+            bool isValidationMode = _isDesignerMode && _activeDesignerSource == DesignerSource.Validation;
 
             var diagnostics = await System.Threading.Tasks.Task.Run(() =>
             {
-                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + code;
+                string header;
+                if (isValidationMode)
+                {
+                    header = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing System.Reflection;\n\npublic class DesignerValidator {\n";
+                }
+                else
+                {
+                    header = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n";
+                }
+
+                string fullCode = header + code + (isValidationMode ? "\n}" : "");
 
                 var userTree = CSharpSyntaxTree.ParseText(fullCode);
                 var trees = new List<SyntaxTree> { userTree };
@@ -772,8 +943,15 @@ namespace AbiturEliteCode
                     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
                 );
 
-                return compilation.GetDiagnostics();
+                var diags = compilation.GetDiagnostics();
+                return (diags, header.Length);
             });
+
+            if (!AppSettings.IsErrorHighlightingEnabled)
+            {
+                ClearDiagnostics();
+                return;
+            }
 
             _textMarkerService.Clear();
             _unusedCodeTransformer.UnusedSegments.Clear();
@@ -783,10 +961,9 @@ namespace AbiturEliteCode
                 "CS0168", "CS0219", "CS8019", "CS0169", "CS0414", "CS0649"
             };
 
-            foreach (var diag in diagnostics)
+            foreach (var diag in diagnostics.diags)
             {
-                int headerLength = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n".Length;
-                int start = diag.Location.SourceSpan.Start - headerLength;
+                int start = diag.Location.SourceSpan.Start - diagnostics.Item2; // remove dynamic header
                 int length = diag.Location.SourceSpan.Length;
 
                 // if error is invisible header -> ignore
@@ -1279,7 +1456,7 @@ namespace AbiturEliteCode
             }
         }
 
-        private void GenerateMaterials(Level level)
+        private void GenerateMaterials(Level level, List<string> draftAdditionalSvgs = null)
         {
             PnlMaterials.Children.Clear();
 
@@ -1314,273 +1491,314 @@ namespace AbiturEliteCode
                 }
             }
 
-            // hints
+            List<string> svgsToRender = draftAdditionalSvgs ?? new List<string>();
+
+            if (svgsToRender.Count > 0)
+            {
+                PnlMaterials.Children.Add(
+                    new SelectableTextBlock
+                    {
+                        Text = "Referenz-Materialien:",
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextTitle,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    }
+                );
+
+                for (int i = 0; i < svgsToRender.Count; i++)
+                {
+                    var svgContent = svgsToRender[i];
+                    if (string.IsNullOrEmpty(svgContent)) continue;
+
+                    var img = LoadSvgFromString(svgContent);
+                    if (img != null)
+                    {
+                        var border = new Border
+                        {
+                            Background = SolidColorBrush.Parse("#1A1A1A"),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(10),
+                            Margin = new Thickness(0, 0, 0, 15),
+                            Child = new Image
+                            {
+                                Source = img,
+                                Height = 180,
+                                Stretch = Stretch.Uniform,
+                                HorizontalAlignment = HorizontalAlignment.Left
+                            }
+                        };
+                        PnlMaterials.Children.Add(border);
+                    }
+                }
+            }
+
+            // hints and text
             if (!string.IsNullOrEmpty(level.MaterialDocs))
             {
-                var lines = level.MaterialDocs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-
-                var normalTextBuffer = new System.Text.StringBuilder();
-                var hintBuffer = new System.Text.StringBuilder();
-                bool inHintBlock = false;
-                string currentHintTitle = "";
-
-                void FlushNormalBuffer()
-                {
-                    if (normalTextBuffer.Length > 0)
-                    {
-                        RenderRichText(PnlMaterials, normalTextBuffer.ToString().TrimEnd());
-                        normalTextBuffer.Clear();
-                    }
-                }
-
-                foreach (var line in lines)
-                {
-                    string trim = line.Trim();
-
-                    // start of hint
-                    if (trim.StartsWith("start-hint:") || trim.StartsWith("start-tipp:"))
-                    {
-                        FlushNormalBuffer();
-                        inHintBlock = true;
-
-                        // parse hint title
-                        int colonIndex = trim.IndexOf(':');
-                        if (colonIndex != -1 && colonIndex < trim.Length - 1)
-                        {
-                            if (trim.StartsWith("start-hint:"))
-                            {
-                                currentHintTitle = "Hinweis: " + trim.Substring(colonIndex + 1).Trim();
-                            }
-                            else
-                            {
-                                currentHintTitle = "Tipp: " + trim.Substring(colonIndex + 1).Trim();
-                            }
-                        }
-                        else
-                        {
-                            if (trim.StartsWith("start-hint:"))
-                            {
-                                currentHintTitle = "Hinweis";
-                            }
-                            else
-                            {
-                                currentHintTitle = "Tipp";
-                            }
-                        }
-
-                        continue;
-                    }
-
-                    // end of hint
-                    if (trim.StartsWith(":end-hint") || trim.StartsWith(":end-tipp"))
-                    {
-                        if (inHintBlock)
-                        {
-                            var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-
-                            var contentPanel = new Border
-                            {
-                                IsVisible = false,
-                                Background = SolidColorBrush.Parse("#252526"),
-                                Margin = new Thickness(0, 5, 0, 0),
-                                CornerRadius = new CornerRadius(6),
-                                Padding = new Thickness(10),
-                                Child = new StackPanel()
-                            };
-
-                            var innerStack = (StackPanel)contentPanel.Child;
-                            RenderRichText(innerStack, hintBuffer.ToString().Trim());
-
-                            if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
-                            {
-                                lastChild.Margin = new Thickness(0);
-                            }
-
-                            string capturedTitle = currentHintTitle;
-
-                            var btn = new Button
-                            {
-                                Content = "▶ " + capturedTitle,
-                                HorizontalAlignment = HorizontalAlignment.Stretch,
-                                Background = SolidColorBrush.Parse("#3C3C41"),
-                                Foreground = Brushes.White,
-                                HorizontalContentAlignment = HorizontalAlignment.Left,
-                                Cursor = Cursor.Parse("Hand")
-                            };
-
-                            btn.Click += (s, e) =>
-                            {
-                                bool isExpanded = contentPanel.IsVisible;
-                                contentPanel.IsVisible = !isExpanded;
-                                btn.Content = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
-                            };
-
-                            stack.Children.Add(btn);
-                            stack.Children.Add(contentPanel);
-                            PnlMaterials.Children.Add(stack);
-
-                            hintBuffer.Clear();
-                            inHintBlock = false;
-                        }
-                        continue;
-                    }
-
-                    if (inHintBlock)
-                    {
-                        if (hintBuffer.Length > 0) hintBuffer.AppendLine();
-                        hintBuffer.Append(line);
-                    }
-                    else
-                    {
-                        if (normalTextBuffer.Length > 0) normalTextBuffer.AppendLine();
-                        normalTextBuffer.Append(line);
-                    }
-                }
-
-                FlushNormalBuffer();
+                RenderMaterialText(PnlMaterials, level.MaterialDocs);
             }
 
             // prerequisites
-            bool hasRequired = level.Prerequisites != null && level.Prerequisites.Count > 0;
-            bool hasOptional = level.OptionalPrerequisites != null && level.OptionalPrerequisites.Count > 0;
+            RenderPrerequisites(PnlMaterials, level.Prerequisites, level.OptionalPrerequisites);
+        }
 
-            if (hasRequired || hasOptional)
+        private void RenderMaterialText(StackPanel targetPanel, string rawText)
+        {
+            if (string.IsNullOrEmpty(rawText)) return;
+
+            var lines = rawText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+            var normalTextBuffer = new System.Text.StringBuilder();
+            var hintBuffer = new System.Text.StringBuilder();
+            bool inHintBlock = false;
+            string currentHintTitle = "";
+
+            void FlushNormalBuffer()
             {
-                var prereqStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-
-                var contentPanel = new Border
+                if (normalTextBuffer.Length > 0)
                 {
-                    IsVisible = false,
-                    Background = SolidColorBrush.Parse("#252526"),
-                    Margin = new Thickness(0, 5, 0, 0),
-                    CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(10),
-                    Child = new StackPanel()
-                };
+                    RenderRichText(targetPanel, normalTextBuffer.ToString().TrimEnd());
+                    normalTextBuffer.Clear();
+                }
+            }
 
-                var innerList = (StackPanel)contentPanel.Child;
+            foreach (var line in lines)
+            {
+                string trim = line.Trim();
 
-                void RenderPrereqRows(List<string> topics, bool isOptional)
+                // start of hint
+                if (trim.StartsWith("start-hint:") || trim.StartsWith("start-tipp:"))
                 {
-                    if (topics == null) return;
+                    FlushNormalBuffer();
+                    inHintBlock = true;
 
-                    foreach (var reqTitle in topics)
+                    // parse hint title
+                    int colonIndex = trim.IndexOf(':');
+                    if (colonIndex != -1 && colonIndex < trim.Length - 1)
                     {
-                        var lesson = PrerequisiteSystem.GetLesson(reqTitle);
-                        if (lesson == null) continue;
+                        if (trim.StartsWith("start-hint:"))
+                            currentHintTitle = "Hinweis: " + trim.Substring(colonIndex + 1).Trim();
+                        else
+                            currentHintTitle = "Tipp: " + trim.Substring(colonIndex + 1).Trim();
+                    }
+                    else
+                    {
+                        currentHintTitle = trim.StartsWith("start-hint:") ? "Hinweis" : "Tipp";
+                    }
 
-                        var row = new Grid
+                    continue;
+                }
+
+                // end of hint
+                if (trim.StartsWith(":end-hint") || trim.StartsWith(":end-tipp"))
+                {
+                    if (inHintBlock)
+                    {
+                        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+
+                        var contentPanel = new Border
                         {
-                            ColumnDefinitions = new ColumnDefinitions("*, Auto, Auto"),
-                            Margin = new Thickness(0, 2, 0, 2)
+                            IsVisible = false,
+                            Background = SolidColorBrush.Parse("#252526"),
+                            Margin = new Thickness(0, 5, 0, 0),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(10),
+                            Child = new StackPanel()
                         };
 
-                        // title
-                        var titleStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+                        var innerStack = (StackPanel)contentPanel.Child;
+                        RenderRichText(innerStack, hintBuffer.ToString().Trim());
 
-                        var txtTitle = new TextBlock
+                        if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
                         {
-                            Text = "• " + lesson.Title,
-                            Foreground = Brushes.LightGray,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            TextWrapping = TextWrapping.Wrap
-                        };
-                        titleStack.Children.Add(txtTitle);
-
-                        if (isOptional)
-                        {
-                            var badge = new Border
-                            {
-                                Background = SolidColorBrush.Parse("#333333"),
-                                BorderBrush = Brushes.Gray,
-                                BorderThickness = new Thickness(1),
-                                CornerRadius = new CornerRadius(3),
-                                Padding = new Thickness(4, 1),
-                                VerticalAlignment = VerticalAlignment.Center,
-                                Child = new TextBlock
-                                {
-                                    Text = "Optional",
-                                    FontSize = 10,
-                                    Foreground = Brushes.Gray
-                                }
-                            };
-                            titleStack.Children.Add(badge);
+                            lastChild.Margin = new Thickness(0);
                         }
 
-                        // dometrain
-                        var btnDt = new Button
+                        string capturedTitle = currentHintTitle;
+
+                        var btn = new Button
                         {
-                            Content = "Kurs",
-                            FontSize = 11,
-                            Padding = new Thickness(8, 4),
-                            Margin = new Thickness(0, 0, 5, 0),
-                            Background = SolidColorBrush.Parse("#5D3FD3"),
+                            Content = "▶ " + capturedTitle,
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            Background = SolidColorBrush.Parse("#3C3C41"),
                             Foreground = Brushes.White,
-                            CornerRadius = new CornerRadius(4),
+                            HorizontalContentAlignment = HorizontalAlignment.Left,
                             Cursor = Cursor.Parse("Hand")
                         };
-                        ToolTip.SetTip(btnDt, "Zu Dometrain.com");
-                        btnDt.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DometrainUrl);
 
-                        // docs
-                        var btnDoc = new Button
+                        btn.Click += (s, e) =>
                         {
-                            Content = "Docs",
-                            FontSize = 11,
-                            Padding = new Thickness(8, 4),
-                            Background = SolidColorBrush.Parse("#0078D4"),
-                            Foreground = Brushes.White,
-                            CornerRadius = new CornerRadius(4),
-                            Cursor = Cursor.Parse("Hand")
+                            bool isExpanded = contentPanel.IsVisible;
+                            contentPanel.IsVisible = !isExpanded;
+                            btn.Content = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
                         };
-                        ToolTip.SetTip(btnDoc, "Zu Microsoft Learn");
-                        btnDoc.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DocsUrl);
 
-                        Grid.SetColumn(titleStack, 0);
-                        Grid.SetColumn(btnDt, 1);
-                        Grid.SetColumn(btnDoc, 2);
+                        stack.Children.Add(btn);
+                        stack.Children.Add(contentPanel);
+                        targetPanel.Children.Add(stack);
 
-                        row.Children.Add(titleStack);
-                        row.Children.Add(btnDt);
-                        row.Children.Add(btnDoc);
-
-                        innerList.Children.Add(row);
+                        hintBuffer.Clear();
+                        inHintBlock = false;
                     }
+                    continue;
                 }
 
-                RenderPrereqRows(level.Prerequisites, false);
-
-                if (hasRequired && hasOptional)
+                if (inHintBlock)
                 {
-                    innerList.Children.Add(new Separator { Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 5, 0, 5) });
+                    if (hintBuffer.Length > 0) hintBuffer.AppendLine();
+                    hintBuffer.Append(line);
                 }
-
-                RenderPrereqRows(level.OptionalPrerequisites, true);
-
-                if (innerList.Children.Count > 0)
+                else
                 {
-                    var btnToggle = new Button
+                    if (normalTextBuffer.Length > 0) normalTextBuffer.AppendLine();
+                    normalTextBuffer.Append(line);
+                }
+            }
+
+            FlushNormalBuffer();
+        }
+
+        private void RenderPrerequisites(StackPanel targetPanel, List<string> required, List<string> optional)
+        {
+            bool hasRequired = required != null && required.Count > 0;
+            bool hasOptional = optional != null && optional.Count > 0;
+
+            if (!hasRequired && !hasOptional) return;
+
+            var prereqStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
+
+            var contentPanel = new Border
+            {
+                IsVisible = false,
+                Background = SolidColorBrush.Parse("#252526"),
+                Margin = new Thickness(0, 5, 0, 0),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(10),
+                Child = new StackPanel()
+            };
+
+            var innerList = (StackPanel)contentPanel.Child;
+
+            void RenderPrereqRows(List<string> topics, bool isOptional)
+            {
+                if (topics == null) return;
+
+                foreach (var reqTitle in topics)
+                {
+                    var lesson = PrerequisiteSystem.GetLesson(reqTitle);
+                    if (lesson == null) continue;
+
+                    var row = new Grid
                     {
-                        Content = "▶ Voraussetzungen / Grundlagen",
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        Background = SolidColorBrush.Parse("#2b2b2b"),
+                        ColumnDefinitions = new ColumnDefinitions("*, Auto, Auto"),
+                        Margin = new Thickness(0, 2, 0, 2)
+                    };
+
+                    // title
+                    var titleStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+
+                    var txtTitle = new TextBlock
+                    {
+                        Text = "• " + lesson.Title,
+                        Foreground = Brushes.LightGray,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    titleStack.Children.Add(txtTitle);
+
+                    if (isOptional)
+                    {
+                        var badge = new Border
+                        {
+                            Background = SolidColorBrush.Parse("#333333"),
+                            BorderBrush = Brushes.Gray,
+                            BorderThickness = new Thickness(1),
+                            CornerRadius = new CornerRadius(3),
+                            Padding = new Thickness(4, 1),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Child = new TextBlock
+                            {
+                                Text = "Optional",
+                                FontSize = 10,
+                                Foreground = Brushes.Gray
+                            }
+                        };
+                        titleStack.Children.Add(badge);
+                    }
+
+                    // dometrain
+                    var btnDt = new Button
+                    {
+                        Content = "Kurs",
+                        FontSize = 11,
+                        Padding = new Thickness(8, 4),
+                        Margin = new Thickness(0, 0, 5, 0),
+                        Background = SolidColorBrush.Parse("#5D3FD3"),
                         Foreground = Brushes.White,
-                        HorizontalContentAlignment = HorizontalAlignment.Left,
+                        CornerRadius = new CornerRadius(4),
                         Cursor = Cursor.Parse("Hand")
                     };
+                    ToolTip.SetTip(btnDt, "Zu Dometrain.com");
+                    btnDt.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DometrainUrl);
 
-                    btnToggle.Click += (s, e) =>
+                    // docs
+                    var btnDoc = new Button
                     {
-                        bool isExpanded = contentPanel.IsVisible;
-                        contentPanel.IsVisible = !isExpanded;
-                        btnToggle.Content = (isExpanded ? "▶ " : "▼ ") + "Voraussetzungen / Grundlagen";
-                        if (!isExpanded) contentPanel.CornerRadius = new CornerRadius(6);
+                        Content = "Docs",
+                        FontSize = 11,
+                        Padding = new Thickness(8, 4),
+                        Background = SolidColorBrush.Parse("#0078D4"),
+                        Foreground = Brushes.White,
+                        CornerRadius = new CornerRadius(4),
+                        Cursor = Cursor.Parse("Hand")
                     };
+                    ToolTip.SetTip(btnDoc, "Zu Microsoft Learn");
+                    btnDoc.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DocsUrl);
 
-                    prereqStack.Children.Add(btnToggle);
-                    prereqStack.Children.Add(contentPanel);
-                    PnlMaterials.Children.Add(prereqStack);
+                    Grid.SetColumn(titleStack, 0);
+                    Grid.SetColumn(btnDt, 1);
+                    Grid.SetColumn(btnDoc, 2);
+
+                    row.Children.Add(titleStack);
+                    row.Children.Add(btnDt);
+                    row.Children.Add(btnDoc);
+
+                    innerList.Children.Add(row);
                 }
+            }
+
+            RenderPrereqRows(required, false);
+
+            if (hasRequired && hasOptional)
+            {
+                innerList.Children.Add(new Separator { Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 5, 0, 5) });
+            }
+
+            RenderPrereqRows(optional, true);
+
+            if (innerList.Children.Count > 0)
+            {
+                var btnToggle = new Button
+                {
+                    Content = "▶ Voraussetzungen / Grundlagen",
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Background = SolidColorBrush.Parse("#2b2b2b"),
+                    Foreground = Brushes.White,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Cursor = Cursor.Parse("Hand")
+                };
+
+                btnToggle.Click += (s, e) =>
+                {
+                    bool isExpanded = contentPanel.IsVisible;
+                    contentPanel.IsVisible = !isExpanded;
+                    btnToggle.Content = (isExpanded ? "▶ " : "▼ ") + "Voraussetzungen / Grundlagen";
+                    if (!isExpanded) contentPanel.CornerRadius = new CornerRadius(6);
+                };
+
+                prereqStack.Children.Add(btnToggle);
+                prereqStack.Children.Add(contentPanel);
+                targetPanel.Children.Add(prereqStack);
             }
         }
 
@@ -1616,6 +1834,21 @@ namespace AbiturEliteCode
             var levelContext = currentLevel;
             var token = _compilationCts.Token;
 
+            // capture designer state needed for the thread
+            bool runDesignerTest = _isDesignerMode;
+            bool useCustomValidation = runDesignerTest || _isCustomLevelMode;
+            string validationLogic = runDesignerTest ? TxtDesignValidation.Text : _currentCustomValidationCode;
+
+            if (_isDesignerMode) UpdateDraftFromUI();
+
+            LevelDraft pendingSnapshot = null;
+            if (_isDesignerMode)
+            {
+                // deep copy to ensure we capture the exact state at runtime
+                string json = JsonSerializer.Serialize(_currentDraft);
+                pendingSnapshot = JsonSerializer.Deserialize<LevelDraft>(json);
+            }
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
@@ -1629,7 +1862,8 @@ namespace AbiturEliteCode
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
                     var trees = new List<SyntaxTree> { syntaxTree };
 
-                    if (!string.IsNullOrEmpty(levelContext.AuxiliaryId))
+                    // handle auxiliary code
+                    if (!runDesignerTest && !_isCustomLevelMode && !string.IsNullOrEmpty(levelContext.AuxiliaryId))
                     {
                         string auxCode = AuxiliaryImplementations.GetCode(levelContext.AuxiliaryId);
                         if (!string.IsNullOrEmpty(auxCode))
@@ -1641,7 +1875,7 @@ namespace AbiturEliteCode
                     var references = GetSafeReferences();
 
                     var compilation = CSharpCompilation.Create(
-                        $"Level_{levelContext.Id}_{Guid.NewGuid()}",
+                        $"Level_{(runDesignerTest ? "Designer" : levelContext.Id.ToString())}_{Guid.NewGuid()}",
                         trees,
                         references,
                         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -1662,9 +1896,81 @@ namespace AbiturEliteCode
 
                             ms.Seek(0, SeekOrigin.Begin);
                             var assembly = Assembly.Load(ms.ToArray());
-                            var testResult = LevelTester.Run(levelContext.Id, assembly);
 
-                            return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
+                            if (runDesignerTest || useCustomValidation)
+                            {
+                                // --- DESIGNER CUSTOM COMPILER LOGIC ---
+                                try
+                                {
+                                    string validatorSource = @"
+                                        using System;
+                                        using System.Reflection;
+                                        using System.Collections.Generic;
+                                        using System.Linq;
+
+                                        public static class DesignerValidator 
+                                        {
+                                            " + validationLogic + @"
+                                        }";
+
+                                    var validatorTree = CSharpSyntaxTree.ParseText(validatorSource);
+                                    var valCompilation = CSharpCompilation.Create(
+                                        "Validator_" + Guid.NewGuid(),
+                                        new[] { validatorTree },
+                                        references,
+                                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                                    );
+
+                                    using (var valMs = new MemoryStream())
+                                    {
+                                        var valEmit = valCompilation.Emit(valMs);
+                                        if (!valEmit.Success)
+                                        {
+                                            string errorMsg = valEmit.Diagnostics.FirstOrDefault()?.GetMessage() ?? "Unbekannter Fehler";
+                                            throw new Exception("Fehler im Validierungs-Code (Designer): " + errorMsg);
+                                        }
+
+                                        valMs.Seek(0, SeekOrigin.Begin);
+                                        var valAssembly = Assembly.Load(valMs.ToArray());
+                                        var valType = valAssembly.GetType("DesignerValidator");
+
+                                        // dynamically find the method
+                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                                               .FirstOrDefault(m => m.ReturnType == typeof(bool)
+                                                                                && m.GetParameters().Length == 2
+                                                                                && m.GetParameters()[0].ParameterType == typeof(Assembly)
+                                                                                && m.GetParameters()[1].IsOut);
+
+                                        if (valMethod == null) throw new Exception("Keine gültige Validierungsmethode gefunden. Signatur muss sein: bool Methode(Assembly a, out string f)");
+
+                                        object[] args = new object[] { assembly, null };
+
+                                        try
+                                        {
+                                            bool passed = (bool)valMethod.Invoke(null, args);
+                                            string feedback = (string)args[1];
+
+                                            return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null,
+                                                    TestResult: new TestResult { Success = passed, Feedback = feedback });
+                                        }
+                                        catch (TargetInvocationException tie)
+                                        {
+                                            throw tie.InnerException ?? tie;
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null,
+                                               TestResult: new TestResult { Success = false, Error = ex });
+                                }
+                            }
+                            else
+                            {
+                                // normal level logic
+                                var testResult = LevelTester.Run(levelContext.Id, assembly);
+                                return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
+                            }
                         }
                         catch (OperationCanceledException)
                         {
@@ -1706,7 +2012,42 @@ namespace AbiturEliteCode
                     }
                     else if (result.Success)
                     {
-                        ProcessTestResult(levelContext, result.TestResult, stopwatch.Elapsed);
+                        if (runDesignerTest)
+                        {
+                            // handle designer result
+                            if (result.TestResult.Success)
+                            {
+                                TxtConsole.Foreground = Brushes.LightGreen;
+                                TxtConsole.Text += $"✓ DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback;
+
+                                BtnDesignerExport.IsEnabled = true;
+                                _verifiedDraftState = pendingSnapshot;
+                                TxtDesignerStatus.Text = "Bereit zum Export";
+                            }
+                            else
+                            {
+                                TxtConsole.Foreground = Brushes.Orange;
+
+                                string msg;
+                                if (result.TestResult.Error != null)
+                                {
+                                    Exception err = result.TestResult.Error;
+                                    msg = $"{err.GetType().Name}: {err.Message}\n\nStack Trace:\n{err.StackTrace}";
+                                }
+                                else
+                                {
+                                    msg = "Validierung fehlgeschlagen (false zurückgegeben).";
+                                }
+
+                                TxtConsole.Text += $"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}";
+                                BtnDesignerExport.IsEnabled = false;
+                                _verifiedDraftState = null;
+                            }
+                        }
+                        else
+                        {
+                            ProcessTestResult(levelContext, result.TestResult, stopwatch.Elapsed);
+                        }
                     }
                 }
             }
@@ -1719,7 +2060,7 @@ namespace AbiturEliteCode
             {
                 TxtConsole.Text += $"\nSystem Fehler: {ex.Message}";
             }
-            finally // reset
+            finally
             {
                 _compilationCts?.Dispose();
                 _compilationCts = null;
@@ -2060,212 +2401,732 @@ namespace AbiturEliteCode
                 Margin = new Thickness(15)
             };
 
+            // header components
             var headerGrid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("Auto, Auto, *, Auto"),
+                ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto"),
                 Margin = new Thickness(0, 0, 0, 15)
             };
 
-            headerGrid.Children.Add(new TextBlock
+            // left side
+            var titleStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var txtTitle = new TextBlock
             {
                 Text = "Level Auswählen",
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = Brushes.White,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 15, 0)
-            });
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            titleStack.Children.Add(txtTitle);
 
+            // level count badge
             var countBadge = new Border
             {
                 Background = SolidColorBrush.Parse("#2D2D30"),
                 CornerRadius = new CornerRadius(12),
                 Padding = new Thickness(10, 5),
+                VerticalAlignment = VerticalAlignment.Center,
+                IsVisible = false,
                 Child = new TextBlock
                 {
-                    Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}",
+                    Name = "BadgeText",
+                    Text = "",
                     Foreground = BrushTextTitle,
                     FontWeight = FontWeight.Bold,
                     FontSize = 14
                 }
             };
-            Grid.SetColumn(countBadge, 1);
-            headerGrid.Children.Add(countBadge);
+            titleStack.Children.Add(countBadge);
 
-            var codeInputPanel = new StackPanel
+            headerGrid.Children.Add(titleStack);
+
+            // middle
+            var searchContainer = new Border
+            {
+                Margin = new Thickness(15, 0)
+            };
+            Grid.SetColumn(searchContainer, 1);
+            headerGrid.Children.Add(searchContainer);
+
+            // right
+            var headerRightPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Spacing = 10,
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10
             };
-            Grid.SetColumn(codeInputPanel, 3);
+            Grid.SetColumn(headerRightPanel, 2);
+            headerGrid.Children.Add(headerRightPanel);
 
-            codeInputPanel.Children.Add(new TextBlock 
-            { 
-                Text = "Code:", 
-                Foreground = Brushes.Gray, 
-                VerticalAlignment = VerticalAlignment.Center
-            });
-
-            var txtLevelCode = new TextBox
-            {
-                Width = 60,
-                MaxLength = 3,
-                Background = SolidColorBrush.Parse("#141414"),
-                Foreground = Brushes.White,
-                BorderBrush = SolidColorBrush.Parse("#333"),
-                CornerRadius = new CornerRadius(4),
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                FontFamily = new FontFamily("Consolas")
-            };
-
-            txtLevelCode.TextChanged += (s, ev) =>
-            {
-                if (txtLevelCode.Text?.Length == 3)
-                {
-                    string code = txtLevelCode.Text.ToUpper();
-                    var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
-                    if (lvl != null)
-                    {
-                        if (!playerData.UnlockedLevelIds.Contains(lvl.Id))
-                        {
-                            playerData.UnlockedLevelIds.Add(lvl.Id);
-                            SaveSystem.Save(playerData);
-                        }
-                        LoadLevel(lvl);
-                        win.Close(); // auto close
-                    }
-                }
-            };
-
-            codeInputPanel.Children.Add(txtLevelCode);
-            headerGrid.Children.Add(codeInputPanel);
-
-            mainGrid.Children.Add(headerGrid);
-
-            var scroll = new ScrollViewer
+            // body and footer
+            var contentScroll = new ScrollViewer
             {
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto
             };
-            Grid.SetRow(scroll, 1);
-
-            var levelStack = new StackPanel
+            var footerPanel = new Grid
             {
-                Spacing = 8
+                ColumnDefinitions = new ColumnDefinitions("*, Auto")
             };
-            var groups = levels.GroupBy(l => l.Section);
 
-            foreach (var group in groups)
+            mainGrid.Children.Add(headerGrid);
+            Grid.SetRow(contentScroll, 1);
+            mainGrid.Children.Add(contentScroll);
+            Grid.SetRow(footerPanel, 2);
+            mainGrid.Children.Add(footerPanel);
+
+            root.Child = mainGrid;
+            win.Content = root;
+
+            bool isCustomMode = false;
+
+            // ui refresh logic
+            void RefreshUI()
             {
-                bool isSectionComplete = group.All(
-                    l => playerData.CompletedLevelIds.Contains(l.Id)
-                );
+                searchContainer.Child = null;
+                headerRightPanel.Children.Clear();
+                contentScroll.Content = null;
+                footerPanel.Children.Clear();
 
-                var headerPanel = new StackPanel
+                // footer
+                var btnClose = new Button
                 {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 10
+                    Content = "Schließen",
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    Padding = new Thickness(15, 10),
+                    CornerRadius = new CornerRadius(4),
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(10, 15, 0, 0)
                 };
+                btnClose.Click += (_, __) => win.Close();
 
-                headerPanel.Children.Add(
-                    new TextBlock
+                var btnToggleMode = new Button
+                {
+                    Content = new StackPanel
                     {
-                        Text = group.Key,
-                        Foreground = BrushTextTitle,
-                        FontWeight = FontWeight.Bold,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
-                );
-
-                if (isSectionComplete)
-                {
-                    headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
-                }
-
-                var sectionContent = new StackPanel
-                {
-                    Spacing = 5,
-                    Margin = new Thickness(0, 5, 0, 0)
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 8,
+                        Children =
+                        {
+                            LoadIcon(isCustomMode ? "assets/icons/ic_folder.svg" : "assets/icons/ic_folder_custom.svg", 18),
+                            new TextBlock
+                            {
+                                Text = isCustomMode ? "Standard Levels" : "Eigene Levels",
+                                VerticalAlignment = VerticalAlignment.Center
+                            }
+                        }
+                    },
+                    Padding = new Thickness(15, 10),
+                    CornerRadius = new CornerRadius(4),
+                    Background = SolidColorBrush.Parse("#2D2D30"),
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 15, 10, 0)
                 };
 
-                foreach (var lvl in group)
+                btnToggleMode.Click += (_, __) =>
                 {
-                    bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
-                    bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
-                    var btnContent = new StackPanel
+                    isCustomMode = !isCustomMode;
+                    RefreshUI();
+                };
+
+                Grid.SetColumn(btnToggleMode, 0);
+                Grid.SetColumn(btnClose, 1);
+                footerPanel.Children.Add(btnToggleMode);
+                footerPanel.Children.Add(btnClose);
+
+                if (!isCustomMode)
+                {
+                    // standard level view
+                    txtTitle.Text = "Level Auswählen";
+
+                    // show badge
+                    countBadge.IsVisible = true;
+                    ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}";
+
+                    // show code input
+                    var codePanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Spacing = 10
                     };
-                    string iconPath = completed
-                        ? "assets/icons/ic_check.svg"
-                        : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
-                    btnContent.Children.Add(LoadIcon(iconPath, 16));
-                    btnContent.Children.Add(
-                        new TextBlock
-                        {
-                            Text = $"{lvl.Id}. {lvl.Title}",
-                            VerticalAlignment = VerticalAlignment.Center
-                        }
-                    );
-
-                    var btn = new Button
+                    codePanel.Children.Add(new TextBlock 
                     {
-                        Content = btnContent,
-                        IsEnabled = unlocked,
+                        Text = "Code:",
+                        Foreground = Brushes.Gray,
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+
+                    var txtLevelCode = new TextBox
+                    {
+                        Width = 60,
+                        MaxLength = 3,
+                        Background = SolidColorBrush.Parse("#141414"),
+                        Foreground = Brushes.White,
+                        BorderBrush = SolidColorBrush.Parse("#333"),
+                        CornerRadius = new CornerRadius(4),
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        FontFamily = MonospaceFontFamily
+                    };
+                    txtLevelCode.TextChanged += (s, ev) =>
+                    {
+                        if (txtLevelCode.Text?.Length == 3)
+                        {
+                            string code = txtLevelCode.Text.ToUpper();
+                            var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
+                            if (lvl != null) { LoadLevel(lvl); win.Close(); }
+                        }
+                    };
+                    codePanel.Children.Add(txtLevelCode);
+                    headerRightPanel.Children.Add(codePanel);
+
+                    // standard level list
+                    var levelStack = new StackPanel
+                    {
+                        Spacing = 8
+                    };
+                    var groups = levels.GroupBy(l => l.Section);
+                    foreach (var group in groups)
+                    {
+                        bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+
+                        var headerPanel = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Spacing = 10
+                        };
+                        headerPanel.Children.Add(new TextBlock
+                        {
+                            Text = group.Key,
+                            Foreground = BrushTextTitle,
+                            FontWeight = FontWeight.Bold,
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+                        if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
+
+                        var sectionContent = new StackPanel
+                        {
+                            Spacing = 5,
+                            Margin = new Thickness(0, 5, 0, 0)
+                        };
+                        foreach (var lvl in group)
+                        {
+                            bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
+                            bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
+
+                            var btnContent = new StackPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Spacing = 10
+                            };
+                            string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
+                            btnContent.Children.Add(LoadIcon(iconPath, 16));
+                            btnContent.Children.Add(new TextBlock
+                            {
+                                Text = $"{lvl.Id}. {lvl.Title}",
+                                VerticalAlignment = VerticalAlignment.Center
+                            });
+
+                            var btn = new Button
+                            {
+                                Content = btnContent,
+                                IsEnabled = unlocked,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                HorizontalContentAlignment = HorizontalAlignment.Left,
+                                Padding = new Thickness(10, 10),
+                                Background = unlocked ? SolidColorBrush.Parse("#313133") : SolidColorBrush.Parse("#191919"),
+                                Foreground = unlocked ? Brushes.White : Brushes.Gray,
+                                CornerRadius = new CornerRadius(4)
+                            };
+                            btn.Click += (_, __) => { LoadLevel(lvl); win.Close(); };
+                            sectionContent.Children.Add(btn);
+                        }
+
+                        levelStack.Children.Add(new Expander
+                        {
+                            Header = headerPanel,
+                            Content = sectionContent,
+                            IsExpanded = !isSectionComplete,
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            CornerRadius = new CornerRadius(4),
+                            Margin = new Thickness(0, 0, 0, 5)
+                        });
+                    }
+                    contentScroll.Content = levelStack;
+                }
+                else
+                {
+                    // custom levels view
+                    txtTitle.Text = "Eigene Levels";
+                    countBadge.IsVisible = false;
+
+                    // search bar (placeholder logic)
+                    var txtSearch = new TextBox
+                    {
+                        Watermark = "Suchen...",
+                        MinWidth = 150,
                         HorizontalAlignment = HorizontalAlignment.Stretch,
-                        HorizontalContentAlignment = HorizontalAlignment.Left,
-                        Padding = new Thickness(10, 10),
-                        Background = unlocked
-                            ? SolidColorBrush.Parse("#313133")
-                            : SolidColorBrush.Parse("#191919"),
-                        Foreground = unlocked ? Brushes.White : Brushes.Gray,
+                        Background = SolidColorBrush.Parse("#141414"),
+                        Foreground = Brushes.White,
+                        BorderThickness = new Thickness(1),
+                        BorderBrush = SolidColorBrush.Parse("#333"),
                         CornerRadius = new CornerRadius(4)
                     };
+                    searchContainer.Child = txtSearch;
 
-                    btn.Click += (_, __) =>
+                    // header buttons
+                    var btnOpenFolder = new Button
                     {
-                        LoadLevel(lvl);
-                        win.Close();
+                        Content = LoadIcon("assets/icons/ic_folder_open.svg", 18),
+                        Background = SolidColorBrush.Parse("#3C3C3C"),
+                        Padding = new Thickness(8),
+                        CornerRadius = new CornerRadius(4)
                     };
+                    ToolTip.SetTip(btnOpenFolder, "Levels Ordner öffnen");
+                    btnOpenFolder.Click += (_, __) => OpenLevelsFolder();
+                    headerRightPanel.Children.Add(btnOpenFolder);
 
-                    sectionContent.Children.Add(btn);
+                    var btnAdd = new Button
+                    {
+                        Content = LoadIcon("assets/icons/ic_add.svg", 18),
+                        Background = SolidColorBrush.Parse("#32A852"),
+                        Padding = new Thickness(8),
+                        CornerRadius = new CornerRadius(4)
+                    };
+                    ToolTip.SetTip(btnAdd, "Neues Level erstellen");
+                    btnAdd.Click += async (_, __) =>
+                    {
+                        await ShowAddLevelDialog(win);
+                        RefreshUI();
+                    };
+                    headerRightPanel.Children.Add(btnAdd);
+
+                    // custom levels list
+                    var customStack = new StackPanel
+                    {
+                        Spacing = 5
+                    };
+                    var customLevels = GetCustomLevels();
+
+                    if (customLevels.Count == 0)
+                    {
+                        customStack.Children.Add(new TextBlock
+                        {
+                            Text = "Keine eigenen Levels gefunden.\nErstelle eins mit '+' oder \nöffne den Ordner und füge Levels hinzu.",
+                            Foreground = Brushes.Gray,
+                            TextAlignment = TextAlignment.Center,
+                            Margin = new Thickness(0, 50, 0, 0)
+                        });
+                    }
+                    else
+                    {
+                        foreach (var cl in customLevels)
+                        {
+                            var rowGrid = new Grid
+                            {
+                                ColumnDefinitions = new ColumnDefinitions("*, Auto")
+                            };
+
+                            // main "button"
+                            var mainBtnContent = new StackPanel { Spacing = 2 };
+                            mainBtnContent.Children.Add(new TextBlock
+                            {
+                                Text = cl.Name + (cl.IsDraft ? " (Entwurf)" : ""),
+                                Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White
+                            });
+                            mainBtnContent.Children.Add(new TextBlock
+                            {
+                                Text = "von " + cl.Author,
+                                FontSize = 11,
+                                Foreground = Brushes.Gray
+                            });
+
+                            var btnMain = new Button
+                            {
+                                Content = mainBtnContent,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                HorizontalContentAlignment = HorizontalAlignment.Left,
+                                Background = SolidColorBrush.Parse("#313133"),
+                                CornerRadius = new CornerRadius(4),
+                                Padding = new Thickness(10),
+                                Cursor = cl.IsDraft ? Cursor.Default : Cursor.Parse("Hand")
+                            };
+
+                            btnMain.Click += (_, __) =>
+                            {
+                                if (!cl.IsDraft)
+                                {
+                                    try
+                                    {
+                                        string json = File.ReadAllText(cl.FilePath);
+                                        using (var doc = JsonDocument.Parse(json))
+                                        {
+                                            var root = doc.RootElement;
+
+                                            // generate negative id for custom levels
+                                            int customId = cl.FilePath.GetHashCode();
+                                            if (customId > 0) customId *= -1;
+
+                                            var loadedLevel = new Level
+                                            {
+                                                Id = customId,
+                                                Title = root.GetProperty("Name").GetString(),
+                                                Description = root.GetProperty("Description").GetString(),
+                                                StarterCode = root.GetProperty("StarterCode").GetString(),
+                                                MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
+                                                SkipCode = "CUST", // placeholder
+                                                Section = "Eigene Levels",
+                                                Prerequisites = new List<string>(),
+                                                AuxiliaryId = ""
+                                            };
+
+                                            if (root.TryGetProperty("Prerequisites", out var prereqElem))
+                                            {
+                                                foreach (var p in prereqElem.EnumerateArray())
+                                                    loadedLevel.Prerequisites.Add(p.GetString());
+                                            }
+
+                                            if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
+                                            {
+                                                string svgContent = svgElem.GetString();
+                                                if (!string.IsNullOrEmpty(svgContent))
+                                                {
+                                                    string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
+                                                    File.WriteAllText(tempSvgPath, svgContent);
+                                                    loadedLevel.DiagramPath = tempSvgPath;
+                                                }
+                                            }
+
+                                            _currentCustomValidationCode = root.GetProperty("ValidationCode").GetString();
+                                            _isCustomLevelMode = true;
+
+                                            LoadLevel(loadedLevel);
+                                            win.Close();
+                                            TxtConsole.Text += $"\n> Custom Level geladen: {loadedLevel.Title}";
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        TxtConsole.Text += $"\n> Fehler beim Laden: {ex.Message}";
+                                    }
+                                }
+                            };
+
+                            Grid.SetColumnSpan(btnMain, 2);
+                            rowGrid.Children.Add(btnMain);
+
+                            // action buttons
+                            var actionPanel = new StackPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Spacing = 5,
+                                Margin = new Thickness(0, 0, 10, 0)
+                            };
+                            Grid.SetColumn(actionPanel, 1);
+
+                            // edit button
+                            if (cl.IsDraft)
+                            {
+                                var btnEdit = new Button
+                                {
+                                    Content = LoadIcon("assets/icons/ic_edit.svg", 16),
+                                    Background = Brushes.Transparent,
+                                    Padding = new Thickness(8)
+                                };
+                                ToolTip.SetTip(btnEdit, "Level im Designer bearbeiten");
+                                btnEdit.Click += (_, __) =>
+                                {
+                                    win.Close();
+                                    ToggleDesignerMode(true, cl.FilePath);
+                                };
+                                actionPanel.Children.Add(btnEdit);
+                            }
+
+                            // delete button
+                            var btnDelete = new Button
+                            {
+                                Content = LoadIcon("assets/icons/ic_delete.svg", 16),
+                                Background = Brushes.Transparent,
+                                Padding = new Thickness(8)
+                            };
+                            ToolTip.SetTip(btnDelete, "Level löschen");
+                            btnDelete.Click += async (_, __) =>
+                            {
+                                await DeleteCustomLevel(cl, win);
+                                RefreshUI();
+                            };
+                            actionPanel.Children.Add(btnDelete);
+
+                            rowGrid.Children.Add(actionPanel);
+
+                            customStack.Children.Add(rowGrid);
+                        }
+                    }
+                    contentScroll.Content = customStack;
                 }
-                var expander = new Expander
-                {
-                    Header = headerPanel,
-                    Content = sectionContent,
-                    IsExpanded = !isSectionComplete,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    CornerRadius = new CornerRadius(4),
-                    Margin = new Thickness(0, 0, 0, 5)
-                };
-
-                levelStack.Children.Add(expander);
             }
 
-            scroll.Content = levelStack;
-            mainGrid.Children.Add(scroll);
+            RefreshUI();
+            win.ShowDialog(this);
+            CodeEditor.Focus();
+        }
 
-            var closeBtn = new Button
+        private void OpenLevelsFolder()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+            try
             {
-                Content = "Schließen",
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 15, 0, 0),
-                Padding = new Thickness(10),
-                CornerRadius = new CornerRadius(4),
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true, Verb = "open" });
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", path);
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("open", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtConsole.Text += $"\n> Fehler beim Öffnen des Ordners: {ex.Message}";
+            }
+        }
+
+        private List<CustomLevelInfo> GetCustomLevels()
+        {
+            var list = new List<CustomLevelInfo>();
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+
+            if (!Directory.Exists(path)) return list;
+
+            // regular custom levels
+            foreach (var file in Directory.GetFiles(path, "*.elitelvl"))
+            {
+                list.Add(new CustomLevelInfo
+                {
+                    Name = Path.GetFileNameWithoutExtension(file),
+                    Author = "Unbekannt", // placeholder
+                    FilePath = file,
+                    IsDraft = false
+                });
+            }
+
+            // custom level drafts
+            foreach (var file in Directory.GetFiles(path, "*.elitelvldraft"))
+            {
+                list.Add(new CustomLevelInfo
+                {
+                    Name = Path.GetFileNameWithoutExtension(file),
+                    Author = "Du", // placeholder
+                    FilePath = file,
+                    IsDraft = true
+                });
+            }
+
+            return list;
+        }
+
+        private async System.Threading.Tasks.Task ShowAddLevelDialog(Window owner)
+        {
+            var dialog = new Window
+            {
+                Title = "Neues Level",
+                Width = 400,
+                Height = 280,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var grid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto, *, Auto"),
+                Margin = new Thickness(20)
+            };
+
+            grid.Children.Add(new TextBlock
+            {
+                Text = "Neues Custom Level",
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                FontSize = 16,
+                Margin = new Thickness(0, 0, 0, 15)
+            });
+
+            var inputStack = new StackPanel
+            {
+                Spacing = 10
+            };
+            Grid.SetRow(inputStack, 1);
+
+            inputStack.Children.Add(new TextBlock
+            {
+                Text = "Name:",
+                Foreground = Brushes.Gray
+            });
+            var txtName = new TextBox
+            {
+                Watermark = "Level Name",
+                Background = SolidColorBrush.Parse("#1E1E1E"),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(8)
+            };
+            inputStack.Children.Add(txtName);
+
+            inputStack.Children.Add(new TextBlock
+            {
+                Text = "Autor:",
+                Foreground = Brushes.Gray
+            });
+            var txtAuthor = new TextBox
+            {
+                Watermark = "Autor Name",
+                Background = SolidColorBrush.Parse("#1E1E1E"),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(8)
+            };
+            inputStack.Children.Add(txtAuthor);
+
+            grid.Children.Add(inputStack);
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10,
+                Margin = new Thickness(0, 15, 0, 0)
+            };
+            Grid.SetRow(btnPanel, 2);
+
+            var btnCancel = new Button
+            {
+                Content = "Abbrechen",
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Foreground = Brushes.White
+            };
+            var btnCreate = new Button
+            {
+                Content = "Erstellen",
+                Background = SolidColorBrush.Parse("#32A852"),
+                Foreground = Brushes.White
+            };
+
+            btnCancel.Click += (_, __) => dialog.Close();
+            btnCreate.Click += (_, __) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtName.Text)) return;
+
+                string safeName = string.Join("_", txtName.Text.Split(Path.GetInvalidFileNameChars()));
+                string filename = $"{safeName}.elitelvldraft";
+                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                string path = Path.Combine(dir, filename);
+
+                var newDraft = new LevelDraft
+                {
+                    Name = txtName.Text,
+                    Author = txtAuthor.Text
+                };
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(newDraft, options);
+
+                File.WriteAllText(path, json);
+
+                dialog.Close();
+            };
+
+            btnPanel.Children.Add(btnCancel);
+            btnPanel.Children.Add(btnCreate);
+            grid.Children.Add(btnPanel);
+
+            dialog.Content = new Border { Child = grid };
+            await dialog.ShowDialog(owner);
+        }
+
+        private async System.Threading.Tasks.Task DeleteCustomLevel(CustomLevelInfo info, Window owner)
+        {
+            var dialog = new Window
+            {
+                Title = "Löschen?",
+                Width = 350,
+                Height = 150,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var grid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*, Auto"),
+                Margin = new Thickness(20)
+            };
+            grid.Children.Add(new TextBlock
+            {
+                Text = $"Möchtest du '{info.Name}' wirklich löschen?",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10
+            };
+            Grid.SetRow(btnPanel, 1);
+
+            var btnYes = new Button
+            {
+                Content = "Löschen",
+                Background = SolidColorBrush.Parse("#B43232"),
+                Foreground = Brushes.White
+            };
+            var btnNo = new Button
+            {
+                Content = "Abbrechen",
                 Background = SolidColorBrush.Parse("#3C3C3C"),
                 Foreground = Brushes.White
             };
 
-            Grid.SetRow(closeBtn, 2);
-            closeBtn.Click += (_, __) => win.Close();
-            mainGrid.Children.Add(closeBtn);
-            root.Child = mainGrid;
-            win.Content = root;
-            win.ShowDialog(this);
-            CodeEditor.Focus();
+            btnNo.Click += (_, __) => dialog.Close();
+            btnYes.Click += (_, __) =>
+            {
+                try
+                {
+                    if (File.Exists(info.FilePath))
+                        File.Delete(info.FilePath);
+                }
+                catch (Exception ex)
+                {
+                    TxtConsole.Text += $"\n> Fehler: {ex.Message}";
+                }
+                dialog.Close();
+            };
+
+            btnPanel.Children.Add(btnNo);
+            btnPanel.Children.Add(btnYes);
+            grid.Children.Add(btnPanel);
+
+            dialog.Content = grid;
+            await dialog.ShowDialog(owner);
         }
 
         private Image LoadIcon(string path, double size)
@@ -2407,8 +3268,6 @@ namespace AbiturEliteCode
             mainGrid.Children.Add(rightPanel);
 
             // --- CONTROLS CREATION ---
-
-            // controls creation
 
             // syntax highlighting
             var chkSyntax = new CheckBox
@@ -3279,6 +4138,841 @@ namespace AbiturEliteCode
                     VimStatusBorder.Background = SolidColorBrush.Parse("#444");
                     VimStatusBar.Text = _vimCommandBuffer;
                     break;
+            }
+        }
+
+        // --- LEVEL DESIGNER ---
+
+        private void SyncEditorToDesigner()
+        {
+            if (!_isDesignerMode || _activeDesignerSource == DesignerSource.None) return;
+
+            if (_activeDesignerSource == DesignerSource.StarterCode)
+                TxtDesignStarter.Text = CodeEditor.Text;
+            else if (_activeDesignerSource == DesignerSource.Validation)
+                TxtDesignValidation.Text = CodeEditor.Text;
+            else if (_activeDesignerSource == DesignerSource.TestingCode)
+                TxtDesignTesting.Text = CodeEditor.Text;
+        }
+
+        private void OnDesignerInputChanged(object? sender, EventArgs e)
+        {
+            if (!_isDesignerMode || _isLoadingDesigner) return;
+
+            BtnDesignerExport.IsEnabled = false;
+            _verifiedDraftState = null;
+            TxtDesignerStatus.Text = "Änderungen (Test erforderlich)";
+
+            UpdateDesignerPreview();
+
+            _designerAutoSaveTimer.Stop();
+
+            if (ChkDesignerAutoSave.IsChecked == true)
+            {
+                _designerAutoSaveTimer.Start();
+            }
+        }
+
+        private void ToggleDesignerMode(bool enable, string draftPath = "")
+        {
+            _isDesignerMode = enable;
+            _activeDesignerSource = DesignerSource.None;
+
+            // reset icons
+            UpdateDesignerButtons();
+
+            TabDesigner.IsVisible = enable;
+            BtnExitDesigner.IsVisible = enable;
+
+            BtnLevelSelect.IsVisible = !enable;
+            BtnNextLevel.IsVisible = !enable && (BtnNextLevel.IsVisible);
+
+            BtnSave.IsVisible = !enable;
+            BtnReset.IsVisible = !enable;
+            BtnRun.IsVisible = !enable;
+
+            if (enable)
+            {
+                _isLoadingDesigner = true;
+
+                _originalSyntaxSetting = AppSettings.IsSyntaxHighlightingEnabled;
+                _originalErrorSetting = AppSettings.IsErrorHighlightingEnabled;
+
+                AppSettings.IsSyntaxHighlightingEnabled = true;
+                AppSettings.IsErrorHighlightingEnabled = true;
+                ApplySyntaxHighlighting();
+
+                _currentDraftPath = draftPath;
+                _currentDraft = LevelDesigner.LoadDraft(draftPath);
+
+                // snapshot for unsaved changes check
+                _lastSavedDraftJson = JsonSerializer.Serialize(_currentDraft);
+
+                TxtDesignName.Text = _currentDraft.Name;
+                TxtDesignAuthor.Text = _currentDraft.Author;
+                TxtDesignDesc.Text = _currentDraft.Description;
+                TxtDesignMaterials.Text = _currentDraft.Materials ?? "";
+
+                TxtDesignStarter.Text = !string.IsNullOrEmpty(_currentDraft.StarterCode) ? _currentDraft.StarterCode : "";
+
+                string defaultVal = "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
+                TxtDesignValidation.Text = !string.IsNullOrEmpty(_currentDraft.ValidationCode) ? _currentDraft.ValidationCode : defaultVal;
+
+                TxtDesignTesting.Text = !string.IsNullOrEmpty(_currentDraft.TestCode) ? _currentDraft.TestCode : "";
+
+                TxtDesignPlantUml.Text = _currentDraft.PlantUmlSource ?? "";
+
+                ImgDiagram.Source = null;
+                if (ImgScale != null) { ImgScale.ScaleX = 0.5; ImgScale.ScaleY = 0.5; }
+
+                if (!string.IsNullOrEmpty(_currentDraft.PlantUmlSvgContent))
+                {
+                    ImgDiagram.Source = LoadSvgFromString(_currentDraft.PlantUmlSvgContent);
+                }
+
+                _activeDiagramIndex = 0;
+                UpdateDesignerDiagramTabs();
+                LoadDiagramContentToUI();
+
+                RenderDesignerPrereqList();
+
+                UpdateDesignerPreview();
+
+                TxtDesignerStatus.Text = "Bereit";
+                BtnDesignerExport.IsEnabled = false;
+                _verifiedDraftState = null;
+
+                CodeEditor.Text = "";
+                TxtConsole.Text = $"> Level Designer geladen: '{Path.GetFileName(draftPath)}'\n> Wähle 'Im Editor bearbeiten' bei einem Code-Feld.";
+
+                MainTabs.SelectedItem = TabDesigner;
+
+                _isLoadingDesigner = false;
+            }
+            else
+            {
+                AppSettings.IsSyntaxHighlightingEnabled = _originalSyntaxSetting;
+                AppSettings.IsErrorHighlightingEnabled = false;
+                ApplySyntaxHighlighting();
+
+                _diagnosticTimer.Stop();
+                ClearDiagnostics();
+                _textMarkerService.Clear();
+
+                MainTabs.SelectedItem = MainTabs.Items.OfType<TabItem>().First();
+                BtnSave.IsVisible = true;
+                BtnReset.IsVisible = true;
+                BtnRun.IsVisible = true;
+
+                currentLevel = null; // prevent writing over standard level code saves
+
+                int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
+                var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
+                LoadLevel(startLevel);
+            }
+        }
+
+        private bool HasUnsavedDesignerChanges()
+        {
+            UpdateDraftFromUI();
+            string currentJson = JsonSerializer.Serialize(_currentDraft);
+            return currentJson != _lastSavedDraftJson;
+        }
+
+        private async void BtnExitDesigner_Click(object sender, RoutedEventArgs e)
+        {
+            if (_designerSyncTimer.IsEnabled)
+            {
+                _designerSyncTimer.Stop();
+                SyncEditorToDesigner();
+            }
+
+            if (HasUnsavedDesignerChanges())
+            {
+                var dialog = new Window
+                {
+                    Title = "Ungespeicherte Änderungen",
+                    Width = 350,
+                    Height = 160,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    SystemDecorations = SystemDecorations.BorderOnly,
+                    Background = SolidColorBrush.Parse("#252526"),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var dGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+                dGrid.Children.Add(new TextBlock
+                {
+                    Text = "Du hast ungespeicherte Änderungen im Designer. Möchtest du speichern?",
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                var dBtnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10, Margin = new Thickness(0, 15, 0, 0) };
+                Grid.SetRow(dBtnPanel, 1);
+
+                var btnSaveClose = new Button { Content = "Speichern", Background = SolidColorBrush.Parse("#32A852"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                var btnDiscard = new Button { Content = "Verwerfen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                var btnCancel = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+
+                btnSaveClose.Click += async (_, __) =>
+                {
+                    dialog.Close();
+                    await SaveDesignerDraft();
+                    ToggleDesignerMode(false);
+                };
+
+                btnDiscard.Click += (_, __) =>
+                {
+                    dialog.Close();
+                    ToggleDesignerMode(false);
+                };
+
+                btnCancel.Click += (_, __) => dialog.Close();
+
+                dBtnPanel.Children.Add(btnCancel);
+                dBtnPanel.Children.Add(btnDiscard);
+                dBtnPanel.Children.Add(btnSaveClose);
+
+                dGrid.Children.Add(dBtnPanel);
+                dialog.Content = dGrid;
+
+                await dialog.ShowDialog(this);
+            }
+            else
+            {
+                ToggleDesignerMode(false);
+            }
+        }
+
+        private void BtnDesignerRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateDesignerPreview();
+            TxtConsole.Text += "\n> Vorschau aktualisiert.";
+        }
+
+        private async void BtnDesignerSave_Click(object sender, RoutedEventArgs e)
+        {
+            await SaveDesignerDraft();
+            TxtConsole.Text += "\n> Entwurf gespeichert.";
+        }
+
+        private void BtnDesignerGuide_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string url = "https://github.com/OnlyCook/abitur-elite-code";
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", url);
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("open", url);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtConsole.Text += $"\n> Fehler beim Öffnen des Guides: {ex.Message}";
+            }
+        }
+
+        private async void BtnDesignerExport_Click(object sender, RoutedEventArgs e)
+        {
+            if ((_currentDraft.Name?.Length ?? 0) < 1 || (_currentDraft.Author?.Length ?? 0) < 1)
+            {
+                TxtConsole.Foreground = Brushes.Orange;
+                TxtConsole.Text += "\n⚠ Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.";
+                return;
+            }
+
+            if (_verifiedDraftState == null)
+            {
+                TxtConsole.Text += "\n❌ Fehler: Level muss vor dem Export erfolgreich getestet werden.";
+                return;
+            }
+
+            TxtConsole.Foreground = Brushes.LightGray;
+            TxtConsole.Text += "\n> Generiere alle Diagramme für finalen Export...";
+            BtnDesignerExport.IsEnabled = false;
+
+            // generate main diagram
+            bool mainSuccess = await GenerateDiagramByIndex(0);
+
+            // generate material diagrams
+            for (int i = 0; i < _currentDraft.MaterialDiagrams.Count; i++)
+            {
+                bool matSuccess = await GenerateDiagramByIndex(i + 1);
+                if (!matSuccess) mainSuccess = false;
+            }
+
+            if (!mainSuccess)
+            {
+                TxtConsole.Foreground = Brushes.Orange;
+                TxtConsole.Text += "\n⚠ Hinweis: Einige Diagramme konnten nicht aktualisiert werden.";
+            }
+
+            _verifiedDraftState.PlantUmlSource = _currentDraft.PlantUmlSource;
+            _verifiedDraftState.PlantUmlSvgContent = _currentDraft.PlantUmlSvgContent;
+            _verifiedDraftState.MaterialDiagrams = new List<DiagramData>();
+            foreach (var md in _currentDraft.MaterialDiagrams)
+            {
+                _verifiedDraftState.MaterialDiagrams.Add(new DiagramData
+                {
+                    Name = md.Name,
+                    PlantUmlSource = md.PlantUmlSource,
+                    PlantUmlSvgContent = md.PlantUmlSvgContent
+                });
+            }
+
+            LevelDesigner.ExportLevel(_currentDraftPath, _verifiedDraftState);
+            TxtConsole.Text += "\n> Level erfolgreich exportiert! (.elitelvl)";
+            TxtDesignerStatus.Text = "Exportiert";
+            BtnDesignerExport.IsEnabled = true;
+        }
+
+        private async Task<bool> GenerateDiagramByIndex(int index)
+        {
+            string source = "";
+            if (index == 0) source = _currentDraft.PlantUmlSource;
+            else source = _currentDraft.MaterialDiagrams[index - 1].PlantUmlSource;
+
+            if (string.IsNullOrWhiteSpace(source)) return true;
+
+            try
+            {
+                string prepared = PreparePlantUmlSource(source);
+                string svg = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+
+                if (index == 0) _currentDraft.PlantUmlSvgContent = svg;
+                else _currentDraft.MaterialDiagrams[index - 1].PlantUmlSvgContent = svg;
+
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private void SwitchDesignerMode(DesignerSource source, TextBox targetBox, string enterMessage)
+        {
+            if (_activeDesignerSource == source)
+            {
+                // exit mode
+                targetBox.Text = CodeEditor.Text;
+                _activeDesignerSource = DesignerSource.None;
+                CodeEditor.Text = "";
+                TxtConsole.Text += "\n> Editor geleert. Wähle eine Datei zum Bearbeiten.";
+            }
+            else
+            {
+                SaveActiveDesignerSource();
+
+                _activeDesignerSource = source;
+                CodeEditor.Text = targetBox.Text;
+                CodeEditor.Focus();
+                TxtConsole.Text += enterMessage;
+            }
+
+            UpdateDesignerButtons();
+        }
+
+
+        private void BtnEditStarter_Click(object sender, RoutedEventArgs e)
+        {
+            SwitchDesignerMode(DesignerSource.StarterCode, TxtDesignStarter, "\n> Editor: Starter Code geladen (Ausführen deaktiviert).");
+        }
+
+        private void BtnEditValidation_Click(object sender, RoutedEventArgs e)
+        {
+            SwitchDesignerMode(DesignerSource.Validation, TxtDesignValidation, "\n> Editor: Validierungs-Code geladen (Ausführen deaktiviert).");
+        }
+
+        private void BtnEditTesting_Click(object sender, RoutedEventArgs e)
+        {
+            SwitchDesignerMode(DesignerSource.TestingCode, TxtDesignTesting, "\n> Editor: Test-Code geladen. 'Ausführen' jetzt verfügbar.");
+        }
+
+        private void SaveActiveDesignerSource()
+        {
+            if (_activeDesignerSource == DesignerSource.StarterCode)
+                TxtDesignStarter.Text = CodeEditor.Text;
+            else if (_activeDesignerSource == DesignerSource.Validation)
+                TxtDesignValidation.Text = CodeEditor.Text;
+            else if (_activeDesignerSource == DesignerSource.TestingCode)
+                TxtDesignTesting.Text = CodeEditor.Text;
+        }
+
+        private void BtnResetValidation_Click(object sender, RoutedEventArgs e)
+        {
+            string defaultVal = "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
+            TxtDesignValidation.Text = defaultVal;
+
+            if (_activeDesignerSource == DesignerSource.Validation)
+            {
+                CodeEditor.Text = defaultVal;
+            }
+            TxtConsole.Text += "\n> Validierungs-Code auf Standard zurückgesetzt.";
+        }
+
+        private void UpdateDesignerButtons()
+        {
+            // helper to switch icons based on active source
+            void SetIcon(Button btn, string iconName)
+            {
+                btn.Content = LoadIcon($"assets/icons/{iconName}", 16);
+            }
+
+            // reset all to move icon
+            SetIcon(BtnEditStarter, "ic_move.svg");
+            ToolTip.SetTip(BtnEditStarter, "Im Editor bearbeiten");
+            SetIcon(BtnEditValidation, "ic_move.svg");
+            ToolTip.SetTip(BtnEditValidation, "Im Editor bearbeiten");
+            SetIcon(BtnEditTesting, "ic_move.svg");
+            ToolTip.SetTip(BtnEditTesting, "Im Editor testen");
+
+            BtnRun.IsVisible = (_activeDesignerSource == DesignerSource.TestingCode);
+    
+            // exit button for active source
+            if (_activeDesignerSource == DesignerSource.StarterCode)
+            {
+                SetIcon(BtnEditStarter, "ic_exit.svg");
+                ToolTip.SetTip(BtnEditStarter, "Editor verlassen");
+            }
+            else if (_activeDesignerSource == DesignerSource.Validation)
+            {
+                SetIcon(BtnEditValidation, "ic_exit.svg");
+                ToolTip.SetTip(BtnEditValidation, "Editor verlassen");
+            }
+            else if (_activeDesignerSource == DesignerSource.TestingCode)
+            {
+                SetIcon(BtnEditTesting, "ic_exit.svg");
+                ToolTip.SetTip(BtnEditTesting, "Editor verlassen");
+            }
+
+            if (AppSettings.IsErrorHighlightingEnabled)
+            {
+                UpdateDiagnostics();
+            }
+        }
+
+        private async System.Threading.Tasks.Task SaveDesignerDraft()
+        {
+            if (!_isDesignerMode) return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (_designerSyncTimer.IsEnabled)
+                {
+                    _designerSyncTimer.Stop();
+                    SyncEditorToDesigner();
+                }
+
+                UpdateDraftFromUI();
+                TxtDesignerStatus.Text = "Speichere...";
+            });
+
+            await LevelDesigner.SaveDraftAsync(_currentDraftPath, _currentDraft);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _lastSavedDraftJson = JsonSerializer.Serialize(_currentDraft);
+                TxtDesignerStatus.Text = "Gespeichert";
+            });
+        }
+
+        private void UpdateDraftFromUI()
+        {
+            _currentDraft.Name = TxtDesignName.Text;
+            _currentDraft.Author = TxtDesignAuthor.Text;
+            _currentDraft.Description = TxtDesignDesc.Text;
+            _currentDraft.Materials = TxtDesignMaterials.Text;
+
+            SaveCurrentDiagramContent();
+
+            if (_activeDesignerSource == DesignerSource.StarterCode)
+                _currentDraft.StarterCode = CodeEditor.Text;
+            else
+                _currentDraft.StarterCode = TxtDesignStarter.Text;
+
+            if (_activeDesignerSource == DesignerSource.Validation)
+                _currentDraft.ValidationCode = CodeEditor.Text;
+            else
+                _currentDraft.ValidationCode = TxtDesignValidation.Text;
+
+            if (_activeDesignerSource == DesignerSource.TestingCode)
+                _currentDraft.TestCode = CodeEditor.Text;
+            else
+                _currentDraft.TestCode = TxtDesignTesting.Text;
+        }
+
+        private void UpdateDesignerPreview()
+        {
+            UpdateDraftFromUI();
+
+            PnlTask.Children.Clear();
+            PnlMaterials.Children.Clear();
+
+            PnlTask.Children.Add(new SelectableTextBlock
+            {
+                Text = _currentDraft.Name,
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextNormal,
+                Margin = new Thickness(0)
+            });
+
+            if (!string.IsNullOrWhiteSpace(_currentDraft.Author))
+            {
+                PnlTask.Children.Add(new SelectableTextBlock
+                {
+                    Text = $"von {_currentDraft.Author}",
+                    FontSize = 14,
+                    Foreground = Brushes.Gray,
+                    Margin = new Thickness(0, 0, 0, 20)
+                });
+            }
+            else // fallback
+            {
+                if (PnlTask.Children.Last() is Control last) last.Margin = new Thickness(0, 0, 0, 20);
+            }
+
+            RenderRichText(PnlTask, _currentDraft.Description);
+
+            var draftSvgs = _currentDraft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList();
+
+            var dummyLevel = new Level
+            {
+                MaterialDocs = _currentDraft.Materials,
+                Prerequisites = _currentDraft.Prerequisites
+            };
+
+            GenerateMaterials(dummyLevel, draftSvgs);
+        }
+
+        private void AddDesignerPrerequisite(string topic)
+        {
+            if (_currentDraft.Prerequisites.Count >= MaxPrerequisites)
+            {
+                TxtConsole.Text += $"\n> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).";
+                return;
+            }
+
+            if (!_currentDraft.Prerequisites.Contains(topic))
+            {
+                _currentDraft.Prerequisites.Add(topic);
+                RenderDesignerPrereqList();
+                OnDesignerInputChanged(this, EventArgs.Empty);
+            }
+        }
+
+        private void RemoveDesignerPrerequisite(string topic)
+        {
+            if (_currentDraft.Prerequisites.Contains(topic))
+            {
+                _currentDraft.Prerequisites.Remove(topic);
+                RenderDesignerPrereqList();
+                OnDesignerInputChanged(this, EventArgs.Empty);
+            }
+        }
+
+        private void RenderDesignerPrereqList()
+        {
+            PnlDesignPrereqsList.Children.Clear();
+
+            foreach (var item in _currentDraft.Prerequisites)
+            {
+                var container = new Border
+                {
+                    Background = SolidColorBrush.Parse("#252526"),
+                    CornerRadius = new CornerRadius(4),
+                    Margin = new Thickness(0, 0, 0, 4),
+                    Padding = new Thickness(2)
+                };
+
+                var row = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("*, Auto")
+                };
+
+                var txt = new TextBlock
+                {
+                    Text = "• " + item,
+                    Foreground = Brushes.LightGray,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(6, 5)
+                };
+
+                var btnDelete = new Button
+                {
+                    Content = LoadIcon("assets/icons/ic_delete.svg", 14),
+                    Background = Brushes.Transparent,
+                    Width = 30,
+                    Height = 30,
+                    CornerRadius = new CornerRadius(4),
+                    Cursor = Cursor.Parse("Hand"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnDelete, "Entfernen");
+
+                string itemClosure = item;
+                btnDelete.Click += (s, e) => RemoveDesignerPrerequisite(itemClosure);
+
+                Grid.SetColumn(txt, 0);
+                Grid.SetColumn(btnDelete, 1);
+
+                row.Children.Add(txt);
+                row.Children.Add(btnDelete);
+
+                container.Child = row;
+                PnlDesignPrereqsList.Children.Add(container);
+            }
+        }
+
+        private async void BtnGenerateUml_Click(object sender, RoutedEventArgs e)
+        {
+            await GeneratePlantUmlDiagram();
+        }
+
+        private void BtnWebUml_Click(object sender, RoutedEventArgs e)
+        {
+            var url = "https://www.plantuml.com/plantuml/duml/SoWkIImgAStDuNBAJrBGjLDmpCbCJbMmKiX8pSd9vt98pKi1IW80";
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+
+        private string PreparePlantUmlSource(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source)) return "";
+
+            // clipping fix
+            source = Regex.Replace(source, @"(?m)^(\s*[-+#].*?)$", "$1 ");
+
+            // add theme and transparency
+            if (!source.Contains("!theme") && !source.Contains("skinparam monochrome"))
+            {
+                var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
+                bool inserted = false;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    if (lines[i].Trim().StartsWith("@startuml"))
+                    {
+                        lines.Insert(i + 1, "skinparam monochrome reverse");
+                        lines.Insert(i + 2, "skinparam backgroundcolor transparent");
+                        inserted = true;
+                        break;
+                    }
+                }
+
+                if (!inserted) // fallback
+                {
+                    lines.Insert(0, "@startuml");
+                    lines.Insert(1, "skinparam monochrome reverse");
+                    lines.Insert(2, "skinparam backgroundcolor transparent");
+                    lines.Add("@enduml");
+                }
+
+                source = string.Join("\n", lines);
+            }
+
+            return source;
+        }
+
+        private async Task<bool> GeneratePlantUmlDiagram()
+        {
+            string rawCode = TxtDesignPlantUml.Text;
+
+            if (string.IsNullOrWhiteSpace(rawCode))
+            {
+                _currentDraft.PlantUmlSource = "";
+                _currentDraft.PlantUmlSvgContent = "";
+                ImgDiagram.Source = null;
+                return true;
+            }
+
+            string preparedCode = PreparePlantUmlSource(rawCode);
+
+            TxtConsole.Text += "\n> Sende Anfrage an PlantUML Server...";
+
+            try
+            {
+                string svgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(preparedCode);
+
+                if (_activeDiagramIndex == 0)
+                {
+                    _currentDraft.PlantUmlSource = rawCode;
+                    _currentDraft.PlantUmlSvgContent = svgContent;
+
+                    ImgDiagram.Source = LoadSvgFromString(svgContent);
+                }
+                else
+                {
+                    var d = _currentDraft.MaterialDiagrams[_activeDiagramIndex - 1];
+                    d.PlantUmlSource = rawCode;
+                    d.PlantUmlSvgContent = svgContent;
+
+                    UpdateDesignerPreview();
+                }
+
+                TxtConsole.Text += "\n> Diagramm erfolgreich aktualisiert.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TxtConsole.Foreground = Brushes.Orange;
+                TxtConsole.Text += $"\n> Fehler bei Diagramm-Erstellung: {ex.Message}";
+                return false;
+            }
+        }
+
+        private Avalonia.Media.IImage LoadSvgFromString(string svgContent)
+        {
+            if (string.IsNullOrEmpty(svgContent)) return null;
+            try
+            {
+                // clean svg header
+                int svgIndex = svgContent.IndexOf("<svg", StringComparison.OrdinalIgnoreCase);
+                if (svgIndex > 0)
+                {
+                    svgContent = svgContent.Substring(svgIndex);
+                }
+
+                string tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".svg");
+
+                File.WriteAllText(tempPath, svgContent);
+
+                var svgSource = SvgSource.Load(tempPath, null);
+
+                try { File.Delete(tempPath); } catch { }
+
+                return new SvgImage { Source = svgSource };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing SVG: {ex.Message}");
+                return null;
+            }
+        }
+
+        private void UpdateDesignerDiagramTabs()
+        {
+            PnlDesignerDiagramTabs.Children.Clear();
+
+            Button CreateTab(string title, int index, bool isActive)
+            {
+                var btn = new Button
+                {
+                    Content = title,
+                    Background = isActive ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#333"),
+                    Foreground = Brushes.White,
+                    FontSize = 13,
+                    Padding = new Thickness(10, 5),
+                    CornerRadius = new CornerRadius(4),
+                    Cursor = Cursor.Parse("Hand")
+                };
+
+                btn.Click += (s, e) => SwitchDesignerDiagramTab(index);
+                return btn;
+            }
+
+            // main tab
+            PnlDesignerDiagramTabs.Children.Add(CreateTab("Haupt", 0, _activeDiagramIndex == 0));
+
+            // material tab
+            for (int i = 0; i < _currentDraft.MaterialDiagrams.Count; i++)
+            {
+                PnlDesignerDiagramTabs.Children.Add(CreateTab($"Mat {i + 1}", i + 1, _activeDiagramIndex == i + 1));
+            }
+
+            BtnAddDiagramTab.IsVisible = _currentDraft.MaterialDiagrams.Count < 3;
+
+            BtnDeleteDiagramTab.IsVisible = _activeDiagramIndex > 0;
+        }
+
+        private void SwitchDesignerDiagramTab(int newIndex)
+        {
+            if (newIndex == _activeDiagramIndex) return;
+
+            SaveCurrentDiagramContent();
+
+            _activeDiagramIndex = newIndex;
+
+            LoadDiagramContentToUI();
+            UpdateDesignerDiagramTabs();
+        }
+
+        private void SaveCurrentDiagramContent()
+        {
+            string content = TxtDesignPlantUml.Text ?? "";
+
+            if (_activeDiagramIndex == 0)
+            {
+                _currentDraft.PlantUmlSource = content;
+            }
+            else
+            {
+                int listIndex = _activeDiagramIndex - 1;
+                if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                {
+                    _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource = content;
+                }
+            }
+        }
+
+        private void LoadDiagramContentToUI()
+        {
+            string content = "";
+            if (_activeDiagramIndex == 0)
+            {
+                content = _currentDraft.PlantUmlSource;
+            }
+            else
+            {
+                int listIndex = _activeDiagramIndex - 1;
+                if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                {
+                    content = _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource;
+                }
+            }
+
+            TxtDesignPlantUml.Text = content;
+        }
+
+        private void BtnAddDiagramTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentDraft.MaterialDiagrams.Count >= 3) return;
+
+            _currentDraft.MaterialDiagrams.Add(new DiagramData());
+
+            SwitchDesignerDiagramTab(_currentDraft.MaterialDiagrams.Count);
+
+            OnDesignerInputChanged(this, EventArgs.Empty);
+        }
+
+        private void BtnDeleteDiagramTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeDiagramIndex <= 0) return; // cannot delete main tab
+
+            int listIndex = _activeDiagramIndex - 1;
+            if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+            {
+                _currentDraft.MaterialDiagrams.RemoveAt(listIndex);
+
+                _activeDiagramIndex = Math.Max(0, _activeDiagramIndex - 1);
+
+                LoadDiagramContentToUI();
+                UpdateDesignerDiagramTabs();
+                OnDesignerInputChanged(this, EventArgs.Empty);
             }
         }
     }

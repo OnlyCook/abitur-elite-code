@@ -114,7 +114,7 @@ def extract_level_data(level_cs_path):
             
     return shared_diagrams, levels
 
-def add_blueprint_theme(plantuml_source):
+def add_theme(plantuml_source):
     if not plantuml_source: return ""
     
     # 1. Fix Clipping: Add a trailing space to lines starting with -, +, or #
@@ -128,7 +128,7 @@ def add_blueprint_theme(plantuml_source):
         for line in lines:
             new_lines.append(line)
             if line.strip().startswith('@startuml'):
-                new_lines.append('!theme blueprint')
+                new_lines.append('!theme blueprint') # why does blueprint create the default dark theme?
                 new_lines.append('skinparam backgroundcolor transparent')
         return '\n'.join(new_lines)
         
@@ -146,7 +146,7 @@ def generate_single_diagram(source, output_path, cache_key, cache):
         output_path.exists()):
         return False 
 
-    themed_source = add_blueprint_theme(source)
+    themed_source = add_theme(source)
     encoded = encode_plantuml(themed_source)
     url = PLANTUML_SERVER + encoded
     
