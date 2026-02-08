@@ -4,11 +4,19 @@
   Abitur Elite Code
 </h1>
 
-Eine Open-Source-Desktop-Anwendung zur gezielten Vorbereitung auf den Programmierteil (OOP) des Praktische Informatik-Abiturs in Hessen.
+<p align="center"> 
+  Eine Open-Source-Desktop-Anwendung zur gezielten Vorbereitung auf den Programmierteil (OOP) des Praktische Informatik-Abiturs in Hessen.
+</p>
 
 <p align="center" id="download">
   <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-win.zip">
     <img src="https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge" alt="Download für Windows">
+  </a>
+  <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-linux.zip">
+    <img src="https://img.shields.io/badge/Download-Linux-orange?style=for-the-badge&logo=linux" alt="Download für Linux">
+  </a>
+  <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-mac.zip">
+    <img src="https://img.shields.io/badge/Download-macOS-black?style=for-the-badge&logo=apple" alt="Download für macOS">
   </a>
 </p>
 
