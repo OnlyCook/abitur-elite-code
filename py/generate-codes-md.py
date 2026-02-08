@@ -45,7 +45,7 @@ def extract_level_data():
 
     # 3. Generate Formatted Markdown
     md_content = "# Abitur Elite Code - Level Übersicht\n\n"
-    md_content += "Hier findest du alle Skip-Codes für die Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
+    md_content += "Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
 
     for section_name, levels in grouped_data.items():
         md_content += f"## {section_name}\n\n"

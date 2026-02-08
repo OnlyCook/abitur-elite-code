@@ -4532,7 +4532,7 @@ namespace AbiturEliteCode
         {
             try
             {
-                string url = "https://github.com/OnlyCook/abitur-elite-code";
+                string url = "https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE";
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
@@ -4928,8 +4928,9 @@ namespace AbiturEliteCode
             // clipping fix
             source = Regex.Replace(source, @"(?m)^(\s*[-+#].*?)$", "$1 ");
 
-            // add transparency and no icons if missing
-            if (!source.Contains("skinparam backgroundcolor transparent") && !source.Contains("skinparam classAttributeIconSize 0"))
+            // add theme attributes if missing
+            if (!source.Contains("skinparam backgroundcolor transparent")
+                && !source.Contains("skinparam classAttributeIconSize 0"))
             {
                 var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
                 bool inserted = false;

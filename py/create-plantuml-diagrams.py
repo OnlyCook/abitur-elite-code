@@ -120,14 +120,15 @@ def add_theme(plantuml_source):
     # 1. Fix Clipping: Add a trailing space to lines starting with -, +, or #
     plantuml_source = re.sub(r'(?m)^(\s*[-+#].*?)$', r'\1 ', plantuml_source)
 
-    # 2. Add Transparency (The server /dsvg/ handles the colors, we just need transparency)
-    if 'skinparam backgroundcolor transparent' not in plantuml_source:
+    # 2. Add Transparency
+    if 'skinparam backgroundcolor transparent' not in plantuml_source and 'skinparam classAttributeIconSize 0' not in plantuml_source:
         lines = plantuml_source.split('\n')
         new_lines = []
         for line in lines:
             new_lines.append(line)
             if line.strip().startswith('@startuml'):
                 new_lines.append('skinparam backgroundcolor transparent')
+                new_lines.append('skinparam classAttributeIconSize 0')
         return '\n'.join(new_lines)
         
     return plantuml_source
