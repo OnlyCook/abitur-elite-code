@@ -35,6 +35,10 @@ namespace AbiturEliteCode.cs
                     8 => TestLevel8(assembly, out feedback),
                     9 => TestLevel9(assembly, out feedback),
                     10 => TestLevel10(assembly, out feedback),
+                    11 => TestLevel11(assembly, out feedback),
+                    12 => TestLevel12(assembly, out feedback),
+                    13 => TestLevel13(assembly, out feedback),
+                    14 => TestLevel14(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -555,6 +559,263 @@ namespace AbiturEliteCode.cs
             }
 
             throw new Exception($"Falsche Reihenfolge oder Pakete. Erhalten: {w1}, {w2}, {w3}. Erwartet: 100, 90, 50.");
+        }
+
+        private static bool TestLevel11(Assembly assembly, out string feedback)
+        {
+            Type tSchueler = assembly.GetType("Schueler");
+            Type tKlasse = assembly.GetType("Klasse");
+
+            if (tSchueler == null) throw new Exception("Klasse 'Schueler' fehlt.");
+            if (tKlasse == null) throw new Exception("Klasse 'Klasse' fehlt.");
+
+            // check constructors
+            ConstructorInfo ctorSchueler = tSchueler.GetConstructor(new[] { typeof(int) });
+            if (ctorSchueler == null) throw new Exception("Konstruktor Schueler(int note) fehlt.");
+
+            ConstructorInfo ctorKlasse = tKlasse.GetConstructor(new[] { typeof(string) });
+            if (ctorKlasse == null) throw new Exception("Konstruktor Klasse(string bezeichnung) fehlt.");
+
+            // setup objects
+            object klasseObj = ctorKlasse.Invoke(new object[] { "13-A" });
+
+            // verify list initialization in constructor
+            FieldInfo fListe = tKlasse.GetField("schuelerListe", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fListe == null) throw new Exception("Feld 'schuelerListe' fehlt in Klasse 'Klasse' oder ist nicht private.");
+            if (fListe.GetValue(klasseObj) == null) throw new Exception("Die Liste 'schuelerListe' ist null. Sie muss im Konstruktor mit 'new List<Schueler>()' initialisiert werden.");
+
+            MethodInfo mAdd = tKlasse.GetMethod("AddSchueler");
+            if (mAdd == null) mAdd = tKlasse.GetMethod("addSchueler");
+            if (mAdd == null) throw new Exception("Methode 'AddSchueler' fehlt.");
+
+            MethodInfo mSchnitt = tKlasse.GetMethod("BerechneSchnittBestanden");
+            if (mSchnitt == null) throw new Exception("Methode 'BerechneSchnittBestanden' fehlt.");
+
+            object CreateSchueler(int n) => ctorSchueler.Invoke(new object[] { n });
+
+            // logic test
+            // scenario: 
+            // student a: 15 points (passed)
+            // student b: 10 points (passed)
+            // student c: 3 points (failed -> should be ignored)
+            // student d: 5 points (passed)
+            // calculation: (15 + 10 + 5) / 3 = 10.0d
+            mAdd.Invoke(klasseObj, new object[] { CreateSchueler(15) });
+            mAdd.Invoke(klasseObj, new object[] { CreateSchueler(10) });
+            mAdd.Invoke(klasseObj, new object[] { CreateSchueler(3) });
+            mAdd.Invoke(klasseObj, new object[] { CreateSchueler(5) });
+
+            double result = (double)mSchnitt.Invoke(klasseObj, null);
+
+            if (Math.Abs(result - 10.0) < 0.01)
+            {
+                // test edge case: only failures
+                object kFail = ctorKlasse.Invoke(new object[] { "Fail-Class" });
+                mAdd.Invoke(kFail, new object[] { CreateSchueler(2) });
+                double resFail = (double)mSchnitt.Invoke(kFail, null);
+
+                if (Math.Abs(resFail) < 0.01)
+                {
+                    feedback = "Sehr gut! Der Schnitt wurde korrekt berechnet und nicht bestandene Schüler ignoriert.";
+                    return true;
+                }
+                throw new Exception("Wenn keine Schüler bestanden haben, muss 0.0 zurückgegeben werden (Division durch Null verhindern!).");
+            }
+
+            // diagnose error
+            if (Math.Abs(result - 8.25) < 0.01) throw new Exception("Fehler: Sie haben alle Schüler (auch die mit Note < 5) mit einberechnet.");
+            throw new Exception($"Falsches Ergebnis. Erwartet: 10.0. Erhalten: {result:F2}. Prüfen Sie die Bedingung (Note > 4).");
+        }
+
+        private static bool TestLevel12(Assembly assembly, out string feedback)
+        {
+            Type tSchule = assembly.GetType("Schule");
+            Type tLehrer = assembly.GetType("Lehrer");
+            Type tKlasse = assembly.GetType("Klasse");
+
+            if (tSchule == null || tLehrer == null || tKlasse == null) throw new Exception("Klassenstruktur unvollständig.");
+
+            // check constructors and list init
+            object schule = Activator.CreateInstance(tSchule);
+            object lehrerTest = Activator.CreateInstance(tLehrer);
+
+            // check schule list init
+            FieldInfo fLList = tSchule.GetField("lehrerListe", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fLList != null && fLList.GetValue(schule) == null)
+                throw new Exception("Liste 'lehrerListe' in 'Schule' ist null. Initialisierung im Konstruktor fehlt.");
+
+            // check lehrer list init
+            FieldInfo fKList = tLehrer.GetField("klassen", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fKList != null && fKList.GetValue(lehrerTest) == null)
+                throw new Exception("Liste 'klassen' in 'Lehrer' ist null. Initialisierung im Konstruktor fehlt.");
+
+            // setup methods
+            MethodInfo mAddLehrer = tSchule.GetMethod("AddLehrer");
+            MethodInfo mFind = tSchule.GetMethod("FindeVielBeschaeftigte");
+            MethodInfo mAddKlasse = tLehrer.GetMethod("AddKlasse");
+
+            // constructor for Klasse(int anzahl)
+            ConstructorInfo ctorKlasse = tKlasse.GetConstructor(new[] { typeof(int) });
+            if (ctorKlasse == null) throw new Exception("Konstruktor Klasse(int anzahlSchueler) fehlt.");
+
+            object CreateKlasse(int count) => ctorKlasse.Invoke(new object[] { count });
+
+            // logic test
+            // definition: > 2 classes and class.count >= 20
+
+            // lehrer a: matches
+            // class(25) [ok]
+            // class(30) [ok]
+            // class(15) [ignore, too small]
+            // class(20) [ok]
+            // total valid: 3; is 3 > 2? yes -> add
+            object lA = Activator.CreateInstance(tLehrer);
+            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(25) });
+            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(30) });
+            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(15) });
+            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(20) });
+
+            // lehrer b: fails (not enough classes)
+            // class(25) [ok]
+            // class(25) [ok]
+            // total valid: 2; is 2 > 2? no -> ignore
+            object lB = Activator.CreateInstance(tLehrer);
+            mAddKlasse.Invoke(lB, new object[] { CreateKlasse(25) });
+            mAddKlasse.Invoke(lB, new object[] { CreateKlasse(25) });
+
+            // lehrer c: fails (classes too small)
+            // class(10)
+            // class(10)
+            // class(10)
+            // total valid: 0
+            object lC = Activator.CreateInstance(tLehrer);
+            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
+            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
+            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
+
+            mAddLehrer.Invoke(schule, new object[] { lA });
+            mAddLehrer.Invoke(schule, new object[] { lB });
+            mAddLehrer.Invoke(schule, new object[] { lC });
+
+            object resObj = mFind.Invoke(schule, null);
+            IList resList = resObj as IList;
+
+            if (resList == null) throw new Exception("Rückgabe ist keine Liste.");
+
+            if (resList.Count == 1 && resList[0] == lA)
+            {
+                feedback = "Perfekt! Die verschachtelte Filterung (Anzahl Klassen > 2 und Schüler >= 20) funktioniert.";
+                return true;
+            }
+
+            if (resList.Contains(lB)) throw new Exception("Fehler: Ein Lehrer mit genau 2 großen Klassen wurde ausgewählt. Bedingung ist 'mehr als 2' (> 2).");
+            if (resList.Contains(lC)) throw new Exception("Fehler: Ein Lehrer mit zu kleinen Klassen (< 20 Schüler) wurde ausgewählt.");
+
+            throw new Exception($"Falsches Ergebnis. Erwartete Anzahl: 1, Erhalten: {resList.Count}.");
+        }
+
+        private static bool TestLevel13(Assembly assembly, out string feedback)
+        {
+            Type tSchueler = assembly.GetType("Schueler");
+            Type tFehltag = assembly.GetType("Fehltag");
+
+            if (tSchueler == null || tFehltag == null) throw new Exception("Klassenstruktur unvollständig (Schueler oder Fehltag fehlt).");
+
+            ConstructorInfo ctorFehltag = tFehltag.GetConstructor(new[] { typeof(DateTime), typeof(bool) });
+            if (ctorFehltag == null) throw new Exception("Konstruktor Fehltag(DateTime, bool) fehlt.");
+
+            MethodInfo mAdd = tSchueler.GetMethod("AddFehltag");
+            if (mAdd == null) throw new Exception("Methode AddFehltag fehlt in Klasse Schueler.");
+
+            MethodInfo mCheck = tSchueler.GetMethod("HatKritischGefehlt");
+            if (mCheck == null) throw new Exception("Methode HatKritischGefehlt fehlt.");
+
+            object s = Activator.CreateInstance(tSchueler);
+
+            void AddDay(int daysAgo, bool exc)
+            {
+                object ft = ctorFehltag.Invoke(new object[] { DateTime.Now.AddDays(-daysAgo), exc });
+                mAdd.Invoke(s, new object[] { ft });
+            }
+
+            // case 1: no absences
+            if ((bool)mCheck.Invoke(s, null)) throw new Exception("Gibt true zurück, obwohl keine Fehltage existieren.");
+
+            // case 2: old unexcused absence (e.g. 40 days ago) -> should be false
+            AddDay(40, false);
+            if ((bool)mCheck.Invoke(s, null)) throw new Exception("Gibt true zurück, obwohl der unentschuldigte Fehltag länger als 1 Monat zurückliegt.");
+
+            // case 3: recent excused absence -> should still be false
+            AddDay(5, true);
+            if ((bool)mCheck.Invoke(s, null)) throw new Exception("Gibt true zurück, obwohl der aktuelle Fehltag entschuldigt ist.");
+
+            // case 4: recent unexcused absence -> should be true
+            AddDay(10, false);
+            if (!(bool)mCheck.Invoke(s, null)) throw new Exception("Gibt false zurück, obwohl ein unentschuldigter Fehltag im letzten Monat existiert.");
+
+            feedback = "Datumslogik korrekt implementiert! Zeitraum und Status wurden richtig geprüft.";
+            return true;
+        }
+
+        private static bool TestLevel14(Assembly assembly, out string feedback)
+        {
+            Type tSchule = assembly.GetType("Schule");
+            Type tKlasse = assembly.GetType("Klasse");
+            Type tSchueler = assembly.GetType("Schueler");
+
+            if (tSchule == null || tKlasse == null || tSchueler == null) throw new Exception("Klassenstruktur fehlt (Schule, Klasse oder Schueler).");
+
+            object schule = Activator.CreateInstance(tSchule);
+
+            // methods setup
+            MethodInfo mAddKlasse = tSchule.GetMethod("AddKlasse") ?? tSchule.GetMethod("addKlasse");
+            MethodInfo mAddSchueler = tKlasse.GetMethod("AddSchueler") ?? tKlasse.GetMethod("addSchueler");
+            MethodInfo mWarn = tSchule.GetMethod("ErstelleWarnungen");
+
+            if (mAddKlasse == null) throw new Exception("AddKlasse fehlt.");
+            if (mAddSchueler == null) throw new Exception("AddSchueler fehlt.");
+            if (mWarn == null) throw new Exception("ErstelleWarnungen fehlt.");
+
+            // constructors
+            ConstructorInfo cKlasse = tKlasse.GetConstructor(new[] { typeof(string) });
+            ConstructorInfo cSchueler = tSchueler.GetConstructor(new[] { typeof(string), typeof(int) });
+
+            if (cKlasse == null || cSchueler == null) throw new Exception("Konstruktoren fehlen (Klasse(string) oder Schueler(string, int)).");
+
+            // build hierarchy
+            // class 10a
+            object k1 = cKlasse.Invoke(new object[] { "10A" });
+            object s1 = cSchueler.Invoke(new object[] { "Max", 3 }); // fail
+            object s2 = cSchueler.Invoke(new object[] { "Lisa", 10 }); // pass
+            mAddSchueler.Invoke(k1, new object[] { s1 });
+            mAddSchueler.Invoke(k1, new object[] { s2 });
+
+            // class 11b
+            object k2 = cKlasse.Invoke(new object[] { "11B" });
+            object s3 = cSchueler.Invoke(new object[] { "Tom", 4 }); // fail
+            mAddSchueler.Invoke(k2, new object[] { s3 });
+
+            mAddKlasse.Invoke(schule, new object[] { k1 });
+            mAddKlasse.Invoke(schule, new object[] { k2 });
+
+            string result = (string)mWarn.Invoke(schule, null);
+
+            if (string.IsNullOrEmpty(result)) throw new Exception("Rückgabe ist leer.");
+
+            bool hasMax = result.Contains("Max") && result.Contains("10A") && result.Contains("3");
+            bool hasTom = result.Contains("Tom") && result.Contains("11B") && result.Contains("4");
+            bool hasLisa = result.Contains("Lisa");
+
+            if (hasMax && hasTom && !hasLisa)
+            {
+                feedback = "Sektion 3 erfolgreich abgeschlossen! Der Serienbrief wurde korrekt generiert.";
+                return true;
+            }
+
+            if (hasLisa) throw new Exception("Fehler: Schüler mit Note >= 5 (Lisa) wurden auch in den Brief aufgenommen.");
+            if (!hasMax || !hasTom) throw new Exception("Fehler: Nicht alle gefährdeten Schüler wurden gefunden.");
+
+            throw new Exception("Formatierung des Strings entspricht nicht den Vorgaben.");
         }
     }
 }

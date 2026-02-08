@@ -13,7 +13,8 @@ namespace AbiturEliteCode.cs
     // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml sequence diagrams, and Nassi–Shneiderman diagrams, also given can be pseudo-code
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
-    // in the abitur basically all classes have a constructor which should be represented in the uml class diagram is given
+    // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class for example should not be initalized outside of their constructor, as thats how the abitur does it)
+    // on later levels the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
     // note: adequate abitur level language should be used as well as technical vocabulary
 
     // for sequence diagrams: keeping the exact given order of calls is important
@@ -47,6 +48,7 @@ namespace AbiturEliteCode.cs
         public static string[] CodesList = {
             "ZOO", "CAP", "ABS", "LST", "ALG",
             "LOG", "INV", "SRT", "LNK", "EXP",
+            "NAV", "COL", "DAT", "ELT"
         };
     }
 
@@ -55,6 +57,8 @@ namespace AbiturEliteCode.cs
         public static string ListT = "@startuml\nclass \"List<T>\" {\n  + add(item : T) : void\n  + remove(item : T) : void\n  + get(index : int) : T\n  + size() : int\n  + contains(item : T) : boolean\n}\n@enduml";
 
         public static string Paket = "@startuml\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n  + getZielort() : String\n}\n@enduml";
+
+        public static string LocalDate = "@startuml\nclass LocalDate {\n  + {static} now() : LocalDate\n  + isAfter(other : LocalDate) : boolean\n  + isBefore(other : LocalDate) : boolean\n  + minusMonths(months : long) : LocalDate\n  + plusDays(days : long) : LocalDate\n}\n@enduml";
     }
 
     public static class AuxiliaryImplementations
@@ -78,6 +82,16 @@ namespace AbiturEliteCode.cs
                         public double GetGewicht() { return gewicht; }
                         public string GetZielort() { return zielort; }
                     }",
+                "LocalDate" => @"
+                    // Mock für die Anzeige im Materials-Tab
+                    // In C# nutzen Sie stattdessen struct DateTime
+                    public class LocalDate
+                    {
+                        public static LocalDate Now() { return new LocalDate(); }
+                        public bool IsAfter(LocalDate other) { return true; }
+                        public bool IsBefore(LocalDate other) { return true; }
+                        public LocalDate MinusMonths(long months) { return this; }
+                    }",
                 _ => ""
             };
         }
@@ -88,12 +102,23 @@ namespace AbiturEliteCode.cs
         public static List<Level> GetLevels()
         {
             string listDocsHints =
-                @"Hinweis: In C# heißt die Klasse ebenfalls [List<T>]
+@"start-hint: List-Vergleich Java vs. C#
+In C# heißt die Klasse ebenfalls [List<T>].
 • Java: [list.add(item)] → C#: [list.Add(item)] usw.
 • Java: [list.get(i)] → C#: [list|[i|]] oder [list.ElementAt(i)]
 • Java: [list.size()] → C#: [list.Count]
 • Java: [boolean] → C#: [bool]
-• Listen müssen mit [new List<T>()] initialisiert werden";
+• Listen müssen mit [new List<T>()] initialisiert werden
+:end-hint";
+
+            string localDateHint =
+@"start-hint: Datumsvergleich Java vs. C#
+Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [DateTime].
+• Java: [date.isAfter(other)] → C#: [date > other]
+• Java: [date.isBefore(other)] → C#: [date < other]
+• Java: [LocalDate.now()] → C#: [DateTime.Now]
+• Java: [date.minusMonths(1)] → C#: [date.AddMonths(-1)]
+:end-hint";
 
             return new List<Level>
             {
@@ -350,35 +375,144 @@ namespace AbiturEliteCode.cs
                     Id = 10,
                     Section = "Sektion 2: Datenstrukturen & Algorithmen",
                     SkipCode = LevelCodes.CodesList[9],
-                    NextLevelCode = "",
+                    NextLevelCode = LevelCodes.CodesList[10],
                     Title = "Die Express-Lieferung",
                     Description = "Dies ist die Abschlussprüfung für Sektion 2.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Implementieren Sie die Methode [GetTop3Schwere(String ort)].\n" +
-                                  "Die Methode soll die **3 schwersten Pakete** für einen Zielort zurückgeben, sortiert nach Gewicht (absteigend).\n\n" +
+                                  "1. Ergänzen Sie den Konstruktor der Klasse [LogistikZentrum], um die Liste [allePakete] zu initialisieren.\n" +
+                                  "2. Implementieren Sie [GetTop3Schwere(String ort)].\n" +
+                                  "   -> Die Methode gibt die **3 schwersten Pakete** für einen Zielort zurück (absteigend sortiert).\n\n" +
                                   "Anforderungen:\n" +
                                   "• Filtern nach Ort\n" +
                                   "• Sortieren nach Gewicht (Absteigend)\n" +
                                   "• Maximal 3 Elemente zurückgeben.",
-                    StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete = new List<Paket>();\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        // Viel Erfolg!\n        return null;\n    }\n}",
+                    StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete;\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl10.svg",
                     MaterialDocs = "start-tipp: Transferleistung\n" +
-                                   "Sie können Ihre Bubble-Sort Logik wiederverwenden/anpassen oder (da dies eine Transferleistung ist) Hilfslisten nutzen.\n" +
-                                   ":end-hint\n" +
-                                   "start-hint: Unzureichend Pakete\n" +
-                                   "Beachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.\n" +
+                                   "Sie können Ihre Bubble-Sort Logik wiederverwenden oder Hilfslisten nutzen.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass LogistikZentrum {\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
+                    PlantUMLSource = "@startuml\nclass LogistikZentrum {\n  + LogistikZentrum()\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
-                        "Sorting Lists", "Accessing List Elements"
+                        "Sorting Lists", "Accessing List Elements", "Constructors"
                     },
                     OptionalPrerequisites = new List<string>
                     {
                         "Where for Filtering"
                     }
-                }
+                },
+
+                // --- SECTION 3 ---
+                new Level
+                {
+                    Id = 11,
+                    Section = "Sektion 3: Beziehungen & Navigation",
+                    SkipCode = LevelCodes.CodesList[10],
+                    NextLevelCode = LevelCodes.CodesList[11],
+                    Title = "Das Klassenzimmer (Bedingte Logik)",
+                    Description = "Wir analysieren die Leistung einer Schulklasse.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klasse [Schueler].\n" +
+                                  "2. Implementieren Sie die Klasse [Klasse].\n" +
+                                  "3. Schreiben Sie die Methode [BerechneSchnittBestanden()].\n\n" +
+                                  "Logik:\n" +
+                                  "Berechnen Sie den Notendurchschnitt (double), aber berücksichtigen Sie nur Schüler, die **bestanden haben** (Note > 4 Punkte).\n" +
+                                  "Gibt es keine bestandenen Prüfungen, geben Sie 0.0 zurück.",
+                    StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}",
+                    DiagramPath = "img\\sec3\\lvl11.svg",
+                    MaterialDocs = "start-hint: Initialisierung\n" +
+                                   "Im Abitur ist es üblich, Listen im Konstruktor zu instanziieren: [liste = new List<T>();]\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Filtern und Zählen\n" +
+                                   "Sie dürfen nicht durch [liste.Count] teilen, sondern durch die Anzahl der Schüler, die tatsächlich in die Summe eingegangen sind (Counter in der Schleife).\n" +
+                                   ":end-hint",
+                    PlantUMLSource = "@startuml\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + berechneSchnittBestanden() : double\n}\nclass Schueler {\n  - note : int\n  + Schueler(note : int)\n  + getNote() : int\n}\nKlasse x--> \"*\" Schueler : -schuelerListe\n@enduml",
+                    AuxiliaryIds = new List<string> { "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "Creating Lists", "Constructors", "For-Each Loops", "If statements", "Doubles"
+                    }
+                },
+                new Level
+                {
+                    Id = 12,
+                    Section = "Sektion 3: Beziehungen & Navigation",
+                    SkipCode = LevelCodes.CodesList[11],
+                    NextLevelCode = LevelCodes.CodesList[12],
+                    Title = "Das Kollegium (Komplexe Navigation)",
+                    Description = "Die Schulverwaltung sucht Lehrer mit hoher Arbeitsbelastung.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie [Lehrer] und [Schule] mit korrekten Konstruktoren für die Listen.\n" +
+                                  "2. Die Klasse [Klasse] besitzt ein Attribut [anzahlSchueler].\n" +
+                                  "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n\n" +
+                                  "Filter-Logik:\n" +
+                                  "Ein Lehrer gilt als vielbeschäftigt, wenn er in **mehr als 2** Klassen unterrichtet, die jeweils **20 oder mehr** Schüler haben.",
+                    StarterCode = "public class Klasse\n{\n}\n\npublic class Lehrer\n{\n}\n\npublic class Schule\n{\n}",
+                    DiagramPath = "img\\sec3\\lvl12.svg",
+                    MaterialDocs = "start-hint: Verschachtelte Schleifen\n" +
+                                   "Sie benötigen eine äußere Schleife (über Lehrer) und eine innere Schleife (über die Klassen des Lehrers), um die großen Klassen zu zählen.\n" +
+                                   ":end-hint",
+                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addLehrer(l : Lehrer)\n  + findeVielBeschaeftigte() : List<Lehrer>\n}\nclass Lehrer {\n  + Lehrer()\n  + addKlasse(k : Klasse)\n  + getKlassen() : List<Klasse>\n}\nclass Klasse {\n  - anzahlSchueler : int\n  + Klasse(anzahl : int)\n  + getAnzahlSchueler() : int\n}\nSchule x--> \"*\" Lehrer : -lehrerListe\nLehrer x--> \"*\" Klasse : -klassen\n@enduml",
+                    AuxiliaryIds = new List<string> { "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "Nested Loops", "Creating Lists", "Constructors", "Logical AND"
+                    }
+                },
+                new Level
+                {
+                    Id = 13,
+                    Section = "Sektion 3: Beziehungen & Navigation",
+                    SkipCode = LevelCodes.CodesList[12],
+                    NextLevelCode = LevelCodes.CodesList[13],
+                    Title = "Zeugniskonferenz (Datumslogik)",
+                    Description = "Das System muss prüfen, ob Schüler im letzten Monat unentschuldigt gefehlt haben.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klasse [Fehltag] und [Schueler].\n" +
+                                  "2. Implementieren Sie [HatKritischGefehlt()] in der Klasse [Schueler].\n\n" +
+                                  "Logik:\n" +
+                                  "Die Methode gibt [true] zurück, wenn der Schüler mindestens einen Fehltag hat, der:\n" +
+                                  "• **Nicht entschuldigt** ist\n" +
+                                  "• **Und** im letzten Monat lag (Datum ist **nach** [Heute - 1 Monat]).",
+                    StarterCode = "public class Fehltag\n{\n}\n\npublic class Schueler\n{\n    public bool HatKritischGefehlt()\n    {\n        return false;\n    }\n}",
+                    DiagramPath = "img\\sec3\\lvl13.svg",
+                    MaterialDocs = localDateHint,
+                    PlantUMLSource = "@startuml\nclass Schueler {\n  + Schueler()\n  + addFehltag(f : Fehltag)\n  + hatKritischGefehlt() : boolean\n}\nclass Fehltag {\n  - datum : LocalDate\n  - entschuldigt : boolean\n  + Fehltag(d : LocalDate, e : boolean)\n  + getDatum() : LocalDate\n  + istEntschuldigt() : boolean\n}\nSchueler x--> \"*\" Fehltag : -fehltage\n@enduml",
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate" },
+                    Prerequisites = new List<string>
+                    {
+                        "DateTime Basics", "Comparing Dates", "Date Arithmetic", "Booleans", "If statements"
+                    }
+                },
+                new Level
+                {
+                    Id = 14,
+                    Section = "Sektion 3: Beziehungen & Navigation",
+                    SkipCode = LevelCodes.CodesList[13],
+                    NextLevelCode = "",
+                    Title = "Der Elternbrief",
+                    Description = "Abschlussprüfung Sektion 3: Generieren Sie Warnbriefe für gefährdete Schüler.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Struktur: [Schule] -> [Klasse] -> [Schueler].\n" +
+                                  "2. Implementieren Sie [ErstelleWarnungen()] in der Klasse [Schule].\n\n" +
+                                  "Logik:\n" +
+                                  "Iterieren Sie durch **alle Klassen** und **alle Schüler**.\n" +
+                                  "Wenn ein Schüler weniger als 5 Punkte hat, fügen Sie folgende Zeile zum Ergebnis-String hinzu:\n" +
+                                  "\"Warnung an Eltern von [Name] (Klasse [Bezeichnung]): Note [Note] ist kritisch!\\n\"",
+                    StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}\n\npublic class Schule\n{\n    public string ErstelleWarnungen()\n    {\n        string bericht = \"\";\n        // Implementation\n        return bericht;\n    }\n}",
+                    DiagramPath = "img\\sec3\\lvl14.svg",
+                    MaterialDocs = "start-hint: String Aufbau\n" +
+                                   "Nutzen Sie den Verkettungsoperator [+] oder [+=], um den String zusammenzubauen.\n" +
+                                   "Vergessen Sie nicht den Zeilenumbruch [\\n] am Ende jeder Warnung.\n" +
+                                   ":end-hint",
+                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addKlasse(k : Klasse)\n  + erstelleWarnungen() : String\n}\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + getSchueler() : List<Schueler>\n  + getBezeichnung() : String\n}\nclass Schueler {\n  - name : String\n  - note : int\n  + Schueler(name : String, note : int)\n  + getNote() : int\n  + getName() : String\n}\nSchule x--> \"*\" Klasse : -klassen\nKlasse x--> \"*\" Schueler : -schueler\n@enduml",
+                    AuxiliaryIds = new List<string> { "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "Nested Loops", "String concatenation", "Accessing List Elements"
+                    }
+                },
             };
         }
     }

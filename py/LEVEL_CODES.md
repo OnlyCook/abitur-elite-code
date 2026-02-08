@@ -1,6 +1,6 @@
 # Abitur Elite Code - Level Übersicht
 
-Hier findest du alle Skip-Codes für die Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.
+Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.
 
 ## Sektion 1: OOP Grundlagen
 
@@ -21,4 +21,13 @@ Hier findest du alle Skip-Codes für die Level. Gebe diese im Level-Auswählen-F
 | 8 | `SRT` | Die Sortiermaschine (Bubble Sort) |
 | 9 | `LNK` | Der Gabelstapler (Verkettete Liste) |
 | 10 | `EXP` | Die Express-Lieferung |
+
+## Sektion 3: Beziehungen & Navigation
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 11 | `NAV` | Das Klassenzimmer (Bedingte Logik) |
+| 12 | `COL` | Das Kollegium (Komplexe Navigation) |
+| 13 | `DAT` | Zeugniskonferenz (Datumslogik) |
+| 14 | `ELT` | Der Elternbrief |
 

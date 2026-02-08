@@ -5007,6 +5007,14 @@ namespace AbiturEliteCode
             // clipping fix
             source = Regex.Replace(source, @"(?m)^(\s*[-+#].*?)$", "$1 ");
 
+            // static fix: replace "{static} method()" with unicode underlined text
+            source = Regex.Replace(source, @"^(\s*[-+#])\s*\{static\}\s*(.+)$", m =>
+            {
+                string prefix = m.Groups[1].Value;
+                string content = m.Groups[2].Value;
+                return $"{prefix} {ConvertToUnicodeUnderline(content)}";
+            }, RegexOptions.Multiline);
+
             // add theme attributes if missing
             if (!source.Contains("skinparam backgroundcolor transparent")
                 && !source.Contains("skinparam classAttributeIconSize 0"))
@@ -5036,6 +5044,17 @@ namespace AbiturEliteCode
             }
 
             return source;
+        }
+
+        private string ConvertToUnicodeUnderline(string input)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in input)
+            {
+                sb.Append(c);
+                sb.Append('\u0332'); // "Combining Low Line"
+            }
+            return sb.ToString();
         }
 
         private async Task<bool> GeneratePlantUmlDiagram()

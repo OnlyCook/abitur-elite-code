@@ -114,13 +114,38 @@ def extract_level_data(level_cs_path):
             
     return shared_diagrams, levels
 
+def convert_to_unicode_underline(text):
+    """
+    Appends the Unicode 'Combining Low Line' (U+0332) after every character.
+    This visually underlines the text regardless of SVG renderer support.
+    """
+    result = []
+    for char in text:
+        result.append(char)
+        result.append('\u0332')
+    return ''.join(result)
+
 def add_theme(plantuml_source):
     if not plantuml_source: return ""
     
     # 1. Fix Clipping: Add a trailing space to lines starting with -, +, or #
     plantuml_source = re.sub(r'(?m)^(\s*[-+#].*?)$', r'\1 ', plantuml_source)
+    
+    # 2. Static Fix: Replace "{static} method()" with unicode underlined text
+    # (workaround because Avalonia.Svg.Skia ignores <u> tags and text-decoration)
+    def static_replacer(match):
+        prefix = match.group(1)
+        content = match.group(2)
+        return f"{prefix} {convert_to_unicode_underline(content)}"
+    
+    plantuml_source = re.sub(
+        r'^(\s*[-+#])\s*\{static\}\s*(.+)$',
+        static_replacer,
+        plantuml_source,
+        flags=re.MULTILINE
+    )
 
-    # 2. Add Transparency
+    # 3. Add Transparency
     if 'skinparam backgroundcolor transparent' not in plantuml_source and 'skinparam classAttributeIconSize 0' not in plantuml_source:
         lines = plantuml_source.split('\n')
         new_lines = []
