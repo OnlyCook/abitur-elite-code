@@ -84,9 +84,12 @@ namespace AbiturEliteCode
         private BracketHighlightRenderer _bracketHighlightRenderer;
         private IndentationGuideRenderer _indentationGuideRenderer;
 
+        private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
+
         private bool _hasRunOnce = false;
 
-        private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
+        private int _mouseTabSwitchCount = 0;
+        private bool _isKeyboardTabSwitch = false;
 
         private string _currentCustomValidationCode = null;
         private bool _isCustomLevelMode = false;
@@ -171,6 +174,9 @@ namespace AbiturEliteCode
                 SyncEditorToDesigner();
             };
 
+            BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
+            MainTabs.SelectionChanged += OnMainTabChanged;
+
             CodeEditor.TextChanged += (s, e) =>
             {
                 autoSaveTimer.Stop();
@@ -190,8 +196,7 @@ namespace AbiturEliteCode
                 }
             };
 
-            int maxId =
-                playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
+            int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
             var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
             LoadLevel(startLevel);
 
@@ -202,16 +207,19 @@ namespace AbiturEliteCode
             {
                 if (e.Key == Key.F1)
                 {
+                    _isKeyboardTabSwitch = true;
                     MainTabs.SelectedIndex = 0;
                     e.Handled = true;
                 }
                 else if (e.Key == Key.F2)
                 {
+                    _isKeyboardTabSwitch = true;
                     MainTabs.SelectedIndex = 1;
                     e.Handled = true;
                 }
                 else if (e.Key == Key.F3)
                 {
+                    _isKeyboardTabSwitch = true;
                     MainTabs.SelectedIndex = 2;
                     e.Handled = true;
                 }
@@ -219,6 +227,7 @@ namespace AbiturEliteCode
                 {
                     if (_isDesignerMode)
                     {
+                        _isKeyboardTabSwitch = true;
                         MainTabs.SelectedIndex = 3;
                         e.Handled = true;
                     }
@@ -305,6 +314,46 @@ namespace AbiturEliteCode
             };
         }
 
+        private void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source != MainTabs) return;
+
+            if (_isKeyboardTabSwitch)
+            {
+                _isKeyboardTabSwitch = false;
+                _mouseTabSwitchCount = 0;
+                return;
+            }
+
+            _mouseTabSwitchCount++;
+
+            int shownCount = playerData.Settings.TabTipShownCount;
+
+            if ((shownCount == 0 && _mouseTabSwitchCount >= 5) ||
+                (shownCount == 1 && _mouseTabSwitchCount >= 20))
+            {
+                ShowTabTip();
+            }
+        }
+
+        private void ShowTabTip()
+        {
+            if (PnlTabTip.IsVisible) return;
+
+            PnlTabTip.IsVisible = true;
+
+            playerData.Settings.TabTipShownCount++;
+            SaveSystem.Save(playerData);
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            timer.Tick += (s, e) =>
+            {
+                PnlTabTip.IsVisible = false;
+                timer.Stop();
+            };
+            timer.Start();
+        }
+
         private List<MetadataReference> GetSafeReferences()
         {
             var references = new List<MetadataReference>();
@@ -388,7 +437,7 @@ namespace AbiturEliteCode
 
             CodeEditor.TextArea.Caret.PositionChanged += (s, e) =>
             {
-                CodeEditor.TextArea.Caret.BringCaretToView();
+                CodeEditor.TextArea.Caret.BringCaretToView(40);
                 CodeEditor.TextArea.TextView.Redraw();
             };
 
@@ -3595,6 +3644,56 @@ namespace AbiturEliteCode
                 btnSave.Opacity = hasChanges ? 1.0 : 0.5;
                 btnSave.Background = hasChanges ? SolidColorBrush.Parse("#32A852") : SolidColorBrush.Parse("#464646");
             }
+
+            // reset button click
+            btnReset.Click += async (s, ev) =>
+            {
+                var confirmDialog = new Window
+                {
+                    Title = "Reset",
+                    Width = 350,
+                    Height = 150,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    SystemDecorations = SystemDecorations.BorderOnly,
+                    Background = SolidColorBrush.Parse("#252526"),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var cGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+                cGrid.Children.Add(new TextBlock
+                {
+                    Text = "Einstellungen wirklich auf Standard zurücksetzen?",
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                var cBtnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10 };
+                Grid.SetRow(cBtnPanel, 1);
+
+                var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+
+                btnYes.Click += (_, __) =>
+                {
+                    // reset values
+                    chkSyntax.IsChecked = false;
+                    chkError.IsChecked = false;
+                    chkVim.IsChecked = false;
+                    chkPortable.IsChecked = false;
+                    sliderScale.Value = 1.0;
+
+                    confirmDialog.Close();
+                };
+                btnNo.Click += (_, __) => confirmDialog.Close();
+
+                cBtnPanel.Children.Add(btnNo);
+                cBtnPanel.Children.Add(btnYes);
+                cGrid.Children.Add(cBtnPanel);
+
+                confirmDialog.Content = cGrid;
+                await confirmDialog.ShowDialog(settingsWin);
+            };
 
             // --- EVENT HANDLERS ---
 

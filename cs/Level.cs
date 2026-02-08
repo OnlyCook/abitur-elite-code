@@ -15,6 +15,7 @@ namespace AbiturEliteCode.cs
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
     // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class for example should not be initalized outside of their constructor, as thats how the abitur does it)
     // on later levels the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
+    // what you commonly also see in the uml class diagrams in the abitur exams is "static int autowert = 0" or an id for a class, which the user must increment in the constructor (or in rare cases) set to a given id, this mechanic should also be added in more difficult levels where its appropriate
     // note: adequate abitur level language should be used as well as technical vocabulary
 
     // for sequence diagrams: keeping the exact given order of calls is important
@@ -23,7 +24,7 @@ namespace AbiturEliteCode.cs
 
     // if the plantuml should actually add a new line instead of converting it by the python script that reads the plantuml source code, then use: "\n/"
     // note: in the abitur association attributes arent included in the actual class, but are indicated on the association only (this also includes its access modifiers: +/-/#), the attribute should be placed on the side of the class its referencing (and not on the side of the class which is referencing it), lists are marked with an asterisk and single attributes with a number (multiplicity)
-    // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference ot it)
+    // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
     // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur) [this contraint is exluded from auxiliary class diagrams]
 
     public class Level
@@ -238,7 +239,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
                                   "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
-                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner = new List<Tier>();\n    \n    // Implementation hier\n}\n",
+                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner;\n    \n    // Implementation hier\n}\n",
                     DiagramPath = "img\\sec1\\lvl5.svg",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Strategie für die Suche\n" +
@@ -294,7 +295,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Die [FilterePakete(String ort)] Methode soll eine **neue Liste** zurückgeben, die nur Pakete enthält, die:\n" +
                                   "1. An den übergebenen [ort] adressiert sind.\n" +
                                   "2. **Und** schwerer als 10.0 kg sind.",
-                    StarterCode = "public class Lager\n{\n    private List<Paket> pakete = new List<Paket>();\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
+                    StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl7.svg",
                     MaterialDocs = "start-hint: C# Operatoren\n" +
                                    "Strings vergleicht man in C# mit [==] oder [Equals()].\n" +

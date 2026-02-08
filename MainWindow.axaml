@@ -45,20 +45,21 @@
 
 			<Grid Grid.Row="1" ColumnDefinitions="*, 4, *">
 
-				<TabControl Grid.Column="0" Name="MainTabs" Margin="10,5,5,10" Padding="0">
-					<TabControl.Styles>
-						<Style Selector="TabItem">
-							<Setter Property="FontSize" Value="15"/>
-							<Setter Property="Foreground" Value="#CCCCCC"/>
-							<Setter Property="Padding" Value="15,10"/>
-							<Setter Property="Margin" Value="0,0,0,0"/>
-							<Setter Property="MinHeight" Value="47"/>
-						</Style>
-						<Style Selector="TabItem:selected">
-							<Setter Property="Foreground" Value="#32A852"/>
-							<Setter Property="FontWeight" Value="SemiBold"/>
-						</Style>
-					</TabControl.Styles>
+				<Panel Grid.Column="0" Margin="10,5,5,10">
+					<TabControl Name="MainTabs" Padding="0">
+						<TabControl.Styles>
+							<Style Selector="TabItem">
+								<Setter Property="FontSize" Value="15"/>
+								<Setter Property="Foreground" Value="#CCCCCC"/>
+								<Setter Property="Padding" Value="15,10"/>
+								<Setter Property="Margin" Value="0,0,0,0"/>
+								<Setter Property="MinHeight" Value="47"/>
+							</Style>
+							<Style Selector="TabItem:selected">
+								<Setter Property="Foreground" Value="#32A852"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
+							</Style>
+						</TabControl.Styles>
 
 					<TabItem Header="Aufgabe">
 						<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
@@ -319,6 +320,17 @@
 
 				</TabControl>
 
+				<Border Name="PnlTabTip" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Left"
+						Margin="0,-25,0,0" Background="#32A852" CornerRadius="4" Padding="10,5"
+						BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100">
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<TextBlock Text="Tipp: Nutze F1 - F4 zum Wechseln der Tabs" Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+						<Button Name="BtnCloseTip" Content="×" Background="Transparent" Foreground="White"
+								Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"/>
+					</StackPanel>
+				</Border>
+			</Panel>
+
 				<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns"/>
 
 				<Grid Grid.Column="2" RowDefinitions="Auto, *, 4, 180" Margin="5,10,10,10">
@@ -353,6 +365,7 @@
 										   ShowLineNumbers="True"
 										   Background="Transparent"
 										   Foreground="#D4D4D4"
+										   Padding="0,0,18,0"
 										   HorizontalScrollBarVisibility="Auto"
 										   VerticalScrollBarVisibility="Auto"/>
 

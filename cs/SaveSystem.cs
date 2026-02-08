@@ -8,6 +8,7 @@ public class PlayerSettings
     public bool IsVimEnabled { get; set; } = false;
     public bool IsSyntaxHighlightingEnabled { get; set; } = false;
     public double UiScale { get; set; } = 1.0;
+    public int TabTipShownCount { get; set; } = 0;
 }
 
 public class PlayerData
@@ -103,8 +104,7 @@ public static class SaveSystem
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
 
-        // Settings serialization
-        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};scale:{data.Settings.UiScale}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
 
         // format: unlocked|codes|completed|settings
         File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}");
@@ -155,6 +155,7 @@ public static class SaveSystem
                     if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
+                    else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]); // Load new setting
                 }
             }
         }

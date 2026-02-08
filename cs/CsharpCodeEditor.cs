@@ -50,27 +50,27 @@ namespace AbiturEliteCode.cs
 		</Keywords>
 	</RuleSet>
 
-	<RuleSet>
-		<Span color=""Comment"">
-			<Begin>//</Begin>
-			<RuleSet>
-				<Import ruleSet=""CommentMarkerSet""/>
-			</RuleSet>
-		</Span>
-		<Span color=""Comment"" multiline=""true"">
-			<Begin>/\*</Begin>
-			<End>\*/</End>
-			<RuleSet>
-				<Import ruleSet=""CommentMarkerSet""/>
-			</RuleSet>
-		</Span>
-		<Span color=""String"">
-			<Begin>""</Begin>
-			<End>""</End>
-			<RuleSet>
-				<Span begin=""\\"" end="".""/>
-			</RuleSet>
-		</Span>
+    <RuleSet name=""CSharpCode"">
+        <Span color=""Comment"">
+            <Begin>//</Begin>
+            <RuleSet>
+                <Import ruleSet=""CommentMarkerSet""/>
+            </RuleSet>
+        </Span>
+        <Span color=""Comment"" multiline=""true"">
+            <Begin>/\*</Begin>
+            <End>\*/</End>
+            <RuleSet>
+                <Import ruleSet=""CommentMarkerSet""/>
+            </RuleSet>
+        </Span>
+        <Span color=""String"">
+            <Begin>""</Begin>
+            <End>""</End>
+            <RuleSet>
+                <Span begin=""\\"" end="".""/>
+            </RuleSet>
+        </Span>
 		<Span color=""Char"">
 			<Begin>'</Begin>
 			<End>'</End>
@@ -81,8 +81,7 @@ namespace AbiturEliteCode.cs
 		<Span color=""Preprocessor"">
 			<Begin>\#</Begin>
 			<RuleSet name=""PreprocessorSet"">
-				<Span> <!-- preprocessor directives that allow comments -->
-					<Begin fontWeight=""bold"">region</Begin>
+				<Span> <Begin fontWeight=""bold"">region</Begin>
 					<RuleSet>
 						<Span color=""Comment"">
 							<Begin>//</Begin>
@@ -236,7 +235,6 @@ namespace AbiturEliteCode.cs
 			<Word>this</Word>
 			<Word>base</Word>
 		</Keywords>
-        <!-- Fallback for standard types often found in Abitur code -->
         <Keywords color=""SemanticType"">
              <Word>List</Word>
              <Word>Dictionary</Word>
@@ -258,6 +256,26 @@ namespace AbiturEliteCode.cs
 			)
 			([eE][+-]?[0-9]+)? # optional exponent
 		</Rule>
+    </RuleSet>
+
+	<RuleSet>
+        <Span color=""String"" multiline=""true"">
+            <Begin>\$""</Begin>
+            <End>""</End>
+            <RuleSet>
+                <Span begin=""\{\{"" end=""""/>
+                <Span begin=""}}"" end=""""/>
+                <Span begin=""\\"" end="".""/>
+                <Span color=""Punctuation"">
+                    <Begin>\{</Begin>
+                    <End>}</End>
+                    <RuleSet>
+                        <Import ruleSet=""CSharpCode""/>
+                    </RuleSet>
+                </Span>
+            </RuleSet>
+        </Span>
+        <Import ruleSet=""CSharpCode""/>
 	</RuleSet>
 </SyntaxDefinition>";
 
