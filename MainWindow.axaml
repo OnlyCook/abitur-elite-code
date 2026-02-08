@@ -76,6 +76,11 @@
 								   PointerMoved="Diagram_PointerMoved"
 								   PointerReleased="Diagram_PointerReleased">
 
+								<TextBlock Name="TxtNoDiagram" Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
+										   Foreground="#444" FontSize="16" FontWeight="Bold"
+										   HorizontalAlignment="Center" VerticalAlignment="Center"
+										   TextAlignment="Center" IsVisible="False"/>
+
 								<Image Name="ImgDiagram" Stretch="Uniform"
 									   HorizontalAlignment="Center"
 									   VerticalAlignment="Center">
@@ -365,13 +370,13 @@
 					<GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch"/>
 
 					<Border Grid.Row="3" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
-						<TextBox Name="TxtConsole"
-									FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
-									FontSize="13"
-									Background="Transparent" Foreground="LightGray"
-									IsReadOnly="True" TextWrapping="Wrap"
-									BorderThickness="0"
-									Padding="15"/>
+						<ScrollViewer Name="ConsoleScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+							<SelectableTextBlock Name="TxtConsole"
+										FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
+										FontSize="13"
+										Padding="15"
+										TextWrapping="Wrap"/>
+						</ScrollViewer>
 					</Border>
 				</Grid>
 			</Grid>

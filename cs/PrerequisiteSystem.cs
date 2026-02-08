@@ -124,6 +124,11 @@ namespace AbiturEliteCode.cs
 
         public static void OpenUrl(string url)
         {
+            if (!url.StartsWith("https://dometrain.com/") && !url.StartsWith("https://learn.microsoft.com/"))
+            {
+                return;
+            }
+
             try
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

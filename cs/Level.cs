@@ -37,7 +37,7 @@ namespace AbiturEliteCode.cs
         public string DiagramPath { get; set; }
         public string MaterialDocs { get; set; }
         public string PlantUMLSource { get; set; }
-        public string AuxiliaryId { get; set; }
+        public List<string> AuxiliaryIds { get; set; } = new List<string>();
         public List<string> Prerequisites { get; set; } = new List<string>();
         public List<string> OptionalPrerequisites { get; set; } = new List<string>();
     }
@@ -194,7 +194,7 @@ namespace AbiturEliteCode.cs
                     DiagramPath = "img\\sec1\\lvl4.svg",
                     MaterialDocs = listDocsHints,
                     PlantUMLSource = "@startuml\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
-                    AuxiliaryId = "ListT",
+                    AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
                         "Creating Lists", "Adding to Lists", "Accessing List Elements", "Count and Sum"
@@ -224,7 +224,7 @@ namespace AbiturEliteCode.cs
                                    "5. Geben Sie am Ende [aeltestes] zurück.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
-                    AuxiliaryId = "ListT",
+                    AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
                         "For-Each Loops", "If statements", "Comparison operators", "Returning Values"
@@ -250,7 +250,7 @@ namespace AbiturEliteCode.cs
                                    "Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + ermittleLeichtestes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "ListT",
+                    AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
                         "Creating Lists", "For-Each Loops", "Doubles", "If statements"
@@ -276,7 +276,7 @@ namespace AbiturEliteCode.cs
                                    "[&&] ist der Operator für das logische UND.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "Paket",
+                    AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
                         "Logical AND", "String Comparisons", "Adding to Lists", "Return values"
@@ -306,7 +306,7 @@ namespace AbiturEliteCode.cs
                                    "pakete[j+1] = temp;|}\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml",
-                    AuxiliaryId = "Paket",
+                    AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
                         "For Loops", "Accessing List Elements", "Modifying Array Elements", "Variables"
@@ -339,7 +339,7 @@ namespace AbiturEliteCode.cs
                                    "}|}\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
-                    AuxiliaryId = "Paket",
+                    AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
                         "Defining a Class", "Fields", "While Loops", "Variables"
@@ -369,7 +369,7 @@ namespace AbiturEliteCode.cs
                                    "Beachten Sie: Wenn weniger als 3 Pakete existieren, geben Sie einfach alle gefundenen zurück.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass LogistikZentrum {\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
-                    AuxiliaryId = "Paket",
+                    AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
                         "Sorting Lists", "Accessing List Elements"

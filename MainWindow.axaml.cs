@@ -41,6 +41,28 @@ namespace AbiturEliteCode
         public static bool IsErrorHighlightingEnabled { get; set; } = false;
     }
 
+    public class ConsoleRedirectionWriter : StringWriter
+    {
+        private Action<string> _onWrite;
+        public ConsoleRedirectionWriter(Action<string> onWrite)
+        {
+            _onWrite = onWrite;
+        }
+
+        public override void Write(string value)
+        {
+            _onWrite?.Invoke(value);
+        }
+
+        public override void WriteLine(string value)
+        {
+            _onWrite?.Invoke(value + "\n");
+        }
+
+        public override void Write(char value) => _onWrite?.Invoke(value.ToString());
+        public override void Write(char[] buffer, int index, int count) => _onWrite?.Invoke(new string(buffer, index, count));
+    }
+
     public partial class MainWindow : Window
     {
         private PlayerData playerData;
@@ -174,6 +196,34 @@ namespace AbiturEliteCode
             LoadLevel(startLevel);
 
             this.Opened += (s, e) => CodeEditor.Focus();
+
+            // global shortcuts
+            this.AddHandler(KeyDownEvent, (s, e) =>
+            {
+                if (e.Key == Key.F1)
+                {
+                    MainTabs.SelectedIndex = 0;
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.F2)
+                {
+                    MainTabs.SelectedIndex = 1;
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.F3)
+                {
+                    MainTabs.SelectedIndex = 2;
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.F4)
+                {
+                    if (_isDesignerMode)
+                    {
+                        MainTabs.SelectedIndex = 3;
+                        e.Handled = true;
+                    }
+                }
+            }, RoutingStrategies.Tunnel);
 
             // return focus to editor when clicking somewhere random
             this.AddHandler(
@@ -376,6 +426,23 @@ namespace AbiturEliteCode
             }
         }
 
+        private void AddToConsole(string text, IBrush color)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                TxtConsole.Inlines ??= new Avalonia.Controls.Documents.InlineCollection();
+
+                TxtConsole.Inlines.Add(new Run
+                {
+                    Text = text,
+                    Foreground = color,
+                    FontFamily = new FontFamily(MonospaceFontFamily)
+                });
+
+                ConsoleScroller?.ScrollToEnd();
+            });
+        }
+
         private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
         {
             // ctrl + s => save
@@ -389,7 +456,7 @@ namespace AbiturEliteCode
                 }
 
                 SaveCurrentProgress();
-                TxtConsole.Text += "\n> Gespeichert.";
+                AddToConsole("\n> Gespeichert.", Brushes.LightGray);
                 e.Handled = true;
                 return;
             }
@@ -406,7 +473,7 @@ namespace AbiturEliteCode
                     }
                     else
                     {
-                        TxtConsole.Text += "\n> Ausführen im Designer nur im 'Test-Code' Editor möglich.";
+                        AddToConsole("\n> Ausführen im Designer nur im 'Test-Code' Editor möglich.", Brushes.LightGray);
                     }
                     e.Handled = true;
                     return;
@@ -822,24 +889,31 @@ namespace AbiturEliteCode
                 if (!string.IsNullOrEmpty(level.DiagramPath))
                 {
                     ImgDiagram.Source = LoadDiagramImage(level.DiagramPath);
+                    TxtNoDiagram.IsVisible = false;
                 }
                 else
+                {
                     ImgDiagram.Source = null;
+                    TxtNoDiagram.IsVisible = true;
+                }
             }
             catch
             {
                 ImgDiagram.Source = null;
+                TxtNoDiagram.IsVisible = true;
             }
 
             GenerateMaterials(level, _isCustomLevelMode ? _currentCustomSvgs : null);
-            TxtConsole.Foreground = Brushes.LightGray;
+            
+            TxtConsole.Inlines?.Clear();
+
             if (!_isCustomLevelMode)
             {
-                TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.";
+                AddToConsole($"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.", Brushes.LightGray);
             }
             else
             {
-                TxtConsole.Text = "> System initialisiert.";
+                AddToConsole("> System initialisiert.", Brushes.LightGray);
             }
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
@@ -979,7 +1053,6 @@ namespace AbiturEliteCode
             }
 
             string code = CodeEditor.Text;
-            string auxId = currentLevel.AuxiliaryId;
             bool isValidationMode = _isDesignerMode && _activeDesignerSource == DesignerSource.Validation;
 
             var diagnostics = await System.Threading.Tasks.Task.Run(() =>
@@ -999,12 +1072,15 @@ namespace AbiturEliteCode
                 var userTree = CSharpSyntaxTree.ParseText(fullCode);
                 var trees = new List<SyntaxTree> { userTree };
 
-                if (!string.IsNullOrEmpty(auxId))
+                if (currentLevel.AuxiliaryIds != null)
                 {
-                    string auxCode = AuxiliaryImplementations.GetCode(auxId);
-                    if (!string.IsNullOrEmpty(auxCode))
+                    foreach (var auxId in currentLevel.AuxiliaryIds)
                     {
-                        trees.Add(CSharpSyntaxTree.ParseText(auxCode));
+                        string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                        if (!string.IsNullOrEmpty(auxCode))
+                        {
+                            trees.Add(CSharpSyntaxTree.ParseText(auxCode));
+                        }
                     }
                 }
 
@@ -1535,33 +1611,44 @@ namespace AbiturEliteCode
             PnlMaterials.Children.Clear();
 
             // load image
-            if (!string.IsNullOrEmpty(level.AuxiliaryId))
+            if (level.AuxiliaryIds != null && level.AuxiliaryIds.Count > 0)
             {
-                string auxPath = $"img/aux_{level.AuxiliaryId}.svg";
+                bool headerAdded = false;
 
-                var auxImage = LoadDiagramImage(auxPath);
-
-                if (auxImage != null)
+                foreach (var auxId in level.AuxiliaryIds)
                 {
-                    PnlMaterials.Children.Add(
-                        new SelectableTextBlock
+                    if (string.IsNullOrEmpty(auxId)) continue;
+
+                    string auxPath = $"img/aux_{auxId}.svg";
+                    var auxImage = LoadDiagramImage(auxPath);
+
+                    if (auxImage != null)
+                    {
+                        if (!headerAdded)
                         {
-                            Text = "Referenz-Klassen:",
-                            FontWeight = FontWeight.Bold,
-                            Foreground = BrushTextTitle,
-                            Margin = new Thickness(0, 0, 0, 5)
+                            PnlMaterials.Children.Add(
+                                new SelectableTextBlock
+                                {
+                                    Text = "Referenz-Klassen:",
+                                    FontWeight = FontWeight.Bold,
+                                    Foreground = BrushTextTitle,
+                                    Margin = new Thickness(0, 0, 0, 5)
+                                }
+                            );
+                            headerAdded = true;
                         }
-                    );
-                    PnlMaterials.Children.Add(
-                        new Image
-                        {
-                            Source = auxImage,
-                            Height = 150,
-                            Stretch = Stretch.Uniform,
-                            Margin = new Thickness(0, 0, 0, 15),
-                            HorizontalAlignment = HorizontalAlignment.Left
-                        }
-                    );
+
+                        PnlMaterials.Children.Add(
+                            new Image
+                            {
+                                Source = auxImage,
+                                Height = 150,
+                                Stretch = Stretch.Uniform,
+                                Margin = new Thickness(0, 0, 0, 15),
+                                HorizontalAlignment = HorizontalAlignment.Left
+                            }
+                        );
+                    }
                 }
             }
 
@@ -1881,7 +1968,7 @@ namespace AbiturEliteCode
             if (_compilationCts != null)
             {
                 _compilationCts.Cancel();
-                TxtConsole.Text += "\n> Vorgang wird abgebrochen...";
+                AddToConsole("\n> Vorgang wird abgebrochen...", Brushes.LightGray);
                 BtnRun.IsEnabled = false;
                 return;
             }
@@ -1892,16 +1979,15 @@ namespace AbiturEliteCode
             BtnRun.Background = SolidColorBrush.Parse("#B43232");
             ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
-            TxtConsole.Foreground = Brushes.LightGray;
-            TxtConsole.Text = "";
+            TxtConsole.Inlines?.Clear();
 
             if (!_hasRunOnce)
             {
-                TxtConsole.Text += "> Compiler wird gestartet...\n";
+                AddToConsole("> Compiler wird gestartet...", Brushes.LightGray);
                 _hasRunOnce = true;
             }
 
-            TxtConsole.Text += "> Kompiliere...\n";
+            AddToConsole("\n> Kompiliere...\n", Brushes.LightGray);
             SaveCurrentProgress();
 
             string codeText = CodeEditor.Text;
@@ -1931,18 +2017,28 @@ namespace AbiturEliteCode
                 {
                     if (token.IsCancellationRequested) return (false, null, null);
 
+                    var originalConsoleOut = Console.Out;
+                    var customWriter = new ConsoleRedirectionWriter((str) =>
+                    {
+                        AddToConsole(str, Brushes.Cyan);
+                    });
+                    Console.SetOut(customWriter);
+
                     string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + codeText;
 
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
                     var trees = new List<SyntaxTree> { syntaxTree };
 
                     // handle auxiliary code
-                    if (!runDesignerTest && !_isCustomLevelMode && !string.IsNullOrEmpty(levelContext.AuxiliaryId))
+                    if (!runDesignerTest && !_isCustomLevelMode && levelContext.AuxiliaryIds != null)
                     {
-                        string auxCode = AuxiliaryImplementations.GetCode(levelContext.AuxiliaryId);
-                        if (!string.IsNullOrEmpty(auxCode))
+                        foreach (var auxId in levelContext.AuxiliaryIds)
                         {
-                            trees.Add(CSharpSyntaxTree.ParseText(auxCode, cancellationToken: token));
+                            string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                            if (!string.IsNullOrEmpty(auxCode))
+                            {
+                                trees.Add(CSharpSyntaxTree.ParseText(auxCode, cancellationToken: token));
+                            }
                         }
                     }
 
@@ -2058,14 +2154,12 @@ namespace AbiturEliteCode
 
                 if (token.IsCancellationRequested)
                 {
-                    TxtConsole.Foreground = Brushes.Orange;
-                    TxtConsole.Text += "\n⚠ Abbruch durch Benutzer.";
+                    AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
                 }
                 else if (completedTask == timeoutTask)
                 {
                     stopwatch.Stop();
-                    TxtConsole.Foreground = Brushes.Red;
-                    TxtConsole.Text += "\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 1 Minute überschritten.";
+                    AddToConsole("\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 1 Minute überschritten.", Brushes.Red);
                 }
                 else
                 {
@@ -2074,14 +2168,13 @@ namespace AbiturEliteCode
 
                     if (!result.Success && result.Diagnostics != null)
                     {
-                        TxtConsole.Foreground = Brushes.Red;
-                        TxtConsole.Text += "KOMPILIERFEHLER:\n";
+                        AddToConsole("KOMPILIERFEHLER:\n", Brushes.Red);
                         foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
                         {
                             var lineSpan = diag.Location.GetLineSpan();
                             int userLine = lineSpan.StartLinePosition.Line - 3;
                             if (userLine < 0) userLine = 0;
-                            TxtConsole.Text += $"Zeile {userLine}: {diag.GetMessage()}\n";
+                            AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
                         }
                     }
                     else if (result.Success)
@@ -2091,17 +2184,13 @@ namespace AbiturEliteCode
                             // handle designer result
                             if (result.TestResult.Success)
                             {
-                                TxtConsole.Foreground = Brushes.LightGreen;
-                                TxtConsole.Text += $"✓ DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback;
-
+                                AddToConsole($"✓ DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback, Brushes.LightGreen);
                                 BtnDesignerExport.IsEnabled = true;
                                 _verifiedDraftState = pendingSnapshot;
                                 TxtDesignerStatus.Text = "Bereit zum Export";
                             }
                             else
                             {
-                                TxtConsole.Foreground = Brushes.Orange;
-
                                 string msg;
                                 if (result.TestResult.Error != null)
                                 {
@@ -2113,7 +2202,7 @@ namespace AbiturEliteCode
                                     msg = "Validierung fehlgeschlagen (false zurückgegeben).";
                                 }
 
-                                TxtConsole.Text += $"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}";
+                                AddToConsole($"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
                                 BtnDesignerExport.IsEnabled = false;
                                 _verifiedDraftState = null;
                             }
@@ -2127,12 +2216,11 @@ namespace AbiturEliteCode
             }
             catch (OperationCanceledException)
             {
-                TxtConsole.Foreground = Brushes.Orange;
-                TxtConsole.Text += "\n⚠ Abbruch durch Benutzer.";
+                AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
             }
             catch (Exception ex)
             {
-                TxtConsole.Text += $"\nSystem Fehler: {ex.Message}";
+                AddToConsole($"\nSystem Fehler: {ex.Message}", Brushes.Red);
             }
             finally
             {
@@ -2149,12 +2237,11 @@ namespace AbiturEliteCode
 
         private void ProcessTestResult(Level levelContext, dynamic result, TimeSpan duration)
         {
-            TxtConsole.Text = "";
+            TxtConsole.Inlines?.Clear();
 
             if (result.Success)
             {
-                TxtConsole.Foreground = Brushes.LightGreen;
-                TxtConsole.Text += $"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n";
+                AddToConsole($"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n", Brushes.LightGreen);
 
                 if (_isCustomLevelMode)
                 {
@@ -2164,7 +2251,7 @@ namespace AbiturEliteCode
                         SaveSystem.SaveCustom(customPlayerData);
                     }
 
-                    TxtConsole.Text += "🎉 Custom Level erfolgreich abgeschlossen!";
+                    AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
                     return;
                 }
 
@@ -2179,15 +2266,15 @@ namespace AbiturEliteCode
                     if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
                     {
                         playerData.UnlockedLevelIds.Add(nextLvl.Id);
-                        TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                        AddToConsole($"🔓 Level {nextLvl.Id} freigeschaltet!\n", Brushes.LightGreen);
                     }
 
-                    TxtConsole.Text += $"Nächstes Level Code: {nextLvl.SkipCode}\n";
+                    AddToConsole($"Nächstes Level Code: {nextLvl.SkipCode}\n", Brushes.LightGray);
 
                     // check if we are switching sections
                     if (nextLvl.Section != levelContext.Section)
                     {
-                        TxtConsole.Text += "\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?";
+                        AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?", Brushes.LightGreen);
                         BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                     }
                     else
@@ -2200,7 +2287,7 @@ namespace AbiturEliteCode
                 else
                 {
                     // no next level -> course completed
-                    TxtConsole.Text += "\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.";
+                    AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", Brushes.LightGreen);
                     BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                     BtnNextLevel.IsVisible = true;
                 }
@@ -2209,16 +2296,11 @@ namespace AbiturEliteCode
             }
             else
             {
-                TxtConsole.Foreground = Brushes.Orange;
-                string msg =
-                    result.Error != null
-                        ? (
-                              result.Error.InnerException != null
-                                  ? result.Error.InnerException.Message
-                                  : result.Error.Message
-                          )
+                string msg = result.Error != null
+                        ? (result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message)
                         : "Unbekannter Fehler";
-                TxtConsole.Text = "❌ LAUFZEITFEHLER / LOGIK:\n" + msg;
+                TxtConsole.Text = "";
+                AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
             }
         }
 
@@ -2227,8 +2309,7 @@ namespace AbiturEliteCode
             var result = LevelTester.Run(currentLevel.Id, assembly);
             if (result.Success)
             {
-                TxtConsole.Foreground = Brushes.LightGreen;
-                TxtConsole.Text = "✓ TEST BESTANDEN: " + result.Feedback + "\n\n";
+                AddToConsole("✓ TEST BESTANDEN: " + result.Feedback + "\n\n", Brushes.LightGreen);
 
                 if (!playerData.CompletedLevelIds.Contains(currentLevel.Id))
                     playerData.CompletedLevelIds.Add(currentLevel.Id);
@@ -2241,15 +2322,15 @@ namespace AbiturEliteCode
                     if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
                     {
                         playerData.UnlockedLevelIds.Add(nextLvl.Id);
-                        TxtConsole.Text += $"🔓 Level {nextLvl.Id} freigeschaltet!\n";
+                        AddToConsole($"🔓 Level {nextLvl.Id} freigeschaltet!\n", Brushes.LightGreen);
                     }
 
-                    TxtConsole.Text += $"Nächstes Level Code: {nextLvl.SkipCode}\n";
+                    AddToConsole($"Nächstes Level Code: {nextLvl.SkipCode}\n", Brushes.LightGray);
 
                     // check if we are switching sections
                     if (nextLvl.Section != currentLevel.Section)
                     {
-                        TxtConsole.Text += "\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?";
+                        AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?", Brushes.LightGreen);
                         BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                     }
                     else
@@ -2262,7 +2343,7 @@ namespace AbiturEliteCode
                 else
                 {
                     // no next level -> course completed
-                    TxtConsole.Text += "\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.";
+                    AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", Brushes.LightGreen);
                     BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                     BtnNextLevel.IsVisible = true;
                 }
@@ -2271,7 +2352,6 @@ namespace AbiturEliteCode
             }
             else
             {
-                TxtConsole.Foreground = Brushes.Orange;
                 string msg =
                     result.Error != null
                         ? (
@@ -2280,7 +2360,8 @@ namespace AbiturEliteCode
                                   : result.Error.Message
                           )
                         : "Unbekannter Fehler";
-                TxtConsole.Text = "❌ LAUFZEITFEHLER / LOGIK:\n" + msg;
+                TxtConsole.Text = "";
+                AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Red);
             }
         }
 
@@ -2449,7 +2530,7 @@ namespace AbiturEliteCode
             if (result)
             {
                 CodeEditor.Text = currentLevel.StarterCode;
-                TxtConsole.Text += "\n> Code auf Standard zurückgesetzt.";
+                AddToConsole("\n> Code auf Standard zurückgesetzt.", Brushes.LightGray);
             }
             CodeEditor.Focus();
         }
@@ -2457,7 +2538,7 @@ namespace AbiturEliteCode
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             SaveCurrentProgress();
-            TxtConsole.Text += "\n> Gespeichert.";
+            AddToConsole("\n> Gespeichert.", Brushes.LightGray);
             CodeEditor.Focus();
         }
 
@@ -2896,7 +2977,7 @@ namespace AbiturEliteCode
                                                 SkipCode = "CUST", // placeholder (as not useable)
                                                 Section = "Eigene Levels",
                                                 Prerequisites = new List<string>(),
-                                                AuxiliaryId = ""
+                                                AuxiliaryIds = new List<string>()
                                             };
 
                                             // get author
@@ -2939,12 +3020,12 @@ namespace AbiturEliteCode
 
                                             LoadLevel(loadedLevel);
                                             win.Close();
-                                            TxtConsole.Text += $"\n> Custom Level geladen: {loadedLevel.Title}";
+                                            AddToConsole($"\n> Custom Level geladen: {loadedLevel.Title}", Brushes.LightGreen);
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        TxtConsole.Text += $"\n> Fehler beim Laden: {ex.Message}";
+                                        AddToConsole($"\n> Fehler beim Laden: {ex.Message}", Brushes.Orange);
                                     }
                                 }
                             };
@@ -3030,7 +3111,7 @@ namespace AbiturEliteCode
             }
             catch (Exception ex)
             {
-                TxtConsole.Text += $"\n> Fehler beim Öffnen des Ordners: {ex.Message}";
+                AddToConsole($"\n> Fehler beim Öffnen des Ordners: {ex.Message}", Brushes.Orange);
             }
         }
 
@@ -3286,7 +3367,7 @@ namespace AbiturEliteCode
                 }
                 catch (Exception ex)
                 {
-                    TxtConsole.Text += $"\n> Fehler: {ex.Message}";
+                    AddToConsole($"\n> Fehler: {ex.Message}", Brushes.Red);
                 }
                 dialog.Close();
             };
@@ -3640,11 +3721,11 @@ namespace AbiturEliteCode
                         originalPortableState = isPortable;
 
                         string location = isPortable ? "Programmordner" : "AppData";
-                        TxtConsole.Text += $"\n> Speicherort geändert auf: {location}";
+                        AddToConsole($"\n> Speicherort geändert auf: {location}", Brushes.LightGray);
                     }
                     catch (Exception ex)
                     {
-                        TxtConsole.Text += $"\n> Fehler beim Ändern des Speicherorts: {ex.Message}";
+                        AddToConsole($"\n> Fehler beim Ändern des Speicherorts: {ex.Message}", Brushes.Red);
                     }
                 }
 
@@ -4182,7 +4263,7 @@ namespace AbiturEliteCode
             {
                 var line = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
                 _vimClipboard = CodeEditor.Document.GetText(line.Offset, line.TotalLength);
-                TxtConsole.Text += "\n> Zeile kopiert.";
+                AddToConsole("\n> Zeile kopiert.", Brushes.LightGray);
             }
 
             _vimCommandBuffer = "";
@@ -4255,16 +4336,16 @@ namespace AbiturEliteCode
             if (cmd == ":w" || cmd == ":w!")
             {
                 SaveCurrentProgress();
-                TxtConsole.Text += "\n> :w (Gespeichert)";
+                AddToConsole("\n> :w (Gespeichert)", Brushes.LightGreen);
             }
             else if (cmd.StartsWith(":q"))
             {
-                TxtConsole.Text += "\n> :q (Wichtig zu testen!)";
+                AddToConsole("\n> :q (Wichtig zu testen!)", Brushes.LightGray);
             }
             else if (cmd.StartsWith(":wq"))
             {
                 SaveCurrentProgress();
-                TxtConsole.Text += "\n> :wq (Gespeichert)";
+                AddToConsole("\n> :wq (Gespeichert)", Brushes.LightGreen);
             }
             // line jump
             else if (cmd.StartsWith(":") && int.TryParse(cmd.Substring(1), out int lineNum))
@@ -4413,7 +4494,8 @@ namespace AbiturEliteCode
                 _verifiedDraftState = null;
 
                 CodeEditor.Text = "";
-                TxtConsole.Text = $"> Level Designer geladen: '{Path.GetFileName(draftPath)}'\n> Wähle 'Im Editor bearbeiten' bei einem Code-Feld.";
+                AddToConsole($"\n> Level Designer geladen: '{Path.GetFileName(draftPath)}'", Brushes.LightGreen);
+                AddToConsole("\n> Wähle 'Im Editor bearbeiten' bei einem Code-Feld.", Brushes.LightGray);
 
                 MainTabs.SelectedItem = TabDesigner;
 
@@ -4519,13 +4601,13 @@ namespace AbiturEliteCode
         private void BtnDesignerRefresh_Click(object sender, RoutedEventArgs e)
         {
             UpdateDesignerPreview();
-            TxtConsole.Text += "\n> Vorschau aktualisiert.";
+            AddToConsole("\n> Vorschau aktualisiert.", Brushes.LightGray);
         }
 
         private async void BtnDesignerSave_Click(object sender, RoutedEventArgs e)
         {
             await SaveDesignerDraft();
-            TxtConsole.Text += "\n> Entwurf gespeichert.";
+            AddToConsole("\n> Entwurf gespeichert.", Brushes.LightGreen);
         }
 
         private void BtnDesignerGuide_Click(object sender, RoutedEventArgs e)
@@ -4548,7 +4630,7 @@ namespace AbiturEliteCode
             }
             catch (Exception ex)
             {
-                TxtConsole.Text += $"\n> Fehler beim Öffnen des Guides: {ex.Message}";
+                AddToConsole($"\n> Fehler beim Öffnen des Guides: {ex.Message}", Brushes.Orange);
             }
         }
 
@@ -4556,19 +4638,17 @@ namespace AbiturEliteCode
         {
             if ((_currentDraft.Name?.Length ?? 0) < 1 || (_currentDraft.Author?.Length ?? 0) < 1)
             {
-                TxtConsole.Foreground = Brushes.Orange;
-                TxtConsole.Text += "\n⚠ Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.";
+                AddToConsole("\n⚠ Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.", Brushes.Orange);
                 return;
             }
 
             if (_verifiedDraftState == null)
             {
-                TxtConsole.Text += "\n❌ Fehler: Level muss vor dem Export erfolgreich getestet werden.";
+                AddToConsole("\n❌ Fehler: Level muss vor dem Export erfolgreich getestet werden.", Brushes.Red);
                 return;
             }
 
-            TxtConsole.Foreground = Brushes.LightGray;
-            TxtConsole.Text += "\n> Generiere alle Diagramme für finalen Export...";
+            AddToConsole("\n> Generiere alle Diagramme für finalen Export...", Brushes.LightGray);
             BtnDesignerExport.IsEnabled = false;
 
             // generate main diagram
@@ -4583,8 +4663,7 @@ namespace AbiturEliteCode
 
             if (!mainSuccess)
             {
-                TxtConsole.Foreground = Brushes.Orange;
-                TxtConsole.Text += "\n⚠ Hinweis: Einige Diagramme konnten nicht aktualisiert werden.";
+                AddToConsole("\n⚠ Hinweis: Einige Diagramme konnten nicht aktualisiert werden.", Brushes.Orange);
             }
 
             _verifiedDraftState.PlantUmlSource = _currentDraft.PlantUmlSource;
@@ -4601,7 +4680,7 @@ namespace AbiturEliteCode
             }
 
             LevelDesigner.ExportLevel(_currentDraftPath, _verifiedDraftState);
-            TxtConsole.Text += "\n> Level erfolgreich exportiert! (.elitelvl)";
+            AddToConsole("\n> Level erfolgreich exportiert! (.elitelvl)", Brushes.LightGreen);
             TxtDesignerStatus.Text = "Exportiert";
             BtnDesignerExport.IsEnabled = true;
         }
@@ -4635,7 +4714,7 @@ namespace AbiturEliteCode
                 targetBox.Text = CodeEditor.Text;
                 _activeDesignerSource = DesignerSource.None;
                 CodeEditor.Text = "";
-                TxtConsole.Text += "\n> Editor geleert. Wähle eine Datei zum Bearbeiten.";
+                AddToConsole("\n> Editor geleert. Wähle eine Datei zum Bearbeiten.", Brushes.LightGray);
             }
             else
             {
@@ -4644,7 +4723,7 @@ namespace AbiturEliteCode
                 _activeDesignerSource = source;
                 CodeEditor.Text = targetBox.Text;
                 CodeEditor.Focus();
-                TxtConsole.Text += enterMessage;
+                AddToConsole(enterMessage, Brushes.LightGray);
             }
 
             UpdateDesignerButtons();
@@ -4685,7 +4764,7 @@ namespace AbiturEliteCode
             {
                 CodeEditor.Text = defaultVal;
             }
-            TxtConsole.Text += "\n> Validierungs-Code auf Standard zurückgesetzt.";
+            AddToConsole("\n> Validierungs-Code auf Standard zurückgesetzt.", Brushes.LightGray);
         }
 
         private void UpdateDesignerButtons()
@@ -4827,7 +4906,7 @@ namespace AbiturEliteCode
         {
             if (_currentDraft.Prerequisites.Count >= MaxPrerequisites)
             {
-                TxtConsole.Text += $"\n> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).";
+                AddToConsole($"\n> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).", Brushes.Orange);
                 return;
             }
 
@@ -4973,7 +5052,7 @@ namespace AbiturEliteCode
 
             string preparedCode = PreparePlantUmlSource(rawCode);
 
-            TxtConsole.Text += "\n> Sende Anfrage an PlantUML Server...";
+            AddToConsole("\n> Sende Anfrage an PlantUML Server...", Brushes.LightGray);
 
             try
             {
@@ -4995,13 +5074,12 @@ namespace AbiturEliteCode
                     UpdateDesignerPreview();
                 }
 
-                TxtConsole.Text += "\n> Diagramm erfolgreich aktualisiert.";
+                AddToConsole("\n> Diagramm erfolgreich aktualisiert.", Brushes.LightGreen);
                 return true;
             }
             catch (Exception ex)
             {
-                TxtConsole.Foreground = Brushes.Orange;
-                TxtConsole.Text += $"\n> Fehler bei Diagramm-Erstellung: {ex.Message}";
+                AddToConsole($"\n> Fehler bei Diagramm-Erstellung: {ex.Message}", Brushes.Orange);
                 return false;
             }
         }
