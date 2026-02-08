@@ -68,6 +68,7 @@ namespace AbiturEliteCode
 
         private string _currentCustomValidationCode = null;
         private bool _isCustomLevelMode = false;
+        private CustomPlayerData customPlayerData;
 
         private bool _isLoadingDesigner = false;
         private bool _isDesignerMode = false;
@@ -81,6 +82,8 @@ namespace AbiturEliteCode
         private LevelDraft _verifiedDraftState = null;
         private const int MaxPrerequisites = 8;
         private int _activeDiagramIndex = 0;
+        private string _currentCustomAuthor = "";
+        private List<string> _currentCustomSvgs = null;
         private enum DesignerSource
         {
             None,
@@ -121,6 +124,7 @@ namespace AbiturEliteCode
 
             levels = Curriculum.GetLevels();
             playerData = SaveSystem.Load();
+            customPlayerData = SaveSystem.LoadCustom();
 
             AppSettings.IsVimEnabled = playerData.Settings.IsVimEnabled;
             AppSettings.IsSyntaxHighlightingEnabled =
@@ -638,6 +642,18 @@ namespace AbiturEliteCode
         {
             if (_isDesignerMode) return;
 
+            if (_isCustomLevelMode && currentLevel != null)
+            {
+                // save custom level code
+                if (customPlayerData.UserCode.ContainsKey(currentLevel.Title))
+                    customPlayerData.UserCode[currentLevel.Title] = CodeEditor.Text;
+                else
+                    customPlayerData.UserCode.Add(currentLevel.Title, CodeEditor.Text);
+
+                SaveSystem.SaveCustom(customPlayerData);
+                return;
+            }
+
             if (currentLevel != null)
             {
                 playerData.UserCode[currentLevel.Id] = CodeEditor.Text;
@@ -699,6 +715,8 @@ namespace AbiturEliteCode
             {
                 _isCustomLevelMode = false;
                 _currentCustomValidationCode = null;
+                _currentCustomAuthor = "";
+                _currentCustomSvgs = null;
             }
 
             SaveCurrentProgress();
@@ -710,9 +728,23 @@ namespace AbiturEliteCode
             currentLevel = level;
             BtnNextLevel.IsVisible = false;
 
-            string rawCode = playerData.UserCode.ContainsKey(level.Id)
-                ? playerData.UserCode[level.Id]
-                : level.StarterCode;
+            string rawCode = level.StarterCode;
+            if (_isCustomLevelMode)
+            {
+                // custom levels
+                if (customPlayerData.UserCode.ContainsKey(level.Title))
+                {
+                    rawCode = customPlayerData.UserCode[level.Title];
+                }
+            }
+            else
+            {
+                // standard levels
+                if (playerData.UserCode.ContainsKey(level.Id))
+                {
+                    rawCode = playerData.UserCode[level.Id];
+                }
+            }
             CodeEditor.Text = rawCode;
 
             // reset uml zoom
@@ -735,17 +767,53 @@ namespace AbiturEliteCode
 
             PnlTask.Children.Clear();
 
-            PnlTask.Children.Add(
-                new SelectableTextBlock
+            if (_isCustomLevelMode)
+            {
+                // custom level header
+                PnlTask.Children.Add(
+                    new SelectableTextBlock
+                    {
+                        Text = level.Title,
+                        FontSize = 20,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextNormal,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0)
+                    }
+                );
+
+                if (!string.IsNullOrEmpty(_currentCustomAuthor))
                 {
-                    Text = $"{level.Id}. {level.Title}",
-                    FontSize = 20,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextNormal,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 20)
+                    PnlTask.Children.Add(
+                        new SelectableTextBlock
+                        {
+                            Text = $"von {_currentCustomAuthor}",
+                            FontSize = 14,
+                            Foreground = Brushes.Gray,
+                            Margin = new Thickness(0, 0, 0, 20)
+                        }
+                    );
                 }
-            );
+                else
+                {
+                    if (PnlTask.Children.Last() is Control last) last.Margin = new Thickness(0, 0, 0, 20);
+                }
+            }
+            else
+            {
+                // standard level header
+                PnlTask.Children.Add(
+                    new SelectableTextBlock
+                    {
+                        Text = $"{level.Id}. {level.Title}",
+                        FontSize = 20,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextNormal,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 0, 0, 20)
+                    }
+                );
+            }
 
             RenderRichText(PnlTask, level.Description);
 
@@ -763,10 +831,16 @@ namespace AbiturEliteCode
                 ImgDiagram.Source = null;
             }
 
-            GenerateMaterials(level);
+            GenerateMaterials(level, _isCustomLevelMode ? _currentCustomSvgs : null);
             TxtConsole.Foreground = Brushes.LightGray;
-            TxtConsole.Text =
-                $"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.";
+            if (!_isCustomLevelMode)
+            {
+                TxtConsole.Text = $"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.";
+            }
+            else
+            {
+                TxtConsole.Text = "> System initialisiert.";
+            }
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
         }
@@ -2082,6 +2156,18 @@ namespace AbiturEliteCode
                 TxtConsole.Foreground = Brushes.LightGreen;
                 TxtConsole.Text += $"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n";
 
+                if (_isCustomLevelMode)
+                {
+                    if (!customPlayerData.CompletedCustomLevels.Contains(levelContext.Title))
+                    {
+                        customPlayerData.CompletedCustomLevels.Add(levelContext.Title);
+                        SaveSystem.SaveCustom(customPlayerData);
+                    }
+
+                    TxtConsole.Text += "🎉 Custom Level erfolgreich abgeschlossen!";
+                    return;
+                }
+
                 if (!playerData.CompletedLevelIds.Contains(levelContext.Id))
                     playerData.CompletedLevelIds.Add(levelContext.Id);
 
@@ -2666,7 +2752,14 @@ namespace AbiturEliteCode
                     txtTitle.Text = "Eigene Levels";
                     countBadge.IsVisible = false;
 
-                    // search bar (placeholder logic)
+                    // custom levels list
+                    var customStack = new StackPanel
+                    {
+                        Spacing = 5
+                    };
+                    var customLevels = GetCustomLevels();
+
+                    // search bar
                     var txtSearch = new TextBox
                     {
                         Watermark = "Suchen...",
@@ -2678,6 +2771,18 @@ namespace AbiturEliteCode
                         BorderBrush = SolidColorBrush.Parse("#333"),
                         CornerRadius = new CornerRadius(4)
                     };
+                    txtSearch.TextChanged += (s, e) => {
+                        string query = txtSearch.Text?.ToLower() ?? "";
+                        foreach (var child in customStack.Children)
+                        {
+                            if (child is Grid row && row.Tag is CustomLevelInfo info)
+                            {
+                                bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
+                                row.IsVisible = match;
+                            }
+                        }
+                    };
+
                     searchContainer.Child = txtSearch;
 
                     // header buttons
@@ -2707,13 +2812,6 @@ namespace AbiturEliteCode
                     };
                     headerRightPanel.Children.Add(btnAdd);
 
-                    // custom levels list
-                    var customStack = new StackPanel
-                    {
-                        Spacing = 5
-                    };
-                    var customLevels = GetCustomLevels();
-
                     if (customLevels.Count == 0)
                     {
                         customStack.Children.Add(new TextBlock
@@ -2730,26 +2828,41 @@ namespace AbiturEliteCode
                         {
                             var rowGrid = new Grid
                             {
-                                ColumnDefinitions = new ColumnDefinitions("*, Auto")
+                                ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto"),
+                                Tag = cl
                             };
 
-                            // main "button"
-                            var mainBtnContent = new StackPanel { Spacing = 2 };
-                            mainBtnContent.Children.Add(new TextBlock
+                            string iconPath;
+                            if (cl.IsDraft) iconPath = "assets/icons/ic_lock.svg";
+                            else if (customPlayerData.CompletedCustomLevels.Contains(cl.Name)) iconPath = "assets/icons/ic_check.svg";
+                            else iconPath = "assets/icons/ic_lock_open.svg";
+
+                            var iconImage = LoadIcon(iconPath, 16);
+                            iconImage.Margin = new Thickness(0, 0, 10, 0);
+                            iconImage.VerticalAlignment = VerticalAlignment.Center;
+
+                            var btnContentGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *") };
+                            btnContentGrid.Children.Add(iconImage); 
+
+                            var textStack = new StackPanel { Spacing = 2 };
+                            Grid.SetColumn(textStack, 1);
+
+                            textStack.Children.Add(new TextBlock
                             {
                                 Text = cl.Name + (cl.IsDraft ? " (Entwurf)" : ""),
                                 Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White
                             });
-                            mainBtnContent.Children.Add(new TextBlock
+                            textStack.Children.Add(new TextBlock
                             {
                                 Text = "von " + cl.Author,
                                 FontSize = 11,
                                 Foreground = Brushes.Gray
                             });
+                            btnContentGrid.Children.Add(textStack);
 
                             var btnMain = new Button
                             {
-                                Content = mainBtnContent,
+                                Content = btnContentGrid,
                                 HorizontalAlignment = HorizontalAlignment.Stretch,
                                 HorizontalContentAlignment = HorizontalAlignment.Left,
                                 Background = SolidColorBrush.Parse("#313133"),
@@ -2780,18 +2893,26 @@ namespace AbiturEliteCode
                                                 Description = root.GetProperty("Description").GetString(),
                                                 StarterCode = root.GetProperty("StarterCode").GetString(),
                                                 MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
-                                                SkipCode = "CUST", // placeholder
+                                                SkipCode = "CUST", // placeholder (as not useable)
                                                 Section = "Eigene Levels",
                                                 Prerequisites = new List<string>(),
                                                 AuxiliaryId = ""
                                             };
 
+                                            // get author
+                                            if (root.TryGetProperty("Author", out var authorElem))
+                                            {
+                                                _currentCustomAuthor = authorElem.GetString();
+                                            }
+
+                                            // get prerequisites
                                             if (root.TryGetProperty("Prerequisites", out var prereqElem))
                                             {
                                                 foreach (var p in prereqElem.EnumerateArray())
                                                     loadedLevel.Prerequisites.Add(p.GetString());
                                             }
 
+                                            // get main diagram
                                             if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
                                             {
                                                 string svgContent = svgElem.GetString();
@@ -2800,6 +2921,16 @@ namespace AbiturEliteCode
                                                     string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
                                                     File.WriteAllText(tempSvgPath, svgContent);
                                                     loadedLevel.DiagramPath = tempSvgPath;
+                                                }
+                                            }
+
+                                            // get aux diagrams
+                                            _currentCustomSvgs = new List<string>();
+                                            if (root.TryGetProperty("MaterialDiagramSvgs", out var svgsElem))
+                                            {
+                                                foreach (var s in svgsElem.EnumerateArray())
+                                                {
+                                                    _currentCustomSvgs.Add(s.GetString());
                                                 }
                                             }
 
@@ -2818,7 +2949,7 @@ namespace AbiturEliteCode
                                 }
                             };
 
-                            Grid.SetColumnSpan(btnMain, 2);
+                            Grid.SetColumnSpan(btnMain, 3);
                             rowGrid.Children.Add(btnMain);
 
                             // action buttons
@@ -2828,7 +2959,7 @@ namespace AbiturEliteCode
                                 Spacing = 5,
                                 Margin = new Thickness(0, 0, 10, 0)
                             };
-                            Grid.SetColumn(actionPanel, 1);
+                            Grid.SetColumn(actionPanel, 2);
 
                             // edit button
                             if (cl.IsDraft)
@@ -2910,13 +3041,33 @@ namespace AbiturEliteCode
 
             if (!Directory.Exists(path)) return list;
 
+            (string name, string author) GetMetadata(string file)
+            {
+                try
+                {
+                    string json = File.ReadAllText(file);
+                    using (var doc = JsonDocument.Parse(json))
+                    {
+                        var root = doc.RootElement;
+                        string name = root.TryGetProperty("Name", out var n) ? n.GetString() : Path.GetFileNameWithoutExtension(file);
+                        string author = root.TryGetProperty("Author", out var a) ? a.GetString() : "Unbekannt";
+                        return (name, author);
+                    }
+                }
+                catch
+                {
+                    return (Path.GetFileNameWithoutExtension(file), "Fehler");
+                }
+            }
+
             // regular custom levels
             foreach (var file in Directory.GetFiles(path, "*.elitelvl"))
             {
+                var meta = GetMetadata(file);
                 list.Add(new CustomLevelInfo
                 {
-                    Name = Path.GetFileNameWithoutExtension(file),
-                    Author = "Unbekannt", // placeholder
+                    Name = meta.name,
+                    Author = meta.author,
                     FilePath = file,
                     IsDraft = false
                 });
@@ -2925,10 +3076,11 @@ namespace AbiturEliteCode
             // custom level drafts
             foreach (var file in Directory.GetFiles(path, "*.elitelvldraft"))
             {
+                var meta = GetMetadata(file);
                 list.Add(new CustomLevelInfo
                 {
-                    Name = Path.GetFileNameWithoutExtension(file),
-                    Author = "Du", // placeholder
+                    Name = meta.name,
+                    Author = meta.author,
                     FilePath = file,
                     IsDraft = true
                 });
@@ -3113,6 +3265,24 @@ namespace AbiturEliteCode
                 {
                     if (File.Exists(info.FilePath))
                         File.Delete(info.FilePath);
+
+                    // remove saved data for this level
+                    if (!info.IsDraft)
+                    {
+                        bool changed = false;
+                        if (customPlayerData.CompletedCustomLevels.Contains(info.Name))
+                        {
+                            customPlayerData.CompletedCustomLevels.Remove(info.Name);
+                            changed = true;
+                        }
+                        if (customPlayerData.UserCode.ContainsKey(info.Name))
+                        {
+                            customPlayerData.UserCode.Remove(info.Name);
+                            changed = true;
+                        }
+
+                        if (changed) SaveSystem.SaveCustom(customPlayerData);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -4758,8 +4928,8 @@ namespace AbiturEliteCode
             // clipping fix
             source = Regex.Replace(source, @"(?m)^(\s*[-+#].*?)$", "$1 ");
 
-            // add theme and transparency
-            if (!source.Contains("!theme") && !source.Contains("skinparam monochrome"))
+            // add transparency and no icons if missing
+            if (!source.Contains("skinparam backgroundcolor transparent") && !source.Contains("skinparam classAttributeIconSize 0"))
             {
                 var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
                 bool inserted = false;
@@ -4767,8 +4937,8 @@ namespace AbiturEliteCode
                 {
                     if (lines[i].Trim().StartsWith("@startuml"))
                     {
-                        lines.Insert(i + 1, "skinparam monochrome reverse");
-                        lines.Insert(i + 2, "skinparam backgroundcolor transparent");
+                        lines.Insert(i + 1, "skinparam backgroundcolor transparent");
+                        lines.Insert(i + 2, "skinparam classAttributeIconSize 0");
                         inserted = true;
                         break;
                     }
@@ -4777,8 +4947,8 @@ namespace AbiturEliteCode
                 if (!inserted) // fallback
                 {
                     lines.Insert(0, "@startuml");
-                    lines.Insert(1, "skinparam monochrome reverse");
-                    lines.Insert(2, "skinparam backgroundcolor transparent");
+                    lines.Insert(1, "skinparam backgroundcolor transparent");
+                    lines.Insert(2, "skinparam classAttributeIconSize 0");
                     lines.Add("@enduml");
                 }
 

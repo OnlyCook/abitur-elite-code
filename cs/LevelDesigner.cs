@@ -88,7 +88,7 @@ namespace AbiturEliteCode.cs
         public static async Task<string> GenerateSvgFromCodeAsync(string plantUmlCode)
         {
             string encoded = EncodePlantUml(plantUmlCode);
-            string url = $"http://www.plantuml.com/plantuml/svg/{encoded}";
+            string url = $"http://www.plantuml.com/plantuml/dsvg/{encoded}";
 
             using (var client = new HttpClient())
             {

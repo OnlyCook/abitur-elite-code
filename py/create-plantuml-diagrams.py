@@ -12,7 +12,7 @@ import hashlib
 from pathlib import Path
 
 # PlantUML server URL
-PLANTUML_SERVER = "http://www.plantuml.com/plantuml/svg/"
+PLANTUML_SERVER = "http://www.plantuml.com/plantuml/dsvg/"
 CACHE_FILE = "plantuml_cache.json"
 
 def encode_plantuml(plantuml_text):
@@ -118,17 +118,15 @@ def add_theme(plantuml_source):
     if not plantuml_source: return ""
     
     # 1. Fix Clipping: Add a trailing space to lines starting with -, +, or #
-    # This prevents the last character from touching the class border
     plantuml_source = re.sub(r'(?m)^(\s*[-+#].*?)$', r'\1 ', plantuml_source)
 
-    # 2. Add Theme and Transparency
-    if '!theme' not in plantuml_source:
+    # 2. Add Transparency (The server /dsvg/ handles the colors, we just need transparency)
+    if 'skinparam backgroundcolor transparent' not in plantuml_source:
         lines = plantuml_source.split('\n')
         new_lines = []
         for line in lines:
             new_lines.append(line)
             if line.strip().startswith('@startuml'):
-                new_lines.append('!theme blueprint') # why does blueprint create the default dark theme?
                 new_lines.append('skinparam backgroundcolor transparent')
         return '\n'.join(new_lines)
         

@@ -18,6 +18,12 @@ public class PlayerData
     public PlayerSettings Settings { get; set; } = new PlayerSettings();
 }
 
+public class CustomPlayerData
+{
+    public HashSet<string> CompletedCustomLevels { get; set; } = new HashSet<string>();
+    public Dictionary<string, string> UserCode { get; set; } = new Dictionary<string, string>();
+}
+
 public static class SaveSystem
 {
     private static string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
@@ -25,6 +31,8 @@ public static class SaveSystem
 
     private static string AppDataPath => Path.Combine(appDataFolder, "savegame.elitedata");
     private static string RootPath => Path.Combine(rootFolder, "savegame.elitedata");
+
+    private static string CustomSavePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
 
     private static string GetActivePath()
     {
@@ -147,6 +155,63 @@ public static class SaveSystem
                     if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
+                }
+            }
+        }
+        catch { }
+        return data;
+    }
+
+    public static void SaveCustom(CustomPlayerData data)
+    {
+        string path = CustomSavePath;
+        string directory = Path.GetDirectoryName(path);
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
+
+        string completed = string.Join("|", data.CompletedCustomLevels);
+
+        var codeEntries = data.UserCode.Select(k =>
+            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+        string codes = string.Join(";", codeEntries);
+
+        File.WriteAllText(path, $"{completed}§{codes}");
+    }
+
+    public static CustomPlayerData LoadCustom()
+    {
+        var data = new CustomPlayerData();
+        string path = CustomSavePath;
+
+        if (!File.Exists(path)) return data;
+
+        try
+        {
+            string content = File.ReadAllText(path);
+            if (!string.IsNullOrEmpty(content))
+            {
+                string[] sections = content.Split('§');
+
+                // load completed levels
+                if (sections.Length > 0 && !string.IsNullOrEmpty(sections[0]))
+                {
+                    var names = sections[0].Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var name in names) data.CompletedCustomLevels.Add(name);
+                }
+
+                // load user code
+                if (sections.Length > 1 && !string.IsNullOrEmpty(sections[1]))
+                {
+                    var entries = sections[1].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var entry in entries)
+                    {
+                        var parts = entry.Split(':');
+                        if (parts.Length == 2)
+                        {
+                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            if (!data.UserCode.ContainsKey(key)) data.UserCode.Add(key, code);
+                        }
+                    }
                 }
             }
         }
