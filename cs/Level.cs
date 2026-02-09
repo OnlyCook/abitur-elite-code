@@ -354,15 +354,20 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
                     StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
                     DiagramPath = "img\\sec2\\lvl9.svg",
-                    MaterialDocs = "start-hint: Verkettete Listen\n" +
-                                   "Verkettete Listen sind ein Klassiker im Abitur!\n\n" +
+                    MaterialDocs = "start-hint: Wie funktionieren Verkettete Listen? (Simpel)\n" +
+                                   "Stell dir eine Schnitzeljagd (Schatzsuche) vor:\n" +
+                                   "• Der [kopf] ist der erste Zettel, den du in die Hand bekommst.\n" +
+                                   "• Jeder Zettel (Knoten) hat einen Inhalt (das Paket) und einen Hinweis, wo der **nächste** Zettel liegt (Referenz [nachfolger]).\n" +
+                                   "• Wenn auf einem Zettel kein Hinweis mehr steht (Referenz ist [null]), bist du am Ende der Kette angekommen.\n\n" +
+                                   "Um hinten etwas anzuhängen, musst du also beim Kopf starten und dich 'hochhangeln', bis du den Knoten findest, dessen [nachfolger] leer ist.\n" +
                                    ":end-hint\n" +
-                                   "start-tipp: Traversierung\n" +
-                                   "Traversierung (zum Ende laufen) in Java:\n" +
+                                   "start-tipp: Traversierung (Laufen)\n" +
+                                   "Traversierung in Java:\n" +
                                    "{|Knoten aktuell = kopf;\n" +
                                    "while(aktuell.getNachfolger() != null) {\n" +
                                    "   aktuell = aktuell.getNachfolger();\n" +
                                    "}|}\n" +
+                                   "Nach der Schleife ist [aktuell] das letzte Element.\n" +
                                    ":end-hint",
                     PlantUMLSource = "@startuml\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
                     AuxiliaryIds = new List<string> { "Paket" },
@@ -440,25 +445,26 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Id = 12,
                     Section = "Sektion 3: Beziehungen & Navigation",
                     SkipCode = LevelCodes.CodesList[11],
-                    NextLevelCode = LevelCodes.CodesList[12],
-                    Title = "Das Kollegium (Komplexe Navigation)",
-                    Description = "Die Schulverwaltung sucht Lehrer mit hoher Arbeitsbelastung.\n\n" +
+                    NextLevelCode = "",
+                    Title = "Das Kollegium (Geschachtelte Listen)",
+                    Description = "Die Schulverwaltung muss Lehrer identifizieren, die überlastet sind.\n\n" +
                                   "Aufgabe:\n" +
-                                  "1. Implementieren Sie [Lehrer] und [Schule] mit korrekten Konstruktoren für die Listen.\n" +
-                                  "2. Die Klasse [Klasse] besitzt ein Attribut [anzahlSchueler].\n" +
-                                  "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n\n" +
-                                  "Filter-Logik:\n" +
-                                  "Ein Lehrer gilt als vielbeschäftigt, wenn er in **mehr als 2** Klassen unterrichtet, die jeweils **20 oder mehr** Schüler haben.",
-                    StarterCode = "public class Klasse\n{\n}\n\npublic class Lehrer\n{\n}\n\npublic class Schule\n{\n}",
+                                  "1. Implementieren Sie die Klassen [Lehrer] und [Schule] (inkl. Konstruktoren!).\n" +
+                                  "2. Ein Lehrer hat eine Liste von Klassen. Stellen Sie sicher, dass diese Liste von außen abrufbar ist.\n" +
+                                  "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n" +
+                                  "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
+                                  "\n\nHinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.",
+                    StarterCode = "public class Klasse\n{\n    // Kann leer bleiben\n}\n\npublic class Lehrer\n{\n}\n\npublic class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}",
                     DiagramPath = "img\\sec3\\lvl12.svg",
-                    MaterialDocs = "start-hint: Verschachtelte Schleifen\n" +
-                                   "Sie benötigen eine äußere Schleife (über Lehrer) und eine innere Schleife (über die Klassen des Lehrers), um die großen Klassen zu zählen.\n" +
+                    MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
+                                   "Hier ist die Kette: Schule -> Lehrer -> Liste<Klasse>.\n" +
+                                   "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und *darauf* die Eigenschaft [.Count] prüfen.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addLehrer(l : Lehrer)\n  + findeVielBeschaeftigte() : List<Lehrer>\n}\nclass Lehrer {\n  + Lehrer()\n  + addKlasse(k : Klasse)\n  + getKlassen() : List<Klasse>\n}\nclass Klasse {\n  - anzahlSchueler : int\n  + Klasse(anzahl : int)\n  + getAnzahlSchueler() : int\n}\nSchule x--> \"*\" Lehrer : -lehrerListe\nLehrer x--> \"*\" Klasse : -klassen\n@enduml",
+                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addLehrer(l : Lehrer)\n  + findeVielBeschaeftigte() : List<Lehrer>\n}\nclass Lehrer {\n  + Lehrer()\n  + addKlasse(k : Klasse)\n  + getKlassen() : List<Klasse>\n}\nclass Klasse {\n}\nSchule x--> \"*\" Lehrer : -lehrerListe\nLehrer x--> \"*\" Klasse : -klassen\n@enduml",
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "Nested Loops", "Creating Lists", "Constructors", "Logical AND"
+                        "Creating Lists", "For-Each Loops", "If statements", "Count and Sum"
                     }
                 },
                 new Level

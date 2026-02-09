@@ -109,6 +109,7 @@ namespace AbiturEliteCode
         private int _activeDiagramIndex = 0;
         private string _currentCustomAuthor = "";
         private List<string> _currentCustomSvgs = null;
+        private string _nextCustomLevelPath = null;
         private enum DesignerSource
         {
             None,
@@ -134,6 +135,7 @@ namespace AbiturEliteCode
             public string Name { get; set; }
             public string Author { get; set; }
             public string FilePath { get; set; }
+            public string Section { get; set; }
             public bool IsDraft { get; set; } // .elitelvldraft = true; .elitelvl = false
             public bool QuickGenerate { get; set; }
         }
@@ -834,6 +836,7 @@ namespace AbiturEliteCode
                 _currentCustomValidationCode = null;
                 _currentCustomAuthor = "";
                 _currentCustomSvgs = null;
+                _nextCustomLevelPath = null;
             }
 
             SaveCurrentProgress();
@@ -2302,6 +2305,36 @@ namespace AbiturEliteCode
                     }
 
                     AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
+
+                    try
+                    {
+                        var allCustoms = GetCustomLevels();
+                        var currentInfo = allCustoms.FirstOrDefault(c => c.Name == levelContext.Title && !c.IsDraft);
+
+                        if (currentInfo != null)
+                        {
+                            string dir = Path.GetDirectoryName(currentInfo.FilePath);
+                            var neighbors = Directory.GetFiles(dir, "*.elitelvl").OrderBy(f => f).ToList();
+
+                            int idx = neighbors.IndexOf(currentInfo.FilePath);
+                            if (idx != -1 && idx < neighbors.Count - 1)
+                            {
+                                _nextCustomLevelPath = neighbors[idx + 1];
+                                BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                                BtnNextLevel.IsVisible = true;
+                                AddToConsole($"\n> Nächstes Level verfügbar.", Brushes.LightGray);
+                            }
+                            else if (neighbors.Count > 1)
+                            {
+                                // end of a custom section
+                                _nextCustomLevelPath = "SECTION_COMPLETE";
+                                BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                                BtnNextLevel.IsVisible = true;
+                            }
+                        }
+                    }
+                    catch { }
+
                     return;
                 }
 
@@ -2419,9 +2452,32 @@ namespace AbiturEliteCode
         {
             if (BtnNextLevel.Content?.ToString()?.Contains("ABSCHLIESSEN") == true)
             {
-                ShowCourseCompletedDialog();
+                if (_isCustomLevelMode && _nextCustomLevelPath == "SECTION_COMPLETE")
+                {
+                    ShowCustomSectionCompletedDialog();
+                }
+                else
+                {
+                    ShowCourseCompletedDialog();
+                }
                 return;
             }
+
+            if (_isCustomLevelMode && !string.IsNullOrEmpty(_nextCustomLevelPath))
+            {
+                try
+                {
+                    LoadCustomLevelFromFile(_nextCustomLevelPath);
+                    CodeEditor.Focus();
+                }
+                catch (Exception ex)
+                {
+                    AddToConsole($"\n> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
+                    BtnNextLevel.IsVisible = false;
+                }
+                return;
+            }
+
             var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
             if (nextLvl != null)
                 LoadLevel(nextLvl);
@@ -2890,7 +2946,11 @@ namespace AbiturEliteCode
                     };
                     var customLevels = GetCustomLevels();
 
-                    // search bar
+                    // separate root files from folders
+                    var rootLevels = customLevels.Where(x => x.Section == "Einzelne Levels").OrderBy(x => x.Name).ToList();
+                    var folderGroups = customLevels.Where(x => x.Section != "Einzelne Levels").GroupBy(x => x.Section).OrderBy(g => g.Key).ToList();
+
+                    // search logic
                     var txtSearch = new TextBox
                     {
                         Watermark = "Suchen...",
@@ -2902,18 +2962,45 @@ namespace AbiturEliteCode
                         BorderBrush = SolidColorBrush.Parse("#333"),
                         CornerRadius = new CornerRadius(4)
                     };
+
                     txtSearch.TextChanged += (s, e) => {
                         string query = txtSearch.Text?.ToLower() ?? "";
+
                         foreach (var child in customStack.Children)
                         {
-                            if (child is Grid row && row.Tag is CustomLevelInfo info)
+                            if (child is Expander exp)
                             {
+                                if (exp.Content is StackPanel groupPanel)
+                                {
+                                    bool groupHasMatch = false;
+                                    foreach (var item in groupPanel.Children)
+                                    {
+                                        if (item is Grid row && row.Tag is CustomLevelInfo info)
+                                        {
+                                            bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
+                                            row.IsVisible = match;
+                                            if (match) groupHasMatch = true;
+                                        }
+                                    }
+
+                                    // only show expander if it has matching children
+                                    exp.IsVisible = groupHasMatch;
+
+                                    // expand if searching and match found, otherwise default to collapsed
+                                    if (!string.IsNullOrEmpty(query))
+                                        exp.IsExpanded = true;
+                                    else
+                                        exp.IsExpanded = false;
+                                }
+                            }
+                            else if (child is Grid row && row.Tag is CustomLevelInfo info)
+                            {
+                                // fallback for direct children (lone files)
                                 bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
                                 row.IsVisible = match;
                             }
                         }
                     };
-
                     searchContainer.Child = txtSearch;
 
                     // header buttons
@@ -2943,7 +3030,7 @@ namespace AbiturEliteCode
                     };
                     headerRightPanel.Children.Add(btnAdd);
 
-                    if (customLevels.Count == 0)
+                    if (!customLevels.Any())
                     {
                         customStack.Children.Add(new TextBlock
                         {
@@ -2955,12 +3042,14 @@ namespace AbiturEliteCode
                     }
                     else
                     {
-                        foreach (var cl in customLevels)
+                        Grid CreateLevelRow(CustomLevelInfo cl)
                         {
                             var rowGrid = new Grid
                             {
                                 ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto"),
-                                Tag = cl
+                                Tag = cl,
+                                Margin = new Thickness(0, 0, 0, 5),
+                                HorizontalAlignment = HorizontalAlignment.Stretch
                             };
 
                             string iconPath;
@@ -2973,7 +3062,7 @@ namespace AbiturEliteCode
                             iconImage.VerticalAlignment = VerticalAlignment.Center;
 
                             var btnContentGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *") };
-                            btnContentGrid.Children.Add(iconImage); 
+                            btnContentGrid.Children.Add(iconImage);
 
                             var textStack = new StackPanel { Spacing = 2 };
                             Grid.SetColumn(textStack, 1);
@@ -2981,13 +3070,15 @@ namespace AbiturEliteCode
                             textStack.Children.Add(new TextBlock
                             {
                                 Text = cl.Name + (cl.IsDraft ? " (Entwurf)" : ""),
-                                Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White
+                                Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White,
+                                TextTrimming = TextTrimming.CharacterEllipsis
                             });
                             textStack.Children.Add(new TextBlock
                             {
                                 Text = "von " + cl.Author,
                                 FontSize = 11,
-                                Foreground = Brushes.Gray
+                                Foreground = Brushes.Gray,
+                                TextTrimming = TextTrimming.CharacterEllipsis
                             });
                             btnContentGrid.Children.Add(textStack);
 
@@ -3006,77 +3097,8 @@ namespace AbiturEliteCode
                             {
                                 if (!cl.IsDraft)
                                 {
-                                    try
-                                    {
-                                        string json = File.ReadAllText(cl.FilePath);
-                                        using (var doc = JsonDocument.Parse(json))
-                                        {
-                                            var root = doc.RootElement;
-
-                                            // generate negative id for custom levels
-                                            int customId = cl.FilePath.GetHashCode();
-                                            if (customId > 0) customId *= -1;
-
-                                            var loadedLevel = new Level
-                                            {
-                                                Id = customId,
-                                                Title = root.GetProperty("Name").GetString(),
-                                                Description = root.GetProperty("Description").GetString(),
-                                                StarterCode = root.GetProperty("StarterCode").GetString(),
-                                                MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
-                                                SkipCode = "CUST", // placeholder (as not useable)
-                                                Section = "Eigene Levels",
-                                                Prerequisites = new List<string>(),
-                                                AuxiliaryIds = new List<string>()
-                                            };
-
-                                            // get author
-                                            if (root.TryGetProperty("Author", out var authorElem))
-                                            {
-                                                _currentCustomAuthor = authorElem.GetString();
-                                            }
-
-                                            // get prerequisites
-                                            if (root.TryGetProperty("Prerequisites", out var prereqElem))
-                                            {
-                                                foreach (var p in prereqElem.EnumerateArray())
-                                                    loadedLevel.Prerequisites.Add(p.GetString());
-                                            }
-
-                                            // get main diagram
-                                            if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
-                                            {
-                                                string svgContent = svgElem.GetString();
-                                                if (!string.IsNullOrEmpty(svgContent))
-                                                {
-                                                    string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
-                                                    File.WriteAllText(tempSvgPath, svgContent);
-                                                    loadedLevel.DiagramPath = tempSvgPath;
-                                                }
-                                            }
-
-                                            // get aux diagrams
-                                            _currentCustomSvgs = new List<string>();
-                                            if (root.TryGetProperty("MaterialDiagramSvgs", out var svgsElem))
-                                            {
-                                                foreach (var s in svgsElem.EnumerateArray())
-                                                {
-                                                    _currentCustomSvgs.Add(s.GetString());
-                                                }
-                                            }
-
-                                            _currentCustomValidationCode = root.GetProperty("ValidationCode").GetString();
-                                            _isCustomLevelMode = true;
-
-                                            LoadLevel(loadedLevel);
-                                            win.Close();
-                                            AddToConsole($"\n> Custom Level geladen: {loadedLevel.Title}", Brushes.LightGreen);
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        AddToConsole($"\n> Fehler beim Laden: {ex.Message}", Brushes.Orange);
-                                    }
+                                    LoadCustomLevelFromFile(cl.FilePath);
+                                    win.Close();
                                 }
                             };
 
@@ -3088,11 +3110,11 @@ namespace AbiturEliteCode
                             {
                                 Orientation = Orientation.Horizontal,
                                 Spacing = 5,
-                                Margin = new Thickness(0, 0, 10, 0)
+                                Margin = new Thickness(0, 0, 10, 0),
+                                HorizontalAlignment = HorizontalAlignment.Right
                             };
                             Grid.SetColumn(actionPanel, 2);
 
-                            // quick export button
                             if (cl.IsDraft && cl.QuickGenerate)
                             {
                                 var btnQuickExport = new Button
@@ -3100,7 +3122,7 @@ namespace AbiturEliteCode
                                     Content = LoadIcon("assets/icons/ic_generate.svg", 16),
                                     Background = Brushes.Transparent,
                                     Padding = new Thickness(8),
-                                    Tag = "idle" // state tracker
+                                    Tag = "idle"
                                 };
                                 ToolTip.SetTip(btnQuickExport, "Quick Export (Automatisch)");
 
@@ -3113,37 +3135,23 @@ namespace AbiturEliteCode
                                     btnQuickExport.IsEnabled = false;
 
                                     var cts = new System.Threading.CancellationTokenSource();
-
-                                    EventHandler<WindowClosingEventArgs> closingHandler = (sender, args) =>
-                                    {
-                                        cts.Cancel();
-                                        AddToConsole("\n> Quick Export abgebrochen (Fenster geschlossen).", Brushes.Orange);
-                                    };
+                                    EventHandler<WindowClosingEventArgs> closingHandler = (sender, args) => cts.Cancel();
                                     win.Closing += closingHandler;
 
                                     try
                                     {
                                         AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
-
                                         var draft = LevelDesigner.LoadDraft(cl.FilePath);
 
                                         bool valid = await Task.Run(async () =>
                                         {
                                             try
                                             {
-                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" +
-                                                                  draft.TestCode;
+                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + draft.TestCode;
 
                                                 string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
 
-                                                var references = new List<MetadataReference>
-                                                {
-                                                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                                                    MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-                                                    MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
-                                                    MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location),
-                                                    MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location)
-                                                };
+                                                var references = GetSafeReferences();
 
                                                 var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
                                                 var compilation = CSharpCompilation.Create(
@@ -3175,19 +3183,13 @@ namespace AbiturEliteCode
                                                     using (var valMs = new MemoryStream())
                                                     {
                                                         var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
-                                                        if (!valResult.Success)
-                                                        {
-                                                            var diag = valResult.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
-                                                            throw new Exception($"Fehler im Validierungs-Code: {diag?.GetMessage()}");
-                                                        }
+                                                        if (!valResult.Success) throw new Exception("Fehler im Validierungs-Code.");
 
                                                         valMs.Seek(0, SeekOrigin.Begin);
                                                         var valAssembly = Assembly.Load(valMs.ToArray());
                                                         var valType = valAssembly.GetType("DesignerValidator");
                                                         var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
                                                             .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
-
-                                                        if (valMethod == null) throw new Exception("Validierungsmethode Signatur ungültig.");
 
                                                         // run validation
                                                         object[] args = new object[] { assembly, null };
@@ -3200,9 +3202,8 @@ namespace AbiturEliteCode
                                             }
                                             catch (Exception ex)
                                             {
-                                                if (cts.Token.IsCancellationRequested) return false;
-                                                await Dispatcher.UIThread.InvokeAsync(() =>
-                                                    AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
+                                                if (!cts.Token.IsCancellationRequested)
+                                                    await Dispatcher.UIThread.InvokeAsync(() => AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
                                                 return false;
                                             }
                                         }, cts.Token);
@@ -3233,12 +3234,17 @@ namespace AbiturEliteCode
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
                                         AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
 
+                                        await Task.Delay(2000);
                                         RefreshUI();
                                     }
                                     catch (OperationCanceledException) { }
                                     catch (Exception)
                                     {
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
+                                        btnQuickExport.IsEnabled = true;
+                                        btnQuickExport.Tag = "idle";
+                                        await Task.Delay(2000);
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
                                     }
                                     finally
                                     {
@@ -3269,11 +3275,7 @@ namespace AbiturEliteCode
                                     Padding = new Thickness(8)
                                 };
                                 ToolTip.SetTip(btnEdit, "Level im Designer bearbeiten");
-                                btnEdit.Click += (_, __) =>
-                                {
-                                    win.Close();
-                                    ToggleDesignerMode(true, cl.FilePath);
-                                };
+                                btnEdit.Click += (_, __) => { win.Close(); ToggleDesignerMode(true, cl.FilePath); };
                                 actionPanel.Children.Add(btnEdit);
                             }
 
@@ -3293,8 +3295,51 @@ namespace AbiturEliteCode
                             actionPanel.Children.Add(btnDelete);
 
                             rowGrid.Children.Add(actionPanel);
+                            return rowGrid;
+                        }
 
-                            customStack.Children.Add(rowGrid);
+                        // show groups
+                        foreach (var group in folderGroups)
+                        {
+                            var groupContent = new StackPanel
+                            {
+                                Spacing = 5,
+                                Margin = new Thickness(0, 5, 0, 0)
+                            };
+
+                            foreach (var cl in group)
+                            {
+                                groupContent.Children.Add(CreateLevelRow(cl));
+                            }
+
+                            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                            headerPanel.Children.Add(new TextBlock
+                            {
+                                Text = group.Key,
+                                Foreground = BrushTextTitle,
+                                FontWeight = FontWeight.Bold,
+                                VerticalAlignment = VerticalAlignment.Center
+                            });
+
+                            bool allComplete = group.All(l => !l.IsDraft && customPlayerData.CompletedCustomLevels.Contains(l.Name));
+                            if (allComplete && group.Any()) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
+
+                            var expander = new Expander
+                            {
+                                Header = headerPanel,
+                                Content = groupContent,
+                                IsExpanded = false, // collapsed by default
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                CornerRadius = new CornerRadius(4),
+                                Margin = new Thickness(0, 0, 0, 5)
+                            };
+                            customStack.Children.Add(expander);
+                        }
+
+                        // show lone files at the bottom
+                        foreach (var cl in rootLevels)
+                        {
+                            customStack.Children.Add(CreateLevelRow(cl));
                         }
                     }
                     contentScroll.Content = customStack;
@@ -3335,9 +3380,9 @@ namespace AbiturEliteCode
         private List<CustomLevelInfo> GetCustomLevels()
         {
             var list = new List<CustomLevelInfo>();
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+            string rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
 
-            if (!Directory.Exists(path)) return list;
+            if (!Directory.Exists(rootPath)) return list;
 
             (string name, string author, bool quickGen) GetMetadata(string file)
             {
@@ -3366,32 +3411,49 @@ namespace AbiturEliteCode
                 }
             }
 
-            // regular custom levels
-            foreach (var file in Directory.GetFiles(path, "*.elitelvl"))
+            void ScanDirectory(string dir, string sectionName)
             {
-                var meta = GetMetadata(file);
-                list.Add(new CustomLevelInfo
+                if (!Directory.Exists(dir)) return;
+
+                // regular custom levels
+                foreach (var file in Directory.GetFiles(dir, "*.elitelvl"))
                 {
-                    Name = meta.name,
-                    Author = meta.author,
-                    FilePath = file,
-                    IsDraft = false
-                });
+                    var meta = GetMetadata(file);
+                    list.Add(new CustomLevelInfo
+                    {
+                        Name = meta.name,
+                        Author = meta.author,
+                        FilePath = file,
+                        Section = sectionName,
+                        IsDraft = false
+                    });
+                }
+
+                // custom level drafts
+                foreach (var file in Directory.GetFiles(dir, "*.elitelvldraft"))
+                {
+                    var meta = GetMetadata(file);
+                    list.Add(new CustomLevelInfo
+                    {
+                        Name = meta.name,
+                        Author = meta.author,
+                        FilePath = file,
+                        Section = sectionName,
+                        IsDraft = true,
+                        QuickGenerate = meta.quickGen
+                    });
+                }
             }
 
-            // custom level drafts
-            foreach (var file in Directory.GetFiles(path, "*.elitelvldraft"))
+            // scan subdirectories (groups)
+            foreach (var subdir in Directory.GetDirectories(rootPath))
             {
-                var meta = GetMetadata(file);
-                list.Add(new CustomLevelInfo
-                {
-                    Name = meta.name,
-                    Author = meta.author,
-                    FilePath = file,
-                    IsDraft = true,
-                    QuickGenerate = meta.quickGen
-                });
+                string dirName = new DirectoryInfo(subdir).Name;
+                ScanDirectory(subdir, dirName);
             }
+
+            // ccan root directory
+            ScanDirectory(rootPath, "Einzelne Levels");
 
             return list;
         }
@@ -5518,6 +5580,114 @@ namespace AbiturEliteCode
                 UpdateDesignerDiagramTabs();
                 OnDesignerInputChanged(this, EventArgs.Empty);
             }
+        }
+
+        private void LoadCustomLevelFromFile(string path)
+        {
+            string json = File.ReadAllText(path);
+            using (var doc = JsonDocument.Parse(json))
+            {
+                var root = doc.RootElement;
+                int customId = path.GetHashCode();
+                if (customId > 0) customId *= -1;
+
+                var loadedLevel = new Level
+                {
+                    Id = customId,
+                    Title = root.GetProperty("Name").GetString(),
+                    Description = root.GetProperty("Description").GetString(),
+                    StarterCode = root.GetProperty("StarterCode").GetString(),
+                    MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
+                    SkipCode = "CUST",
+                    Section = "Eigene Levels",
+                    Prerequisites = new List<string>(),
+                    AuxiliaryIds = new List<string>()
+                };
+
+                if (root.TryGetProperty("Author", out var authorElem))
+                    _currentCustomAuthor = authorElem.GetString();
+
+                if (root.TryGetProperty("Prerequisites", out var prereqElem))
+                    foreach (var p in prereqElem.EnumerateArray())
+                        loadedLevel.Prerequisites.Add(p.GetString());
+
+                if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
+                {
+                    string svgContent = svgElem.GetString();
+                    if (!string.IsNullOrEmpty(svgContent))
+                    {
+                        string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
+                        File.WriteAllText(tempSvgPath, svgContent);
+                        loadedLevel.DiagramPath = tempSvgPath;
+                    }
+                }
+
+                _currentCustomSvgs = new List<string>();
+                if (root.TryGetProperty("MaterialDiagramSvgs", out var svgsElem))
+                {
+                    foreach (var s in svgsElem.EnumerateArray())
+                        _currentCustomSvgs.Add(s.GetString());
+                }
+
+                _currentCustomValidationCode = root.GetProperty("ValidationCode").GetString();
+                _isCustomLevelMode = true;
+                _nextCustomLevelPath = null;
+
+                LoadLevel(loadedLevel);
+                AddToConsole($"\n> Custom Level geladen: {loadedLevel.Title}", Brushes.LightGreen);
+            }
+        }
+
+        private async void ShowCustomSectionCompletedDialog()
+        {
+            var dialog = new Window
+            {
+                Title = "Sektion Abgeschlossen",
+                Width = 400,
+                Height = 250,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#202124"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var rootStack = new StackPanel { Spacing = 20, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
+
+            rootStack.Children.Add(new TextBlock
+            {
+                Text = "🎉 Gut gemacht!",
+                FontSize = 22,
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextTitle,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            rootStack.Children.Add(new TextBlock
+            {
+                Text = "Du hast alle Levels in diesem Ordner abgeschlossen.",
+                FontSize = 15,
+                Foreground = Brushes.White,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            var btnClose = new Button
+            {
+                Content = "Schließen",
+                Background = BrushTextTitle,
+                Foreground = Brushes.White,
+                Padding = new Thickness(20, 8),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
+            btnClose.Click += (_, __) => dialog.Close();
+
+            rootStack.Children.Add(btnClose);
+            dialog.Content = new Border { Child = rootStack };
+
+            BtnNextLevel.IsVisible = false;
+            await dialog.ShowDialog(this);
         }
     }
 }

@@ -633,85 +633,56 @@ namespace AbiturEliteCode.cs
             Type tLehrer = assembly.GetType("Lehrer");
             Type tKlasse = assembly.GetType("Klasse");
 
-            if (tSchule == null || tLehrer == null || tKlasse == null) throw new Exception("Klassenstruktur unvollständig.");
+            if (tSchule == null || tLehrer == null || tKlasse == null) throw new Exception("Eine der Klassen (Schule, Lehrer, Klasse) fehlt.");
 
-            // check constructors and list init
             object schule = Activator.CreateInstance(tSchule);
-            object lehrerTest = Activator.CreateInstance(tLehrer);
+            object k1 = Activator.CreateInstance(tKlasse); // dummy classes
+            object k2 = Activator.CreateInstance(tKlasse);
+            object k3 = Activator.CreateInstance(tKlasse);
 
-            // check schule list init
-            FieldInfo fLList = tSchule.GetField("lehrerListe", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fLList != null && fLList.GetValue(schule) == null)
-                throw new Exception("Liste 'lehrerListe' in 'Schule' ist null. Initialisierung im Konstruktor fehlt.");
-
-            // check lehrer list init
-            FieldInfo fKList = tLehrer.GetField("klassen", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fKList != null && fKList.GetValue(lehrerTest) == null)
-                throw new Exception("Liste 'klassen' in 'Lehrer' ist null. Initialisierung im Konstruktor fehlt.");
+            object l1 = Activator.CreateInstance(tLehrer);
+            object l2 = Activator.CreateInstance(tLehrer);
 
             // setup methods
             MethodInfo mAddLehrer = tSchule.GetMethod("AddLehrer");
             MethodInfo mFind = tSchule.GetMethod("FindeVielBeschaeftigte");
             MethodInfo mAddKlasse = tLehrer.GetMethod("AddKlasse");
 
-            // constructor for Klasse(int anzahl)
-            ConstructorInfo ctorKlasse = tKlasse.GetConstructor(new[] { typeof(int) });
-            if (ctorKlasse == null) throw new Exception("Konstruktor Klasse(int anzahlSchueler) fehlt.");
+            if (mAddLehrer == null) throw new Exception("Methode AddLehrer in Schule fehlt.");
+            if (mFind == null) throw new Exception("Methode FindeVielBeschaeftigte in Schule fehlt.");
+            if (mAddKlasse == null) throw new Exception("Methode AddKlasse in Lehrer fehlt.");
 
-            object CreateKlasse(int count) => ctorKlasse.Invoke(new object[] { count });
+            // scene:
+            // lehrer 1 has 3 classes (should be found)
+            mAddKlasse.Invoke(l1, new object[] { k1 });
+            mAddKlasse.Invoke(l1, new object[] { k2 });
+            mAddKlasse.Invoke(l1, new object[] { k3 });
 
-            // logic test
-            // definition: > 2 classes and class.count >= 20
+            // lehrer 2 has 2 classes (shouldnt be found, strict > 2)
+            mAddKlasse.Invoke(l2, new object[] { k1 });
+            mAddKlasse.Invoke(l2, new object[] { k2 });
 
-            // lehrer a: matches
-            // class(25) [ok]
-            // class(30) [ok]
-            // class(15) [ignore, too small]
-            // class(20) [ok]
-            // total valid: 3; is 3 > 2? yes -> add
-            object lA = Activator.CreateInstance(tLehrer);
-            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(25) });
-            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(30) });
-            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(15) });
-            mAddKlasse.Invoke(lA, new object[] { CreateKlasse(20) });
+            mAddLehrer.Invoke(schule, new object[] { l1 });
+            mAddLehrer.Invoke(schule, new object[] { l2 });
 
-            // lehrer b: fails (not enough classes)
-            // class(25) [ok]
-            // class(25) [ok]
-            // total valid: 2; is 2 > 2? no -> ignore
-            object lB = Activator.CreateInstance(tLehrer);
-            mAddKlasse.Invoke(lB, new object[] { CreateKlasse(25) });
-            mAddKlasse.Invoke(lB, new object[] { CreateKlasse(25) });
+            object resultObj = mFind.Invoke(schule, null);
+            IList resultList = resultObj as IList;
 
-            // lehrer c: fails (classes too small)
-            // class(10)
-            // class(10)
-            // class(10)
-            // total valid: 0
-            object lC = Activator.CreateInstance(tLehrer);
-            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
-            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
-            mAddKlasse.Invoke(lC, new object[] { CreateKlasse(10) });
+            if (resultList == null) throw new Exception("Rückgabewert ist keine Liste.");
 
-            mAddLehrer.Invoke(schule, new object[] { lA });
-            mAddLehrer.Invoke(schule, new object[] { lB });
-            mAddLehrer.Invoke(schule, new object[] { lC });
-
-            object resObj = mFind.Invoke(schule, null);
-            IList resList = resObj as IList;
-
-            if (resList == null) throw new Exception("Rückgabe ist keine Liste.");
-
-            if (resList.Count == 1 && resList[0] == lA)
+            if (resultList.Count == 1)
             {
-                feedback = "Perfekt! Die verschachtelte Filterung (Anzahl Klassen > 2 und Schüler >= 20) funktioniert.";
-                return true;
+                if (resultList[0] == l1)
+                {
+                    feedback = "Korrekte Filterung! Überlastete Lehrer wurden identifiziert.";
+                    return true;
+                }
+                throw new Exception("Liste hat richtige Länge, aber falschen Inhalt.");
             }
 
-            if (resList.Contains(lB)) throw new Exception("Fehler: Ein Lehrer mit genau 2 großen Klassen wurde ausgewählt. Bedingung ist 'mehr als 2' (> 2).");
-            if (resList.Contains(lC)) throw new Exception("Fehler: Ein Lehrer mit zu kleinen Klassen (< 20 Schüler) wurde ausgewählt.");
+            if (resultList.Count == 2) throw new Exception("Es wurden zu viele Lehrer gefunden. Die Bedingung war 'mehr als 2' (> 2), nicht 'ab 2' (>= 2).");
 
-            throw new Exception($"Falsches Ergebnis. Erwartete Anzahl: 1, Erhalten: {resList.Count}.");
+            throw new Exception($"Falsche Anzahl Ergebnisse. Erwartet: 1, Erhalten: {resultList.Count}.");
         }
 
         private static bool TestLevel13(Assembly assembly, out string feedback)
