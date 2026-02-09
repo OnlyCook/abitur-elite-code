@@ -29,3 +29,6 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung ähnlich wie LeetCode, 
 ## Level Designer
 Erstelle intern eigene Levels die andere lösen können.
 > *Die Dokumentation zum Level Designer findest du [hier](https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE).*
+
+Falls du dir selbst Level erstellen willst um eigenständig für das Abitur zu lernen, kannst du auch Level einfach mithilfe von KI generieren.
+> *Die Anleitung zur Level-Erstellung mit KI findest du [hier](https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE).*
