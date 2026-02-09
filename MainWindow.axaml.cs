@@ -135,6 +135,7 @@ namespace AbiturEliteCode
             public string Author { get; set; }
             public string FilePath { get; set; }
             public bool IsDraft { get; set; } // .elitelvldraft = true; .elitelvl = false
+            public bool QuickGenerate { get; set; }
         }
 
         public MainWindow()
@@ -3091,6 +3092,173 @@ namespace AbiturEliteCode
                             };
                             Grid.SetColumn(actionPanel, 2);
 
+                            // quick export button
+                            if (cl.IsDraft && cl.QuickGenerate)
+                            {
+                                var btnQuickExport = new Button
+                                {
+                                    Content = LoadIcon("assets/icons/ic_generate.svg", 16),
+                                    Background = Brushes.Transparent,
+                                    Padding = new Thickness(8),
+                                    Tag = "idle" // state tracker
+                                };
+                                ToolTip.SetTip(btnQuickExport, "Quick Export (Automatisch)");
+
+                                btnQuickExport.Click += async (s, e) =>
+                                {
+                                    if (btnQuickExport.Tag.ToString() != "idle") return;
+
+                                    btnQuickExport.Tag = "pending";
+                                    btnQuickExport.Content = LoadIcon("assets/icons/ic_pending.svg", 16);
+                                    btnQuickExport.IsEnabled = false;
+
+                                    var cts = new System.Threading.CancellationTokenSource();
+
+                                    EventHandler<WindowClosingEventArgs> closingHandler = (sender, args) =>
+                                    {
+                                        cts.Cancel();
+                                        AddToConsole("\n> Quick Export abgebrochen (Fenster geschlossen).", Brushes.Orange);
+                                    };
+                                    win.Closing += closingHandler;
+
+                                    try
+                                    {
+                                        AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
+
+                                        var draft = LevelDesigner.LoadDraft(cl.FilePath);
+
+                                        bool valid = await Task.Run(async () =>
+                                        {
+                                            try
+                                            {
+                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" +
+                                                                  draft.TestCode;
+
+                                                string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
+
+                                                var references = new List<MetadataReference>
+                                                {
+                                                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                                                    MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+                                                    MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
+                                                    MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location),
+                                                    MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location)
+                                                };
+
+                                                var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
+                                                var compilation = CSharpCompilation.Create(
+                                                    $"QuickExport_{Guid.NewGuid()}",
+                                                    new[] { tree },
+                                                    references,
+                                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+                                                using (var ms = new MemoryStream())
+                                                {
+                                                    var result = compilation.Emit(ms, cancellationToken: cts.Token);
+                                                    if (!result.Success)
+                                                    {
+                                                        var diag = result.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+                                                        throw new Exception($"Kompilierfehler: {diag?.GetMessage() ?? "Unbekannt"}");
+                                                    }
+
+                                                    ms.Seek(0, SeekOrigin.Begin);
+                                                    var assembly = Assembly.Load(ms.ToArray());
+
+                                                    // compile validator
+                                                    var valTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
+                                                    var valCompilation = CSharpCompilation.Create(
+                                                        $"Validator_{Guid.NewGuid()}",
+                                                        new[] { valTree },
+                                                        references,
+                                                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+                                                    using (var valMs = new MemoryStream())
+                                                    {
+                                                        var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
+                                                        if (!valResult.Success)
+                                                        {
+                                                            var diag = valResult.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+                                                            throw new Exception($"Fehler im Validierungs-Code: {diag?.GetMessage()}");
+                                                        }
+
+                                                        valMs.Seek(0, SeekOrigin.Begin);
+                                                        var valAssembly = Assembly.Load(valMs.ToArray());
+                                                        var valType = valAssembly.GetType("DesignerValidator");
+                                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                                            .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
+
+                                                        if (valMethod == null) throw new Exception("Validierungsmethode Signatur ungültig.");
+
+                                                        // run validation
+                                                        object[] args = new object[] { assembly, null };
+                                                        bool passed = (bool)valMethod.Invoke(null, args);
+
+                                                        if (!passed) throw new Exception($"Validierung nicht bestanden: {args[1]}");
+                                                        return true;
+                                                    }
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                if (cts.Token.IsCancellationRequested) return false;
+                                                await Dispatcher.UIThread.InvokeAsync(() =>
+                                                    AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
+                                                return false;
+                                            }
+                                        }, cts.Token);
+
+                                        if (!valid) throw new Exception("Validierung fehlgeschlagen.");
+
+                                        // generate diagrams
+                                        AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
+
+                                        if (!string.IsNullOrWhiteSpace(draft.PlantUmlSource))
+                                        {
+                                            string prepared = PreparePlantUmlSource(draft.PlantUmlSource);
+                                            draft.PlantUmlSvgContent = await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                        }
+
+                                        for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
+                                            {
+                                                string prepared = PreparePlantUmlSource(draft.MaterialDiagrams[i].PlantUmlSource);
+                                                draft.MaterialDiagrams[i].PlantUmlSvgContent = await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                            }
+                                        }
+
+                                        // export
+                                        LevelDesigner.ExportLevel(cl.FilePath, draft);
+
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
+                                        AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
+
+                                        RefreshUI();
+                                    }
+                                    catch (OperationCanceledException) { }
+                                    catch (Exception)
+                                    {
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
+                                    }
+                                    finally
+                                    {
+                                        win.Closing -= closingHandler;
+                                        cts.Dispose();
+
+                                        // reset button state after delay
+                                        await Task.Delay(2000);
+                                        if (btnQuickExport.Content != null)
+                                        {
+                                            btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
+                                            btnQuickExport.IsEnabled = true;
+                                            btnQuickExport.Tag = "idle";
+                                        }
+                                    }
+                                };
+
+                                actionPanel.Children.Add(btnQuickExport);
+                            }
+
                             // edit button
                             if (cl.IsDraft)
                             {
@@ -3171,7 +3339,7 @@ namespace AbiturEliteCode
 
             if (!Directory.Exists(path)) return list;
 
-            (string name, string author) GetMetadata(string file)
+            (string name, string author, bool quickGen) GetMetadata(string file)
             {
                 try
                 {
@@ -3181,12 +3349,20 @@ namespace AbiturEliteCode
                         var root = doc.RootElement;
                         string name = root.TryGetProperty("Name", out var n) ? n.GetString() : Path.GetFileNameWithoutExtension(file);
                         string author = root.TryGetProperty("Author", out var a) ? a.GetString() : "Unbekannt";
-                        return (name, author);
+
+                        bool quickGen = false;
+                        if (root.TryGetProperty("QuickGenerate", out var qg))
+                        {
+                            if (qg.ValueKind == JsonValueKind.True) quickGen = true;
+                            if (qg.ValueKind == JsonValueKind.String && qg.GetString().ToLower() == "true") quickGen = true;
+                        }
+
+                        return (name, author, quickGen);
                     }
                 }
                 catch
                 {
-                    return (Path.GetFileNameWithoutExtension(file), "Fehler");
+                    return (Path.GetFileNameWithoutExtension(file), "Fehler", false);
                 }
             }
 
@@ -3212,7 +3388,8 @@ namespace AbiturEliteCode
                     Name = meta.name,
                     Author = meta.author,
                     FilePath = file,
-                    IsDraft = true
+                    IsDraft = true,
+                    QuickGenerate = meta.quickGen
                 });
             }
 

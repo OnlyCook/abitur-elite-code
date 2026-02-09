@@ -30,6 +30,7 @@ namespace AbiturEliteCode.cs
         public string PlantUmlSource { get; set; } = "@startuml\nAlice -> Bob: Hello\n@enduml";
         public string PlantUmlSvgContent { get; set; } = "";
         public List<DiagramData> MaterialDiagrams { get; set; } = new List<DiagramData>();
+        public bool QuickGenerate { get; set; } = false;
     }
 
     public static class LevelDesigner
