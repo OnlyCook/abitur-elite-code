@@ -343,7 +343,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                        "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
                     },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
@@ -379,7 +379,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                        "@startuml\nclass Lager {\n  + sortiere()\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
                     },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
@@ -416,6 +416,10 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    "   aktuell = aktuell.getNachfolger();\n" +
                                    "}|}\n" +
                                    "Nach der Schleife ist [aktuell] das letzte Element.\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Sonderfall leere Liste\n" +
+                                   "Wenn kein Kopf existiert, setzen Sie den Kopf auf den neuen Knoten.\n" +
+                                   "**Wichtig**: Schreiben Sie direkt danach ein [return;]. Damit wird die Methode sofort beendet, denn wenn es keinen Kopf gab ist der neue Kopf gleichzeitig das Ende der verketteten Liste und das Ziel der Methode ist erfüllt.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {

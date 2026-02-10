@@ -199,15 +199,18 @@ namespace AbiturEliteCode
 
                 string lineText = _editor.Document.GetText(caretLine).Trim();
                 bool isOpeningBlock = lineText.Contains("{");
+                bool isClosingBlock = lineText.Contains("}");
 
                 if (caretLine.Length == 0 || string.IsNullOrWhiteSpace(_editor.Document.GetText(caretLine)))
                 {
                     caretIndent = GetContextIndent(_editor.Document, caretLineNum);
                 }
 
-                if (caretIndent > 0 || isOpeningBlock)
+                // if caret is on a line with braces -> use that indentation level otherwise go one level deeper
+                if (caretIndent > 0 || isOpeningBlock || isClosingBlock)
                 {
-                    activeGuideIndex = isOpeningBlock ? caretIndent : caretIndent - 1;
+                    // if opening or closing block -> use current indent else use parent
+                    activeGuideIndex = (isOpeningBlock || isClosingBlock) ? caretIndent : caretIndent - 1;
 
                     // find start of scope (scan up)
                     for (int i = caretLineNum - 1; i >= 1; i--)
