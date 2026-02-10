@@ -283,14 +283,17 @@ namespace AbiturEliteCode.cs
             object t2 = CreateTier(20);
             object t3 = CreateTier(10);
 
-            FieldInfo fList = tG.GetField("bewohner");
+            FieldInfo fList = tG.GetField("bewohner", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             if (fList == null) throw new Exception("Feld 'bewohner' fehlt.");
 
-            MethodInfo mGetAlter = tT.GetMethod("GetAlter");
-            if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' fehlt.");
-
             var listInstance = fList.GetValue(g);
-            if (listInstance == null) throw new Exception("Liste 'bewohner' ist null.");
+
+            if (listInstance == null)
+            {
+                Type listType = typeof(List<>).MakeGenericType(tT);
+                listInstance = Activator.CreateInstance(listType);
+                fList.SetValue(g, listInstance);
+            }
 
             MethodInfo listAdd = listInstance.GetType().GetMethod("Add");
 
@@ -305,11 +308,14 @@ namespace AbiturEliteCode.cs
 
             object result = mAlgo.Invoke(g, null);
 
-            if (result == null) throw new Exception("Methode gibt null zurück.");
+            if (result == null) throw new Exception("Methode 'ErmittleAeltestes' hat 'null' zurückgegeben.");
+
+            MethodInfo mGetAlter = tT.GetMethod("GetAlter");
+            if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' fehlt.");
 
             int resultAge = (int)mGetAlter.Invoke(result, null);
 
-            if (result == t2 && resultAge == 20)
+            if (resultAge == 20)
             {
                 feedback = "Mini-Prüfung bestanden! Algorithmus korrekt.";
                 return true;

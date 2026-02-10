@@ -14,7 +14,7 @@ namespace AbiturEliteCode.cs
     // uml diagrams in need of conversion into c# code in the abitur are: uml class diagrams, uml sequence diagrams, and Nassi–Shneiderman diagrams, also given can be pseudo-code
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
-    // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class for example should not be initalized outside of their constructor, as thats how the abitur does it)
+    // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class, for example, should be able to be initalized inside their constructor, as thats how the abitur does it, initalizing them in the declaration should be possible, but not the expected way)
     // on later levels the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
     // what you commonly also see in the uml class diagrams in the abitur exams is "static int autowert = 0" or an id for a class, which the user must increment in the constructor (or in rare cases) set to a given id, this mechanic should also be added in more difficult levels where its appropriate
     // note: adequate abitur level language should be used as well as technical vocabulary
@@ -279,7 +279,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml"
+                        "@startuml\nclass Gehege {\n  + Gehege()\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + Tier(alter : int)\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml"
                     },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
