@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace AbiturEliteCode.cs
 {
@@ -36,9 +37,9 @@ namespace AbiturEliteCode.cs
         public string Title { get; set; }
         public string Description { get; set; }
         public string StarterCode { get; set; }
-        public string DiagramPath { get; set; }
         public string MaterialDocs { get; set; }
-        public string PlantUMLSource { get; set; }
+        public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
+        public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
         public List<string> AuxiliaryIds { get; set; } = new List<string>();
         public List<string> Prerequisites { get; set; } = new List<string>();
         public List<string> OptionalPrerequisites { get; set; } = new List<string>();
@@ -134,13 +135,19 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Description = "Überführen Sie die Klasse [Tier] aus dem UML-Klassendiagramm in C#-Code.\n\n" +
                                   "Das Diagramm zeigt die Java-Notation. Beachten Sie die Unterschiede zu C#.",
                     StarterCode = "public class Tier\n{\n    // Implementation hier\n}",
-                    DiagramPath = "img\\sec1\\lvl1.svg",
                     MaterialDocs = "start-hint: Datentypen & Modifier\n" +
                                    "In Java schreibt man [String], in C# [string].\n" +
                                    "Beide Sprachen verwenden [int] für Ganzzahlen.\n" +
                                    "Private Felder werden mit [-], public mit [+] markiert.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Tier {\n  - name : String\n  - alter : int\n  + Tier(name : String, alter : int)\n}\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec1\\lvl1-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Tier {\n  - name : String\n  - alter : int\n  + Tier(name : String, alter : int)\n}\n@enduml"
+                    },
                     Prerequisites = new List<string>
                     {
                         "Defining a Class", "Fields", "Public Access Modifier", "Private Access Modifier",
@@ -160,14 +167,20 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "2. Der Setter darf das Alter nur ändern, wenn der neue Wert größer als der alte ist.\n" +
                                   "3. Der Getter gibt den aktuellen Wert des Alters zurück.",
                     StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
-                    DiagramPath = "img\\sec1\\lvl2.svg",
                     MaterialDocs = "start-hint: Namenskonventionen\n" +
                                    "In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Logik im Setter\n" +
                                    "Verwenden Sie eine [if]-Bedingung im Setter, um zu prüfen, ob [neuesAlter > alter] ist.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int)\n  + getAlter() : int\n}\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec1\\lvl2-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Tier {\n  - alter : int\n  + setAlter(neuesAlter : int)\n  + getAlter() : int\n}\n@enduml"
+                    },
                     Prerequisites = new List<string>
                     {
                         "Properties", "If statements", "Comparison operators", "Return values", "Defining void methods"
@@ -186,7 +199,6 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "2. [Loewe] erbt von [Tier] und implementiert die Methode [Bruellen()].\n" +
                                   "3. Der Konstruktor von [Loewe] ruft den Basis-Konstruktor auf.",
                     StarterCode = "// Implementieren Sie beide Klassen vollständig\n",
-                    DiagramPath = "img\\sec1\\lvl3.svg",
                     MaterialDocs = "start-hint: Syntax für Vererbung\n" +
                                    "In Java schreibt man [public abstract class Tier], in C# identisch.\n" +
                                    "Vererbung: Java verwendet [extends], C# verwendet [:].\n" +
@@ -197,7 +209,14 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    "start-hint: Methode Bruellen\n" +
                                    "Die Methode [Bruellen()] kann einen beliebigen String zurückgeben, z.B. \"ROAR!\"\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nabstract class Tier {\n  # name : String\n  + Tier(name : String)\n}\nclass Loewe {\n  - laenge : int\n  + Loewe(name : String, laenge : int)\n  + bruellen() : String\n}\nTier <|-- Loewe\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec1\\lvl3-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nabstract class Tier {\n  # name : String\n  + Tier(name : String)\n}\nclass Loewe {\n  - laenge : int\n  + Loewe(name : String, laenge : int)\n  + bruellen() : String\n}\nTier <|-- Loewe\n@enduml"
+                    },
                     Prerequisites = new List<string>
                     {
                         "Inheritance Basics", "Abstract Classes", "The base Keyword", "Abstract Methods", "Method Overriding"
@@ -217,9 +236,15 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
                                   "Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse Tier.",
                     StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
-                    DiagramPath = "img\\sec1\\lvl4.svg",
                     MaterialDocs = listDocsHints,
-                    PlantUMLSource = "@startuml\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec1\\lvl4-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Gehege {\n  + Gehege()\n  + hinzufuegen(t : Tier)\n  + anzahlTiere() : int\n}\nclass Tier {\n  + Tier()\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
@@ -240,7 +265,6 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
                     StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner;\n    \n    // Implementation hier\n}\n",
-                    DiagramPath = "img\\sec1\\lvl5.svg",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Strategie für die Suche\n" +
                                    "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = null;].\n" +
@@ -249,7 +273,14 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    "4. Wenn ja: Setzen Sie [aeltestes] auf das aktuelle Tier.\n" +
                                    "5. Geben Sie am Ende [aeltestes] zurück.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec1\\lvl5-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Gehege {\n  + ermittleAeltestes() : Tier\n}\nclass Tier {\n  - alter : int\n  + getAlter() : int\n}\nGehege x--> \"*\" Tier : -bewohner\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
@@ -270,12 +301,18 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
                                   "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n",
                     StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
-                    DiagramPath = "img\\sec2\\lvl6.svg",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Startwert für Suche\n" +
                                    "Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + ermittleLeichtestes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec2\\lvl6-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + ermittleLeichtestes() : Paket\n}\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
@@ -296,12 +333,18 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "1. An den übergebenen [ort] adressiert sind.\n" +
                                   "2. **Und** schwerer als 10.0 kg sind.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public List<Paket> FilterePakete(string ort)\n    {\n        // Implementation hier\n        return null;\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl7.svg",
                     MaterialDocs = "start-hint: C# Operatoren\n" +
                                    "Strings vergleicht man in C# mit [==] oder [Equals()].\n" +
                                    "[&&] ist der Operator für das logische UND.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec2\\lvl7-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Lager {\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
@@ -320,7 +363,6 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [Sortiere()].\n" +
                                   "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl8.svg",
                     MaterialDocs = "start-hint: Bubble Sort Logik\n" +
                                    "1. Äußere Schleife von [i=0] bis [n-1]\n" +
                                    "2. Innere Schleife von [j=0] bis [n-i-1]\n" +
@@ -331,7 +373,14 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    "pakete[j] = pakete[j+1];\n" +
                                    "pakete[j+1] = temp;|}\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec2\\lvl8-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Lager {\n  + sortiere()\n}\nnote right: Sortierung nach Gewicht (aufsteigend)\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
@@ -353,7 +402,6 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
                                   "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
                     StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl9.svg",
                     MaterialDocs = "start-hint: Wie funktionieren Verkettete Listen? (Simpel)\n" +
                                    "Stell dir eine Schnitzeljagd (Schatzsuche) vor:\n" +
                                    "• Der [kopf] ist der erste Zettel, den du in die Hand bekommst.\n" +
@@ -369,7 +417,14 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    "}|}\n" +
                                    "Nach der Schleife ist [aktuell] das letzte Element.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec2\\lvl9-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
@@ -393,11 +448,17 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Sortieren nach Gewicht (Absteigend)\n" +
                                   "• Maximal 3 Elemente zurückgeben.",
                     StarterCode = "public class LogistikZentrum\n{\n    private List<Paket> allePakete;\n\n    public List<Paket> GetTop3Schwere(string ort)\n    {\n        return null;\n    }\n}",
-                    DiagramPath = "img\\sec2\\lvl10.svg",
                     MaterialDocs = "start-tipp: Transferleistung\n" +
                                    "Sie können Ihre Bubble-Sort Logik wiederverwenden oder Hilfslisten nutzen.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass LogistikZentrum {\n  + LogistikZentrum()\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec2\\lvl10-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass LogistikZentrum {\n  + LogistikZentrum()\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
                     {
@@ -426,14 +487,20 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Berechnen Sie den Notendurchschnitt (double), aber berücksichtigen Sie nur Schüler, die **bestanden haben** (Note > 4 Punkte).\n" +
                                   "Gibt es keine bestandenen Prüfungen, geben Sie 0.0 zurück.",
                     StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}",
-                    DiagramPath = "img\\sec3\\lvl11.svg",
                     MaterialDocs = "start-hint: Initialisierung\n" +
                                    "Im Abitur ist es üblich, Listen im Konstruktor zu instanziieren: [liste = new List<T>();]\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Filtern und Zählen\n" +
                                    "Sie dürfen nicht durch [liste.Count] teilen, sondern durch die Anzahl der Schüler, die tatsächlich in die Summe eingegangen sind (Counter in der Schleife).\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + berechneSchnittBestanden() : double\n}\nclass Schueler {\n  - note : int\n  + Schueler(note : int)\n  + getNote() : int\n}\nKlasse x--> \"*\" Schueler : -schuelerListe\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec3\\lvl11-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + berechneSchnittBestanden() : double\n}\nclass Schueler {\n  - note : int\n  + Schueler(note : int)\n  + getNote() : int\n}\nKlasse x--> \"*\" Schueler : -schuelerListe\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
@@ -455,12 +522,18 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
                                   "\n\nHinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.",
                     StarterCode = "public class Klasse\n{\n    // Kann leer bleiben\n}\n\npublic class Lehrer\n{\n}\n\npublic class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}",
-                    DiagramPath = "img\\sec3\\lvl12.svg",
                     MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
                                    "Hier ist die Kette: Schule -> Lehrer -> Liste<Klasse>.\n" +
                                    "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und *darauf* die Eigenschaft [.Count] prüfen.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addLehrer(l : Lehrer)\n  + findeVielBeschaeftigte() : List<Lehrer>\n}\nclass Lehrer {\n  + Lehrer()\n  + addKlasse(k : Klasse)\n  + getKlassen() : List<Klasse>\n}\nclass Klasse {\n}\nSchule x--> \"*\" Lehrer : -lehrerListe\nLehrer x--> \"*\" Klasse : -klassen\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec3\\lvl12-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Schule {\n  + Schule()\n  + addLehrer(l : Lehrer)\n  + findeVielBeschaeftigte() : List<Lehrer>\n}\nclass Lehrer {\n  + Lehrer()\n  + addKlasse(k : Klasse)\n  + getKlassen() : List<Klasse>\n}\nclass Klasse {\n}\nSchule x--> \"*\" Lehrer : -lehrerListe\nLehrer x--> \"*\" Klasse : -klassen\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
@@ -483,9 +556,15 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• **Nicht entschuldigt** ist\n" +
                                   "• **Und** im letzten Monat lag (Datum ist **nach** [Heute - 1 Monat]).",
                     StarterCode = "public class Fehltag\n{\n}\n\npublic class Schueler\n{\n    public bool HatKritischGefehlt()\n    {\n        return false;\n    }\n}",
-                    DiagramPath = "img\\sec3\\lvl13.svg",
                     MaterialDocs = localDateHint,
-                    PlantUMLSource = "@startuml\nclass Schueler {\n  + Schueler()\n  + addFehltag(f : Fehltag)\n  + hatKritischGefehlt() : boolean\n}\nclass Fehltag {\n  - datum : LocalDate\n  - entschuldigt : boolean\n  + Fehltag(d : LocalDate, e : boolean)\n  + getDatum() : LocalDate\n  + istEntschuldigt() : boolean\n}\nSchueler x--> \"*\" Fehltag : -fehltage\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec3\\lvl13-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Schueler {\n  + Schueler()\n  + addFehltag(f : Fehltag)\n  + hatKritischGefehlt() : boolean\n}\nclass Fehltag {\n  - datum : LocalDate\n  - entschuldigt : boolean\n  + Fehltag(d : LocalDate, e : boolean)\n  + getDatum() : LocalDate\n  + istEntschuldigt() : boolean\n}\nSchueler x--> \"*\" Fehltag : -fehltage\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT", "LocalDate" },
                     Prerequisites = new List<string>
                     {
@@ -508,12 +587,18 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Wenn ein Schüler weniger als 5 Punkte hat, fügen Sie folgende Zeile zum Ergebnis-String hinzu:\n" +
                                   "\"Warnung an Eltern von [Name] (Klasse [Bezeichnung]): Note [Note] ist kritisch!\\n\"",
                     StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}\n\npublic class Schule\n{\n    public string ErstelleWarnungen()\n    {\n        string bericht = \"\";\n        // Implementation\n        return bericht;\n    }\n}",
-                    DiagramPath = "img\\sec3\\lvl14.svg",
                     MaterialDocs = "start-hint: String Aufbau\n" +
                                    "Nutzen Sie den Verkettungsoperator [+] oder [+=], um den String zusammenzubauen.\n" +
                                    "Vergessen Sie nicht den Zeilenumbruch [\\n] am Ende jeder Warnung.\n" +
                                    ":end-hint",
-                    PlantUMLSource = "@startuml\nclass Schule {\n  + Schule()\n  + addKlasse(k : Klasse)\n  + erstelleWarnungen() : String\n}\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + getSchueler() : List<Schueler>\n  + getBezeichnung() : String\n}\nclass Schueler {\n  - name : String\n  - note : int\n  + Schueler(name : String, note : int)\n  + getNote() : int\n  + getName() : String\n}\nSchule x--> \"*\" Klasse : -klassen\nKlasse x--> \"*\" Schueler : -schueler\n@enduml",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec3\\lvl14-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Schule {\n  + Schule()\n  + addKlasse(k : Klasse)\n  + erstelleWarnungen() : String\n}\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + getSchueler() : List<Schueler>\n  + getBezeichnung() : String\n}\nclass Schueler {\n  - name : String\n  - note : int\n  + Schueler(name : String, note : int)\n  + getNote() : int\n  + getName() : String\n}\nSchule x--> \"*\" Klasse : -klassen\nKlasse x--> \"*\" Schueler : -schueler\n@enduml"
+                    },
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {

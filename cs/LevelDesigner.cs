@@ -27,8 +27,8 @@ namespace AbiturEliteCode.cs
         public string StarterCode { get; set; } = "public class MyClass \n{\n    // Code hier\n}";
         public string ValidationCode { get; set; } = "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
         public string TestCode { get; set; } = "";
-        public string PlantUmlSource { get; set; } = "@startuml\nAlice -> Bob: Hello\n@enduml";
-        public string PlantUmlSvgContent { get; set; } = "";
+        public List<string> PlantUmlSources { get; set; } = new List<string> { "@startuml\nAlice -> Bob: Hello\n@enduml" };
+        public List<string> PlantUmlSvgContents { get; set; } = new List<string>();
         public List<DiagramData> MaterialDiagrams { get; set; } = new List<DiagramData>();
         public bool QuickGenerate { get; set; } = false;
     }
@@ -42,6 +42,19 @@ namespace AbiturEliteCode.cs
             {
                 string json = File.ReadAllText(path);
                 var draft = JsonSerializer.Deserialize<LevelDraft>(json);
+
+                if (draft != null)
+                {
+                    if (draft.PlantUmlSources == null) draft.PlantUmlSources = new List<string>();
+                    if (draft.PlantUmlSources.Count == 0) draft.PlantUmlSources.Add("@startuml\nAlice -> Bob: Hello\n@enduml");
+
+                    if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
+                    while (draft.PlantUmlSvgContents.Count < draft.PlantUmlSources.Count)
+                    {
+                        draft.PlantUmlSvgContents.Add("");
+                    }
+                }
+
                 return draft ?? new LevelDraft();
             }
             catch
@@ -72,7 +85,9 @@ namespace AbiturEliteCode.cs
                 Prerequisites = draft.Prerequisites,
                 StarterCode = draft.StarterCode,
                 ValidationCode = draft.ValidationCode,
-                PlantUmlSvg = draft.PlantUmlSvgContent,
+                PlantUmlSvgs = draft.PlantUmlSvgContents,
+                PlantUmlSources = draft.PlantUmlSources,
+
                 MaterialDiagramSvgs = draft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList()
             };
 

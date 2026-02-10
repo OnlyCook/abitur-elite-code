@@ -75,6 +75,7 @@ namespace AbiturEliteCode
         private Point _lastMousePoint;
         private bool _isDragging = false;
         private double _currentScale = 1.0;
+        private int _currentDiagramIndex = 0;
 
         private System.Threading.CancellationTokenSource? _compilationCts;
         private TextMarkerService _textMarkerService;
@@ -846,7 +847,41 @@ namespace AbiturEliteCode
             ClearDiagnostics();
 
             currentLevel = level;
+            _currentDiagramIndex = 0;
             BtnNextLevel.IsVisible = false;
+
+            PnlDiagramSwitch.IsVisible = false;
+            BtnDiagram1.IsVisible = false;
+            BtnDiagram2.IsVisible = false;
+            BtnDiagram3.IsVisible = false;
+
+            if (level.DiagramPaths != null && level.DiagramPaths.Count > 0)
+            {
+                ImgDiagram.Source = LoadDiagramImage(level.DiagramPaths[0]);
+                TxtNoDiagram.IsVisible = false;
+
+                if (level.DiagramPaths.Count > 1)
+                {
+                    PnlDiagramSwitch.IsVisible = true;
+                    BtnDiagram1.IsVisible = true;
+                    BtnDiagram2.IsVisible = true;
+
+                    // highlight first button
+                    BtnDiagram1.Background = SolidColorBrush.Parse("#007ACC");
+                    BtnDiagram2.Background = SolidColorBrush.Parse("#3C3C3C");
+                    BtnDiagram3.Background = SolidColorBrush.Parse("#3C3C3C");
+
+                    if (level.DiagramPaths.Count >= 3)
+                    {
+                        BtnDiagram3.IsVisible = true;
+                    }
+                }
+            }
+            else
+            {
+                ImgDiagram.Source = null;
+                TxtNoDiagram.IsVisible = true;
+            }
 
             string rawCode = level.StarterCode;
             if (_isCustomLevelMode)
@@ -939,9 +974,9 @@ namespace AbiturEliteCode
 
             try
             {
-                if (!string.IsNullOrEmpty(level.DiagramPath))
+                if (level.DiagramPaths != null && level.DiagramPaths.Count > 0)
                 {
-                    ImgDiagram.Source = LoadDiagramImage(level.DiagramPath);
+                    ImgDiagram.Source = LoadDiagramImage(level.DiagramPaths[0]);
                     TxtNoDiagram.IsVisible = false;
                 }
                 else
@@ -1641,6 +1676,34 @@ namespace AbiturEliteCode
                 _isDragging = false;
                 (sender as Control).Cursor = Cursor.Default;
                 e.Handled = true;
+            }
+        }
+
+        private void BtnDiagramSwitch_Click(object sender, RoutedEventArgs e)
+        {
+            if (currentLevel == null || currentLevel.DiagramPaths == null) return;
+            if (sender is Button btn && int.TryParse(btn.Tag?.ToString(), out int index))
+            {
+                if (index >= 0 && index < currentLevel.DiagramPaths.Count)
+                {
+                    _currentDiagramIndex = index;
+                    ImgDiagram.Source = LoadDiagramImage(currentLevel.DiagramPaths[index]);
+
+                    if (ImgScale != null && ImgTranslate != null)
+                    {
+                        _currentScale = 0.5;
+                        ImgScale.ScaleX = _currentScale;
+                        ImgScale.ScaleY = _currentScale;
+                        ImgTranslate.X = 0;
+                        ImgTranslate.Y = 0;
+                        ImgDiagram.HorizontalAlignment = HorizontalAlignment.Center;
+                        ImgDiagram.VerticalAlignment = VerticalAlignment.Center;
+                    }
+
+                    BtnDiagram1.Background = index == 0 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                    BtnDiagram2.Background = index == 1 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                    BtnDiagram3.Background = index == 2 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                }
             }
         }
 
@@ -3213,10 +3276,30 @@ namespace AbiturEliteCode
                                         // generate diagrams
                                         AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
 
-                                        if (!string.IsNullOrWhiteSpace(draft.PlantUmlSource))
+                                        if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0)
                                         {
-                                            string prepared = PreparePlantUmlSource(draft.PlantUmlSource);
-                                            draft.PlantUmlSvgContent = await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                            draft.PlantUmlSvgContents ??= new List<string>();
+
+                                            for (int i = 0; i < draft.PlantUmlSources.Count; i++)
+                                            {
+                                                string source = draft.PlantUmlSources[i];
+                                                if (string.IsNullOrWhiteSpace(source)) continue;
+
+                                                try
+                                                {
+                                                    string prepared = PreparePlantUmlSource(source);
+                                                    string svg = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+
+                                                    while (draft.PlantUmlSvgContents.Count <= i)
+                                                        draft.PlantUmlSvgContents.Add("");
+
+                                                    draft.PlantUmlSvgContents[i] = svg;
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    AddToConsole($"\n> Fehler beim Generieren des Diagramms {i}: {ex.Message}", Brushes.Orange);
+                                                }
+                                            }
                                         }
 
                                         for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
@@ -4809,14 +4892,17 @@ namespace AbiturEliteCode
 
                 TxtDesignTesting.Text = !string.IsNullOrEmpty(_currentDraft.TestCode) ? _currentDraft.TestCode : "";
 
-                TxtDesignPlantUml.Text = _currentDraft.PlantUmlSource ?? "";
+                if (_currentDraft.PlantUmlSources.Count > 0)
+                    TxtDesignPlantUml.Text = _currentDraft.PlantUmlSources[0];
+                else
+                    TxtDesignPlantUml.Text = "";
 
                 ImgDiagram.Source = null;
                 if (ImgScale != null) { ImgScale.ScaleX = 0.5; ImgScale.ScaleY = 0.5; }
 
-                if (!string.IsNullOrEmpty(_currentDraft.PlantUmlSvgContent))
+                if (_currentDraft.PlantUmlSvgContents.Count > 0 && !string.IsNullOrEmpty(_currentDraft.PlantUmlSvgContents[0]))
                 {
-                    ImgDiagram.Source = LoadSvgFromString(_currentDraft.PlantUmlSvgContent);
+                    ImgDiagram.Source = LoadSvgFromString(_currentDraft.PlantUmlSvgContents[0]);
                 }
 
                 _activeDiagramIndex = 0;
@@ -4989,7 +5075,7 @@ namespace AbiturEliteCode
             AddToConsole("\n> Generiere alle Diagramme für finalen Export...", Brushes.LightGray);
             BtnDesignerExport.IsEnabled = false;
 
-            // generate main diagram
+            // generate main diagram (index 0)
             bool mainSuccess = await GenerateDiagramByIndex(0);
 
             // generate material diagrams
@@ -5004,8 +5090,9 @@ namespace AbiturEliteCode
                 AddToConsole("\n⚠ Hinweis: Einige Diagramme konnten nicht aktualisiert werden.", Brushes.Orange);
             }
 
-            _verifiedDraftState.PlantUmlSource = _currentDraft.PlantUmlSource;
-            _verifiedDraftState.PlantUmlSvgContent = _currentDraft.PlantUmlSvgContent;
+            _verifiedDraftState.PlantUmlSources = new List<string>(_currentDraft.PlantUmlSources);
+            _verifiedDraftState.PlantUmlSvgContents = new List<string>(_currentDraft.PlantUmlSvgContents);
+
             _verifiedDraftState.MaterialDiagrams = new List<DiagramData>();
             foreach (var md in _currentDraft.MaterialDiagrams)
             {
@@ -5026,8 +5113,15 @@ namespace AbiturEliteCode
         private async Task<bool> GenerateDiagramByIndex(int index)
         {
             string source = "";
-            if (index == 0) source = _currentDraft.PlantUmlSource;
-            else source = _currentDraft.MaterialDiagrams[index - 1].PlantUmlSource;
+            if (index == 0)
+            {
+                if (_currentDraft.PlantUmlSources.Count > 0)
+                    source = _currentDraft.PlantUmlSources[0];
+            }
+            else
+            {
+                source = _currentDraft.MaterialDiagrams[index - 1].PlantUmlSource;
+            }
 
             if (string.IsNullOrWhiteSpace(source)) return true;
 
@@ -5036,8 +5130,15 @@ namespace AbiturEliteCode
                 string prepared = PreparePlantUmlSource(source);
                 string svg = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
 
-                if (index == 0) _currentDraft.PlantUmlSvgContent = svg;
-                else _currentDraft.MaterialDiagrams[index - 1].PlantUmlSvgContent = svg;
+                if (index == 0)
+                {
+                    while (_currentDraft.PlantUmlSvgContents.Count <= 0) _currentDraft.PlantUmlSvgContents.Add("");
+                    _currentDraft.PlantUmlSvgContents[0] = svg;
+                }
+                else
+                {
+                    _currentDraft.MaterialDiagrams[index - 1].PlantUmlSvgContent = svg;
+                }
 
                 return true;
             }
@@ -5401,8 +5502,12 @@ namespace AbiturEliteCode
 
             if (string.IsNullOrWhiteSpace(rawCode))
             {
-                _currentDraft.PlantUmlSource = "";
-                _currentDraft.PlantUmlSvgContent = "";
+                if (_activeDiagramIndex == 0 && _currentDraft.PlantUmlSources.Count > 0)
+                {
+                    _currentDraft.PlantUmlSources[0] = "";
+                    if (_currentDraft.PlantUmlSvgContents.Count > 0) _currentDraft.PlantUmlSvgContents[0] = "";
+                }
+
                 ImgDiagram.Source = null;
                 return true;
             }
@@ -5417,8 +5522,11 @@ namespace AbiturEliteCode
 
                 if (_activeDiagramIndex == 0)
                 {
-                    _currentDraft.PlantUmlSource = rawCode;
-                    _currentDraft.PlantUmlSvgContent = svgContent;
+                    if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
+                    if (_currentDraft.PlantUmlSvgContents.Count == 0) _currentDraft.PlantUmlSvgContents.Add("");
+
+                    _currentDraft.PlantUmlSources[0] = rawCode;
+                    _currentDraft.PlantUmlSvgContents[0] = svgContent;
 
                     ImgDiagram.Source = LoadSvgFromString(svgContent);
                 }
@@ -5523,7 +5631,8 @@ namespace AbiturEliteCode
 
             if (_activeDiagramIndex == 0)
             {
-                _currentDraft.PlantUmlSource = content;
+                if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
+                _currentDraft.PlantUmlSources[0] = content;
             }
             else
             {
@@ -5540,7 +5649,8 @@ namespace AbiturEliteCode
             string content = "";
             if (_activeDiagramIndex == 0)
             {
-                content = _currentDraft.PlantUmlSource;
+                if (_currentDraft.PlantUmlSources.Count > 0)
+                    content = _currentDraft.PlantUmlSources[0];
             }
             else
             {
@@ -5601,7 +5711,9 @@ namespace AbiturEliteCode
                     SkipCode = "CUST",
                     Section = "Eigene Levels",
                     Prerequisites = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    DiagramPaths = new List<string>(),
+                    PlantUMLSources = new List<string>()
                 };
 
                 if (root.TryGetProperty("Author", out var authorElem))
@@ -5618,7 +5730,9 @@ namespace AbiturEliteCode
                     {
                         string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
                         File.WriteAllText(tempSvgPath, svgContent);
-                        loadedLevel.DiagramPath = tempSvgPath;
+
+                        if (loadedLevel.DiagramPaths == null) loadedLevel.DiagramPaths = new List<string>();
+                        loadedLevel.DiagramPaths.Add(tempSvgPath);
                     }
                 }
 
@@ -5627,6 +5741,41 @@ namespace AbiturEliteCode
                 {
                     foreach (var s in svgsElem.EnumerateArray())
                         _currentCustomSvgs.Add(s.GetString());
+                }
+
+                if (root.TryGetProperty("PlantUmlSvgs", out var svgsListElem))
+                {
+                    int idx = 0;
+                    foreach (var svgElem1 in svgsListElem.EnumerateArray())
+                    {
+                        string svgContent = svgElem1.GetString();
+                        if (!string.IsNullOrEmpty(svgContent))
+                        {
+                            string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}_{idx}.svg");
+                            File.WriteAllText(tempSvgPath, svgContent);
+                            loadedLevel.DiagramPaths.Add(tempSvgPath);
+                        }
+                        idx++;
+                    }
+                }
+                else if (root.TryGetProperty("PlantUmlSvg", out var singleSvgElem)) // fallback
+                {
+                    string svgContent = singleSvgElem.GetString();
+                    if (!string.IsNullOrEmpty(svgContent))
+                    {
+                        string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
+                        File.WriteAllText(tempSvgPath, svgContent);
+                        loadedLevel.DiagramPaths.Add(tempSvgPath);
+                    }
+                }
+
+                if (root.TryGetProperty("PlantUmlSources", out var srcListElem))
+                {
+                    foreach (var s in srcListElem.EnumerateArray()) loadedLevel.PlantUMLSources.Add(s.GetString());
+                }
+                else if (root.TryGetProperty("PlantUmlSource", out var singleSrcElem)) // fallback
+                {
+                    loadedLevel.PlantUMLSources.Add(singleSrcElem.GetString());
                 }
 
                 _currentCustomValidationCode = root.GetProperty("ValidationCode").GetString();

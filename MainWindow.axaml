@@ -93,6 +93,26 @@
 									</Image.RenderTransform>
 								</Image>
 
+								<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
+											HorizontalAlignment="Left" VerticalAlignment="Bottom"
+											Margin="10,0,0,60" IsVisible="False">
+									<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
+											Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
+											ToolTip.Tip="Diagramm 1">
+										<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20"/>
+									</Button>
+									<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
+											Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
+											ToolTip.Tip="Diagramm 2">
+										<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20"/>
+									</Button>
+									<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
+											Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
+											ToolTip.Tip="Diagramm 3">
+										<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20"/>
+									</Button>
+								</StackPanel>
+
 								<Button Name="BtnResetDiagram"
 										Background="#3C3C3C"
 										Width="40" Height="40"

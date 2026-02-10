@@ -27,7 +27,7 @@ Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Aus
 | Level | Code | Titel |
 | :--- | :---: | :--- |
 | 11 | `NAV` | Das Klassenzimmer (Bedingte Logik) |
-| 12 | `COL` | Das Kollegium (Komplexe Navigation) |
+| 12 | `COL` | Das Kollegium (Geschachtelte Listen) |
 | 13 | `DAT` | Zeugniskonferenz (Datumslogik) |
 | 14 | `ELT` | Der Elternbrief |
 
