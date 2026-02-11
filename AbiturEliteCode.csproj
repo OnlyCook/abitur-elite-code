@@ -24,6 +24,8 @@
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.3" />
 	<!-- linux stuff -->
 	<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
   </ItemGroup>
@@ -52,5 +54,9 @@
 
 	<ItemGroup>
 		<AvaloniaResource Include="assets\prerequisites.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="assets\imgsql\**" />
 	</ItemGroup>
 </Project>

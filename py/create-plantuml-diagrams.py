@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 PlantUML Diagram Generator for Abitur Elite Code
-Updated for Multi-Diagram Support
+Updated for Multi-Diagram Support and SQL Levels
 """
 
 import os
@@ -85,24 +85,38 @@ def clean_source(source):
 
     return source.strip()
 
-def extract_level_data(level_cs_path):
-    with open(level_cs_path, 'r', encoding='utf-8') as f:
+def extract_level_data(file_path, level_class_name="Level", shared_diagrams_class=None):
+    """
+    Generic extractor for both Level.cs and SqlLevel.cs
+    """
+    if not file_path.exists():
+        print(f"File not found: {file_path}")
+        return {}, []
+
+    with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
     shared_diagrams = {}
-    shared_pattern = re.compile(r'public static string (\w+)\s*=\s*(@"(?:[^"]|"")*"|"(?:[^"\\]|\\.)*");', re.DOTALL)
-    
-    for match in shared_pattern.finditer(content):
-        key = match.group(1)
-        source = clean_source(match.group(2))
-        shared_diagrams[key] = source
+    if shared_diagrams_class:
+        # Regex to find the shared diagrams block
+        # Look for public static class ClassName { ... }
+        # Then inside extract string fields
+        shared_pattern = re.compile(r'public static string (\w+)\s*=\s*(@"(?:[^"]|"")*"|"(?:[^"\\]|\\.)*");', re.DOTALL)
+        # Note: This scans the whole file, but unique var names usually prevent collisions
+        for match in shared_pattern.finditer(content):
+            key = match.group(1)
+            source = clean_source(match.group(2))
+            # Only add if it belongs to the intended scope (simple heuristic)
+            shared_diagrams[key] = source
 
     levels = []
-
+    
+    # Regex for "new ClassName {"
+    level_start_regex = re.compile(r'new ' + level_class_name + r'\s*\{')
+    
     cursor = 0
     while True:
-        # Find start of "new Level"
-        match = re.search(r'new Level\s*\{', content[cursor:])
+        match = level_start_regex.search(content[cursor:])
         if not match:
             break
 
@@ -117,7 +131,6 @@ def extract_level_data(level_cs_path):
         while i < len(content) and brace_count > 0:
             char = content[i]
             
-            # Logic to ignore braces inside C# strings
             if in_verbatim:
                 if char == '"':
                     if i + 1 < len(content) and content[i+1] == '"': i += 1
@@ -141,7 +154,6 @@ def extract_level_data(level_cs_path):
             
             sources = []
             
-            # Find the PlantUMLSources list start
             puml_start_match = re.search(r'PlantUMLSources\s*=\s*new\s*List<string>\s*\{', block_content)
             
             if puml_start_match:
@@ -170,7 +182,6 @@ def extract_level_data(level_cs_path):
                 
                 if list_brace_count == 0:
                     list_content = block_content[list_start+1 : k-1]
-                    # Now it is safe to regex the string literals from the list body
                     matches = re.findall(r'(@"(?:[^"]|"")*"|"(?:[^"\\]|\\.)*")', list_content)
                     for m in matches:
                         sources.append(clean_source(m))
@@ -209,6 +220,8 @@ def add_theme(plantuml_source):
             if line.strip().startswith('@startuml'):
                 new_lines.append('skinparam backgroundcolor transparent')
                 new_lines.append('skinparam classAttributeIconSize 0')
+                # Add monochrome/plain styling to mimic generic SQL/UML standard if preferred
+                # or keep default.
         return '\n'.join(new_lines)
     return plantuml_source
 
@@ -238,36 +251,8 @@ def generate_single_diagram(source, output_path, cache_key, cache):
         print(f"    Error: {e}")
         return False
 
-def main():
-    script_dir = Path(__file__).parent.parent
-    level_cs_path = script_dir / "cs" / "Level.cs"
-    output_dir = script_dir / "assets" / "img"
-    
-    print("PlantUML Generator - Abitur Elite Code")
-    if not level_cs_path.exists():
-        print(f"Level.cs not found at: {level_cs_path}")
-        return
-
-    shared_diags, levels = extract_level_data(level_cs_path)
-    cache = load_cache()
+def process_levels(levels, output_dir, cache, prefix="lvl"):
     gen_count = 0
-    
-    print(f"Found {len(levels)} levels and {len(shared_diags)} shared diagrams.")
-    
-    # 1. Generate Shared Diagrams
-    print("--- Shared Diagrams ---")
-    for key, source in shared_diags.items():
-        out_path = output_dir / f"aux_{key}.svg" 
-        cache_key = f"shared_{key}"
-        print(f"Processing Shared: {key}...")
-        if generate_single_diagram(source, out_path, cache_key, cache):
-            print("  -> Generated & Saved")
-            gen_count += 1
-        else:
-            print("  -> Cached")
-
-    # 2. Generate Level Diagrams
-    print("--- Level Diagrams ---")
     for item in levels:
         level_id = item['id']
         # Convert "Sektion 1..." to "sec1"
@@ -275,26 +260,83 @@ def main():
 
         sources = item['sources']
         
-        # Iterate over all sources in the list
         for index, source in enumerate(sources):
-            # index + 1 ensures filename is lvlX-1.svg, lvlX-2.svg, etc.
             diag_num = index + 1
-            
-            # UPDATED NAMING CONVENTION: lvl{id}-{num}.svg
             filename = f"lvl{level_id}-{diag_num}.svg"
+            
+            # Save to specific directory (img or imgsql)
             main_path = output_dir / section_folder / filename
             
-            # Unique cache key for each diagram
-            key_main = f"lvl_{level_id}_{diag_num}"
+            # Unique cache key 
+            key_main = f"{prefix}_{level_id}_{diag_num}"
             
-            print(f"Processing Level {level_id} (Diagram {diag_num})...")
+            print(f"Processing {prefix.upper()} Level {level_id} (Diagram {diag_num})...")
             if generate_single_diagram(source, main_path, key_main, cache):
                 print(f"  -> Generated: {filename}")
                 gen_count += 1
             else:
                 print(f"  -> Cached: {filename}")
+    return gen_count
 
-    print(f"Done. Generated {gen_count} new images.")
+def main():
+    script_dir = Path(__file__).parent.parent
+    
+    # Paths
+    cs_dir = script_dir / "cs"
+    level_cs_path = cs_dir / "Level.cs"
+    sql_level_cs_path = cs_dir / "SqlLevel.cs"
+    
+    # Output Directories
+    output_dir_csharp = script_dir / "assets" / "img"
+    output_dir_sql = script_dir / "assets" / "imgsql"
+    
+    print("PlantUML Generator - Abitur Elite Code")
+    
+    cache = load_cache()
+    total_gen = 0
+    
+    # --- 1. Process Standard C# Levels ---
+    if level_cs_path.exists():
+        print(f"\nScanning {level_cs_path.name}...")
+        shared_diags, levels = extract_level_data(level_cs_path, "Level", "SharedDiagrams")
+        print(f"Found {len(levels)} levels and {len(shared_diags)} shared diagrams.")
+        
+        # Shared C#
+        for key, source in shared_diags.items():
+            out_path = output_dir_csharp / f"aux_{key}.svg" 
+            cache_key = f"shared_{key}"
+            if generate_single_diagram(source, out_path, cache_key, cache):
+                print(f"  -> Shared Generated: {key}")
+                total_gen += 1
+        
+        # Level C#
+        total_gen += process_levels(levels, output_dir_csharp, cache, prefix="lvl")
+    else:
+        print(f"Skipping {level_cs_path.name} (not found)")
+
+    # --- 2. Process SQL Levels ---
+    if sql_level_cs_path.exists():
+        print(f"\nScanning {sql_level_cs_path.name}...")
+        # Note: shared diagrams class is SqlSharedDiagrams
+        sql_shared, sql_levels = extract_level_data(sql_level_cs_path, "SqlLevel", "SqlSharedDiagrams")
+        print(f"Found {len(sql_levels)} SQL levels and {len(sql_shared)} shared diagrams.")
+
+        # Shared SQL (if any)
+        for key, source in sql_shared.items():
+            # Saving to imgsql root for shared SQL aux items
+            out_path = output_dir_sql / f"aux_{key}.svg" 
+            cache_key = f"sql_shared_{key}"
+            if generate_single_diagram(source, out_path, cache_key, cache):
+                print(f"  -> SQL Shared Generated: {key}")
+                total_gen += 1
+
+        # Level SQL
+        # This will save to assets/imgsql/secX/lvlY-Z.svg
+        total_gen += process_levels(sql_levels, output_dir_sql, cache, prefix="sql_lvl")
+    else:
+        print(f"Skipping {sql_level_cs_path.name} (not found)")
+
+    print(f"\nDone. Generated {total_gen} new images total.")
 
 if __name__ == "__main__":
     main()

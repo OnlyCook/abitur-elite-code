@@ -1,6 +1,6 @@
 # Abitur Elite Code - Level Übersicht
 
-Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.
+Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.
 
 ## Sektion 1: OOP Grundlagen
 
@@ -30,4 +30,30 @@ Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Aus
 | 12 | `COL` | Das Kollegium (Geschachtelte Listen) |
 | 13 | `DAT` | Zeugniskonferenz (Datumslogik) |
 | 14 | `ELT` | Der Elternbrief |
+
+---
+
+## SQL Levels
+
+## Sektion 1: SQL Grundlagen
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 1 | `SEL` | Projektion (SELECT) |
+| 2 | `WHE` | Selektion (WHERE) |
+| 3 | `ORD` | Sortierung (ORDER BY) |
+| 4 | `AGG` | Aggregationen |
+| 5 | `INS` | Daten Einfügen (INSERT) |
+| 6 | `UPD` | Daten Ändern (UPDATE) |
+| 7 | `DEL` | Daten Löschen (DELETE) |
+| 8 | `EX1` | Klausurphase |
+
+## Sektion 2: ER-Modellierung
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 9 | `ER1` | 1:n Beziehungen (JOIN) |
+| 10 | `ER2` | m:n Beziehungen (Verknüpfungstabelle) |
+| 11 | `ER3` | Kardinalitäten (LEFT JOIN) |
+| 12 | `ER4` | Komplexe Abfrage (Social Media) |
 

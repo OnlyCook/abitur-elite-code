@@ -2,25 +2,23 @@ import re
 from pathlib import Path
 from collections import defaultdict
 
-def extract_level_data():
-    # Setup paths
-    script_dir = Path(__file__).parent
-    level_cs_path = script_dir.parent / "cs" / "Level.cs"
-    output_md_path = script_dir / "LEVEL_CODES.md"
+def parse_levels(file_path, list_regex, block_regex, usage_regex):
+    """
+    Helper function to parse a C# file and extract level codes.
+    """
+    if not file_path.exists():
+        print(f"Error: Could not find file at {file_path}")
+        return {}
 
-    if not level_cs_path.exists():
-        print(f"Error: Could not find file at {level_cs_path}")
-        return
-
-    with open(level_cs_path, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Extract the master list of codes from CodesList
-    codes_match = re.search(r'CodesList\s*=\s*\{([^}]+)\};', content, re.DOTALL)
+    # Extract the master list of codes
+    codes_match = re.search(list_regex, content, re.DOTALL)
     master_codes = re.findall(r'"([^"]+)"', codes_match.group(1)) if codes_match else []
 
-    # 2. Extract Level blocks to keep attributes grouped correctly
-    level_blocks = re.findall(r'new Level\s*\{(.*?)\}', content, re.DOTALL)
+    # Extract Level blocks
+    level_blocks = re.findall(block_regex, content, re.DOTALL)
 
     grouped_data = defaultdict(list)
 
@@ -30,8 +28,8 @@ def extract_level_data():
         section = re.search(r'Section\s*=\s*"([^"]+)"', block)
         title = re.search(r'Title\s*=\s*"([^"]+)"', block)
         
-        # Find the index used in LevelCodes.CodesList[x]
-        code_idx_match = re.search(r'LevelCodes\.CodesList\[(\d+)\]', block)
+        # Find the index used in CodesList[x] (varies by file)
+        code_idx_match = re.search(usage_regex, block)
 
         if section and title and lvl_id and code_idx_match:
             idx = int(code_idx_match.group(1))
@@ -42,24 +40,70 @@ def extract_level_data():
                 "code": code_str,
                 "title": title.group(1)
             })
+            
+    return grouped_data
+
+def extract_level_data():
+    # Setup paths
+    script_dir = Path(__file__).parent
+    level_cs_path = script_dir.parent / "cs" / "Level.cs"
+    sql_level_cs_path = script_dir.parent / "cs" / "SqlLevel.cs"
+    output_md_path = script_dir / "LEVEL_CODES.md"
+
+    # 1. Process C# Levels
+    # Regex Explanation:
+    # list: Matches CodesList = { ... };
+    # block: Matches new Level { ... }
+    # usage: Matches LevelCodes.CodesList[x]
+    csharp_data = parse_levels(
+        level_cs_path,
+        r'CodesList\s*=\s*\{([^}]+)\};',
+        r'new Level\s*\{(.*?)\}',
+        r'LevelCodes\.CodesList\[(\d+)\]'
+    )
+
+    # 2. Process SQL Levels
+    # Regex Explanation:
+    # list: Matches CodesList = { ... }; (Same pattern, different file)
+    # block: Matches new SqlLevel { ... }
+    # usage: Matches SqlLevelCodes.CodesList[x]
+    sql_data = parse_levels(
+        sql_level_cs_path,
+        r'CodesList\s*=\s*\{([^}]+)\};',
+        r'new SqlLevel\s*\{(.*?)\}',
+        r'SqlLevelCodes\.CodesList\[(\d+)\]'
+    )
 
     # 3. Generate Formatted Markdown
     md_content = "# Abitur Elite Code - Level Übersicht\n\n"
-    md_content += "Hier findest du alle Skip-Codes für die Standard Level. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
+    md_content += "Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
 
-    for section_name, levels in grouped_data.items():
-        md_content += f"## {section_name}\n\n"
-        md_content += "| Level | Code | Titel |\n"
-        md_content += "| :--- | :---: | :--- |\n"
-        for lvl in levels:
-            md_content += f"| {lvl['id']} | `{lvl['code']}` | {lvl['title']} |\n"
-        md_content += "\n"
+    # Helper to write sections to MD string
+    def append_sections(data_dict):
+        text = ""
+        for section_name, levels in data_dict.items():
+            text += f"## {section_name}\n\n"
+            text += "| Level | Code | Titel |\n"
+            text += "| :--- | :---: | :--- |\n"
+            for lvl in levels:
+                text += f"| {lvl['id']} | `{lvl['code']}` | {lvl['title']} |\n"
+            text += "\n"
+        return text
+
+    # Add C# Sections
+    md_content += append_sections(csharp_data)
+    
+    # Add SQL Sections (if any found)
+    if sql_data:
+        md_content += "---\n\n"
+        md_content += "## SQL Levels\n\n"
+        md_content += append_sections(sql_data)
 
     # 4. Write to file
     with open(output_md_path, "w", encoding="utf-8") as f:
         f.write(md_content)
 
-    print(f"Successfully generated {output_md_path} grouped by section.")
+    print(f"Successfully generated {output_md_path} with C# and SQL levels.")
 
 if __name__ == "__main__":
     extract_level_data()

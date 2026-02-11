@@ -7,6 +7,7 @@ public class PlayerSettings
 {
     public bool IsVimEnabled { get; set; } = false;
     public bool IsSyntaxHighlightingEnabled { get; set; } = false;
+    public bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
     public double UiScale { get; set; } = 1.0;
     public int TabTipShownCount { get; set; } = 0;
 }
@@ -15,6 +16,11 @@ public class PlayerData
 {
     public List<int> UnlockedLevelIds { get; set; } = new List<int> { 1 };
     public List<int> CompletedLevelIds { get; set; } = new List<int>();
+
+    public List<int> UnlockedSqlLevelIds { get; set; } = new List<int> { 1 };
+    public List<int> CompletedSqlLevelIds { get; set; } = new List<int>();
+
+    public Dictionary<int, string> UserSqlCode { get; set; } = new Dictionary<int, string>();
     public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
     public PlayerSettings Settings { get; set; } = new PlayerSettings();
 }
@@ -103,11 +109,14 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
+        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
 
-        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
+        string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
+        string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
+        string sqlCodes = string.Join(";", data.UserSqlCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
 
-        // format: unlocked|codes|completed|settings
-        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}");
+        // format: unlocked|codes|completed|settings|sqlUnlocked|sqlCompleted|sqlCodes
+        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}|{sqlUnlocked}|{sqlCompleted}|{sqlCodes}");
     }
 
     public static PlayerData Load()
@@ -154,8 +163,29 @@ public static class SaveSystem
 
                     if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]); // Parse new setting
                     else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
-                    else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]); // Load new setting
+                    else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]);
+                }
+            }
+
+            if (parts.Length > 4 && !string.IsNullOrEmpty(parts[4]))
+                data.UnlockedSqlLevelIds = parts[4].Split(',').Select(int.Parse).ToList();
+
+            if (parts.Length > 5 && !string.IsNullOrEmpty(parts[5]))
+                data.CompletedSqlLevelIds = parts[5].Split(',').Select(int.Parse).ToList();
+
+            if (parts.Length > 6 && !string.IsNullOrEmpty(parts[6]))
+            {
+                foreach (var item in parts[6].Split(';'))
+                {
+                    if (string.IsNullOrWhiteSpace(item)) continue;
+                    var pair = item.Split(':');
+                    if (pair.Length < 2) continue;
+
+                    int id = int.Parse(pair[0]);
+                    string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
+                    if (!data.UserSqlCode.ContainsKey(id)) data.UserSqlCode.Add(id, code);
                 }
             }
         }

@@ -14,11 +14,14 @@ using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
+using AvaloniaEdit.Highlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -36,6 +39,7 @@ namespace AbiturEliteCode
     {
         public static bool IsVimEnabled { get; set; } = false;
         public static bool IsSyntaxHighlightingEnabled { get; set; } = false;
+        public static bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
         public static double UiScale { get; set; } = 1.0;
         public static bool IsErrorHighlightingEnabled { get; set; } = false;
     }
@@ -53,6 +57,8 @@ namespace AbiturEliteCode
         private bool _isDragging = false;
         private double _currentScale = 1.0;
         private int _currentDiagramIndex = 0;
+        private GridLength _lastCsharpRowHeight = new GridLength(180);
+        private GridLength _lastSqlRowHeight = new GridLength(250);
 
         private System.Threading.CancellationTokenSource? _compilationCts;
         private TextMarkerService _textMarkerService;
@@ -72,6 +78,10 @@ namespace AbiturEliteCode
         private string _currentCustomValidationCode = null;
         private bool _isCustomLevelMode = false;
         private CustomPlayerData customPlayerData;
+
+        private bool _isSqlMode = false;
+        private List<SqlLevel> sqlLevels;
+        private SqlLevel currentSqlLevel;
 
         private bool _isLoadingDesigner = false;
         private bool _isDesignerMode = false;
@@ -133,16 +143,18 @@ namespace AbiturEliteCode
             customPlayerData = SaveSystem.LoadCustom();
 
             AppSettings.IsVimEnabled = playerData.Settings.IsVimEnabled;
-            AppSettings.IsSyntaxHighlightingEnabled =
-                playerData.Settings.IsSyntaxHighlightingEnabled;
+            AppSettings.IsSyntaxHighlightingEnabled = playerData.Settings.IsSyntaxHighlightingEnabled;
+            AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
             AppSettings.UiScale = playerData.Settings.UiScale;
 
             ApplyUiScale();
             ApplySyntaxHighlighting();
+            ApplySqlSyntaxHighlighting();
             UpdateVimState();
             BuildVimCheatSheet();
 
             ConfigureEditor();
+            ConfigureSqlQueryEditor();
             UpdateShortcutsAndTooltips();
 
             autoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
@@ -377,6 +389,42 @@ namespace AbiturEliteCode
             }
 
             return references;
+        }
+
+        private void ConfigureSqlQueryEditor()
+        {
+            SqlQueryEditor.Options.ConvertTabsToSpaces = true;
+            SqlQueryEditor.Options.IndentationSize = 4;
+            SqlQueryEditor.Options.ShowSpaces = false;
+            SqlQueryEditor.Options.HighlightCurrentLine = true;
+
+            SqlQueryEditor.TextChanged += (s, e) =>
+            {
+                autoSaveTimer.Stop();
+                autoSaveTimer.Start();
+            };
+
+            SqlQueryEditor.AddHandler(InputElement.KeyDownEvent, SqlQueryEditor_KeyDown, RoutingStrategies.Tunnel);
+        }
+
+        private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
+        {
+            // ctrl + s => save
+            if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+            {
+                SaveCurrentProgress();
+                AddSqlOutput("System", "> Query gespeichert.", Brushes.LightGray);
+                e.Handled = true;
+                return;
+            }
+
+            // f5 => run
+            if (e.Key == Key.F5)
+            {
+                BtnRun_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+                return;
+            }
         }
 
         private void ConfigureEditor()
@@ -740,6 +788,18 @@ namespace AbiturEliteCode
         {
             if (_isDesignerMode) return;
 
+            if (_isSqlMode && currentSqlLevel != null)
+            {
+                string codeToSave = SqlQueryEditor.Text;
+                if (playerData.UserSqlCode.ContainsKey(currentSqlLevel.Id))
+                    playerData.UserSqlCode[currentSqlLevel.Id] = codeToSave;
+                else
+                    playerData.UserSqlCode.Add(currentSqlLevel.Id, codeToSave);
+
+                SaveSystem.Save(playerData);
+                return;
+            }
+
             if (_isCustomLevelMode && currentLevel != null)
             {
                 // save custom level code
@@ -1031,10 +1091,14 @@ namespace AbiturEliteCode
                     string codeContent = part.Substring(2, part.Length - 4).Trim();
                     codeContent = codeContent.Replace("\x01", "[").Replace("\x02", "]");
 
+                    IHighlightingDefinition highlighting = _isSqlMode
+                        ? SqlCodeEditor.GetDarkSqlHighlighting()
+                        : CsharpCodeEditor.GetDarkCsharpHighlighting();
+
                     var codeBlockEditor = new TextEditor
                     {
                         Document = new TextDocument(codeContent),
-                        SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting(),
+                        SyntaxHighlighting = highlighting,
                         FontFamily = new FontFamily(MonospaceFontFamily),
                         FontSize = 14,
                         IsReadOnly = true,
@@ -1677,6 +1741,12 @@ namespace AbiturEliteCode
 
         private async void BtnRun_Click(object sender, RoutedEventArgs e)
         {
+            if (_isSqlMode)
+            {
+                RunSqlQuery();
+                return;
+            }
+
             if (_compilationCts != null)
             {
                 _compilationCts.Cancel();
@@ -2115,6 +2185,10 @@ namespace AbiturEliteCode
                 {
                     ShowCustomSectionCompletedDialog();
                 }
+                else if (_isSqlMode)
+                {
+                    ShowSqlCourseCompletedDialog();
+                }
                 else
                 {
                     ShowCourseCompletedDialog();
@@ -2134,6 +2208,15 @@ namespace AbiturEliteCode
                     AddToConsole($"\n> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
                     BtnNextLevel.IsVisible = false;
                 }
+                return;
+            }
+
+            if (_isSqlMode)
+            {
+                var nextSqlLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
+                if (nextSqlLvl != null)
+                    LoadSqlLevel(nextSqlLvl);
+                SqlQueryEditor.Focus();
                 return;
             }
 
@@ -2208,6 +2291,91 @@ namespace AbiturEliteCode
                 Content = "Schließen",
                 Background = BrushTextTitle,
                 Foreground = Brushes.White,
+                FontWeight = FontWeight.Bold,
+                FontSize = 14,
+                Padding = new Thickness(30, 10),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                CornerRadius = new CornerRadius(4),
+                Margin = new Thickness(0, 20, 0, 0),
+                Cursor = Cursor.Parse("Hand")
+            };
+            btnClose.Click += (_, __) => dialog.Close();
+
+            Grid.SetRow(btnClose, 1);
+            rootGrid.Children.Add(btnClose);
+
+            rootBorder.Child = rootGrid;
+            dialog.Content = rootBorder;
+
+            await dialog.ShowDialog(this);
+        }
+
+        private async void ShowSqlCourseCompletedDialog()
+        {
+            var dialog = new Window
+            {
+                Title = "SQL Kurs Abgeschlossen",
+                Width = 500,
+                Height = 350,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#202124"),
+                CornerRadius = new CornerRadius(8)
+            };
+            var rootBorder = new Border
+            {
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(20)
+            };
+            var rootGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto") };
+            var contentStack = new StackPanel
+            {
+                Spacing = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            contentStack.Children.Add(
+                new TextBlock
+                {
+                    Text = "🎉 Herzlichen Glückwunsch! 🎉",
+                    FontSize = 22,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = SolidColorBrush.Parse("#FFD700"),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                }
+            );
+            contentStack.Children.Add(
+                new TextBlock
+                {
+                    Text =
+                        "Du hast alle SQL-Levels erfolgreich abgeschlossen!\n\nDatenbank-Abfragen sind ein essenzieller Teil der Prüfung. Du bist nun bestens vorbereitet.",
+                    FontSize = 16,
+                    Foreground = Brushes.White,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 24
+                }
+            );
+            contentStack.Children.Add(
+                new TextBlock
+                {
+                    Text = "Rechtlicher Hinweis: Diese Software dient ausschließlich Übungszwecken. Der Entwickler übernimmt keine Gewähr für die Vollständigkeit der Inhalte oder den tatsächlichen Erfolg in der Abiturprüfung.",
+                    FontSize = 11,
+                    Foreground = Brushes.Gray,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(10, 20, 10, 0),
+                    FontStyle = FontStyle.Italic
+                }
+            );
+            rootGrid.Children.Add(contentStack);
+
+            var btnClose = new Button
+            {
+                Content = "Schließen",
+                Background = SolidColorBrush.Parse("#FFD700"),
+                Foreground = Brushes.Black,
                 FontWeight = FontWeight.Bold,
                 FontSize = 14,
                 Padding = new Thickness(30, 10),
@@ -2303,12 +2471,102 @@ namespace AbiturEliteCode
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             SaveCurrentProgress();
-            AddToConsole("\n> Gespeichert.", Brushes.LightGray);
-            CodeEditor.Focus();
+
+            if (_isSqlMode)
+            {
+                AddSqlOutput("System", "> Query gespeichert.", Brushes.LightGray);
+                SqlQueryEditor.Focus();
+            }
+            else
+            {
+                AddToConsole("\n> Gespeichert.", Brushes.LightGray);
+                CodeEditor.Focus();
+            }
+        }
+
+        private void BtnModeSwitch_Click(object sender, RoutedEventArgs e)
+        {
+            _isSqlMode = !_isSqlMode;
+
+            BtnNextLevel.IsVisible = false;
+
+            TabVim.IsVisible = AppSettings.IsVimEnabled && !_isSqlMode;
+
+            var rightGrid = this.FindControl<Grid>("RootGrid").Children
+                .OfType<Grid>().FirstOrDefault(g => g.ColumnDefinitions.Count == 3)
+                ?.Children.OfType<Grid>().FirstOrDefault(g => g.GetValue(Grid.ColumnProperty) == 2);
+
+            RowDefinition bottomRow = null;
+            if (rightGrid != null && rightGrid.RowDefinitions.Count > 3)
+                bottomRow = rightGrid.RowDefinitions[3];
+
+            if (_isSqlMode)
+            {
+                if (bottomRow != null)
+                {
+                    _lastCsharpRowHeight = bottomRow.Height;
+                    bottomRow.Height = _lastSqlRowHeight;
+                }
+
+                BtnModeSwitch.Content = "MODUS: SQL";
+                BtnModeSwitch.Foreground = SolidColorBrush.Parse("#FFD700");
+                BtnModeSwitch.BorderBrush = SolidColorBrush.Parse("#FFD700");
+
+                PnlCsharpEditor.IsVisible = false;
+                PnlSqlOutputContainer.IsVisible = true;
+
+                PnlCsharpConsole.IsVisible = false;
+                PnlSqlQueryEditor.IsVisible = true;
+
+                var oldSqlPanel = this.FindControl<Grid>("PnlSqlEditor");
+                if (oldSqlPanel != null) oldSqlPanel.IsVisible = false;
+
+                BtnSave.IsVisible = true;
+                BtnReset.IsVisible = false;
+
+                ApplySqlSyntaxHighlighting();
+
+                if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
+                int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
+                var startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
+                LoadSqlLevel(startLevel);
+            }
+            else
+            {
+                if (bottomRow != null)
+                {
+                    _lastSqlRowHeight = bottomRow.Height;
+                    bottomRow.Height = _lastCsharpRowHeight;
+                }
+
+                BtnModeSwitch.Content = "MODUS: C#";
+                BtnModeSwitch.Foreground = SolidColorBrush.Parse("#6495ED");
+                BtnModeSwitch.BorderBrush = SolidColorBrush.Parse("#6495ED");
+
+                PnlCsharpEditor.IsVisible = true;
+                PnlSqlOutputContainer.IsVisible = false;
+
+                PnlCsharpConsole.IsVisible = true;
+                PnlSqlQueryEditor.IsVisible = false;
+
+                BtnSave.IsVisible = true;
+                BtnReset.IsVisible = true;
+
+                ApplySyntaxHighlighting();
+
+                LoadLevel(currentLevel);
+                UpdateVimState();
+            }
         }
 
         private void BtnLevelSelect_Click(object sender, RoutedEventArgs e)
         {
+            if (_isSqlMode && sqlLevels == null)
+            {
+                sqlLevels = SqlCurriculum.GetLevels();
+            }
+            levels ??= Curriculum.GetLevels();
+
             var win = new Window
             {
                 Title = "Level Wählen",
@@ -2333,14 +2591,14 @@ namespace AbiturEliteCode
                 Margin = new Thickness(15)
             };
 
-            // header components
+            // header
             var headerGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto"),
                 Margin = new Thickness(0, 0, 0, 15)
             };
 
-            // left side
+            // title
             var titleStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -2350,7 +2608,7 @@ namespace AbiturEliteCode
 
             var txtTitle = new TextBlock
             {
-                Text = "Level Auswählen",
+                Text = _isSqlMode ? "SQL Levels" : "C# Levels",
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = Brushes.White,
@@ -2358,14 +2616,14 @@ namespace AbiturEliteCode
             };
             titleStack.Children.Add(txtTitle);
 
-            // level count badge
+            // badge level counter
             var countBadge = new Border
             {
                 Background = SolidColorBrush.Parse("#2D2D30"),
                 CornerRadius = new CornerRadius(12),
                 Padding = new Thickness(10, 5),
                 VerticalAlignment = VerticalAlignment.Center,
-                IsVisible = false,
+                IsVisible = true,
                 Child = new TextBlock
                 {
                     Name = "BadgeText",
@@ -2379,7 +2637,7 @@ namespace AbiturEliteCode
 
             headerGrid.Children.Add(titleStack);
 
-            // middle
+            // search / code input container
             var searchContainer = new Border
             {
                 Margin = new Thickness(15, 0)
@@ -2387,7 +2645,7 @@ namespace AbiturEliteCode
             Grid.SetColumn(searchContainer, 1);
             headerGrid.Children.Add(searchContainer);
 
-            // right
+            // right header panel
             var headerRightPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -2426,7 +2684,7 @@ namespace AbiturEliteCode
                 contentScroll.Content = null;
                 footerPanel.Children.Clear();
 
-                // footer
+                // footer buttons
                 var btnClose = new Button
                 {
                     Content = "Schließen",
@@ -2439,6 +2697,7 @@ namespace AbiturEliteCode
                 };
                 btnClose.Click += (_, __) => win.Close();
 
+                // toggle custom levels button
                 var btnToggleMode = new Button
                 {
                     Content = new StackPanel
@@ -2446,14 +2705,14 @@ namespace AbiturEliteCode
                         Orientation = Orientation.Horizontal,
                         Spacing = 8,
                         Children =
-                        {
-                            LoadIcon(isCustomMode ? "assets/icons/ic_folder.svg" : "assets/icons/ic_folder_custom.svg", 18),
-                            new TextBlock
-                            {
-                                Text = isCustomMode ? "Standard Levels" : "Eigene Levels",
-                                VerticalAlignment = VerticalAlignment.Center
-                            }
-                        }
+                {
+                    LoadIcon(isCustomMode ? "assets/icons/ic_folder.svg" : "assets/icons/ic_folder_custom.svg", 18),
+                    new TextBlock
+                    {
+                        Text = isCustomMode ? "Standard Levels" : "Eigene Levels",
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                }
                     },
                     Padding = new Thickness(15, 10),
                     CornerRadius = new CornerRadius(4),
@@ -2461,6 +2720,13 @@ namespace AbiturEliteCode
                     Foreground = Brushes.White,
                     Margin = new Thickness(0, 15, 10, 0)
                 };
+
+                // hide Custom levels button in sql mode (placeholder)
+                if (_isSqlMode)
+                {
+                    btnToggleMode.IsVisible = false;
+                    isCustomMode = false;
+                }
 
                 btnToggleMode.Click += (_, __) =>
                 {
@@ -2475,20 +2741,26 @@ namespace AbiturEliteCode
 
                 if (!isCustomMode)
                 {
-                    // standard level view
-                    txtTitle.Text = "Level Auswählen";
-
-                    // show badge
+                    // title and badge
+                    if (_isSqlMode)
+                    {
+                        txtTitle.Text = "SQL Levels";
+                        ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedSqlLevelIds.Count}/{sqlLevels.Count}";
+                    }
+                    else
+                    {
+                        txtTitle.Text = "C# Levels";
+                        ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}";
+                    }
                     countBadge.IsVisible = true;
-                    ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}";
 
-                    // show code input
+                    // code input field
                     var codePanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Spacing = 10
                     };
-                    codePanel.Children.Add(new TextBlock 
+                    codePanel.Children.Add(new TextBlock
                     {
                         Text = "Code:",
                         Foreground = Brushes.Gray,
@@ -2506,110 +2778,159 @@ namespace AbiturEliteCode
                         HorizontalContentAlignment = HorizontalAlignment.Center,
                         FontFamily = MonospaceFontFamily
                     };
+
+                    // code input logic
                     txtLevelCode.TextChanged += (s, ev) =>
                     {
                         if (txtLevelCode.Text?.Length == 3)
                         {
                             string code = txtLevelCode.Text.ToUpper();
-                            var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
-                            if (lvl != null) { LoadLevel(lvl); win.Close(); }
+                            if (_isSqlMode)
+                            {
+                                var lvl = sqlLevels.FirstOrDefault(l => l.SkipCode == code);
+                                if (lvl != null) { LoadSqlLevel(lvl); win.Close(); }
+                            }
+                            else
+                            {
+                                var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
+                                if (lvl != null) { LoadLevel(lvl); win.Close(); }
+                            }
                         }
                     };
                     codePanel.Children.Add(txtLevelCode);
                     headerRightPanel.Children.Add(codePanel);
 
-                    // standard level list
-                    var levelStack = new StackPanel
+
+                    // level list
+                    var levelStack = new StackPanel { Spacing = 8 };
+
+                    if (_isSqlMode)
                     {
-                        Spacing = 8
-                    };
-                    var groups = levels.GroupBy(l => l.Section);
-                    foreach (var group in groups)
-                    {
-                        bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+                        // sql levels
+                        var groups = sqlLevels.GroupBy(l => l.Section);
+                        foreach (var group in groups)
+                        {
+                            bool isSectionComplete = group.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
 
-                        var headerPanel = new StackPanel
-                        {
-                            Orientation = Orientation.Horizontal,
-                            Spacing = 10
-                        };
-                        headerPanel.Children.Add(new TextBlock
-                        {
-                            Text = group.Key,
-                            Foreground = BrushTextTitle,
-                            FontWeight = FontWeight.Bold,
-                            VerticalAlignment = VerticalAlignment.Center
-                        });
-                        if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
-
-                        var sectionContent = new StackPanel
-                        {
-                            Spacing = 5,
-                            Margin = new Thickness(0, 5, 0, 0)
-                        };
-                        foreach (var lvl in group)
-                        {
-                            bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
-                            bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
-
-                            var btnContent = new StackPanel
+                            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                            headerPanel.Children.Add(new TextBlock
                             {
-                                Orientation = Orientation.Horizontal,
-                                Spacing = 10
-                            };
-                            string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
-                            btnContent.Children.Add(LoadIcon(iconPath, 16));
-                            btnContent.Children.Add(new TextBlock
-                            {
-                                Text = $"{lvl.Id}. {lvl.Title}",
+                                Text = group.Key,
+                                Foreground = BrushTextTitle,
+                                FontWeight = FontWeight.Bold,
                                 VerticalAlignment = VerticalAlignment.Center
                             });
+                            if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
 
-                            var btn = new Button
+                            var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+
+                            foreach (var lvl in group)
                             {
-                                Content = btnContent,
-                                IsEnabled = unlocked,
-                                HorizontalAlignment = HorizontalAlignment.Stretch,
-                                HorizontalContentAlignment = HorizontalAlignment.Left,
-                                Padding = new Thickness(10, 10),
-                                Background = unlocked ? SolidColorBrush.Parse("#313133") : SolidColorBrush.Parse("#191919"),
-                                Foreground = unlocked ? Brushes.White : Brushes.Gray,
-                                CornerRadius = new CornerRadius(4)
-                            };
-                            btn.Click += (_, __) => { LoadLevel(lvl); win.Close(); };
-                            sectionContent.Children.Add(btn);
-                        }
+                                bool unlocked = playerData.UnlockedSqlLevelIds.Contains(lvl.Id);
+                                bool completed = playerData.CompletedSqlLevelIds.Contains(lvl.Id);
 
-                        levelStack.Children.Add(new Expander
-                        {
-                            Header = headerPanel,
-                            Content = sectionContent,
-                            IsExpanded = !isSectionComplete,
-                            HorizontalAlignment = HorizontalAlignment.Stretch,
-                            CornerRadius = new CornerRadius(4),
-                            Margin = new Thickness(0, 0, 0, 5)
-                        });
+                                var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                                string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
+                                btnContent.Children.Add(LoadIcon(iconPath, 16));
+                                btnContent.Children.Add(new TextBlock { Text = $"S{lvl.Id}. {lvl.Title}", VerticalAlignment = VerticalAlignment.Center });
+
+                                var btn = new Button
+                                {
+                                    Content = btnContent,
+                                    IsEnabled = unlocked,
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                                    Padding = new Thickness(10, 10),
+                                    Background = unlocked ? SolidColorBrush.Parse("#313133") : SolidColorBrush.Parse("#191919"),
+                                    Foreground = unlocked ? Brushes.White : Brushes.Gray,
+                                    CornerRadius = new CornerRadius(4)
+                                };
+                                btn.Click += (_, __) => { LoadSqlLevel(lvl); win.Close(); };
+                                sectionContent.Children.Add(btn);
+                            }
+
+                            levelStack.Children.Add(new Expander
+                            {
+                                Header = headerPanel,
+                                Content = sectionContent,
+                                IsExpanded = !isSectionComplete,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                CornerRadius = new CornerRadius(4),
+                                Margin = new Thickness(0, 0, 0, 5)
+                            });
+                        }
                     }
+                    else
+                    {
+                        // c# levels
+                        var groups = levels.GroupBy(l => l.Section);
+                        foreach (var group in groups)
+                        {
+                            bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+
+                            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                            headerPanel.Children.Add(new TextBlock
+                            {
+                                Text = group.Key,
+                                Foreground = BrushTextTitle,
+                                FontWeight = FontWeight.Bold,
+                                VerticalAlignment = VerticalAlignment.Center
+                            });
+                            if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
+
+                            var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+
+                            foreach (var lvl in group)
+                            {
+                                bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
+                                bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
+
+                                var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                                string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
+                                btnContent.Children.Add(LoadIcon(iconPath, 16));
+                                btnContent.Children.Add(new TextBlock { Text = $"{lvl.Id}. {lvl.Title}", VerticalAlignment = VerticalAlignment.Center });
+
+                                var btn = new Button
+                                {
+                                    Content = btnContent,
+                                    IsEnabled = unlocked,
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                                    Padding = new Thickness(10, 10),
+                                    Background = unlocked ? SolidColorBrush.Parse("#313133") : SolidColorBrush.Parse("#191919"),
+                                    Foreground = unlocked ? Brushes.White : Brushes.Gray,
+                                    CornerRadius = new CornerRadius(4)
+                                };
+                                btn.Click += (_, __) => { LoadLevel(lvl); win.Close(); };
+                                sectionContent.Children.Add(btn);
+                            }
+
+                            levelStack.Children.Add(new Expander
+                            {
+                                Header = headerPanel,
+                                Content = sectionContent,
+                                IsExpanded = !isSectionComplete,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                CornerRadius = new CornerRadius(4),
+                                Margin = new Thickness(0, 0, 0, 5)
+                            });
+                        }
+                    }
+
                     contentScroll.Content = levelStack;
                 }
                 else
                 {
-                    // custom levels view
+                    // custom levels (for now only c#)
                     txtTitle.Text = "Eigene Levels";
                     countBadge.IsVisible = false;
 
-                    // custom levels list
-                    var customStack = new StackPanel
-                    {
-                        Spacing = 5
-                    };
+                    var customStack = new StackPanel { Spacing = 5 };
                     var customLevels = GetCustomLevels();
-
-                    // separate root files from folders
                     var rootLevels = customLevels.Where(x => x.Section == "Einzelne Levels").OrderBy(x => x.Name).ToList();
                     var folderGroups = customLevels.Where(x => x.Section != "Einzelne Levels").GroupBy(x => x.Section).OrderBy(g => g.Key).ToList();
 
-                    // search logic
+                    // search Box
                     var txtSearch = new TextBox
                     {
                         Watermark = "Suchen...",
@@ -2622,39 +2943,28 @@ namespace AbiturEliteCode
                         CornerRadius = new CornerRadius(4)
                     };
 
+                    // search logic
                     txtSearch.TextChanged += (s, e) => {
                         string query = txtSearch.Text?.ToLower() ?? "";
-
                         foreach (var child in customStack.Children)
                         {
-                            if (child is Expander exp)
+                            if (child is Expander exp && exp.Content is StackPanel groupPanel)
                             {
-                                if (exp.Content is StackPanel groupPanel)
+                                bool groupHasMatch = false;
+                                foreach (var item in groupPanel.Children)
                                 {
-                                    bool groupHasMatch = false;
-                                    foreach (var item in groupPanel.Children)
+                                    if (item is Grid row && row.Tag is CustomLevelInfo info)
                                     {
-                                        if (item is Grid row && row.Tag is CustomLevelInfo info)
-                                        {
-                                            bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
-                                            row.IsVisible = match;
-                                            if (match) groupHasMatch = true;
-                                        }
+                                        bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
+                                        row.IsVisible = match;
+                                        if (match) groupHasMatch = true;
                                     }
-
-                                    // only show expander if it has matching children
-                                    exp.IsVisible = groupHasMatch;
-
-                                    // expand if searching and match found, otherwise default to collapsed
-                                    if (!string.IsNullOrEmpty(query))
-                                        exp.IsExpanded = true;
-                                    else
-                                        exp.IsExpanded = false;
                                 }
+                                exp.IsVisible = groupHasMatch;
+                                if (!string.IsNullOrEmpty(query)) exp.IsExpanded = true; else exp.IsExpanded = false;
                             }
                             else if (child is Grid row && row.Tag is CustomLevelInfo info)
                             {
-                                // fallback for direct children (lone files)
                                 bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
                                 row.IsVisible = match;
                             }
@@ -2662,7 +2972,7 @@ namespace AbiturEliteCode
                     };
                     searchContainer.Child = txtSearch;
 
-                    // header buttons
+                    // custom level header buttons
                     var btnOpenFolder = new Button
                     {
                         Content = LoadIcon("assets/icons/ic_folder_open.svg", 18),
@@ -2725,7 +3035,6 @@ namespace AbiturEliteCode
 
                             var textStack = new StackPanel { Spacing = 2 };
                             Grid.SetColumn(textStack, 1);
-
                             textStack.Children.Add(new TextBlock
                             {
                                 Text = cl.Name + (cl.IsDraft ? " (Entwurf)" : ""),
@@ -2754,11 +3063,7 @@ namespace AbiturEliteCode
 
                             btnMain.Click += (_, __) =>
                             {
-                                if (!cl.IsDraft)
-                                {
-                                    LoadCustomLevelFromFile(cl.FilePath);
-                                    win.Close();
-                                }
+                                if (!cl.IsDraft) { LoadCustomLevelFromFile(cl.FilePath); win.Close(); }
                             };
 
                             Grid.SetColumnSpan(btnMain, 3);
@@ -2774,177 +3079,6 @@ namespace AbiturEliteCode
                             };
                             Grid.SetColumn(actionPanel, 2);
 
-                            if (cl.IsDraft && cl.QuickGenerate)
-                            {
-                                var btnQuickExport = new Button
-                                {
-                                    Content = LoadIcon("assets/icons/ic_generate.svg", 16),
-                                    Background = Brushes.Transparent,
-                                    Padding = new Thickness(8),
-                                    Tag = "idle"
-                                };
-                                ToolTip.SetTip(btnQuickExport, "Quick Export (Automatisch)");
-
-                                btnQuickExport.Click += async (s, e) =>
-                                {
-                                    if (btnQuickExport.Tag.ToString() != "idle") return;
-
-                                    btnQuickExport.Tag = "pending";
-                                    btnQuickExport.Content = LoadIcon("assets/icons/ic_pending.svg", 16);
-                                    btnQuickExport.IsEnabled = false;
-
-                                    var cts = new System.Threading.CancellationTokenSource();
-                                    EventHandler<WindowClosingEventArgs> closingHandler = (sender, args) => cts.Cancel();
-                                    win.Closing += closingHandler;
-
-                                    try
-                                    {
-                                        AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
-                                        var draft = LevelDesigner.LoadDraft(cl.FilePath);
-
-                                        bool valid = await Task.Run(async () =>
-                                        {
-                                            try
-                                            {
-                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + draft.TestCode;
-
-                                                string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
-
-                                                var references = GetSafeReferences();
-
-                                                var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
-                                                var compilation = CSharpCompilation.Create(
-                                                    $"QuickExport_{Guid.NewGuid()}",
-                                                    new[] { tree },
-                                                    references,
-                                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-                                                using (var ms = new MemoryStream())
-                                                {
-                                                    var result = compilation.Emit(ms, cancellationToken: cts.Token);
-                                                    if (!result.Success)
-                                                    {
-                                                        var diag = result.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
-                                                        throw new Exception($"Kompilierfehler: {diag?.GetMessage() ?? "Unbekannt"}");
-                                                    }
-
-                                                    ms.Seek(0, SeekOrigin.Begin);
-                                                    var assembly = Assembly.Load(ms.ToArray());
-
-                                                    // compile validator
-                                                    var valTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
-                                                    var valCompilation = CSharpCompilation.Create(
-                                                        $"Validator_{Guid.NewGuid()}",
-                                                        new[] { valTree },
-                                                        references,
-                                                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-                                                    using (var valMs = new MemoryStream())
-                                                    {
-                                                        var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
-                                                        if (!valResult.Success) throw new Exception("Fehler im Validierungs-Code.");
-
-                                                        valMs.Seek(0, SeekOrigin.Begin);
-                                                        var valAssembly = Assembly.Load(valMs.ToArray());
-                                                        var valType = valAssembly.GetType("DesignerValidator");
-                                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                                                            .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
-
-                                                        // run validation
-                                                        object[] args = new object[] { assembly, null };
-                                                        bool passed = (bool)valMethod.Invoke(null, args);
-
-                                                        if (!passed) throw new Exception($"Validierung nicht bestanden: {args[1]}");
-                                                        return true;
-                                                    }
-                                                }
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                if (!cts.Token.IsCancellationRequested)
-                                                    await Dispatcher.UIThread.InvokeAsync(() => AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
-                                                return false;
-                                            }
-                                        }, cts.Token);
-
-                                        if (!valid) throw new Exception("Validierung fehlgeschlagen.");
-
-                                        // generate diagrams
-                                        AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
-
-                                        if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0)
-                                        {
-                                            draft.PlantUmlSvgContents ??= new List<string>();
-
-                                            for (int i = 0; i < draft.PlantUmlSources.Count; i++)
-                                            {
-                                                string source = draft.PlantUmlSources[i];
-                                                if (string.IsNullOrWhiteSpace(source)) continue;
-
-                                                try
-                                                {
-                                                    string prepared = PreparePlantUmlSource(source);
-                                                    string svg = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
-
-                                                    while (draft.PlantUmlSvgContents.Count <= i)
-                                                        draft.PlantUmlSvgContents.Add("");
-
-                                                    draft.PlantUmlSvgContents[i] = svg;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    AddToConsole($"\n> Fehler beim Generieren des Diagramms {i}: {ex.Message}", Brushes.Orange);
-                                                }
-                                            }
-                                        }
-
-                                        for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
-                                        {
-                                            if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
-                                            {
-                                                string prepared = PreparePlantUmlSource(draft.MaterialDiagrams[i].PlantUmlSource);
-                                                draft.MaterialDiagrams[i].PlantUmlSvgContent = await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
-                                            }
-                                        }
-
-                                        // export
-                                        LevelDesigner.ExportLevel(cl.FilePath, draft);
-
-                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
-
-                                        await Task.Delay(2000);
-                                        RefreshUI();
-                                    }
-                                    catch (OperationCanceledException) { }
-                                    catch (Exception)
-                                    {
-                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
-                                        btnQuickExport.IsEnabled = true;
-                                        btnQuickExport.Tag = "idle";
-                                        await Task.Delay(2000);
-                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
-                                    }
-                                    finally
-                                    {
-                                        win.Closing -= closingHandler;
-                                        cts.Dispose();
-
-                                        // reset button state after delay
-                                        await Task.Delay(2000);
-                                        if (btnQuickExport.Content != null)
-                                        {
-                                            btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
-                                            btnQuickExport.IsEnabled = true;
-                                            btnQuickExport.Tag = "idle";
-                                        }
-                                    }
-                                };
-
-                                actionPanel.Children.Add(btnQuickExport);
-                            }
-
-                            // edit button
                             if (cl.IsDraft)
                             {
                                 var btnEdit = new Button
@@ -2966,11 +3100,7 @@ namespace AbiturEliteCode
                                 Padding = new Thickness(8)
                             };
                             ToolTip.SetTip(btnDelete, "Level löschen");
-                            btnDelete.Click += async (_, __) =>
-                            {
-                                await DeleteCustomLevel(cl, win);
-                                RefreshUI();
-                            };
+                            btnDelete.Click += async (_, __) => { await DeleteCustomLevel(cl, win); RefreshUI(); };
                             actionPanel.Children.Add(btnDelete);
 
                             rowGrid.Children.Add(actionPanel);
@@ -2980,16 +3110,8 @@ namespace AbiturEliteCode
                         // show groups
                         foreach (var group in folderGroups)
                         {
-                            var groupContent = new StackPanel
-                            {
-                                Spacing = 5,
-                                Margin = new Thickness(0, 5, 0, 0)
-                            };
-
-                            foreach (var cl in group)
-                            {
-                                groupContent.Children.Add(CreateLevelRow(cl));
-                            }
+                            var groupContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+                            foreach (var cl in group) groupContent.Children.Add(CreateLevelRow(cl));
 
                             var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
                             headerPanel.Children.Add(new TextBlock
@@ -3003,23 +3125,18 @@ namespace AbiturEliteCode
                             bool allComplete = group.All(l => !l.IsDraft && customPlayerData.CompletedCustomLevels.Contains(l.Name));
                             if (allComplete && group.Any()) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
 
-                            var expander = new Expander
+                            customStack.Children.Add(new Expander
                             {
                                 Header = headerPanel,
                                 Content = groupContent,
-                                IsExpanded = false, // collapsed by default
+                                IsExpanded = false,
                                 HorizontalAlignment = HorizontalAlignment.Stretch,
                                 CornerRadius = new CornerRadius(4),
                                 Margin = new Thickness(0, 0, 0, 5)
-                            };
-                            customStack.Children.Add(expander);
+                            });
                         }
 
-                        // show lone files at the bottom
-                        foreach (var cl in rootLevels)
-                        {
-                            customStack.Children.Add(CreateLevelRow(cl));
-                        }
+                        foreach (var cl in rootLevels) customStack.Children.Add(CreateLevelRow(cl));
                     }
                     contentScroll.Content = customStack;
                 }
@@ -3368,6 +3485,7 @@ namespace AbiturEliteCode
         {
             bool originalVimEnabled = AppSettings.IsVimEnabled;
             bool originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
+            bool originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
             bool originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
             double originalUiScale = AppSettings.UiScale;
             bool isPortable = SaveSystem.IsPortableModeEnabled();
@@ -3491,24 +3609,26 @@ namespace AbiturEliteCode
             var chkSyntax = new CheckBox
             {
                 Content = "Syntax-Hervorhebung",
-                IsChecked = AppSettings.IsSyntaxHighlightingEnabled,
+                IsChecked = _isSqlMode ? AppSettings.IsSqlSyntaxHighlightingEnabled : AppSettings.IsSyntaxHighlightingEnabled,
                 Foreground = Brushes.White
             };
 
-            // error highlighting
+            // error highlighting (c# only, for now)
             var chkError = new CheckBox
             {
                 Content = "Error-Hervorhebung",
                 IsChecked = AppSettings.IsErrorHighlightingEnabled,
-                Foreground = Brushes.White
+                Foreground = Brushes.White,
+                IsVisible = !_isSqlMode
             };
 
-            // vim controls
+            // vim controls (c# only)
             var chkVim = new CheckBox
             {
                 Content = "Vim Steuerung",
                 IsChecked = AppSettings.IsVimEnabled,
-                Foreground = Brushes.White
+                Foreground = Brushes.White,
+                IsVisible = !_isSqlMode
             };
 
             // display settings
@@ -3553,7 +3673,8 @@ namespace AbiturEliteCode
             {
                 bool hasChanges =
                     (chkVim.IsChecked != originalVimEnabled) ||
-                    (chkSyntax.IsChecked != originalSyntaxEnabled) ||
+                    (!_isSqlMode && chkSyntax.IsChecked != originalSyntaxEnabled) ||
+                    (_isSqlMode && chkSyntax.IsChecked != originalSqlSyntaxEnabled) ||
                     (chkError.IsChecked != originalErrorEnabled) ||
                     (chkPortable.IsChecked != isPortable) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
@@ -3594,10 +3715,18 @@ namespace AbiturEliteCode
 
                 btnYes.Click += (_, __) =>
                 {
-                    // reset values
-                    chkSyntax.IsChecked = false;
-                    chkError.IsChecked = false;
-                    chkVim.IsChecked = false;
+                    // reset values based on mode
+                    if (_isSqlMode)
+                    {
+                        chkSyntax.IsChecked = false;
+                    }
+                    else
+                    {
+                        chkSyntax.IsChecked = false;
+                        chkError.IsChecked = false;
+                        chkVim.IsChecked = false;
+                    }
+
                     chkPortable.IsChecked = false;
                     sliderScale.Value = 1.0;
 
@@ -3617,16 +3746,24 @@ namespace AbiturEliteCode
 
             chkSyntax.IsCheckedChanged += async (s, ev) =>
             {
-                if (chkSyntax.IsChecked == true && !originalSyntaxEnabled)
+                if (_isSqlMode)
                 {
-                    await ShowWarningDialog(
-                        "Syntax Highlighting",
-                        "In der Abiturprüfung stehen keine Syntax-Hervorhebungen zur Verfügung. Es wird empfohlen, ohne dieses Feature zu üben."
-                    );
+                    AppSettings.IsSqlSyntaxHighlightingEnabled = chkSyntax.IsChecked ?? false;
+                    ApplySqlSyntaxHighlighting();
                 }
+                else
+                {
+                    if (chkSyntax.IsChecked == true && !originalSyntaxEnabled)
+                    {
+                        await ShowWarningDialog(
+                            "Syntax Highlighting",
+                            "In der Abiturprüfung stehen keine Syntax-Hervorhebungen zur Verfügung. Es wird empfohlen, ohne dieses Feature zu üben."
+                        );
+                    }
 
-                AppSettings.IsSyntaxHighlightingEnabled = chkSyntax.IsChecked ?? false;
-                ApplySyntaxHighlighting();
+                    AppSettings.IsSyntaxHighlightingEnabled = chkSyntax.IsChecked ?? false;
+                    ApplySyntaxHighlighting();
+                }
                 CheckChanges();
             };
 
@@ -3665,7 +3802,8 @@ namespace AbiturEliteCode
 
             // editor
             var editorSettings = new StackPanel { Spacing = 15 };
-            editorSettings.Children.Add(new TextBlock { Text = "Code Editor", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
+            string editorTitle = _isSqlMode ? "SQL Query Editor" : "C# Code Editor";
+            editorSettings.Children.Add(new TextBlock { Text = editorTitle, FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
             editorSettings.Children.Add(chkSyntax);
             editorSettings.Children.Add(chkError);
             editorSettings.Children.Add(chkVim);
@@ -3725,6 +3863,7 @@ namespace AbiturEliteCode
             {
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
+                playerData.Settings.IsSqlSyntaxHighlightingEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
                 playerData.Settings.UiScale = AppSettings.UiScale;
 
                 SaveSystem.Save(playerData);
@@ -3821,6 +3960,7 @@ namespace AbiturEliteCode
                 {
                     AppSettings.IsVimEnabled = originalVimEnabled;
                     AppSettings.IsSyntaxHighlightingEnabled = originalSyntaxEnabled;
+                    AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
                     AppSettings.IsErrorHighlightingEnabled = originalErrorEnabled;
                     AppSettings.UiScale = originalUiScale;
 
@@ -3915,6 +4055,13 @@ namespace AbiturEliteCode
         {
             if (TabVim != null)
             {
+                if (_isSqlMode)
+                {
+                    TabVim.IsVisible = false;
+                    VimStatusBorder.IsVisible = false;
+                    return;
+                }
+
                 TabVim.IsVisible = AppSettings.IsVimEnabled;
 
                 if (!AppSettings.IsVimEnabled)
@@ -4056,6 +4203,18 @@ namespace AbiturEliteCode
             else
             {
                 CodeEditor.SyntaxHighlighting = null;
+            }
+        }
+
+        private void ApplySqlSyntaxHighlighting()
+        {
+            if (AppSettings.IsSqlSyntaxHighlightingEnabled)
+            {
+                SqlQueryEditor.SyntaxHighlighting = SqlCodeEditor.GetDarkSqlHighlighting();
+            }
+            else
+            {
+                SqlQueryEditor.SyntaxHighlighting = null;
             }
         }
 
@@ -5433,6 +5592,265 @@ namespace AbiturEliteCode
 
             BtnNextLevel.IsVisible = false;
             await dialog.ShowDialog(this);
+        }
+
+        // --- SQL LOGIC ---
+
+        private void LoadSqlLevel(SqlLevel level)
+        {
+            SaveCurrentProgress();
+
+            BtnNextLevel.IsVisible = false;
+
+            currentSqlLevel = level;
+            if (playerData.UserSqlCode.ContainsKey(level.Id))
+            {
+                SqlQueryEditor.Text = playerData.UserSqlCode[level.Id];
+            }
+            else
+            {
+                SqlQueryEditor.Text = "";
+            }
+            PnlSqlOutput.Children.Clear();
+
+            PnlTask.Children.Clear();
+            PnlTask.Children.Add(new SelectableTextBlock
+            {
+                Text = $"S{level.Id}. {level.Title}",
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextNormal,
+                Margin = new Thickness(0, 0, 0, 20)
+            });
+
+            RenderRichText(PnlTask, level.Description);
+
+            // materials
+            GenerateMaterials(new Level
+            {
+                MaterialDocs = level.MaterialDocs,
+                AuxiliaryIds = level.AuxiliaryIds
+            });
+
+            // diagrams
+            PnlDiagramSwitch.IsVisible = false;
+
+            ImgDiagram.Source = null; // reset first
+            bool diagramLoaded = false;
+
+            if (level.DiagramPaths != null && level.DiagramPaths.Count > 0)
+            {
+                var loadedImage = LoadDiagramImage(level.DiagramPaths[0]);
+                if (loadedImage != null)
+                {
+                    ImgDiagram.Source = loadedImage;
+                    diagramLoaded = true;
+                }
+            }
+
+            TxtNoDiagram.IsVisible = !diagramLoaded;
+
+            AddSqlOutput("System", $"Level S{level.Id} (Code: {level.SkipCode}) geladen.\nDatenbank zurückgesetzt.", Brushes.Gray);
+        }
+
+        private void RunSqlQuery()
+        {
+            string userQuery = SqlQueryEditor.Text.Trim();
+            if (string.IsNullOrEmpty(userQuery)) return;
+
+            AddSqlOutput("User", userQuery, Brushes.White, true);
+
+            var result = SqlLevelTester.Run(currentSqlLevel, userQuery);
+
+            if (result.ResultTable != null)
+            {
+                AddSqlTable(result.ResultTable);
+            }
+
+            if (result.Success)
+            {
+                AddSqlOutput("System", result.Feedback, Brushes.LightGreen);
+
+                if (!playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id))
+                    playerData.CompletedSqlLevelIds.Add(currentSqlLevel.Id);
+
+                var nextLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
+
+                if (nextLvl != null)
+                {
+                    if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
+                    {
+                        playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
+                        AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
+                    }
+
+                    if (nextLvl.Section != currentSqlLevel.Section)
+                    {
+                        AddSqlOutput("System", "🎉 Sektion abgeschlossen!", Brushes.LightGreen);
+                        BtnNextLevel.Content = "NÄCHSTE SEKTION →";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                    }
+                }
+                else
+                {
+                    // no next level
+                    AddSqlOutput("System", "🎉 Kurs abgeschlossen!", Brushes.LightGreen);
+                    BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
+                }
+
+                BtnNextLevel.IsVisible = true;
+                SaveSystem.Save(playerData);
+            }
+            else
+            {
+                AddSqlOutput("Error", result.Feedback, Brushes.Orange);
+            }
+        }
+
+        private DataTable ExecuteDbQuery(SqliteConnection conn, string sql)
+        {
+            var dt = new DataTable();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    dt.Load(reader);
+                }
+            }
+            return dt;
+        }
+
+        private void ValidateSqlResult(DataTable userResult, string userSql, SqliteConnection conn)
+        {
+            List<string[]> actualRows = new List<string[]>();
+
+            // 1: user did a SELECT -> validate the result directly
+            if (userResult != null)
+            {
+                foreach (DataRow row in userResult.Rows)
+                {
+                    string[] rowData = row.ItemArray.Select(x => x.ToString()).ToArray();
+                    actualRows.Add(rowData);
+                }
+            }
+            // 2: user did UPDATE/INSERT -> run verification query
+            else if (!string.IsNullOrEmpty(currentSqlLevel.VerificationQuery))
+            {
+                var verifyDt = ExecuteDbQuery(conn, currentSqlLevel.VerificationQuery);
+                foreach (DataRow row in verifyDt.Rows)
+                {
+                    string[] rowData = row.ItemArray.Select(x => x.ToString()).ToArray();
+                    actualRows.Add(rowData);
+                }
+            }
+
+
+            bool correct = true;
+            if (actualRows.Count != currentSqlLevel.ExpectedResult.Count) correct = false;
+            else
+            {
+                for (int i = 0; i < actualRows.Count; i++)
+                {
+                    for (int j = 0; j < actualRows[i].Length; j++)
+                    {
+                        if (actualRows[i][j] != currentSqlLevel.ExpectedResult[i][j])
+                        {
+                            correct = false; break;
+                        }
+                    }
+                }
+            }
+
+            if (correct)
+            {
+                AddSqlOutput("Success", "✓ Richtig! Aufgabe gelöst.", Brushes.LightGreen);
+            }
+            else
+            {
+                AddSqlOutput("System", "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.", Brushes.Orange);
+            }
+        }
+
+        private void AddSqlOutput(string author, string text, IBrush color, bool isCode = false)
+        {
+            if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
+
+            var container = new StackPanel { Spacing = 2 };
+
+            container.Children.Add(new SelectableTextBlock
+            {
+                Text = author,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.Gray,
+                FontSize = 10
+            });
+
+            var content = new SelectableTextBlock
+            {
+                Text = text,
+                Foreground = color,
+                FontFamily = isCode ? new FontFamily("Consolas") : FontFamily.Default,
+                TextWrapping = TextWrapping.Wrap
+            };
+            container.Children.Add(content);
+
+            PnlSqlOutput.Children.Add(container);
+            SqlOutputScroller.ScrollToEnd();
+        }
+
+        private void AddSqlTable(DataTable table)
+        {
+            if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
+
+            var grid = new Grid { Margin = new Thickness(0, 5) };
+
+            // create Columns
+            for (int i = 0; i < table.Columns.Count; i++)
+                grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+
+            // header Row
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            for (int col = 0; col < table.Columns.Count; col++)
+            {
+                var header = new Border
+                {
+                    Background = SolidColorBrush.Parse("#333"),
+                    Padding = new Thickness(5),
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(1)
+                };
+                header.Child = new TextBlock { Text = table.Columns[col].ColumnName, FontWeight = FontWeight.Bold };
+                Grid.SetRow(header, 0);
+                Grid.SetColumn(header, col);
+                grid.Children.Add(header);
+            }
+
+            // data rows
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                for (int col = 0; col < table.Columns.Count; col++)
+                {
+                    var cell = new Border
+                    {
+                        BorderBrush = Brushes.Black,
+                        BorderThickness = new Thickness(1),
+                        Padding = new Thickness(5)
+                    };
+                    cell.Child = new TextBlock { Text = table.Rows[i][col].ToString(), Foreground = Brushes.White };
+
+                    Grid.SetRow(cell, i + 1);
+                    Grid.SetColumn(cell, col);
+                    grid.Children.Add(cell);
+                }
+            }
+
+            PnlSqlOutput.Children.Add(grid);
+            SqlOutputScroller.ScrollToEnd();
         }
     }
 }
