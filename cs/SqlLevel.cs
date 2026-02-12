@@ -5,6 +5,8 @@ namespace AbiturEliteCode.cs
     // SQL LEVEL CRATION GUIDE
     // the app uses SQLite but we are trying our best to emulate MySQL syntax and behavior as that is what we are supposed to learn and is expected from us in the abitur
 
+    // regarding "PlantUMLSources" we are using plantuml and only ER-diagrams (Chen's notation)
+
     public class SqlLevel
     {
         public int Id { get; set; }
@@ -26,8 +28,8 @@ namespace AbiturEliteCode.cs
     public static class SqlLevelCodes
     {
         public static string[] CodesList = {
-            "SEL", "WHE", "ORD", "AGG", "INS", "UPD", "DEL", "EX1",
-            "ER1", "ER2", "ER3", "ER4"
+            "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EX1",
+            "JON", "MNR", "OUT", "ABI"
         };
     }
 
@@ -150,26 +152,30 @@ namespace AbiturEliteCode.cs
                     Section = "Sektion 1: SQL Grundlagen",
                     SkipCode = SqlLevelCodes.CodesList[3],
                     NextLevelCode = SqlLevelCodes.CodesList[4],
-                    Title = "Aggregationen",
-                    Description = "Die Statistik-Abteilung benötigt Kennzahlen zum Bestand.\n\n" +
+                    Title = "Gruppierung (GROUP BY)",
+                    Description = "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
+                                  "Tabelle [Buch]: [Titel], [Autor], [Genre], [Preis]\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie die Anzahl aller Bücher (als Spalte 'Anzahl') und den Durchschnittspreis aller Bücher (als Spalte 'Durchschnitt') der Tabelle [Buch].\n" +
-                                  "Es werden keine [GROUP BY] Klauseln benötigt, da wir über die gesamte Tabelle aggregieren.",
-                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Preis REAL);" +
-                                  "INSERT INTO Buch (Titel, Preis) VALUES ('A', 10.0);" +
-                                  "INSERT INTO Buch (Titel, Preis) VALUES ('B', 20.0);" +
-                                  "INSERT INTO Buch (Titel, Preis) VALUES ('C', 15.0);",
+                                  "Ermitteln Sie für jedes [Genre] den **Durchschnittspreis** (als 'Durchschnitt').\n" +
+                                  "Das Ergebnis soll das Genre und den berechneten Durchschnittspreis enthalten.",
+                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Genre TEXT, Preis REAL);" +
+                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Faust', 'Goethe', 'Drama', 10.0);" +
+                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Iphigenie', 'Goethe', 'Drama', 12.0);" +
+                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Es', 'King', 'Horror', 15.0);" +
+                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Shining', 'King', 'Horror', 13.0);" +
+                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Der Marsianer', 'Weir', 'SciFi', 20.0);",
                     VerificationQuery = "",
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "3", "15" } // 15 books avg: 3.0
+                        new[] { "Drama", "11" }, // (10+12)/2 = 11
+                        new[] { "Horror", "14" }, // (15+13)/2 = 14
+                        new[] { "SciFi", "20" }
                     },
-                    MaterialDocs = "start-hint: Aggregatfunktionen\n" +
-                                   "- [COUNT(*)]: Zählt Zeilen\n" +
-                                   "- [AVG(spalte)]: Berechnet Durchschnitt\n" +
-                                   "- [SUM(spalte)]: Berechnet Summe\n" +
-                                   "- [MAX(spalte)] / [MIN(spalte)]: Maximum/Minimum\n" +
-                                   "Nutzen Sie [AS], um den Spalten Namen zu geben: [SELECT COUNT(*) AS Anzahl ...]\n" +
+                    MaterialDocs = "start-hint: GROUP BY Syntax\n" +
+                                   "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte (hier Genre) ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n\n" +
+                                   "{|SELECT Genre, AVG(Preis)\n" +
+                                   "FROM Buch\n" +
+                                   "GROUP BY Genre;|}" +
                                    ":end-hint",
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
@@ -298,31 +304,30 @@ namespace AbiturEliteCode.cs
                     SkipCode = SqlLevelCodes.CodesList[8],
                     NextLevelCode = SqlLevelCodes.CodesList[9],
                     Title = "1:n Beziehungen (JOIN)",
-                    Description = "In relationalen Datenbanken werden Beziehungen oft über **Fremdschlüssel** (Foreign Keys) realisiert.\n\n" +
-                                  "Das Diagramm zeigt eine klassische **1:n Beziehung**: Eine Klasse hat *viele* Schüler, aber ein Schüler gehört zu genau *einer* Klasse.\n" +
-                                  "Der Fremdschlüssel [K_ID_FK] in der Tabelle [Schueler] verweist auf den Primärschlüssel der [Klasse].\n\n" +
+                    Description = "In einer Schule unterrichten Lehrer in verschiedenen Räumen. Jeder Raum hat einen verantwortlichen Lehrer, aber ein Lehrer kann für mehrere Räume verantwortlich sein (**1:n Beziehung**).\n\n" +
+                                  "Das Diagramm zeigt die Entitäten [Lehrer] und [Raum] in der **Chen-Notation**. Die Beziehung 'betreut' verbindet beide.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Geben Sie eine Liste aller Schüler aus, die den **Namen des Schülers** und die **Bezeichnung der Klasse** enthält.\n" +
-                                  "Verbinden Sie dazu die beiden Tabellen.",
-                    SetupScript = "CREATE TABLE Klasse (ID INTEGER PRIMARY KEY, Bezeichnung TEXT);" +
-                                  "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, K_ID_FK INTEGER);" +
-                                  "INSERT INTO Klasse VALUES (1, '12-Informatik');" +
-                                  "INSERT INTO Klasse VALUES (2, '11-Mathe');" +
-                                  "INSERT INTO Schueler VALUES (101, 'Jan', 1);" +
-                                  "INSERT INTO Schueler VALUES (102, 'Lea', 1);" +
-                                  "INSERT INTO Schueler VALUES (103, 'Tom', 2);",
+                                  "Erstellen Sie eine Liste, die den **Namen des Raums** (Bezeichnung) und den **Nachnamen des verantwortlichen Lehrers** anzeigt.\n" +
+                                  "Verknüpfen Sie dazu die Tabellen [Raum] und [Lehrer] über den Fremdschlüssel [L_ID].",
+                    SetupScript = "CREATE TABLE Lehrer (ID INTEGER PRIMARY KEY, Nachname TEXT, Vorname TEXT);" +
+                                  "CREATE TABLE Raum (ID INTEGER PRIMARY KEY, Bezeichnung TEXT, L_ID INTEGER);" +
+                                  "INSERT INTO Lehrer VALUES (1, 'Müller', 'Hans');" +
+                                  "INSERT INTO Lehrer VALUES (2, 'Schmidt', 'Anna');" +
+                                  "INSERT INTO Raum VALUES (101, 'A-101', 1);" +
+                                  "INSERT INTO Raum VALUES (102, 'Chemie-Saal', 2);" +
+                                  "INSERT INTO Raum VALUES (103, 'A-102', 1);",
                     VerificationQuery = "",
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "Jan", "12-Informatik" },
-                        new[] { "Lea", "12-Informatik" },
-                        new[] { "Tom", "11-Mathe" }
+                        new[] { "A-101", "Müller" },
+                        new[] { "Chemie-Saal", "Schmidt" },
+                        new[] { "A-102", "Müller" }
                     },
                     MaterialDocs = "start-hint: JOIN Syntax\n" +
                                    "{|SELECT ... \n" +
                                    "FROM TabelleA \n" +
-                                   "JOIN TabelleB ON TabelleA.PK = TabelleB.FK;|}\n" +
-                                   "Nutzen Sie die Punkt-Notation (z.B. [Schueler.Name]), um Spalten eindeutig zuzuordnen.\n" +
+                                   "JOIN TabelleB ON TabelleA.FremdSchluessel = TabelleB.PrimaerSchluessel;|}\n" +
+                                   "Nutzen Sie die Punkt-Notation (z.B. [Lehrer.Nachname]), um Spalten eindeutig zuzuordnen.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -330,7 +335,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nhide circle\nskinparam linetype ortho\n\nentity \"Klasse\" {\n  *ID\n  --\n  Bezeichnung\n}\n\nentity \"Schueler\" {\n  *ID\n  --\n  Name\n  #K_ID_FK\n}\n\nKlasse ||..|{ Schueler : enthaelt\n@enduml"
+                        "@startchen\nentity Lehrer {\n    ID\n    Nachname\n    Vorname\n}\nentity Raum {\n    ID\n    Bezeichnung\n    L_ID\n}\nrelationship betreut {\n}\n\nLehrer -1- betreut\nbetreut -N- Raum\n@endchen"
                     }
                 },
                 new SqlLevel
@@ -340,8 +345,8 @@ namespace AbiturEliteCode.cs
                     SkipCode = SqlLevelCodes.CodesList[9],
                     NextLevelCode = SqlLevelCodes.CodesList[10],
                     Title = "m:n Beziehungen (Verknüpfungstabelle)",
-                    Description = "Das Diagramm zeigt eine **m:n Beziehung**: Ein Schüler kann mehrere AGs besuchen, und eine AG hat mehrere Schüler.\n" +
-                                  "In SQL wird dies durch eine dritte Tabelle (hier [Teilnahme]) aufgelöst, die zwei Fremdschlüssel enthält.\n\n" +
+                    Description = "Das Diagramm zeigt eine **m:n Beziehung**: Schüler können an mehreren AGs teilnehmen, und eine AG hat viele Schüler.\n" +
+                                  "In der relationalen Datenbank wird dies über eine **Verknüpfungstabelle** (hier [Teilnahme]) aufgelöst, die die Primärschlüssel beider Entitäten als Fremdschlüssel enthält.\n\n" +
                                   "Aufgabe:\n" +
                                   "Ermitteln Sie die Titel aller AGs, an denen der Schüler 'Max' teilnimmt.\n" +
                                   "Sie müssen über drei Tabellen joinen: [Schueler] -> [Teilnahme] -> [AG].",
@@ -375,7 +380,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nhide circle\nskinparam linetype ortho\n\nentity \"Schueler\" {\n  *ID\n  --\n  Name\n}\n\nentity \"Teilnahme\" {\n  #S_ID\n  #AG_ID\n}\n\nentity \"AG\" {\n  *ID\n  --\n  Titel\n}\n\nSchueler ||..|{ Teilnahme\nTeilnahme }|..|| AG\n@enduml"
+                        "@startchen\nentity Schueler {\n    ID\n    Name\n}\nentity AG {\n    ID\n    Titel\n}\nrelationship nimmt_teil {\n}\n\nSchueler -M- nimmt_teil\nnimmt_teil -N- AG\n@endchen"
                     }
                 },
                 new SqlLevel
@@ -385,12 +390,11 @@ namespace AbiturEliteCode.cs
                     SkipCode = SqlLevelCodes.CodesList[10],
                     NextLevelCode = SqlLevelCodes.CodesList[11],
                     Title = "Kardinalitäten (LEFT JOIN)",
-                    Description = "In einem Krankenhaus gibt es Mitarbeiter und Parkplätze. Die Kardinalität ist **[0..1]** zu **[0..1]**.\n" +
-                                  "Das bedeutet: Ein Mitarbeiter *kann* einen Parkplatz haben (muss aber nicht), und ein Parkplatz gehört maximal zu einem Mitarbeiter.\n\n" +
-                                  "Das Diagramm zeigt, dass der Fremdschlüssel [M_ID] in der Tabelle [Parkplatz] liegt.\n\n" +
+                    Description = "In einem Krankenhaus gibt es Mitarbeiter und Parkplätze. Nicht jeder Mitarbeiter besitzt einen Parkplatz (Kardinalität [0..1]).\n" +
+                                  "Das Diagramm zeigt die Beziehung: Ein Mitarbeiter **kann** einen Parkplatz nutzen.\n\n" +
                                   "Aufgabe:\n" +
                                   "Finden Sie die Namen aller Mitarbeiter, die **keinen** Parkplatz besitzen.\n" +
-                                  "Nutzen Sie einen [LEFT JOIN] und prüfen Sie auf [NULL].",
+                                  "Nutzen Sie einen [LEFT JOIN] von [Mitarbeiter] zu [Parkplatz] und prüfen Sie, wo die Parkplatz-ID [NULL] ist.",
                     SetupScript = "CREATE TABLE Mitarbeiter (ID INTEGER PRIMARY KEY, Name TEXT);" +
                                   "CREATE TABLE Parkplatz (ID INTEGER PRIMARY KEY, Nummer INTEGER, M_ID INTEGER);" +
                                   "INSERT INTO Mitarbeiter VALUES (1, 'Dr. House');" +
@@ -414,7 +418,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nhide circle\nskinparam linetype ortho\n\nentity \"Mitarbeiter\" {\n  *ID\n  --\n  Name\n}\n\nentity \"Parkplatz\" {\n  *ID\n  --\n  Nummer\n  #M_ID\n}\n\nMitarbeiter |o..o| Parkplatz\n@enduml"
+                        "@startchen\nentity Mitarbeiter {\n    ID\n    Name\n}\nentity Parkplatz {\n    ID\n    Nummer\n    M_ID\n}\nrelationship nutzt {\n}\n\nMitarbeiter -1- nutzt\nnutzt -1- Parkplatz\n@endchen"
                     }
                 },
                 new SqlLevel
@@ -423,15 +427,15 @@ namespace AbiturEliteCode.cs
                     Section = "Sektion 2: ER-Modellierung",
                     SkipCode = SqlLevelCodes.CodesList[11],
                     NextLevelCode = "",
-                    Title = "Komplexe Abfrage (Social Media)",
+                    Title = "Abitur-Simulation (Social Media)",
                     Description = "Dieses Szenario orientiert sich an einer echten Abituraufgabe (vgl. ABI 2023).\n" +
-                                  "Gegeben sind Nutzer, die Beiträge erstellen. Andere Nutzer können diese Beiträge liken.\n\n" +
+                                  "Gegeben sind Nutzer, die Beiträge erstellen (1:n) und Beiträge liken können (m:n).\n\n" +
                                   "Struktur:\n" +
                                   "- [Nutzer] (Name, ...)\n" +
                                   "- [Beitrag] (ID, Titel, AutorName_FK)\n" +
                                   "- [Likes] (NutzerName_FK, BeitragID_FK)\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie für jeden Beitrag den **Titel**, den **Autor** und die **Anzahl der Likes**.\n" +
+                                  "Ermitteln Sie für jeden Beitrag den **Titel** und die **Anzahl der Likes**.\n" +
                                   "Sortieren Sie absteigend nach der Anzahl der Likes.",
                     SetupScript = "CREATE TABLE Nutzer (Name TEXT PRIMARY KEY);" +
                                   "CREATE TABLE Beitrag (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT);" +
@@ -440,21 +444,22 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Beitrag VALUES (1, 'Mein Urlaub', 'Anna');" +
                                   "INSERT INTO Beitrag VALUES (2, 'Essen', 'Anna');" +
                                   "INSERT INTO Beitrag VALUES (3, 'Katzenvideo', 'Ben');" +
-                                  // Likes
+                                  // likes
                                   "INSERT INTO Likes VALUES ('Ben', 1);" +
-                                  "INSERT INTO Likes VALUES ('Chris', 1);" + // post 1: 2 Likes
-                                  "INSERT INTO Likes VALUES ('Anna', 3);" + // post 3: 1 Like
-                                  "INSERT INTO Likes VALUES ('Chris', 3);" + // post 3: 2 Likes
-                                  "INSERT INTO Likes VALUES ('Ben', 3);", // post 3: 3 Likes total
+                                  "INSERT INTO Likes VALUES ('Chris', 1);" + // post 1: 2 likes
+                                  "INSERT INTO Likes VALUES ('Anna', 3);" + // post 3: 1 like
+                                  "INSERT INTO Likes VALUES ('Chris', 3);" + // post 3: 2 likes
+                                  "INSERT INTO Likes VALUES ('Ben', 3);", // post 3: 3 likes total
                     VerificationQuery = "",
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "Katzenvideo", "Ben", "3" },
-                        new[] { "Mein Urlaub", "Anna", "2" },
-                        new[] { "Essen", "Anna", "0" }
+                        new[] { "Katzenvideo", "3" },
+                        new[] { "Mein Urlaub", "2" },
+                        new[] { "Essen", "0" }
                     },
                     MaterialDocs = "start-tipp: Gruppierung\n" +
-                                   "Wenn Sie [COUNT()] nutzen, müssen Sie die nicht-aggregierten Spalten (Titel, Autor) im [GROUP BY] angeben.\n" +
+                                   "Da wir zählen wollen ([COUNT]), müssen wir nach den Spalten gruppieren, die nicht aggregiert werden (Titel).\n" +
+                                   "Nutzen Sie einen [LEFT JOIN] zwischen Beitrag und Likes, damit auch Beiträge mit 0 Likes erscheinen.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -462,7 +467,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nhide circle\nskinparam linetype ortho\n\nentity \"Nutzer\" {\n  *Name\n}\n\nentity \"Beitrag\" {\n  *ID\n  --\n  Titel\n  #Autor\n}\n\nentity \"Likes\" {\n  #Nutzer\n  #BeitragID\n}\n\nNutzer ||..o{ Beitrag : verfasst\nNutzer }|..|{ Likes : liked\nLikes }|..|| Beitrag\n@enduml"
+                        "@startchen\nentity Nutzer {\n    Name\n}\nentity Beitrag {\n    ID\n    Titel\n    Autor\n}\nrelationship verfasst {\n}\nrelationship liked {\n}\n\nNutzer -1- verfasst\nverfasst -N- Beitrag\n\nNutzer -M- liked\nliked -N- Beitrag\n@endchen"
                     }
                 }
             };

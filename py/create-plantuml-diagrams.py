@@ -217,7 +217,7 @@ def add_theme(plantuml_source):
         new_lines = []
         for line in lines:
             new_lines.append(line)
-            if line.strip().startswith('@startuml'):
+            if line.strip().startswith('@startuml') or line.strip().startswith('@startchen'):
                 new_lines.append('skinparam backgroundcolor transparent')
                 new_lines.append('skinparam classAttributeIconSize 0')
                 # Add monochrome/plain styling to mimic generic SQL/UML standard if preferred

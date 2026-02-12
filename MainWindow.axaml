@@ -16,7 +16,7 @@
 		<Grid Name="RootGrid" RowDefinitions="60,*">
 
 			<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
-				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto, Auto">
 					<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
 						<TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="18"/>
 						<TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="18"/>
@@ -37,17 +37,23 @@
                             FontWeight="Bold"
                             Click="BtnModeSwitch_Click"/>
 
-					<Button Grid.Column="3" Name="BtnExitDesigner" Content="DESIGNER VERLASSEN"
+					<Button Grid.Column="3" Name="BtnPrevLevel" Content="←"
+                            Background="#333" Foreground="White"
+                            CornerRadius="4" Padding="15,8" FontWeight="Bold"
+                            VerticalAlignment="Center" Margin="0,0,10,0"
+                            Click="BtnPrevLevel_Click"/>
+
+					<Button Grid.Column="4" Name="BtnNextLevel" Content="→"
+							Background="RoyalBlue" Foreground="White"
+							CornerRadius="4" Padding="15,8" FontWeight="Bold"
+							VerticalAlignment="Center" Margin="0,0,20,0"
+							Click="BtnNextLevel_Click"/>
+
+					<Button Grid.Column="5" Name="BtnExitDesigner" Content="DESIGNER VERLASSEN"
                             Background="#B43232" Foreground="White" IsVisible="False"
                             CornerRadius="4" Padding="15,8" FontWeight="Bold"
                             VerticalAlignment="Center" Margin="0,0,20,0"
                             Click="BtnExitDesigner_Click"/>
-
-					<Button Grid.Column="3" Name="BtnNextLevel" Content="NÄCHSTES LEVEL →"
-							Background="RoyalBlue" Foreground="White" IsVisible="False"
-							CornerRadius="4" Padding="15,8" FontWeight="Bold"
-							VerticalAlignment="Center" Margin="0,0,20,0"
-							Click="BtnNextLevel_Click"/>
 				</Grid>
 			</Border>
 

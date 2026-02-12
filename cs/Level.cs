@@ -23,6 +23,8 @@ namespace AbiturEliteCode.cs
     // null/out of bounds checks should be included by the user (in the abitur these commonly make the students lose points)
     // pseudo-code is not attached to the uml/diagrams but the materials tab as plain text
 
+    // for nassi-shneiderman diagrams we use Structorizer which uses pascal for their diagrams through code
+
     // if the plantuml should actually add a new line instead of converting it by the python script that reads the plantuml source code, then use: "\n/"
     // note: in the abitur association attributes arent included in the actual class, but are indicated on the association only (this also includes its access modifiers: +/-/#), the attribute should be placed on the side of the class its referencing (and not on the side of the class which is referencing it), lists are marked with an asterisk and single attributes with a number (multiplicity)
     // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
@@ -516,7 +518,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Id = 12,
                     Section = "Sektion 3: Beziehungen & Navigation",
                     SkipCode = LevelCodes.CodesList[11],
-                    NextLevelCode = "",
+                    NextLevelCode = LevelCodes.CodesList[12],
                     Title = "Das Kollegium (Geschachtelte Listen)",
                     Description = "Die Schulverwaltung muss Lehrer identifizieren, die überlastet sind.\n\n" +
                                   "Aufgabe:\n" +

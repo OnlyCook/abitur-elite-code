@@ -22,7 +22,7 @@ namespace AbiturEliteCode
     <Color name=""Types"" foreground=""#4EC9B0"" exampleText=""INT VARCHAR"" />
 
 	<RuleSet ignoreCase=""true"">
-		<Span color=""Comment"">
+        <Span color=""Comment"">
 			<Begin>--</Begin>
 		</Span>
 		<Span color=""Comment"" multiline=""true"">
@@ -93,6 +93,9 @@ namespace AbiturEliteCode
             <Word>REFERENCES</Word>
             <Word>DEFAULT</Word>
             <Word>AUTO_INCREMENT</Word>
+            <Word>ASC</Word>
+            <Word>DESC</Word>
+            <Word>USING</Word>
 		</Keywords>
 
         <Keywords color=""Types"">
