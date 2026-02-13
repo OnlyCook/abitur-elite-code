@@ -7,6 +7,12 @@ namespace AbiturEliteCode.cs
 
     // regarding "PlantUMLSources" we are using plantuml and only ER-diagrams (Chen's notation)
 
+    // the entity-relationship diagrams should match the ones in the abitur exams, here is how they should be structured:
+    // multiplicities are written in the min-max-notation like this for each side: [min,max] (for example: ET1-[0,n]-REL-[0,m]-ET2)
+    // primary keys are underlined
+    // attributes are written in camelCase (for example: "anzahlGetränke"), ids have their "id" in uppercase and without underscores (for example: "kID")
+    // in the early levels (with ER-diagrams) we include the foreign keys in the diagrams, but in the later levels we do not (the user must know on their own what has what key)
+
     public class SqlLevel
     {
         public int Id { get; set; }

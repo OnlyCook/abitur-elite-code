@@ -39,6 +39,8 @@ namespace AbiturEliteCode.cs
                     12 => TestLevel12(assembly, out feedback),
                     13 => TestLevel13(assembly, out feedback),
                     14 => TestLevel14(assembly, out feedback),
+                    15 => TestLevel15(assembly, out feedback),
+                    16 => TestLevel16(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -793,6 +795,137 @@ namespace AbiturEliteCode.cs
             if (!hasMax || !hasTom) throw new Exception("Fehler: Nicht alle gefährdeten Schüler wurden gefunden.");
 
             throw new Exception("Formatierung des Strings entspricht nicht den Vorgaben.");
+        }
+
+        private static bool TestLevel15(Assembly assembly, out string feedback)
+        {
+            Type tRover = assembly.GetType("Rover");
+            Type tZentrum = assembly.GetType("Kontrollzentrum");
+
+            if (tRover == null) throw new Exception("Klasse 'Rover' fehlt.");
+            if (tZentrum == null) throw new Exception("Klasse 'Kontrollzentrum' fehlt.");
+
+            ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
+            if (ctorRover == null) throw new Exception("Konstruktor Rover(string id) fehlt.");
+
+            ConstructorInfo ctorZentrum = tZentrum.GetConstructor(Type.EmptyTypes);
+            if (ctorZentrum == null) throw new Exception("Standardkonstruktor für Kontrollzentrum fehlt.");
+
+            object zentrum = ctorZentrum.Invoke(null);
+
+            FieldInfo fRover = tZentrum.GetField("rover", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fRover == null) throw new Exception("Feld 'rover' in Kontrollzentrum fehlt oder ist nicht private.");
+
+            object rover = fRover.GetValue(zentrum);
+            if (rover == null) throw new Exception("Der Rover wurde im Konstruktor von Kontrollzentrum nicht initialisiert.");
+
+            MethodInfo mVerarbeite = tZentrum.GetMethod("VerarbeiteKommando");
+            if (mVerarbeite == null) throw new Exception("Methode 'VerarbeiteKommando' im Kontrollzentrum fehlt.");
+
+            // methods in rover
+            MethodInfo mMove = tRover.GetMethod("Move") ?? tRover.GetMethod("move");
+            MethodInfo mTurn = tRover.GetMethod("Turn") ?? tRover.GetMethod("turn");
+            MethodInfo mScan = tRover.GetMethod("Scan") ?? tRover.GetMethod("scan");
+
+            if (mMove == null) throw new Exception("Methode 'Move(int, int)' in Rover fehlt. Prüfen Sie die Parameter.");
+            if (mTurn == null) throw new Exception("Methode 'Turn(string)' in Rover fehlt.");
+            if (mScan == null) throw new Exception("Methode 'Scan(string)' in Rover fehlt.");
+
+            // fields to verify functionality
+            FieldInfo fId = tRover.GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fPos = tRover.GetField("position", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fAus = tRover.GetField("ausrichtung", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fLetzterScan = tZentrum.GetField("letzterScan", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (fId == null) throw new Exception("Feld 'id' in Rover fehlt.");
+            if (fPos == null || fAus == null) throw new Exception("Die privaten Felder 'position' oder 'ausrichtung' in Rover fehlen.");
+            if (fLetzterScan == null) throw new Exception("Feld 'letzterScan' in Kontrollzentrum fehlt.");
+
+            // test execution 1: move
+            try
+            {
+                mVerarbeite.Invoke(zentrum, new object[] { "MV;42;90" });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler beim Verarbeiten von 'MV;42;90': {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            int[] actualPos = (int[])fPos.GetValue(rover);
+            if (actualPos == null || actualPos.Length != 2 || actualPos[0] != 42 || actualPos[1] != 90)
+                throw new Exception($"Das Kommando 'MV;42;90' wurde nicht korrekt an Move() übergeben. Prüfen Sie das int-Array.");
+
+            // test execution 2: turn
+            try
+            {
+                mVerarbeite.Invoke(zentrum, new object[] { "TR;LEFT" });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler beim Verarbeiten von 'TR;LEFT': {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            string actualDir = (string)fAus.GetValue(rover);
+            if (actualDir != "LEFT") throw new Exception($"Das Kommando 'TR;LEFT' wurde nicht korrekt an Turn() übergeben.");
+
+            // test execution 3: scan
+            try
+            {
+                mVerarbeite.Invoke(zentrum, new object[] { "SC;ROCK" });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler beim Verarbeiten von 'SC;ROCK': {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            DateTime actualScan = (DateTime)fLetzterScan.GetValue(zentrum);
+            if (actualScan == default(DateTime)) throw new Exception($"Das Kommando 'SC;ROCK' hat 'letzterScan' nicht aktualisiert. Stellen Sie sicher, dass Sie den Rückgabewert der Scan-Methode speichern.");
+
+            feedback = "Protokoll korrekt geparst! Switch-Anweisung, Array-Konvertierung und Datum wurden richtig verarbeitet.";
+            return true;
+        }
+
+        private static bool TestLevel16(Assembly assembly, out string feedback)
+        {
+            Type tPaket = assembly.GetType("DatenPaket");
+            Type tKnoten = assembly.GetType("NetzwerkKnoten");
+
+            if (tPaket == null) throw new Exception("Klasse 'DatenPaket' fehlt.");
+            if (tKnoten == null) throw new Exception("Klasse 'NetzwerkKnoten' fehlt.");
+
+            ConstructorInfo ctorPaket = tPaket.GetConstructor(new[] { typeof(int[]) });
+            if (ctorPaket == null) throw new Exception("Konstruktor DatenPaket(int[] daten) fehlt.");
+
+            ConstructorInfo ctorKnoten = tKnoten.GetConstructor(new[] { typeof(string) });
+            if (ctorKnoten == null) throw new Exception("Konstruktor NetzwerkKnoten(string id) fehlt.");
+
+            object knoten = ctorKnoten.Invoke(new object[] { "Node-01" });
+            MethodInfo mValidiere = tKnoten.GetMethod("ValidierePaket") ?? tKnoten.GetMethod("validierePaket");
+            if (mValidiere == null) throw new Exception("Methode 'ValidierePaket' in NetzwerkKnoten fehlt.");
+
+            // test case 1: too short
+            object p1 = ctorPaket.Invoke(new object[] { new int[] { 10, 20 } });
+            int res1 = (int)mValidiere.Invoke(knoten, new object[] { p1 });
+            if (res1 != -1) throw new Exception($"Längenprüfung fehlgeschlagen. Array < 3 sollte -1 zurückgeben, erhalten: {res1}");
+
+            // test case 2: invalid checksum
+            // payload sum: 10 + 20 + 30 = 60. checksum provided: 200
+            object p2 = ctorPaket.Invoke(new object[] { new int[] { 99, 10, 20, 30, 200 } });
+            int res2 = (int)mValidiere.Invoke(knoten, new object[] { p2 });
+            if (res2 != -2) throw new Exception($"Prüfsummen-Validierung fehlgeschlagen. Falsche Prüfsumme sollte -2 zurückgeben, erhalten: {res2}");
+
+            // test case 3: valid packet
+            // payload sum: 100 + 150 = 250. checksum provided: 250
+            object p3 = ctorPaket.Invoke(new object[] { new int[] { 42, 100, 150, 250 } });
+            int res3 = (int)mValidiere.Invoke(knoten, new object[] { p3 });
+
+            if (res3 == 42)
+            {
+                feedback = "Nassi-Shneiderman Algorithmus exakt umgesetzt! Pakete werden korrekt validiert.";
+                return true;
+            }
+
+            throw new Exception($"Gültiges Paket wurde abgelehnt oder falscher Header zurückgegeben. Erwartet (Header): 42, Erhalten: {res3}");
         }
     }
 }

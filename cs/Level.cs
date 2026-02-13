@@ -30,6 +30,8 @@ namespace AbiturEliteCode.cs
     // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
     // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur) [this contraint is exluded from auxiliary class diagrams]
 
+    // on the final levels (22+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
+
     public class Level
     {
         public int Id { get; set; }
@@ -42,6 +44,7 @@ namespace AbiturEliteCode.cs
         public string MaterialDocs { get; set; }
         public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
         public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
+        public string NassiShneiderSource { get; set; }
         public List<string> AuxiliaryIds { get; set; } = new List<string>();
         public List<string> Prerequisites { get; set; } = new List<string>();
         public List<string> OptionalPrerequisites { get; set; } = new List<string>();
@@ -52,7 +55,8 @@ namespace AbiturEliteCode.cs
         public static string[] CodesList = {
             "ZOO", "CAP", "ABS", "LST", "ALG",
             "LOG", "INV", "SRT", "LNK", "EXP",
-            "NAV", "COL", "DAT", "ELT"
+            "NAV", "COL", "DAT", "ELT",
+            "COM", "CHK"
         };
     }
 
@@ -582,7 +586,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Id = 14,
                     Section = "Sektion 3: Beziehungen & Navigation",
                     SkipCode = LevelCodes.CodesList[13],
-                    NextLevelCode = "",
+                    NextLevelCode = LevelCodes.CodesList[14],
                     Title = "Der Elternbrief",
                     Description = "Abschlussprüfung Sektion 3: Generieren Sie Warnbriefe für gefährdete Schüler.\n\n" +
                                   "Aufgabe:\n" +
@@ -609,6 +613,123 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Prerequisites = new List<string>
                     {
                         "Nested Loops", "String concatenation", "Accessing List Elements"
+                    }
+                },
+
+                // --- SECTION 4 ---
+                new Level
+                {
+                    Id = 15,
+                    Section = "Sektion 4: Kommunikation & Protokolle",
+                    SkipCode = LevelCodes.CodesList[14],
+                    NextLevelCode = LevelCodes.CodesList[15],
+                    Title = "Protokoll-Parser (Switch)",
+                    Description = "Das Kontrollzentrum sendet Befehle an den Mars Rover. Das Protokoll unterstützt verschiedene Kommandotypen.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Überführen Sie das Klassendiagramm exakt in Code ([Rover] und [Kontrollzentrum]).\n" +
+                                  "2. Im Konstruktor von [Kontrollzentrum] muss der Rover mit einer beliebigen ID (z.B. \"Curiosity\") initialisiert werden.\n" +
+                                  "3. Implementieren Sie die Methode [VerarbeiteKommando(string befehl)] im Kontrollzentrum.\n\n" +
+                                  "Die Methode empfängt Strings und muss diese am Semikolon [;] zerlegen. Nutzen Sie eine [switch]-Anweisung (oder else-if):\n" +
+                                  "• Bei \"TR\" -> Rufen Sie [Turn] mit der übergebenen Richtung auf (z.B. \"TR;LEFT\").\n" +
+                                  "• Bei \"MV\" -> Rufen Sie [Move] mit den zwei übergebenen Koordinaten auf (z.B. \"MV;50;90\").\n" +
+                                  "• Bei \"SC\" -> Rufen Sie [Scan] mit dem übergebenen Ziel auf (z.B. \"SC;ROCK\") und speichern Sie den Rückgabewert im Attribut [letzterScan].",
+                    StarterCode = "public class Rover\n{\n    // Implementation hier\n}\n\npublic class Kontrollzentrum\n{\n    // Implementation hier\n}",
+                    MaterialDocs = localDateHint + "\n\n" +
+                                   "start-hint: Strings zerlegen\n" +
+                                   "In C# nutzen Sie [befehl.Split(';')]. Das Ergebnis ist ein Array von Strings (string[]).\n" +
+                                   "Beispiel: \"MV;50;90\" -> [\"MV\", \"50\", \"90\"].\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Arrays in C#\n" +
+                                   "Ein Array mit zwei Integern erstellen Sie im Code mit [new int|[2|]].\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec4\\lvl15-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Rover {\n  - id : String\n  - position : int[]\n  - ausrichtung : String\n  + Rover(id : String)\n  + turn(richtung : String)\n  + move(x : int, y : int)\n  + scan(ziel : String) : LocalDate\n}\nclass Kontrollzentrum {\n  - letzterScan : LocalDate\n  + Kontrollzentrum()\n  + verarbeiteKommando(befehl : String)\n}\nKontrollzentrum x--> \"1\" Rover : -rover\n@enduml"
+                    },
+                    AuxiliaryIds = new List<string> { "LocalDate" },
+                    Prerequisites = new List<string>
+                    {
+                        "String Operations", "Arrays", "Type Conversion", "Switch Statements", "DateTime Basics"
+                    }
+                },
+                new Level
+                {
+                    Id = 16,
+                    Section = "Sektion 4: Kommunikation & Protokolle",
+                    SkipCode = LevelCodes.CodesList[15],
+                    NextLevelCode = "",
+                    Title = "Paket-Validierung (Nassi-Shneiderman)",
+                    Description = "Um Übertragungsfehler in Netzwerken zu vermeiden, werden Datenpakete beim Empfang validiert.\n\n" +
+                                  "Ein Paket-Array ist wie folgt aufgebaut:\n" +
+                                  "Index 0: Header (Paket-ID)\n" +
+                                  "Index 1 bis Länge-2: Die eigentlichen Nutzdaten (Payload)\n" +
+                                  "Letzter Index: Die übertragene Prüfsumme\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klassen [DatenPaket] und [NetzwerkKnoten] gemäß des Klassendiagramms.\n" +
+                                  "2. Setzen Sie das Nassi-Shneiderman-Diagramm (Struktogramm) exakt in die Methode [ValidierePaket] um.",
+                    StarterCode = "public class DatenPaket\n{\n    // Implementation hier\n}\n\npublic class NetzwerkKnoten\n{\n    // Implementation hier\n}",
+                    MaterialDocs = "start-hint: Modulo Operator\n" +
+                                   "Der Modulo-Operator in C# ist [%].\n" +
+                                   "Beispiel: [10 % 3] ergibt [1].\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Array Länge\n" +
+                                   "Die Länge eines Arrays erhalten Sie in C# mit [array.Length].\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec4\\lvl16-1.svg",
+                        "img\\sec4\\lvl16-2.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass DatenPaket {\n  - inhalt : int[]\n  + DatenPaket(daten : int[])\n  + getInhalt() : int[]\n}\nclass NetzwerkKnoten {\n  - knotenId : String\n  + NetzwerkKnoten(id : String)\n  + validierePaket(p : DatenPaket) : int\n}\n@enduml"
+                    },
+                    NassiShneiderSource = @"PROGRAM ValidierePaket;
+
+VAR
+  daten      : ARRAY OF INTEGER;
+  summe      : INTEGER;
+  i          : INTEGER;
+  pruefsumme : INTEGER;
+  ergebnis   : INTEGER;
+
+BEGIN
+  daten := p.getInhalt();
+  
+  IF length(daten) < 3 THEN
+  BEGIN
+    ergebnis := -1;
+  END
+  ELSE
+  BEGIN
+    summe := 0;
+    i := 1;
+    
+    WHILE i < length(daten) - 1 DO
+    BEGIN
+      summe := summe + daten[i];
+      i := i + 1;
+    END;
+    
+    pruefsumme := summe MOD 256;
+    
+    IF pruefsumme = daten[length(daten) - 1] THEN
+    BEGIN
+      ergebnis := daten[0];
+    END
+    ELSE
+    BEGIN
+      ergebnis := -2;
+    END;
+  END;
+END.",
+                    Prerequisites = new List<string>
+                    {
+                        "While Loops", "Arrays", "Arithmetic Operators", "If statements"
                     }
                 },
             };
