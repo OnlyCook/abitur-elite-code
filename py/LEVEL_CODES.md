@@ -42,7 +42,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 1 | `SEL` | Projektion (SELECT) |
 | 2 | `WHE` | Selektion (WHERE) |
 | 3 | `ORD` | Sortierung (ORDER BY) |
-| 4 | `AGG` | Aggregationen |
+| 4 | `GRP` | Gruppierung (GROUP BY) |
 | 5 | `INS` | Daten Einfügen (INSERT) |
 | 6 | `UPD` | Daten Ändern (UPDATE) |
 | 7 | `DEL` | Daten Löschen (DELETE) |
@@ -52,8 +52,8 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| 9 | `ER1` | 1:n Beziehungen (JOIN) |
-| 10 | `ER2` | m:n Beziehungen (Verknüpfungstabelle) |
-| 11 | `ER3` | Kardinalitäten (LEFT JOIN) |
-| 12 | `ER4` | Komplexe Abfrage (Social Media) |
+| 9 | `JON` | 1:n Beziehungen (JOIN) |
+| 10 | `MNR` | m:n Beziehungen (Verknüpfungstabelle) |
+| 11 | `OUT` | Kardinalitäten (LEFT JOIN) |
+| 12 | `ABI` | Abitur-Simulation (Social Media) |
 

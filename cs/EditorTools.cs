@@ -150,7 +150,7 @@ namespace AbiturEliteCode
                 char nextChar = _editor.Document.GetCharAt(offset);
 
                 // check for closing pairs
-                if (nextChar == ')' || nextChar == '}' || nextChar == ']' || nextChar == '"' || nextChar == '>')
+                if (nextChar == ')' || nextChar == '}' || nextChar == ']' || nextChar == '"' || nextChar == '\'' || nextChar == '>')
                 {
                     // apply opacity to the single character at the caret position
                     ChangeLinePart(offset, offset + 1, element =>
@@ -200,23 +200,42 @@ namespace AbiturEliteCode
                 string lineText = _editor.Document.GetText(caretLine).Trim();
                 bool isOpeningBlock = lineText.Contains("{");
                 bool isClosingBlock = lineText.Contains("}");
+                bool isLineEmpty = caretLine.Length == 0 || string.IsNullOrWhiteSpace(_editor.Document.GetText(caretLine));
 
-                if (caretLine.Length == 0 || string.IsNullOrWhiteSpace(_editor.Document.GetText(caretLine)))
+                bool prevLineEndedWithOpenBrace = false;
+                if (caretLineNum > 1)
+                {
+                    for (int i = caretLineNum - 1; i >= 1; i--)
+                    {
+                        var l = _editor.Document.GetLineByNumber(i);
+                        string txt = _editor.Document.GetText(l).Trim();
+                        if (!string.IsNullOrEmpty(txt))
+                        {
+                            if (txt.EndsWith("{")) prevLineEndedWithOpenBrace = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isLineEmpty)
                 {
                     caretIndent = GetContextIndent(_editor.Document, caretLineNum);
                 }
 
                 // if caret is on a line with braces -> use that indentation level otherwise go one level deeper
-                if (caretIndent > 0 || isOpeningBlock || isClosingBlock)
+                if (caretIndent > 0 || isOpeningBlock || isClosingBlock || prevLineEndedWithOpenBrace)
                 {
                     // if opening or closing block -> use current indent else use parent
-                    activeGuideIndex = (isOpeningBlock || isClosingBlock) ? caretIndent : caretIndent - 1;
+                    bool useInnerScope = isOpeningBlock || isClosingBlock;
+                    activeGuideIndex = useInnerScope ? caretIndent : caretIndent - 1;
 
                     // find start of scope (scan up)
                     for (int i = caretLineNum - 1; i >= 1; i--)
                     {
                         var l = _editor.Document.GetLineByNumber(i);
+                        // skip empty lines for scope detection to avoid breaking early
                         if (string.IsNullOrWhiteSpace(_editor.Document.GetText(l))) continue;
+
                         if (GetIndentLevel(_editor.Document, l) <= activeGuideIndex)
                         {
                             scopeStart = i;
@@ -242,7 +261,6 @@ namespace AbiturEliteCode
             {
                 int lineNum = line.FirstDocumentLine.LineNumber;
                 int indentLevel = GetIndentLevel(_editor.Document, line.FirstDocumentLine);
-
 
                 string text = _editor.Document.GetText(line.FirstDocumentLine);
                 if (string.IsNullOrWhiteSpace(text))
@@ -280,31 +298,21 @@ namespace AbiturEliteCode
 
         private int GetContextIndent(TextDocument doc, int lineNum)
         {
-            // look up (prev)
-            int prevIndent = 0;
+            // look up (prev) to find the structural parent
             for (int i = lineNum - 1; i >= 1; i--)
             {
                 var l = doc.GetLineByNumber(i);
-                if (!string.IsNullOrWhiteSpace(doc.GetText(l)))
+                string text = doc.GetText(l).TrimEnd();
+                if (!string.IsNullOrWhiteSpace(text))
                 {
-                    prevIndent = GetIndentLevel(doc, l);
-                    break;
+                    int indent = GetIndentLevel(doc, l);
+                    // if previous line opened a block, the empty line is one level deeper
+                    if (text.EndsWith("{"))
+                        return indent + 1;
+                    return indent;
                 }
             }
-
-            // look down (next)
-            int nextIndent = 0;
-            for (int i = lineNum + 1; i <= doc.LineCount; i++)
-            {
-                var l = doc.GetLineByNumber(i);
-                if (!string.IsNullOrWhiteSpace(doc.GetText(l)))
-                {
-                    nextIndent = GetIndentLevel(doc, l);
-                    break;
-                }
-            }
-
-            return Math.Max(prevIndent, nextIndent);
+            return 0;
         }
     }
 

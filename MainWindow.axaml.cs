@@ -499,6 +499,17 @@ namespace AbiturEliteCode
             TextArea textArea = (TextArea)sender;
             int offset = textArea.Caret.Offset;
 
+            // skip closing pair
+            if (charTyped == '"' || charTyped == '\'')
+            {
+                if (offset < textArea.Document.TextLength && textArea.Document.GetCharAt(offset) == charTyped)
+                {
+                    textArea.Caret.Offset += 1;
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // surround selection logic
             if (textArea.Selection.Length > 0)
             {
@@ -780,6 +791,17 @@ namespace AbiturEliteCode
                 }
             }
 
+            // skip closing pair
+            if (charTyped == '"' || charTyped == '\'')
+            {
+                if (offset < textArea.Document.TextLength && textArea.Document.GetCharAt(offset) == charTyped)
+                {
+                    textArea.Caret.Offset += 1;
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // surround selection logic
             if (textArea.Selection.Length > 0)
             {
@@ -1055,7 +1077,10 @@ namespace AbiturEliteCode
             CodeEditor.Text = rawCode;
 
             // reset uml zoom
-            _currentScale = 0.5;
+            if (!_isSqlMode)
+            {
+                _currentScale = 0.5;
+            }
             if (ImgScale != null)
             {
                 ImgScale.ScaleX = _currentScale;
@@ -1463,17 +1488,6 @@ namespace AbiturEliteCode
                     _currentDiagramIndex = index;
                     ImgDiagram.Source = LoadDiagramImage(currentLevel.DiagramPaths[index]);
 
-                    if (ImgScale != null && ImgTranslate != null)
-                    {
-                        _currentScale = 0.5;
-                        ImgScale.ScaleX = _currentScale;
-                        ImgScale.ScaleY = _currentScale;
-                        ImgTranslate.X = 0;
-                        ImgTranslate.Y = 0;
-                        ImgDiagram.HorizontalAlignment = HorizontalAlignment.Center;
-                        ImgDiagram.VerticalAlignment = VerticalAlignment.Center;
-                    }
-
                     BtnDiagram1.Background = index == 0 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
                     BtnDiagram2.Background = index == 1 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
                     BtnDiagram3.Background = index == 2 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
@@ -1485,7 +1499,14 @@ namespace AbiturEliteCode
         {
             if (ImgScale != null && ImgTranslate != null)
             {
-                _currentScale = 0.5;
+                if (_isSqlMode)
+                {
+                    _currentScale = 1.0;
+                }
+                else
+                {
+                    _currentScale = 0.5;
+                }
                 ImgScale.ScaleX = _currentScale;
                 ImgScale.ScaleY = _currentScale;
                 ImgTranslate.X = 0;
@@ -2307,6 +2328,7 @@ namespace AbiturEliteCode
             bool isFirst = false;
             bool isLast = false;
             bool nextIsUnlocked = false;
+            bool isCurrentCompleted = false;
 
             if (_isCustomLevelMode)
             {
@@ -2320,6 +2342,7 @@ namespace AbiturEliteCode
                 int idx = sqlLevels.IndexOf(currentSqlLevel);
                 isFirst = idx <= 0;
                 isLast = idx >= sqlLevels.Count - 1;
+                isCurrentCompleted = playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id);
 
                 // check if next level exists and is unlocked
                 if (!isLast)
@@ -2333,6 +2356,7 @@ namespace AbiturEliteCode
                 int idx = levels.IndexOf(currentLevel);
                 isFirst = idx <= 0;
                 isLast = idx >= levels.Count - 1;
+                isCurrentCompleted = playerData.CompletedLevelIds.Contains(currentLevel.Id);
 
                 if (!isLast)
                 {
@@ -2347,7 +2371,7 @@ namespace AbiturEliteCode
             if (isLast)
             {
                 BtnNextLevel.Content = "✓";
-                BtnNextLevel.IsEnabled = true;
+                BtnNextLevel.IsEnabled = isCurrentCompleted;
             }
             else
             {
@@ -5852,6 +5876,18 @@ namespace AbiturEliteCode
                 }
             }
 
+            _currentScale = 1.0;
+            if (ImgScale != null)
+            {
+                ImgScale.ScaleX = _currentScale;
+                ImgScale.ScaleY = _currentScale;
+            }
+            if (ImgTranslate != null)
+            {
+                ImgTranslate.X = 0;
+                ImgTranslate.Y = 0;
+            }
+
             TxtNoDiagram.IsVisible = !diagramLoaded;
 
             AddSqlOutput("System", $"Level S{level.Id} (Code: {level.SkipCode}) geladen.\nDatenbank zurückgesetzt.", Brushes.Gray);
@@ -5906,6 +5942,7 @@ namespace AbiturEliteCode
                 }
 
                 BtnNextLevel.IsVisible = true;
+                BtnNextLevel.IsEnabled = true;
                 SaveSystem.Save(playerData);
             }
             else
