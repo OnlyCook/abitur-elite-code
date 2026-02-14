@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace AbiturEliteCode.cs
@@ -15,7 +16,7 @@ namespace AbiturEliteCode.cs
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
     // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class, for example, should be able to be initalized inside their constructor, as thats how the abitur does it, initalizing them in the declaration should be possible, but not the expected way)
-    // on later levels the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
+    // on later levels (19+) the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
     // what you commonly also see in the uml class diagrams in the abitur exams is "static int autowert = 0" or an id for a class, which the user must increment in the constructor (or in rare cases) set to a given id, this mechanic should also be added in more difficult levels where its appropriate
     // note: adequate abitur level language should be used as well as technical vocabulary
 
@@ -56,7 +57,7 @@ namespace AbiturEliteCode.cs
             "ZOO", "CAP", "ABS", "LST", "ALG",
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
-            "COM", "CHK"
+            "COM", "CHK", "SEN", "PRO"
         };
     }
 
@@ -67,6 +68,10 @@ namespace AbiturEliteCode.cs
         public static string Paket = "@startuml\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n  + getZielort() : String\n}\n@enduml";
 
         public static string LocalDate = "@startuml\nclass LocalDate {\n  + {static} now() : LocalDate\n  + isAfter(other : LocalDate) : boolean\n  + isBefore(other : LocalDate) : boolean\n  + minusMonths(months : long) : LocalDate\n  + plusDays(days : long) : LocalDate\n}\n@enduml";
+
+        public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close() : void\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
+
+        public static string FunkModul = "@startuml\nclass FunkModul {\n  + FunkModul()\n  + send(cmd : String)\n  + receive() : char\n}\n@enduml";
     }
 
     public static class AuxiliaryImplementations
@@ -99,6 +104,31 @@ namespace AbiturEliteCode.cs
                         public bool IsAfter(LocalDate other) { return true; }
                         public bool IsBefore(LocalDate other) { return true; }
                         public LocalDate MinusMonths(long months) { return this; }
+                    }",
+                "Serial" => @"
+                    using System.Collections.Generic;
+                    public class Serial {
+                        private Queue<int> _readBuffer = new Queue<int>();
+                        public Serial(string p, int b, int d, int s, int par) {}
+                        public bool Open() { return true; }
+                        public void Close() {}
+                        
+                        // Mock Aufstellung zum Testen
+                        public void SetTestBytes(int[] bytes) {
+                            foreach(var b in bytes) _readBuffer.Enqueue(b);
+                        }
+                        
+                        public int Read() {
+                            if (_readBuffer.Count > 0) return _readBuffer.Dequeue();
+                            return -1;
+                        }
+                        public int DataAvailable() { return _readBuffer.Count; }
+                        public void Write(int val) { }
+                    }",
+                "FunkModul" => @"
+                    public class FunkModul {
+                        public void Send(string cmd) {}
+                        public char Receive() { return (char)0x06; }
                     }",
                 _ => ""
             };
@@ -661,8 +691,8 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Id = 16,
                     Section = "Sektion 4: Kommunikation & Protokolle",
                     SkipCode = LevelCodes.CodesList[15],
-                    NextLevelCode = "",
-                    Title = "Paket-Validierung (Nassi-Shneiderman)",
+                    NextLevelCode = LevelCodes.CodesList[16],
+                    Title = "Paket-Validierung (Struktogramm)",
                     Description = "Um Übertragungsfehler in Netzwerken zu vermeiden, werden Datenpakete beim Empfang validiert.\n\n" +
                                   "Ein Paket-Array ist wie folgt aufgebaut:\n" +
                                   "Index 0: Header (Paket-ID)\n" +
@@ -732,6 +762,137 @@ END.",
                         "While Loops", "Arrays", "Arithmetic Operators", "If statements"
                     }
                 },
+                new Level
+                {
+                    Id = 17,
+                    Section = "Sektion 4: Kommunikation & Protokolle",
+                    SkipCode = LevelCodes.CodesList[16],
+                    NextLevelCode = LevelCodes.CodesList[17],
+                    Title = "Die Sicherheitsschleuse (Serielle Schnittstelle)",
+                    Description = "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. Sie müssen die Hardware-Ansteuerung implementieren.\n\n" +
+                                  "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
+                                  "• Sie benötigt eine ID (String) und eine [fahrzeugNr] (int).\n" +
+                                  "• Die [fahrzeugNr] wird über einen statischen Zähler ([autowert]) automatisch im Konstruktor vergeben (Start bei 1).\n" +
+                                  "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben (lasse diese leer).\n\n" +
+                                  "Aufgabe 2: Implementieren Sie [RFIDReader].\n" +
+                                  "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle (siehe Protokoll unten).\n" +
+                                  "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl die nicht [0] ist) an der Schnittstelle zum Lesen bereitstehen (siehe [Serial] in Material).\n" +
+                                  "• Protokoll: Warten auf STX (0x02) -> 6 Datenbytes lesen -> Prüfsumme lesen -> Auf ETX (0x03) prüfen.\n" +
+                                  "• Validierung: Die XOR-Prüfsumme (alle 6 Datenbytes XOR verknüpfen) muss mit der gelesenen Summe übereinstimmen. Sonst Leerstring zurückgeben.\n\n" +
+                                  "Aufgabe 3: Implementieren Sie [Controller].\n" +
+                                  "• Der Konstruktor initialisiert [Serial] mit dem übergebenen [port] und den Werten (siehe Material), öffnet den Port und erstellt den Reader.\n" +
+                                  "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK (0x06) prüfen -> [rover.Unlock()] aufrufen.\n\n" +
+                                  "Hinweis: Die Klassen [Serial] und [FunkModul] sind gegeben (siehe Material).",
+                    StarterCode = "public class Rover\n{\n    // Implementation\n}\n\npublic class RFIDReader\n{\n    private Serial serial;\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}",
+                    MaterialDocs = "Verwenden Sie zur Initialisierung der seriellen Schnittstelle folgende Parameter:\n" +
+                                   "{|Baud=9600, DataBits=8, StopBits=1, Parity=0|}\n" +
+                                   "start-hint: Autowert\n" +
+                                   "Setzen Sie die [fahrzeugNr] auf das Vorinkrement (\"pre-increment\") des Autowerts ([++autowert]), damit die Nummer bei 1 anfangen muss und es keine Duplikate gibt.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: XOR Operator\n" +
+                                   "In C# wird der XOR-Operator durch das Zirkumflex-Symbol [^] dargestellt.\n" +
+                                   "Beispiel: [int ergebnis = byte1 ^ byte2;]\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Char vs Int\n" +
+                                   "Serial.Read() gibt [int] zurück. Für den String müssen Sie diesen in [char] casten.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec4\\lvl17-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass Rover {\n  - {static} autowert : int = 0\n  - fahrzeugNr : int\n  - id : String\n  + Rover(id : String)\n  + getFahrzeugNr() : int\n  + unlock()\n  + lock()\n}\nclass Controller {\n  + Controller(port : String, r : Rover)\n  + run()\n}\nclass RFIDReader {\n  + RFIDReader(s : Serial)\n  + readCard() : String\n  + isCardAvailable() : boolean\n}\nclass Serial {\n}\nclass FunkModul {\n}\nController x--> \"1\" Serial : -serial\nController x--> \"1\" FunkModul : -funk\nController x--> \"1\" RFIDReader : -reader\nController x--> \"1\" Rover : -rover\nRFIDReader x--> \"1\" Serial : -serial\n@enduml"
+                    },
+                    AuxiliaryIds = new List<string> { "Serial", "FunkModul" },
+                    Prerequisites = new List<string>
+                    {
+                        "Static Fields", "While Loops", "Bitwise Operators", "Casting", "Object Interaction"
+                    }
+                },
+                new Level
+                {
+                    Id = 18,
+                    Section = "Sektion 4: Kommunikation & Protokolle",
+                    SkipCode = LevelCodes.CodesList[17],
+                    NextLevelCode = "",
+                    Title = "Missions-Zentrale",
+                    Description = "Abschlussprüfung Sektion 4: Objekt-Kollaboration und Zustandsverwaltung.\n\n" +
+                                  "Die Kommunikation mit der Mars-Basis wurde um einen Wartungsdienst erweitert. " +
+                                  "Der Datenstrom enthält nun Status-Updates, die den Zustand der Rover verändern.\n\n" +
+                                  "**Protokollspezifikation:**\n" +
+                                  "Format: |[ROVER_ID|]#|[MSG_TYPE|]#|[VALUE|]|...|...\n" +
+                                  "Beispiel: \"CUR#ERR#Motor|PER#BAT#85|CUR#BAT#10\"\n\n" +
+                                  "**Aufgaben:**\n" +
+                                  "1. Implementieren Sie das Klassendiagramm.\n" +
+                                  "2. Implementieren Sie die Logik in der Klasse [Rover]:\n" +
+                                  "   • Das Attribut [batterie] startet bei 100.\n" +
+                                  "   • Methode [VerarbeiteStatus]: \n" +
+                                  "     - Bei Typ \"ERR\": Batterie um 5 verringern, Log hinzufügen.\n" +
+                                  "     - Bei Typ \"BAT\": Batterie auf den übergebenen Wert (int) setzen.\n" +
+                                  "     - Rückgabewert: [true], wenn Batterie < 20 (kritisch), sonst [false].\n" +
+                                  "3. Setzen Sie das Nassi-Shneiderman-Diagramm in [MissionsZentrale] um:\n" +
+                                  "   • Zerlegen Sie den Strom.\n" +
+                                  "   • Leiten Sie die Daten an den passenden Rover weiter.\n" +
+                                  "   • Falls der Rover einen kritischen Status meldet, erstellen Sie ein Ticket beim [WartungsDienst].",
+                    StarterCode = "// Implementieren Sie alle Klassen selbständig",
+                    MaterialDocs = "start-hint: Integer Parsing\n" +
+                                   "Um den Wert für \"BAT\" zu setzen, müssen Sie den String in einen Integer umwandeln:\n" +
+                                   "{|int wert = int.Parse(stringWert);|}\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Wartung\n" +
+                                   "Die MissionsZentrale muss prüfen, ob [r.VerarbeiteStatus(...)] wahr zurückgibt. Nur dann wird [wartung.ErstelleTicket(...)] aufgerufen.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec4\\lvl18-1.svg",
+                        "img\\sec4\\lvl18-2.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass MissionsZentrale {\n  + MissionsZentrale()\n  + addRover(r : Rover)\n  + verarbeiteDatenstrom(stream : String)\n}\nclass Rover {\n  - id : String\n  - batterie : int = 100\n  + Rover(id : String)\n  + verarbeiteStatus(typ : String, val : String) : boolean\n  + getId() : String\n}\nclass WartungsDienst {\n  + WartungsDienst()\n  + erstelleTicket(roverId : String, grund : String)\n}\nclass WartungsTicket {\n  - roverId : String\n  - grund : String\n  + WartungsTicket(id : String, grund : String)\n}\nclass LogEintrag {\n  - typ : String\n  - inhalt : String\n  + LogEintrag(typ : String, inhalt : String)\n}\nMissionsZentrale x--> \"*\" Rover : -roverListe\nMissionsZentrale x--> \"1\" WartungsDienst : -wartung\nWartungsDienst x--> \"*\" WartungsTicket : -tickets\nRover x--> \"*\" LogEintrag : -logs\n@enduml"
+                    },
+                    NassiShneiderSource = @"PROGRAM VerarbeiteDatenstrom;
+
+VAR
+    eintraege : ARRAY OF STRING;
+    teile     : ARRAY OF STRING;
+    istKritisch : BOOLEAN;
+    i, k      : INTEGER;
+
+BEGIN
+    eintraege := Split(stream, '|');
+    i := 0;
+    
+    WHILE i < length(eintraege) DO
+    BEGIN
+        teile := Split(eintraege[i], '#');
+        k := 0;
+        
+        WHILE k < roverListe.Count DO
+        BEGIN
+            r := roverListe[k];
+            
+            IF r.getId() = teile[0] THEN
+            BEGIN
+                istKritisch := r.verarbeiteStatus(teile[1], teile[2]);
+                
+                IF istKritisch = TRUE THEN
+                BEGIN
+                    wartung.erstelleTicket(r.getId(), 'Kritischer Batteriestatus');
+                END;
+            END;
+            k := k + 1;
+        END;
+        i := i + 1;
+    END;
+END.",
+                    AuxiliaryIds = new List<string> { "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "String Parsing", "Object Interaction", "State Management", "Integer Parsing"
+                    }
+                }
             };
         }
     }

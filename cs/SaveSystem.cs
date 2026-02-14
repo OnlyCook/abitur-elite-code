@@ -8,6 +8,8 @@ public class PlayerSettings
     public bool IsVimEnabled { get; set; } = false;
     public bool IsSyntaxHighlightingEnabled { get; set; } = false;
     public bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
+    public bool IsAutocompleteEnabled { get; set; } = false;
+    public bool IsSqlAutocompleteEnabled { get; set; } = false;
     public double UiScale { get; set; } = 1.0;
     public int TabTipShownCount { get; set; } = 0;
 }
@@ -109,7 +111,7 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -163,7 +165,9 @@ public static class SaveSystem
 
                     if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]); // Parse new setting
+                    else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "sqlautocomplete") data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "autocomplete") data.Settings.IsAutocompleteEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
                     else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]);
                 }

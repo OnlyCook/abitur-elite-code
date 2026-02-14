@@ -84,11 +84,27 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl12-1.svg"
   },
   "lvl_15_1": {
-    "hash": "faa126c45449b1db407e181e6bec9613",
+    "hash": "aabf0839f9113486299686bbdf98ff56",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl15-1.svg"
   },
   "lvl_16_1": {
     "hash": "2ad5ac070c223323a8cb38a0ade31cbe",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl16-1.svg"
+  },
+  "lvl_17_1": {
+    "hash": "e438f5d706435213d415269538df923e",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl17-1.svg"
+  },
+  "lvl_18_1": {
+    "hash": "d32430e369b51122b21310cc0dc9c412",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl18-1.svg"
+  },
+  "shared_Serial": {
+    "hash": "a250bc1459cec4c7d806367601389346",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Serial.svg"
+  },
+  "shared_FunkModul": {
+    "hash": "063c64affb4eb648cf3a29d5536490a0",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_FunkModul.svg"
   }
 }

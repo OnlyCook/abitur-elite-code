@@ -41,7 +41,10 @@ namespace AbiturEliteCode
         public static bool IsSyntaxHighlightingEnabled { get; set; } = false;
         public static bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
         public static double UiScale { get; set; } = 1.0;
+        public static bool IsAutocompleteEnabled { get; set; } = false;
+        public static bool IsSqlAutocompleteEnabled { get; set; } = false;
         public static bool IsErrorHighlightingEnabled { get; set; } = false;
+        public static bool IsErrorExplanationEnabled { get; set; } = false;
     }
 
     public partial class MainWindow : Window
@@ -67,6 +70,10 @@ namespace AbiturEliteCode
         private GhostCharacterTransformer _ghostCharTransformer;
         private BracketHighlightRenderer _bracketHighlightRenderer;
         private IndentationGuideRenderer _indentationGuideRenderer;
+        private AutocompleteService _csharpAutocompleteService;
+        private AutocompleteGhostRenderer _csharpAutocompleteRenderer;
+        private AutocompleteService _sqlAutocompleteService;
+        private AutocompleteGhostRenderer _sqlAutocompleteRenderer;
 
         private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
@@ -145,6 +152,8 @@ namespace AbiturEliteCode
             AppSettings.IsVimEnabled = playerData.Settings.IsVimEnabled;
             AppSettings.IsSyntaxHighlightingEnabled = playerData.Settings.IsSyntaxHighlightingEnabled;
             AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
+            AppSettings.IsAutocompleteEnabled = playerData.Settings.IsAutocompleteEnabled;
+            AppSettings.IsSqlAutocompleteEnabled = playerData.Settings.IsSqlAutocompleteEnabled;
             AppSettings.UiScale = playerData.Settings.UiScale;
 
             ApplyUiScale();
@@ -412,6 +421,35 @@ namespace AbiturEliteCode
             var ghostTransformer = new GhostCharacterTransformer(SqlQueryEditor);
             SqlQueryEditor.TextArea.TextView.LineTransformers.Add(ghostTransformer);
 
+            _sqlAutocompleteService = new AutocompleteService(AutocompleteService.SqlKeywords);
+            _sqlAutocompleteRenderer = new AutocompleteGhostRenderer(SqlQueryEditor, _sqlAutocompleteService);
+            SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(_sqlAutocompleteRenderer);
+
+            SqlQueryEditor.TextChanged += (s, e) =>
+            {
+                autoSaveTimer.Stop();
+                autoSaveTimer.Start();
+
+                if (AppSettings.IsSqlAutocompleteEnabled)
+                {
+                    _sqlAutocompleteService.ScanTokens(SqlQueryEditor.Text);
+                    _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
+                    SqlQueryEditor.TextArea.TextView.Redraw();
+                }
+            };
+
+            SqlQueryEditor.TextArea.Caret.PositionChanged += (s, e) =>
+            {
+                SqlQueryEditor.TextArea.Caret.BringCaretToView(40);
+                SqlQueryEditor.TextArea.TextView.Redraw();
+
+                if (AppSettings.IsSqlAutocompleteEnabled)
+                {
+                    _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
+                    SqlQueryEditor.TextArea.TextView.Redraw();
+                }
+            };
+
             SqlQueryEditor.TextChanged += (s, e) =>
             {
                 autoSaveTimer.Stop();
@@ -453,6 +491,27 @@ namespace AbiturEliteCode
                 BtnRun_Click(this, new RoutedEventArgs());
                 e.Handled = true;
                 return;
+            }
+
+            // tab or enter => confirm autocompletion
+            if (AppSettings.IsSqlAutocompleteEnabled && (e.Key == Key.Enter || e.Key == Key.Tab) && _sqlAutocompleteService.HasSuggestion)
+            {
+                string suffix = _sqlAutocompleteService.CurrentSuggestionSuffix;
+                if (!string.IsNullOrEmpty(suffix))
+                {
+                    SqlQueryEditor.Document.Insert(SqlQueryEditor.CaretOffset, suffix);
+                    _sqlAutocompleteService.ClearSuggestion();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // temporarily disable autocompletion if moving to the right
+            if (e.Key == Key.Right && _sqlAutocompleteService.HasSuggestion)
+            {
+                _sqlAutocompleteService.ClearSuggestion();
+                SqlQueryEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
             }
 
             if (e.Key == Key.Back)
@@ -582,6 +641,10 @@ namespace AbiturEliteCode
             _ghostCharTransformer = new GhostCharacterTransformer(CodeEditor);
             CodeEditor.TextArea.TextView.LineTransformers.Add(_ghostCharTransformer);
 
+            _csharpAutocompleteService = new AutocompleteService(AutocompleteService.CsharpKeywords);
+            _csharpAutocompleteRenderer = new AutocompleteGhostRenderer(CodeEditor, _csharpAutocompleteService);
+            CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_csharpAutocompleteRenderer);
+
             // wait 600ms after typing
             _diagnosticTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
             _diagnosticTimer.Tick += (s, e) =>
@@ -594,10 +657,18 @@ namespace AbiturEliteCode
             {
                 CodeEditor.TextArea.Caret.BringCaretToView(40);
                 CodeEditor.TextArea.TextView.Redraw();
+
+                if (AppSettings.IsAutocompleteEnabled)
+                {
+                    _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
+                    CodeEditor.TextArea.TextView.Redraw();
+                }
             };
 
             CodeEditor.TextArea.TextEntering += Editor_TextEntering;
             CodeEditor.AddHandler(InputElement.KeyDownEvent, CodeEditor_KeyDown, RoutingStrategies.Tunnel);
+
+            CodeEditor.PointerMoved += CodeEditor_PointerMoved;
 
             CodeEditor.TextChanged += (s, e) =>
             {
@@ -609,7 +680,41 @@ namespace AbiturEliteCode
                     _diagnosticTimer.Stop();
                     _diagnosticTimer.Start();
                 }
+
+                if (AppSettings.IsAutocompleteEnabled)
+                {
+                    _csharpAutocompleteService.ScanTokens(CodeEditor.Text);
+                    _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
+                    CodeEditor.TextArea.TextView.Redraw();
+                }
             };
+        }
+
+        private void CodeEditor_PointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (!AppSettings.IsErrorExplanationEnabled)
+            {
+                ToolTip.SetTip(CodeEditor, null);
+                return;
+            }
+
+            var textView = CodeEditor.TextArea.TextView;
+            var pos = e.GetPosition(textView);
+            var posInDoc = textView.GetPosition(pos + textView.ScrollOffset);
+
+            if (posInDoc.HasValue)
+            {
+                int offset = CodeEditor.Document.GetOffset(posInDoc.Value.Location);
+                var marker = _textMarkerService.GetMarkerAtOffset(offset);
+
+                if (marker != null && !string.IsNullOrEmpty(marker.Message))
+                {
+                    ToolTip.SetTip(CodeEditor, marker.Message);
+                    return;
+                }
+            }
+
+            ToolTip.SetTip(CodeEditor, null);
         }
 
         private void UpdateShortcutsAndTooltips()
@@ -686,6 +791,30 @@ namespace AbiturEliteCode
                 BtnRun_Click(this, new RoutedEventArgs());
                 e.Handled = true;
                 return;
+            }
+
+            // tab or enter => confirm autocompletion
+            if (AppSettings.IsAutocompleteEnabled && (e.Key == Key.Enter || e.Key == Key.Tab) && _csharpAutocompleteService.HasSuggestion)
+            {
+                if (!AppSettings.IsVimEnabled || _vimMode == VimMode.Insert)
+                {
+                    string suffix = _csharpAutocompleteService.CurrentSuggestionSuffix;
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        CodeEditor.Document.Insert(CodeEditor.CaretOffset, suffix);
+                        _csharpAutocompleteService.ClearSuggestion();
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
+            // temporarily disable autocompletion if moving to the right
+            if (e.Key == Key.Right && _csharpAutocompleteService.HasSuggestion)
+            {
+                _csharpAutocompleteService.ClearSuggestion();
+                CodeEditor.TextArea.TextView.Redraw();
+                e.Handled = true; // handle so user not moved next line
             }
 
             if (e.Key == Key.Back)
@@ -826,7 +955,7 @@ namespace AbiturEliteCode
             }
 
             // auto add designated pair
-            if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' || charTyped == '<')
+            if (charTyped == '(' || charTyped == '{' || charTyped == '[' || charTyped == '"' ||  charTyped == '\'' || charTyped == '<')
             {
                 if (charTyped == '<')
                 {
@@ -860,7 +989,8 @@ namespace AbiturEliteCode
                     : charTyped == '{' ? "}"
                     : charTyped == '[' ? "]"
                     : charTyped == '<' ? ">"
-                    : "\"";
+                    : charTyped == '\"' ? "\""
+                    : "\'";
 
                 textArea.Document.Insert(offset, charTyped.ToString() + pair);
                 textArea.Caret.Offset = offset + 1;
@@ -869,7 +999,7 @@ namespace AbiturEliteCode
             }
 
             // skip closing pair
-            if (charTyped == ')' || charTyped == '}' || charTyped == ']' || charTyped == '"' || charTyped == '>')
+            if (charTyped == ')' || charTyped == '}' || charTyped == ']' || charTyped == '"' || charTyped == '\'' || charTyped == '>')
             {
                 if (
                     offset < textArea.Document.TextLength
@@ -952,8 +1082,9 @@ namespace AbiturEliteCode
             {
                 playerData.UserCode[currentLevel.Id] = CodeEditor.Text;
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
-                playerData.Settings.IsSyntaxHighlightingEnabled =
-                    AppSettings.IsSyntaxHighlightingEnabled;
+                playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
+                playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
+                playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
                 playerData.Settings.UiScale = AppSettings.UiScale;
 
                 SaveSystem.Save(playerData);
@@ -1391,7 +1522,7 @@ namespace AbiturEliteCode
 
                 if (diag.Severity == DiagnosticSeverity.Error)
                 {
-                    _textMarkerService.Add(start, length, Colors.Red);
+                    _textMarkerService.Add(start, length, Colors.Red, diag.GetMessage());
                 }
                 else if (diag.Severity == DiagnosticSeverity.Warning)
                 {
@@ -1402,7 +1533,7 @@ namespace AbiturEliteCode
                     }
                     else
                     {
-                        _textMarkerService.Add(start, length, Colors.Yellow);
+                        _textMarkerService.Add(start, length, Colors.Yellow, diag.GetMessage());
                     }
                 }
             }
@@ -1900,11 +2031,11 @@ namespace AbiturEliteCode
 
             if (!_hasRunOnce)
             {
-                AddToConsole("> Compiler wird gestartet...", Brushes.LightGray);
+                AddToConsole("> Compiler wird gestartet...\n", Brushes.LightGray);
                 _hasRunOnce = true;
             }
 
-            AddToConsole("\n> Kompiliere...\n", Brushes.LightGray);
+            AddToConsole("> Kompiliere...\n", Brushes.LightGray);
             SaveCurrentProgress();
 
             string codeText = CodeEditor.Text;
@@ -3709,7 +3840,10 @@ namespace AbiturEliteCode
             bool originalVimEnabled = AppSettings.IsVimEnabled;
             bool originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
             bool originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
+            bool originalAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
+            bool originalSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
             bool originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
+            bool originalErrorExplanation = AppSettings.IsErrorExplanationEnabled;
             double originalUiScale = AppSettings.UiScale;
             bool isPortable = SaveSystem.IsPortableModeEnabled();
             bool originalPortableState = isPortable;
@@ -3836,6 +3970,14 @@ namespace AbiturEliteCode
                 Foreground = Brushes.White
             };
 
+            // autocompletion
+            var chkAutocomplete = new CheckBox
+            {
+                Content = "Autovervollständigung",
+                IsChecked = _isSqlMode ? AppSettings.IsSqlAutocompleteEnabled : AppSettings.IsAutocompleteEnabled,
+                Foreground = Brushes.White
+            };
+
             // error highlighting (c# only, for now)
             var chkError = new CheckBox
             {
@@ -3843,6 +3985,16 @@ namespace AbiturEliteCode
                 IsChecked = AppSettings.IsErrorHighlightingEnabled,
                 Foreground = Brushes.White,
                 IsVisible = !_isSqlMode
+            };
+
+            var chkErrorExplain = new CheckBox
+            {
+                Content = "Error-Erklärungen",
+                IsChecked = AppSettings.IsErrorExplanationEnabled,
+                IsEnabled = AppSettings.IsErrorHighlightingEnabled,
+                Foreground = Brushes.White,
+                IsVisible = !_isSqlMode,
+                Margin = new Thickness(20, 0, 0, 0) // indent
             };
 
             // vim controls (c# only)
@@ -3898,7 +4050,10 @@ namespace AbiturEliteCode
                     (chkVim.IsChecked != originalVimEnabled) ||
                     (!_isSqlMode && chkSyntax.IsChecked != originalSyntaxEnabled) ||
                     (_isSqlMode && chkSyntax.IsChecked != originalSqlSyntaxEnabled) ||
+                    (!_isSqlMode && chkAutocomplete.IsChecked != originalAutocompleteEnabled) ||
+                    (_isSqlMode && chkAutocomplete.IsChecked != originalSqlAutocompleteEnabled) ||
                     (chkError.IsChecked != originalErrorEnabled) ||
+                    (chkErrorExplain.IsChecked != originalErrorExplanation) ||
                     (chkPortable.IsChecked != isPortable) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
@@ -3967,7 +4122,7 @@ namespace AbiturEliteCode
 
             // --- EVENT HANDLERS ---
 
-            chkSyntax.IsCheckedChanged += async (s, ev) =>
+            chkSyntax.IsCheckedChanged += (s, ev) =>
             {
                 if (_isSqlMode)
                 {
@@ -3976,14 +4131,6 @@ namespace AbiturEliteCode
                 }
                 else
                 {
-                    if (chkSyntax.IsChecked == true && !originalSyntaxEnabled)
-                    {
-                        await ShowWarningDialog(
-                            "Syntax Highlighting",
-                            "In der Abiturprüfung stehen keine Syntax-Hervorhebungen zur Verfügung. Es wird empfohlen, ohne dieses Feature zu üben."
-                        );
-                    }
-
                     AppSettings.IsSyntaxHighlightingEnabled = chkSyntax.IsChecked ?? false;
                     ApplySyntaxHighlighting();
                 }
@@ -3996,16 +4143,69 @@ namespace AbiturEliteCode
                 {
                     await ShowWarningDialog(
                        "Error-Hervorhebung",
-                       "In der Prüfung müssen Fehler selbstständig gefunden oder am Besten vermieden werden, deshalb wird strengstens empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
+                       "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird strengstens empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
                    );
                 }
 
                 AppSettings.IsErrorHighlightingEnabled = chkError.IsChecked ?? false;
 
+                if (AppSettings.IsErrorHighlightingEnabled == false)
+                {
+                    chkErrorExplain.IsChecked = false;
+                    chkErrorExplain.IsEnabled = false;
+                }
+                else
+                {
+                    chkErrorExplain.IsEnabled = true;
+                }
+
                 if (AppSettings.IsErrorHighlightingEnabled)
                     UpdateDiagnostics();
                 else
                     ClearDiagnostics();
+
+                CheckChanges();
+            };
+
+            chkErrorExplain.IsCheckedChanged += async (s, ev) =>
+            {
+                if (chkErrorExplain.IsChecked == true && !originalErrorExplanation)
+                {
+                    await ShowWarningDialog(
+                      "Error-Erklärungen",
+                      "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung (nur Compiler-Output). Nutze dies nur, wenn du absolut nicht weiterkommst."
+                  );
+                }
+                AppSettings.IsErrorExplanationEnabled = chkErrorExplain.IsChecked ?? false;
+                CheckChanges();
+            };
+
+            chkAutocomplete.IsCheckedChanged += (s, ev) =>
+            {
+                if (_isSqlMode)
+                {
+                    AppSettings.IsSqlAutocompleteEnabled = chkAutocomplete.IsChecked ?? false;
+                    if (AppSettings.IsSqlAutocompleteEnabled)
+                    {
+                        _sqlAutocompleteService?.ScanTokens(SqlQueryEditor.Text);
+                    }
+                    else
+                    {
+                        _sqlAutocompleteService?.ClearSuggestion();
+                    }
+                }
+                else
+                {
+                    AppSettings.IsAutocompleteEnabled = chkAutocomplete.IsChecked ?? false;
+                    if (AppSettings.IsAutocompleteEnabled)
+                    {
+                        _csharpAutocompleteService?.ScanTokens(CodeEditor.Text);
+                    }
+                    else
+                    {
+                        _csharpAutocompleteService?.ClearSuggestion();
+                    }
+                }
 
                 CheckChanges();
             };
@@ -4028,7 +4228,9 @@ namespace AbiturEliteCode
             string editorTitle = _isSqlMode ? "SQL Query Editor" : "C# Code Editor";
             editorSettings.Children.Add(new TextBlock { Text = editorTitle, FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
             editorSettings.Children.Add(chkSyntax);
+            editorSettings.Children.Add(chkAutocomplete);
             editorSettings.Children.Add(chkError);
+            editorSettings.Children.Add(chkErrorExplain);
             editorSettings.Children.Add(chkVim);
 
             // display
@@ -4087,6 +4289,8 @@ namespace AbiturEliteCode
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
                 playerData.Settings.IsSqlSyntaxHighlightingEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
+                playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
+                playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
                 playerData.Settings.UiScale = AppSettings.UiScale;
 
                 SaveSystem.Save(playerData);
@@ -4183,8 +4387,11 @@ namespace AbiturEliteCode
                 {
                     AppSettings.IsVimEnabled = originalVimEnabled;
                     AppSettings.IsSyntaxHighlightingEnabled = originalSyntaxEnabled;
-                    AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
+                    AppSettings.IsSqlSyntaxHighlightingEnabled = originalSqlSyntaxEnabled;
+                    AppSettings.IsAutocompleteEnabled = originalAutocompleteEnabled;
+                    AppSettings.IsSqlAutocompleteEnabled = originalSqlAutocompleteEnabled;
                     AppSettings.IsErrorHighlightingEnabled = originalErrorEnabled;
+                    AppSettings.IsErrorExplanationEnabled = originalErrorExplanation;
                     AppSettings.UiScale = originalUiScale;
 
                     UpdateVimState();
@@ -4526,6 +4733,13 @@ namespace AbiturEliteCode
                     _vimDesiredColumn = -1;
                     break;
                 case "l":
+                    // clear suggestion when moving right
+                    if (_csharpAutocompleteService.HasSuggestion)
+                    {
+                        _csharpAutocompleteService.ClearSuggestion();
+                        CodeEditor.TextArea.TextView.Redraw();
+                    }
+
                     int lineEndL = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).EndOffset;
                     if (CodeEditor.CaretOffset < lineEndL)
                         CodeEditor.CaretOffset++;

@@ -31,6 +31,15 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 13 | `DAT` | Zeugniskonferenz (Datumslogik) |
 | 14 | `ELT` | Der Elternbrief |
 
+## Sektion 4: Kommunikation & Protokolle
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 15 | `COM` | Protokoll-Parser (Switch) |
+| 16 | `CHK` | Paket-Validierung (Struktogramm) |
+| 17 | `SEN` | Die Sicherheitsschleuse (Serielle Schnittstelle) |
+| 18 | `PRO` | Missions-Zentrale |
+
 ---
 
 ## SQL Levels

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace AbiturEliteCode.cs
 {
@@ -41,6 +42,8 @@ namespace AbiturEliteCode.cs
                     14 => TestLevel14(assembly, out feedback),
                     15 => TestLevel15(assembly, out feedback),
                     16 => TestLevel16(assembly, out feedback),
+                    17 => TestLevel17(assembly, out feedback),
+                    18 => TestLevel18(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -926,6 +929,242 @@ namespace AbiturEliteCode.cs
             }
 
             throw new Exception($"Gültiges Paket wurde abgelehnt oder falscher Header zurückgegeben. Erwartet (Header): 42, Erhalten: {res3}");
+        }
+
+        private static object InvokeWithTimeout(MethodInfo method, object instance, object[] args, int timeoutMs = 500)
+        {
+            var task = Task.Run(() =>
+            {
+                try
+                {
+                    return method.Invoke(instance, args);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    // Re-throw the actual exception from the user code
+                    throw ex.InnerException ?? ex;
+                }
+            });
+
+            if (task.Wait(timeoutMs))
+            {
+                // Task completed within time
+                if (task.IsFaulted) throw task.Exception.InnerException ?? task.Exception;
+                return task.Result;
+            }
+
+            // Timeout occurred
+            throw new Exception("Zeitüberschreitung: Die Methode läuft zu lange (Eventuell eine Endlosschleife in 'while'?).");
+        }
+
+        private static bool TestLevel17(Assembly assembly, out string feedback)
+        {
+            Type tRover = assembly.GetType("Rover");
+            Type tReader = assembly.GetType("RFIDReader");
+            Type tController = assembly.GetType("Controller");
+            Type tSerial = assembly.GetType("Serial");
+            Type tFunk = assembly.GetType("FunkModul");
+
+            if (tRover == null) throw new Exception("Klasse 'Rover' fehlt.");
+            if (tReader == null) throw new Exception("Klasse 'RFIDReader' fehlt.");
+            if (tController == null) throw new Exception("Klasse 'Controller' fehlt.");
+
+            // --- TASK 1: ROVER ---
+            ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
+            if (ctorRover == null) throw new Exception("Aufgabe 1 (Rover): Konstruktor Rover(string id) fehlt.");
+
+            object r1 = ctorRover.Invoke(new object[] { "R1" });
+            object r2 = ctorRover.Invoke(new object[] { "R2" });
+
+            MethodInfo mGetNr = tRover.GetMethod("GetFahrzeugNr") ?? tRover.GetMethod("getFahrzeugNr");
+            MethodInfo mUnlock = tRover.GetMethod("Unlock") ?? tRover.GetMethod("unlock");
+            MethodInfo mLock = tRover.GetMethod("Lock") ?? tRover.GetMethod("lock");
+
+            if (mGetNr == null) throw new Exception("Aufgabe 1 (Rover): Methode GetFahrzeugNr() fehlt.");
+            if (mUnlock == null) throw new Exception("Aufgabe 1 (Rover): Methode Unlock() fehlt.");
+            if (mLock == null) throw new Exception("Aufgabe 1 (Rover): Methode Lock() fehlt.");
+
+            int nr1 = (int)mGetNr.Invoke(r1, null);
+            int nr2 = (int)mGetNr.Invoke(r2, null);
+
+            if (nr1 < 1 || nr2 != nr1 + 1)
+                throw new Exception($"Aufgabe 1 (Rover): Autowert nicht korrekt. Rover 1 hat Nr {nr1}, Rover 2 hat Nr {nr2}. Erwartet: Fortlaufende Nummerierung.");
+
+            // --- TASK 2: RFID READER ---
+            ConstructorInfo ctorReader = tReader.GetConstructor(new[] { tSerial });
+            if (ctorReader == null) throw new Exception("Aufgabe 2 (Reader): Konstruktor RFIDReader(Serial s) fehlt.");
+
+            object serialMock = Activator.CreateInstance(tSerial, new object[] { "COM1", 9600, 8, 1, 0 });
+            object reader = ctorReader.Invoke(new object[] { serialMock });
+
+            // test IsCardAvailable
+            MethodInfo mAvail = tReader.GetMethod("IsCardAvailable") ?? tReader.GetMethod("isCardAvailable");
+            if (mAvail == null) throw new Exception("Aufgabe 2 (Reader): Methode IsCardAvailable() fehlt.");
+
+            MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
+            // inject test byte
+            mSetBytes.Invoke(serialMock, new object[] { new int[] { 0x02 } });
+
+            bool isAvail = (bool)mAvail.Invoke(reader, null);
+            if (!isAvail) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
+
+            MethodInfo mReadSerial = tSerial.GetMethod("Read");
+            mReadSerial.Invoke(serialMock, null);
+
+            // test ReadCard
+            // data: '1'(49), '2'(50), '3'(51), '4'(52), '5'(53), '6'(54)
+            // XOR: 49^50^51^52^53^54 = 7
+            // packet: STX(2) | Data... | Checksum(7) | ETX(3)
+            int[] validPacket = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 };
+            mSetBytes.Invoke(serialMock, new object[] { validPacket });
+
+            MethodInfo mReadCard = tReader.GetMethod("ReadCard") ?? tReader.GetMethod("readCard");
+            if (mReadCard == null) throw new Exception("Aufgabe 2 (Reader): Methode ReadCard() fehlt.");
+
+            string cardResult;
+            try
+            {
+                // using the timeout helper
+                cardResult = (string)InvokeWithTimeout(mReadCard, reader, null, 1000);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Aufgabe 2 (Reader): Fehler in ReadCard: {ex.Message}");
+            }
+
+            if (cardResult != "123456")
+                throw new Exception($"Aufgabe 2 (Reader): ReadCard liefert falsches Ergebnis. Erwartet \"123456\", erhalten \"{cardResult}\".\nPrüfen Sie: \n1. Lesen Sie genau 6 Datenbytes?\n2. Ist die XOR-Prüfung korrekt?\n3. Prüfen Sie auf ETX (0x03) am Ende?");
+
+            // --- TASK 3: CONTROLLER ---
+            ConstructorInfo ctorController = tController.GetConstructor(new[] { typeof(string), tRover });
+            if (ctorController == null) throw new Exception("Aufgabe 3 (Controller): Konstruktor Controller(string port, Rover r) fehlt.");
+
+            object controller = null;
+            try
+            {
+                controller = ctorController.Invoke(new object[] { "COM1", r1 });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Aufgabe 3 (Controller): Fehler im Konstruktor: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            FieldInfo fReader = tController.GetField("reader", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fReader == null || fReader.GetValue(controller) == null)
+                throw new Exception("Aufgabe 3 (Controller): Das Feld 'reader' wurde nicht initialisiert.");
+
+            FieldInfo fFunk = tController.GetField("funk", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fFunk == null) fFunk = tController.GetField("funkModul", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fFunk == null || fFunk.GetValue(controller) == null)
+                throw new Exception("Aufgabe 3 (Controller): Das Feld 'funk' wurde nicht initialisiert.");
+
+            FieldInfo fSerial = tController.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fSerial == null || fSerial.GetValue(controller) == null)
+                throw new Exception("Aufgabe 3 (Controller): Das Feld 'serial' wurde nicht initialisiert.");
+
+            feedback = "Hervorragend! Alle 3 Teilaufgaben (Rover, Reader Protokoll, Controller Setup) wurden korrekt gelöst.";
+            return true;
+        }
+
+        private static bool TestLevel18(Assembly assembly, out string feedback)
+        {
+            Type tZentrale = assembly.GetType("MissionsZentrale");
+            Type tRover = assembly.GetType("Rover");
+            Type tWartung = assembly.GetType("WartungsDienst");
+            Type tTicket = assembly.GetType("WartungsTicket");
+            Type tLog = assembly.GetType("LogEintrag");
+
+            if (tZentrale == null) throw new Exception("Klasse 'MissionsZentrale' fehlt.");
+            if (tRover == null) throw new Exception("Klasse 'Rover' fehlt.");
+            if (tWartung == null) throw new Exception("Klasse 'WartungsDienst' fehlt.");
+            if (tTicket == null) throw new Exception("Klasse 'WartungsTicket' fehlt.");
+            if (tLog == null) throw new Exception("Klasse 'LogEintrag' fehlt.");
+
+            // 1. check WartungsDienst impl
+            object wartung = Activator.CreateInstance(tWartung);
+            MethodInfo mTicket = tWartung.GetMethod("ErstelleTicket") ?? tWartung.GetMethod("erstelleTicket");
+            if (mTicket == null) throw new Exception("Methode 'ErstelleTicket' in 'WartungsDienst' fehlt.");
+
+            // ensure WartungsDienst has list of tickets
+            FieldInfo fTickets = tWartung.GetField("tickets", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fTickets == null) throw new Exception("Feld 'tickets' (Liste von WartungsTicket) in 'WartungsDienst' fehlt.");
+
+            // initialize list if necessary (constructor check usually handles this but we want to fail gracefully if user forgot)
+            if (fTickets.GetValue(wartung) == null) throw new Exception("Liste 'tickets' in WartungsDienst ist null. Initialisieren Sie diese im Konstruktor.");
+
+            // 2. check rover implementation and battery logic
+            ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
+            if (ctorRover == null) throw new Exception("Konstruktor Rover(string id) fehlt.");
+            object r1 = ctorRover.Invoke(new object[] { "CURIOSITY" });
+
+            // check initial battery value
+            FieldInfo fBatterie = tRover.GetField("batterie", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fBatterie == null) throw new Exception("Feld 'batterie' in Rover fehlt.");
+            int battVal = (int)fBatterie.GetValue(r1);
+            if (battVal != 100) throw new Exception($"Batterie startet bei {battVal}, sollte aber laut Diagramm bei 100 starten.");
+
+            MethodInfo mStatus = tRover.GetMethod("VerarbeiteStatus") ?? tRover.GetMethod("verarbeiteStatus");
+            if (mStatus == null) throw new Exception("Methode 'VerarbeiteStatus' in 'Rover' fehlt.");
+            if (mStatus.ReturnType != typeof(bool)) throw new Exception("Methode 'VerarbeiteStatus' muss 'bool' zurückgeben.");
+
+            // test rover logic
+            // case A: simple error -> battery -5 -> 95. not critical (false)
+            bool res1 = (bool)mStatus.Invoke(r1, new object[] { "ERR", "SensorFehler" });
+            if (res1) throw new Exception("Rover meldet 'kritisch' (true), obwohl Batterie noch fast voll ist. (ERR soll -5 kosten).");
+
+            // case b: set battery -> 15. critical (true)
+            bool res2 = (bool)mStatus.Invoke(r1, new object[] { "BAT", "15" });
+            if (!res2) throw new Exception("Rover meldet 'nicht kritisch' (false), obwohl Batterie auf 15 gesetzt wurde (< 20).");
+
+            // 3. check interaction in MissionsZentrale
+            object centrale = Activator.CreateInstance(tZentrale);
+
+            MethodInfo mAddRover = tZentrale.GetMethod("AddRover") ?? tZentrale.GetMethod("addRover");
+            MethodInfo mProcess = tZentrale.GetMethod("VerarbeiteDatenstrom") ?? tZentrale.GetMethod("verarbeiteDatenstrom");
+
+            // re-create clean objects for integration test
+            object rTest = ctorRover.Invoke(new object[] { "TESTROVER" });
+            mAddRover.Invoke(centrale, new object[] { rTest });
+
+            // check if WartungsDienst is in MissionsZentrale
+            FieldInfo fWartungCentral = tZentrale.GetField("wartung", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fWartungCentral == null) throw new Exception("Feld 'wartung' in MissionsZentrale fehlt.");
+            object wInstance = fWartungCentral.GetValue(centrale);
+            if (wInstance == null) throw new Exception("WartungsDienst wurde im Konstruktor der MissionsZentrale nicht initialisiert.");
+
+            // scenario:
+            // 1. "TESTROVER#BAT#25" -> battery 25 (not critical)
+            // 2. "TESTROVER#ERR#Crash" -> battery 20 (not critical)
+            // 3. "TESTROVER#ERR#Leak" -> battery 15 (critical) -> must trigger ticket
+            string stream = "TESTROVER#BAT#25|TESTROVER#ERR#Crash|TESTROVER#ERR#Leak";
+
+            try
+            {
+                mProcess.Invoke(centrale, new object[] { stream });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler in 'VerarbeiteDatenstrom': {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            // check if ticket was created in the WartungsDienst instance
+            IList ticketList = fTickets.GetValue(wInstance) as IList;
+
+            if (ticketList == null || ticketList.Count == 0)
+            {
+                throw new Exception("Es wurde kein Ticket erstellt, obwohl der Rover einen kritischen Status (Batterie < 20) erreicht hat.");
+            }
+            if (ticketList.Count > 1)
+            {
+                throw new Exception($"Es wurden zu viele Tickets erstellt ({ticketList.Count}). Es sollte erst beim Unterschreiten der Grenze von 20 ein Ticket erstellt werden.");
+            }
+
+            // verify ticket type
+            object ticket = ticketList[0];
+            if (ticket.GetType() != tTicket) throw new Exception("Das Objekt in der Ticket-Liste ist nicht vom Typ 'WartungsTicket'.");
+
+            feedback = "Sektion 4 erfolgreich gemeistert! Datenstrom, Kollaboration und Protokolle funktionieren einwandfrei.";
+            return true;
         }
     }
 }

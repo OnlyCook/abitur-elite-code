@@ -1,18 +1,16 @@
 ﻿using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace AbiturEliteCode
@@ -40,6 +38,12 @@ namespace AbiturEliteCode
         {
             _editor = editor;
             _markers = new TextSegmentCollection<TextMarker>(editor.Document);
+        }
+
+        public TextMarker GetMarkerAtOffset(int offset)
+        {
+            if (_markers == null) return null;
+            return _markers.FindSegmentsContaining(offset).FirstOrDefault();
         }
 
         public void Draw(TextView textView, DrawingContext drawingContext)
@@ -82,9 +86,9 @@ namespace AbiturEliteCode
 
         public KnownLayer Layer => KnownLayer.Selection;
 
-        public void Add(int offset, int length, Color color)
+        public void Add(int offset, int length, Color color, string message = null)
         {
-            _markers.Add(new TextMarker(offset, length) { MarkerColor = color });
+            _markers.Add(new TextMarker(offset, length) { MarkerColor = color, Message = message });
         }
 
         public void Clear()
@@ -101,6 +105,7 @@ namespace AbiturEliteCode
                 Length = length;
             }
             public Color MarkerColor { get; set; }
+            public string Message { get; set; }
         }
     }
 
@@ -502,6 +507,145 @@ namespace AbiturEliteCode
                 case '>': return '<';
                 default: return '\0';
             }
+        }
+    }
+
+    public class AutocompleteService
+    {
+        private HashSet<string> _tokens = new HashSet<string>();
+        private string _currentSuggestionSuffix = null;
+        private string _currentWordPrefix = "";
+
+        private HashSet<string> _keywords;
+
+        // c# keywords to ignore
+        public static readonly HashSet<string> CsharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue",
+            "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
+            "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+            "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private", "protected",
+            "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string",
+            "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+            "using", "virtual", "void", "volatile", "while", "var", "List", "Dictionary", "Console", "Math"
+        };
+
+        // sql keywords to ignore
+        public static readonly HashSet<string> SqlKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "INSERT", "INTO",
+            "VALUES", "UPDATE", "SET", "DELETE", "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "CROSS", "ON",
+            "AS", "DISTINCT", "ALL", "UNION", "AND", "OR", "NOT", "NULL", "IS", "IN", "BETWEEN", "LIKE",
+            "EXISTS", "CREATE", "TABLE", "DROP", "ALTER", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT",
+            "AUTO_INCREMENT", "ASC", "DESC", "USING", "INT", "INTEGER", "VARCHAR", "TEXT", "CHAR", "DATE",
+            "DATETIME", "TIMESTAMP", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN", "COUNT", "SUM", "AVG", "MIN",
+            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW"
+        };
+
+        public AutocompleteService(HashSet<string> keywords)
+        {
+            _keywords = keywords ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public bool HasSuggestion => !string.IsNullOrEmpty(_currentSuggestionSuffix);
+        public string CurrentSuggestionSuffix => _currentSuggestionSuffix;
+
+        public void ScanTokens(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+
+            _tokens.Clear();
+            foreach (Match match in matches)
+            {
+                string token = match.Value;
+                if (token.Length > 2 && !_keywords.Contains(token))
+                {
+                    _tokens.Add(token);
+                }
+            }
+        }
+
+        public void UpdateSuggestion(string text, int caretOffset)
+        {
+            _currentSuggestionSuffix = null;
+
+            if (caretOffset == 0 || caretOffset > text.Length) return;
+
+            // find word boundary before caret
+            int start = caretOffset - 1;
+            while (start >= 0)
+            {
+                char c = text[start];
+                if (!char.IsLetterOrDigit(c) && c != '_') break;
+                start--;
+            }
+            start++;
+
+            int length = caretOffset - start;
+            if (length < 2) return; // only trigger after 2 chars
+
+            string currentWord = text.Substring(start, length);
+
+            var match = _tokens.FirstOrDefault(t => t.StartsWith(currentWord) && t.Length > currentWord.Length);
+
+            if (match != null)
+            {
+                _currentSuggestionSuffix = match.Substring(currentWord.Length);
+            }
+        }
+
+        public void ClearSuggestion()
+        {
+            _currentSuggestionSuffix = null;
+        }
+    }
+
+    public class AutocompleteGhostRenderer : IBackgroundRenderer
+    {
+        private readonly TextEditor _editor;
+        private readonly AutocompleteService _service;
+        private readonly SolidColorBrush _ghostBrush;
+
+        public AutocompleteGhostRenderer(TextEditor editor, AutocompleteService service)
+        {
+            _editor = editor;
+            _service = service;
+            _ghostBrush = new SolidColorBrush(Color.Parse("#60808080"));
+        }
+
+        public KnownLayer Layer => KnownLayer.Text;
+
+        public void Draw(TextView textView, DrawingContext drawingContext)
+        {
+            if (!AppSettings.IsAutocompleteEnabled || !_service.HasSuggestion) return;
+
+            var caretPos = _editor.TextArea.Caret.Position;
+            var caretScreenPos = _editor.TextArea.Caret.CalculateCaretRectangle();
+
+            if (caretScreenPos.Width <= 0 || caretScreenPos.Height <= 0) return;
+
+            // formatted text setup
+            var formattedText = new FormattedText(
+                _service.CurrentSuggestionSuffix,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(_editor.FontFamily, _editor.FontStyle, _editor.FontWeight),
+                _editor.FontSize,
+                _ghostBrush
+            );
+   
+            // vertically align to fit regular text
+            double yPos = caretScreenPos.Top + (caretScreenPos.Height - formattedText.Height) / 2;
+
+            var point = new Point(caretScreenPos.Right, yPos);
+
+            // adjust for scrolling
+            point = point.WithX(point.X - textView.ScrollOffset.X);
+            point = point.WithY(point.Y - textView.ScrollOffset.Y);
+
+            drawingContext.DrawText(formattedText, point);
         }
     }
 
