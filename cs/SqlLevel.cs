@@ -34,7 +34,7 @@ namespace AbiturEliteCode.cs
     public static class SqlLevelCodes
     {
         public static string[] CodesList = {
-            "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EX1",
+            "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EXM",
             "JON", "IMP", "JOI", "JO3", "JOX"
         };
     }
@@ -178,10 +178,13 @@ namespace AbiturEliteCode.cs
                         new[] { "SciFi", "20" }
                     },
                     MaterialDocs = "start-hint: GROUP BY Syntax\n" +
-                                   "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte (hier Genre) ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n\n" +
-                                   "{|SELECT Genre, AVG(Preis)\n" +
-                                   "FROM Buch\n" +
-                                   "GROUP BY Genre;|}" +
+                                   "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte (hier Genre) ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n" +
+                                   "{|SELECT Spalte1, AVG(Spalte2)\nFROM Tabelle\nGROUP BY Spalte1;|}\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Spaltenbenennung\n" +
+                                   "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Keyword:\n" +
+                                   "{|SELECT AVG(Spalte) AS EigenerName\nFROM Tabelle;|}" +
+                                   "Dies wird häufig zusammen mit Aggregatfunktionen genutzt.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
@@ -194,7 +197,7 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[5],
                     Title = "Daten Einfügen (INSERT)",
                     Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
-                                  "- [Schueler] (ID [Int], Name [Text], Klasse [Int])\n\n" +
+                                  "- [Schueler] (ID (Int), Name (Text), Klasse (Int))\n\n" +
                                   "Aufgabe:\n" +
                                   "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
@@ -223,7 +226,7 @@ namespace AbiturEliteCode.cs
                     Description = "Der Schüler 'Max' (ID 1) ist in die Klasse 13 versetzt worden.\n\n" +
                                   "Aufgabe:\n" +
                                   "Aktualisieren Sie den Eintrag von Max in der Tabelle [Schueler], sodass seine Klasse nun 13 ist.\n" +
-                                  "Achten Sie unbedingt auf die WHERE-Klausel!",
+                                  "Achten Sie unbedingt auf die [WHERE]-Klausel!",
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', 12); " +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', 11);",

@@ -79,25 +79,26 @@ def extract_level_data():
     md_content += "Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
 
     # Helper to write sections to MD string
-    def append_sections(data_dict):
+    def append_sections(data_dict, level_prefix=""):
         text = ""
         for section_name, levels in data_dict.items():
             text += f"## {section_name}\n\n"
             text += "| Level | Code | Titel |\n"
             text += "| :--- | :---: | :--- |\n"
             for lvl in levels:
-                text += f"| {lvl['id']} | `{lvl['code']}` | {lvl['title']} |\n"
+                level_id = f"{level_prefix}{lvl['id']}" if level_prefix else lvl['id']
+                text += f"| {level_id} | `{lvl['code']}` | {lvl['title']} |\n"
             text += "\n"
         return text
 
     # Add C# Sections
     md_content += append_sections(csharp_data)
-    
+
     # Add SQL Sections (if any found)
     if sql_data:
         md_content += "---\n\n"
-        md_content += "## SQL Levels\n\n"
-        md_content += append_sections(sql_data)
+        md_content += "# SQL Levels\n\n"
+        md_content += append_sections(sql_data, level_prefix="S")
 
     # 4. Write to file
     with open(output_md_path, "w", encoding="utf-8") as f:

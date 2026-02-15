@@ -66,14 +66,15 @@ namespace AbiturEliteCode
         private System.Threading.CancellationTokenSource? _compilationCts;
         private TextMarkerService _textMarkerService;
         private UnusedCodeTransformer _unusedCodeTransformer;
+        private SemanticClassHighlightingTransformer _semanticClassTransformer;
         private DispatcherTimer _diagnosticTimer;
         private GhostCharacterTransformer _ghostCharTransformer;
         private BracketHighlightRenderer _bracketHighlightRenderer;
         private IndentationGuideRenderer _indentationGuideRenderer;
         private AutocompleteService _csharpAutocompleteService;
-        private AutocompleteGhostRenderer _csharpAutocompleteRenderer;
+        private AutocompleteGhostGenerator _csharpAutocompleteGenerator;
         private AutocompleteService _sqlAutocompleteService;
-        private AutocompleteGhostRenderer _sqlAutocompleteRenderer;
+        private AutocompleteGhostGenerator _sqlAutocompleteGenerator;
 
         private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
@@ -215,6 +216,20 @@ namespace AbiturEliteCode
                 }
                 else if (e.Key == Key.F2)
                 {
+                    // cycle diagrams if already on tab and multiple diagrams exist
+                    if (MainTabs.SelectedIndex == 1 && !_isSqlMode && currentLevel?.DiagramPaths?.Count > 1)
+                    {
+                        _currentDiagramIndex++;
+                        if (_currentDiagramIndex >= currentLevel.DiagramPaths.Count)
+                            _currentDiagramIndex = 0;
+
+                        ImgDiagram.Source = LoadDiagramImage(currentLevel.DiagramPaths[_currentDiagramIndex]);
+
+                        BtnDiagram1.Background = _currentDiagramIndex == 0 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                        BtnDiagram2.Background = _currentDiagramIndex == 1 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                        BtnDiagram3.Background = _currentDiagramIndex == 2 ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#3C3C3C");
+                    }
+
                     _isKeyboardTabSwitch = true;
                     MainTabs.SelectedIndex = 1;
                     e.Handled = true;
@@ -422,8 +437,8 @@ namespace AbiturEliteCode
             SqlQueryEditor.TextArea.TextView.LineTransformers.Add(ghostTransformer);
 
             _sqlAutocompleteService = new AutocompleteService(AutocompleteService.SqlKeywords);
-            _sqlAutocompleteRenderer = new AutocompleteGhostRenderer(SqlQueryEditor, _sqlAutocompleteService);
-            SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(_sqlAutocompleteRenderer);
+            _sqlAutocompleteGenerator = new AutocompleteGhostGenerator(SqlQueryEditor, _sqlAutocompleteService);
+            SqlQueryEditor.TextArea.TextView.ElementGenerators.Add(_sqlAutocompleteGenerator);
 
             SqlQueryEditor.TextChanged += (s, e) =>
             {
@@ -468,6 +483,15 @@ namespace AbiturEliteCode
 
         private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
         {
+            // escape key to clear suggestions
+            if (e.Key == Key.Escape && _sqlAutocompleteService.HasSuggestion)
+            {
+                _sqlAutocompleteService.ClearSuggestion();
+                SqlQueryEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
+                return;
+            }
+
             // ctrl + s => save
             if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
             {
@@ -638,12 +662,15 @@ namespace AbiturEliteCode
             _unusedCodeTransformer = new UnusedCodeTransformer();
             CodeEditor.TextArea.TextView.LineTransformers.Add(_unusedCodeTransformer);
 
+            _semanticClassTransformer = new SemanticClassHighlightingTransformer();
+            CodeEditor.TextArea.TextView.LineTransformers.Add(_semanticClassTransformer);
+
             _ghostCharTransformer = new GhostCharacterTransformer(CodeEditor);
             CodeEditor.TextArea.TextView.LineTransformers.Add(_ghostCharTransformer);
 
             _csharpAutocompleteService = new AutocompleteService(AutocompleteService.CsharpKeywords);
-            _csharpAutocompleteRenderer = new AutocompleteGhostRenderer(CodeEditor, _csharpAutocompleteService);
-            CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_csharpAutocompleteRenderer);
+            _csharpAutocompleteGenerator = new AutocompleteGhostGenerator(CodeEditor, _csharpAutocompleteService);
+            CodeEditor.TextArea.TextView.ElementGenerators.Add(_csharpAutocompleteGenerator);
 
             // wait 600ms after typing
             _diagnosticTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
@@ -674,6 +701,8 @@ namespace AbiturEliteCode
             {
                 autoSaveTimer.Stop();
                 autoSaveTimer.Start();
+
+                UpdateSemanticHighlighting();
 
                 if (AppSettings.IsErrorHighlightingEnabled)
                 {
@@ -754,6 +783,15 @@ namespace AbiturEliteCode
 
         private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
         {
+            // escape key to clear suggestions
+            if (e.Key == Key.Escape && _csharpAutocompleteService.HasSuggestion)
+            {
+                _csharpAutocompleteService.ClearSuggestion();
+                CodeEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
+                return;
+            }
+
             // ctrl + s => save
             if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
             {
@@ -1311,6 +1349,8 @@ namespace AbiturEliteCode
             {
                 AddToConsole("> System initialisiert.", Brushes.LightGray);
             }
+
+            UpdateSemanticHighlighting(); // init scan
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
         }
@@ -4646,6 +4686,47 @@ namespace AbiturEliteCode
             else
             {
                 CodeEditor.SyntaxHighlighting = null;
+            }
+        }
+
+        private void UpdateSemanticHighlighting()
+        {
+            var classes = new HashSet<string>();
+
+            // extract from aux code
+            if (currentLevel?.AuxiliaryIds != null)
+            {
+                foreach (var auxId in currentLevel.AuxiliaryIds)
+                {
+                    string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                    if (!string.IsNullOrEmpty(auxCode))
+                    {
+                        ExtractTypesFromCode(auxCode, classes);
+                    }
+                }
+            }
+
+            // extract from user code
+            ExtractTypesFromCode(CodeEditor.Text, classes);
+
+            classes.ExceptWith(AutocompleteService.CsharpKeywords); // filter out c# keywords (safety)
+
+            _semanticClassTransformer.KnownClasses = classes;
+            CodeEditor.TextArea.TextView.Redraw();
+        }
+
+        private void ExtractTypesFromCode(string code, HashSet<string> types)
+        {
+            if (string.IsNullOrEmpty(code)) return;
+
+            // finds class, struct, record, interface, enum names (automatically handles constructors/destructors)
+            var matches = Regex.Matches(code, @"\b(?:class|struct|record|interface|enum)\s+([A-Za-z_][A-Za-z0-9_]*)\b");
+            foreach (Match match in matches)
+            {
+                if (match.Groups.Count > 1)
+                {
+                    types.Add(match.Groups[1].Value);
+                }
             }
         }
 

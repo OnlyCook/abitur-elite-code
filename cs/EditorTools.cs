@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Highlighting;
@@ -573,6 +574,16 @@ namespace AbiturEliteCode
 
             if (caretOffset == 0 || caretOffset > text.Length) return;
 
+            // do not suggest if caret is directly before a word character
+            if (caretOffset < text.Length)
+            {
+                char nextChar = text[caretOffset];
+                if (char.IsLetterOrDigit(nextChar) || nextChar == '_')
+                {
+                    return;
+                }
+            }
+
             // find word boundary before caret
             int start = caretOffset - 1;
             while (start >= 0)
@@ -602,50 +613,61 @@ namespace AbiturEliteCode
         }
     }
 
-    public class AutocompleteGhostRenderer : IBackgroundRenderer
+    public class AutocompleteGhostGenerator : VisualLineElementGenerator
     {
         private readonly TextEditor _editor;
         private readonly AutocompleteService _service;
-        private readonly SolidColorBrush _ghostBrush;
 
-        public AutocompleteGhostRenderer(TextEditor editor, AutocompleteService service)
+        public AutocompleteGhostGenerator(TextEditor editor, AutocompleteService service)
         {
             _editor = editor;
             _service = service;
-            _ghostBrush = new SolidColorBrush(Color.Parse("#60808080"));
         }
 
-        public KnownLayer Layer => KnownLayer.Text;
-
-        public void Draw(TextView textView, DrawingContext drawingContext)
+        public override int GetFirstInterestedOffset(int startOffset)
         {
-            if (!AppSettings.IsAutocompleteEnabled || !_service.HasSuggestion) return;
+            if (!AppSettings.IsAutocompleteEnabled && !AppSettings.IsSqlAutocompleteEnabled) return -1;
+            if (!_service.HasSuggestion) return -1;
 
-            var caretPos = _editor.TextArea.Caret.Position;
-            var caretScreenPos = _editor.TextArea.Caret.CalculateCaretRectangle();
+            int caretOffset = _editor.CaretOffset;
+            
+            if (caretOffset >= startOffset) // only generate if the caret is within the current visual line segment
+            {
+                return caretOffset;
+            }
 
-            if (caretScreenPos.Width <= 0 || caretScreenPos.Height <= 0) return;
+            return -1;
+        }
 
-            // formatted text setup
-            var formattedText = new FormattedText(
-                _service.CurrentSuggestionSuffix,
-                CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                new Typeface(_editor.FontFamily, _editor.FontStyle, _editor.FontWeight),
-                _editor.FontSize,
-                _ghostBrush
-            );
-   
-            // vertically align to fit regular text
-            double yPos = caretScreenPos.Top + (caretScreenPos.Height - formattedText.Height) / 2;
+        public override VisualLineElement ConstructElement(int offset)
+        {
+            if (_service.HasSuggestion && offset == _editor.CaretOffset)
+            {
+                // returns a custom element that renders the ghost text
+                return new GhostTextElement(_service.CurrentSuggestionSuffix, _editor);
+            }
+            return null;
+        }
+    }
 
-            var point = new Point(caretScreenPos.Right, yPos);
+    public class GhostTextElement : VisualLineElement
+    {
+        private readonly string _text;
+        private readonly TextEditor _editor;
 
-            // adjust for scrolling
-            point = point.WithX(point.X - textView.ScrollOffset.X);
-            point = point.WithY(point.Y - textView.ScrollOffset.Y);
+        // base(visualLength, documentLength)
+        public GhostTextElement(string text, TextEditor editor) : base(text.Length, 0)
+        {
+            _text = text;
+            _editor = editor;
+        }
 
-            drawingContext.DrawText(formattedText, point);
+        public override TextRun CreateTextRun(int visualColumn, ITextRunConstructionContext context)
+        {
+            this.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#808080")));
+            this.TextRunProperties.SetTypeface(new Typeface(_editor.FontFamily, FontStyle.Italic, _editor.FontWeight));
+
+            return new TextCharacters(_text, this.TextRunProperties);
         }
     }
 
@@ -927,6 +949,34 @@ namespace AbiturEliteCode
             using (var reader = XmlReader.Create(new StringReader(xshd)))
             {
                 return HighlightingLoader.Load(reader, HighlightingManager.Instance);
+            }
+        }
+    }
+
+    public class SemanticClassHighlightingTransformer : DocumentColorizingTransformer
+    {
+        public HashSet<string> KnownClasses { get; set; } = new HashSet<string>();
+
+        protected override void ColorizeLine(DocumentLine line)
+        {
+            if (KnownClasses.Count == 0) return;
+
+            string text = CurrentContext.Document.GetText(line);
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            int lineStart = line.Offset;
+
+            // match potential class names
+            var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+            foreach (Match match in matches)
+            {
+                if (KnownClasses.Contains(match.Value))
+                {
+                    ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length, element =>
+                    {
+                        element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#4EC9B0")));
+                    });
+                }
             }
         }
     }

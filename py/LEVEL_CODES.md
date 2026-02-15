@@ -42,28 +42,28 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 
 ---
 
-## SQL Levels
+# SQL Levels
 
 ## Sektion 1: SQL Grundlagen
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| 1 | `SEL` | Projektion (SELECT) |
-| 2 | `WHE` | Selektion (WHERE) |
-| 3 | `ORD` | Sortierung (ORDER BY) |
-| 4 | `GRP` | Gruppierung (GROUP BY) |
-| 5 | `INS` | Daten Einfügen (INSERT) |
-| 6 | `UPD` | Daten Ändern (UPDATE) |
-| 7 | `DEL` | Daten Löschen (DELETE) |
-| 8 | `EX1` | Klausurphase |
+| S1 | `SEL` | Projektion (SELECT) |
+| S2 | `WHE` | Selektion (WHERE) |
+| S3 | `ORD` | Sortierung (ORDER BY) |
+| S4 | `GRP` | Gruppierung (GROUP BY) |
+| S5 | `INS` | Daten Einfügen (INSERT) |
+| S6 | `UPD` | Daten Ändern (UPDATE) |
+| S7 | `DEL` | Daten Löschen (DELETE) |
+| S8 | `EXM` | Klausurphase |
 
 ## Sektion 2: Die Bibliothek
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| 9 | `JON` | Der Schlüssel zum Erfolg (PK & FK) |
-| 10 | `IMP` | Die erste Verbindung (Implicit Join) |
-| 11 | `JOI` | Modernes Verbinden (INNER JOIN) |
-| 12 | `JO3` | Wer liest was? (3-Wege Join) |
-| 13 | `JOX` | Mini-Prüfung: Klasse 10b |
+| S9 | `JON` | Der Schlüssel zum Erfolg (PK & FK) |
+| S10 | `IMP` | Die erste Verbindung (Implicit Join) |
+| S11 | `JOI` | Modernes Verbinden (INNER JOIN) |
+| S12 | `JO3` | Wer liest was? (3-Wege Join) |
+| S13 | `JOX` | Klasse 10b |
 
