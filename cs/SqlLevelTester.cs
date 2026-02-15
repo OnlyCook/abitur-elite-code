@@ -143,6 +143,21 @@ namespace AbiturEliteCode.cs
         {
             string q = query;
 
+            // finds "SET @name = value;" or "SET @name := value;"
+            var varMatches = Regex.Matches(q, @"SET\s+@(\w+)\s*(?::=|=)\s*([^;]+);", RegexOptions.IgnoreCase);
+            foreach (Match m in varMatches)
+            {
+                string varName = m.Groups[1].Value;
+                string varValue = m.Groups[2].Value.Trim();
+
+                // remove the SET statement from the query
+                q = q.Replace(m.Value, "");
+
+                // replace all occurrences of @varName with the actual value
+                // \b ensures we don't replace @year in @years
+                q = Regex.Replace(q, "@" + varName + @"\b", varValue);
+            }
+
             // comments
             q = Regex.Replace(q, @"(?<=^|\s)#", "--");
 
@@ -159,6 +174,12 @@ namespace AbiturEliteCode.cs
 
             // 4. DAY(date) -> strftime('%d', date)
             q = Regex.Replace(q, @"\bDAY\s*\(\s*([^)]+)\s*\)", "strftime('%d', $1)", RegexOptions.IgnoreCase);
+
+            // 5. DATEDIFF(end, start) -> CAST(julianday(end) - julianday(start) AS INTEGER)
+            q = Regex.Replace(q, @"\bDATEDIFF\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "CAST((julianday($1) - julianday($2)) AS INTEGER)", RegexOptions.IgnoreCase);
+
+            // 6. DATE_ADD(date, INTERVAL x DAY) -> date(date, 'x days')
+            q = Regex.Replace(q, @"\bDATE_ADD\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+DAY\s*\)", "date($1, '$2 days')", RegexOptions.IgnoreCase);
 
             // date/time (existing)
             q = Regex.Replace(q, @"\bNOW\(\)", "datetime('now')", RegexOptions.IgnoreCase);

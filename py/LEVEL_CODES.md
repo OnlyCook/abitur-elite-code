@@ -57,12 +57,13 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 7 | `DEL` | Daten Löschen (DELETE) |
 | 8 | `EX1` | Klausurphase |
 
-## Sektion 2: ER-Modellierung
+## Sektion 2: Die Bibliothek
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| 9 | `JON` | 1:n Beziehungen (JOIN) |
-| 10 | `MNR` | m:n Beziehungen (Verknüpfungstabelle) |
-| 11 | `OUT` | Kardinalitäten (LEFT JOIN) |
-| 12 | `ABI` | Abitur-Simulation (Social Media) |
+| 9 | `JON` | Der Schlüssel zum Erfolg (PK & FK) |
+| 10 | `IMP` | Die erste Verbindung (Implicit Join) |
+| 11 | `JOI` | Modernes Verbinden (INNER JOIN) |
+| 12 | `JO3` | Wer liest was? (3-Wege Join) |
+| 13 | `JOX` | Mini-Prüfung: Klasse 10b |
 

@@ -1321,7 +1321,7 @@ namespace AbiturEliteCode
                 return;
 
             string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
-            var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*)");
+            var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*|\-\-.*?\-\-)");
 
             SelectableTextBlock CreateTextBlock() => new SelectableTextBlock
             {
@@ -1404,7 +1404,7 @@ namespace AbiturEliteCode
 
                     currentTb.Inlines.Add(new Run
                     {
-                        Text = content, 
+                        Text = content,
                         FontWeight = FontWeight.Bold,
                         Foreground = BrushTextHighlight,
                         FontFamily = new FontFamily(MonospaceFontFamily)
@@ -1421,6 +1421,19 @@ namespace AbiturEliteCode
                         Text = content,
                         FontWeight = FontWeight.Bold,
                         Foreground = BrushTextNormal
+                    });
+                }
+                // underline text
+                else if (part.StartsWith("--") && part.EndsWith("--") && part.Length >= 4)
+                {
+                    string content = part.Substring(2, part.Length - 4);
+                    content = content.Replace("\x01", "[").Replace("\x02", "]");
+
+                    currentTb.Inlines.Add(new Run
+                    {
+                        Text = content,
+                        Foreground = BrushTextNormal,
+                        TextDecorations = TextDecorations.Underline
                     });
                 }
                 // normal text
