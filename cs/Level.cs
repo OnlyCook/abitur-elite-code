@@ -46,6 +46,7 @@ namespace AbiturEliteCode.cs
         public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
         public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
         public string NassiShneiderSource { get; set; }
+        public bool NoUMLAutoScale { get; set; } = false; // set to true for large (especially wide) diagrams
         public List<string> AuxiliaryIds { get; set; } = new List<string>();
         public List<string> Prerequisites { get; set; } = new List<string>();
         public List<string> OptionalPrerequisites { get; set; } = new List<string>();
@@ -300,7 +301,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
                                   "• Bei leerer Liste [null] zurückgeben\n\n" +
                                   "Dies ist das Abschluss-Level von Sektion 1. Es kombiniert alle bisherigen Konzepte.",
-                    StarterCode = "public class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n\npublic class Gehege\n{\n    private List<Tier> bewohner;\n    \n    // Implementation hier\n}\n",
+                    StarterCode = "public class Gehege\n{\n    private List<Tier> bewohner;\n    \n    // Implementation hier\n}\n\npublic class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Strategie für die Suche\n" +
                                    "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = null;].\n" +
@@ -336,7 +337,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Aufgabe:\n" +
                                   "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
                                   "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n",
-                    StarterCode = "public class Paket\n{\n    // Attribute, Konstruktor, Getter\n}\n\npublic class Lager\n{\n    // Liste und Methoden\n}",
+                    StarterCode = "public class Lager\n{\n    // Liste und Methoden\n}\n\npublic class Paket\n{\n    // Attribute, Konstruktor, Getter\n}",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Startwert für Suche\n" +
                                    "Nutzen Sie eine Variable [leichtestesPaket], die Sie initial auf das erste Element der Liste setzen (falls vorhanden) oder auf null.\n" +
@@ -437,7 +438,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Logik für Anhaengen:\n" +
                                   "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
                                   "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
-                    StarterCode = "public class Knoten\n{\n    // Implementation\n}\n\npublic class Foerderband\n{\n    private Knoten kopf;\n\n    public void Anhaengen(Paket p)\n    {\n        // Implementation\n    }\n}",
+                    StarterCode = "public class Foerderband\n{\n    // Implementation\n}\n\npublic class Knoten\n{\n    // Implementation\n}\n",
                     MaterialDocs = "start-hint: Wie funktionieren Verkettete Listen? (Simpel)\n" +
                                    "Stell dir eine Schnitzeljagd (Schatzsuche) vor:\n" +
                                    "• Der [kopf] ist der erste Zettel, den du in die Hand bekommst.\n" +
@@ -526,7 +527,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Logik:\n" +
                                   "Berechnen Sie den Notendurchschnitt (double), aber berücksichtigen Sie nur Schüler, die **bestanden haben** (Note > 4 Punkte).\n" +
                                   "Gibt es keine bestandenen Prüfungen, geben Sie 0.0 zurück.",
-                    StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}",
+                    StarterCode = "public class Klasse\n{\n}\n\npublic class Schueler\n{\n}\n",
                     MaterialDocs = "start-hint: Initialisierung\n" +
                                    "Im Abitur ist es üblich, Listen im Konstruktor zu instanziieren: [liste = new List<T>();]\n" +
                                    ":end-hint\n" +
@@ -561,7 +562,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n" +
                                   "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
                                   "\n\nHinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.",
-                    StarterCode = "public class Klasse\n{\n    // Kann leer bleiben\n}\n\npublic class Lehrer\n{\n}\n\npublic class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}",
+                    StarterCode = "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben\n}\n",
                     MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
                                    "Hier ist die Kette: Schule -> Lehrer -> Liste<Klasse>.\n" +
                                    "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und *darauf* die Eigenschaft [.Count] prüfen.\n" +
@@ -595,7 +596,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Die Methode gibt [true] zurück, wenn der Schüler mindestens einen Fehltag hat, der:\n" +
                                   "• **Nicht entschuldigt** ist\n" +
                                   "• **Und** im letzten Monat lag (Datum ist **nach** [Heute - 1 Monat]).",
-                    StarterCode = "public class Fehltag\n{\n}\n\npublic class Schueler\n{\n    public bool HatKritischGefehlt()\n    {\n        return false;\n    }\n}",
+                    StarterCode = "public class Schueler\n{\n    public bool HatKritischGefehlt()\n    {\n        return false;\n    }\n}\n\npublic class Fehltag\n{\n}\n",
                     MaterialDocs = localDateHint,
                     DiagramPaths = new List<string>
                     {
@@ -626,7 +627,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "Iterieren Sie durch **alle Klassen** und **alle Schüler**.\n" +
                                   "Wenn ein Schüler weniger als 5 Punkte hat, fügen Sie folgende Zeile zum Ergebnis-String hinzu:\n" +
                                   "\"Warnung an Eltern von [Name] (Klasse [Bezeichnung]): Note [Note] ist kritisch!\\n\"",
-                    StarterCode = "public class Schueler\n{\n}\n\npublic class Klasse\n{\n}\n\npublic class Schule\n{\n    public string ErstelleWarnungen()\n    {\n        string bericht = \"\";\n        // Implementation\n        return bericht;\n    }\n}",
+                    StarterCode = "public class Schule\n{\n    public string ErstelleWarnungen()\n    {\n        string bericht = \"\";\n        // Implementation\n        return bericht;\n    }\n}\n\npublic class Klasse\n{\n}\n\npublic class Schueler\n{\n}\n",
                     MaterialDocs = "start-hint: String Aufbau\n" +
                                    "Nutzen Sie den Verkettungsoperator [+] oder [+=], um den String zusammenzubauen.\n" +
                                    "Vergessen Sie nicht den Zeilenumbruch [\\n] am Ende jeder Warnung.\n" +
@@ -663,7 +664,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "• Bei \"TR\" -> Rufen Sie [Turn] mit der übergebenen Richtung auf (z.B. \"TR;LEFT\").\n" +
                                   "• Bei \"MV\" -> Rufen Sie [Move] mit den zwei übergebenen Koordinaten auf (z.B. \"MV;50;90\").\n" +
                                   "• Bei \"SC\" -> Rufen Sie [Scan] mit dem übergebenen Ziel auf (z.B. \"SC;ROCK\") und speichern Sie den Rückgabewert im Attribut [letzterScan].",
-                    StarterCode = "public class Rover\n{\n    // Implementation hier\n}\n\npublic class Kontrollzentrum\n{\n    // Implementation hier\n}",
+                    StarterCode = "public class Kontrollzentrum\n{\n    // Implementation hier\n}\n\npublic class Rover\n{\n    // Implementation hier\n}",
                     MaterialDocs = localDateHint + "\n\n" +
                                    "start-hint: Strings zerlegen\n" +
                                    "In C# nutzen Sie [befehl.Split(';')]. Das Ergebnis ist ein Array von Strings (string[]).\n" +
@@ -757,6 +758,7 @@ BEGIN
     END;
   END;
 END.",
+                    NoUMLAutoScale = true,
                     Prerequisites = new List<string>
                     {
                         "While Loops", "Arrays", "Arithmetic Operators", "If statements"
@@ -804,6 +806,7 @@ END.",
                     {
                         "@startuml\nclass Rover {\n  - {static} autowert : int = 0\n  - fahrzeugNr : int\n  - id : String\n  + Rover(id : String)\n  + getFahrzeugNr() : int\n  + unlock()\n  + lock()\n}\nclass Controller {\n  + Controller(port : String, r : Rover)\n  + run()\n}\nclass RFIDReader {\n  + RFIDReader(s : Serial)\n  + readCard() : String\n  + isCardAvailable() : boolean\n}\nclass Serial {\n}\nclass FunkModul {\n}\nController x--> \"1\" Serial : -serial\nController x--> \"1\" FunkModul : -funk\nController x--> \"1\" RFIDReader : -reader\nController x--> \"1\" Rover : -rover\nRFIDReader x--> \"1\" Serial : -serial\n@enduml"
                     },
+                    NoUMLAutoScale = true,
                     AuxiliaryIds = new List<string> { "Serial", "FunkModul" },
                     Prerequisites = new List<string>
                     {
@@ -887,6 +890,7 @@ BEGIN
         i := i + 1;
     END;
 END.",
+                    NoUMLAutoScale = true,
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {

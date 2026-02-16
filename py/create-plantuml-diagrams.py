@@ -234,6 +234,9 @@ def generate_single_diagram(source, output_path, cache_key, cache):
         output_path.exists()):
         return False 
 
+    # extract chen notation keys before formatting
+    chen_keys = set(re.findall(r'(\w+)\s*<<key>>', source))
+
     themed_source = add_theme(source)
     encoded = encode_plantuml(themed_source)
     url = PLANTUML_SERVER + encoded
@@ -241,9 +244,24 @@ def generate_single_diagram(source, output_path, cache_key, cache):
     try:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
+        
+        svg_content = response.content.decode('utf-8')
+        
+        # apply unicode underlines for chen keys directly in the svg xml
+        if chen_keys:
+            for key in chen_keys:
+                unicode_key = convert_to_unicode_underline(key)
+                # replace exact matches inside <text> tags
+                svg_content = re.sub(
+                    r'(<text[^>]*>)\s*' + re.escape(key) + r'\s*(</text>)', 
+                    r'\g<1>' + unicode_key + r'\g<2>', 
+                    svg_content
+                )
+                
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'wb') as f:
-            f.write(response.content)
+            f.write(svg_content.encode('utf-8'))
+            
         cache[cache_key] = {'hash': source_hash, 'path': str(output_path)}
         save_cache(cache)
         return True

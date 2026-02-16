@@ -9,7 +9,7 @@ namespace AbiturEliteCode.cs
 
     // the entity-relationship diagrams should match the ones in the abitur exams, here is how they should be structured:
     // multiplicities are written in the min-max-notation like this for each side: [min,max] (for example: ET1 -(0,n)- REL -(0,m)- ET2; not actually valid just for visualization)
-    // primary keys are underlined (<<key>>)
+    // primary keys are underlined (<<key>> in the plantuml diagram, __TEXT__ to underline text in the "Aufgabe" or "Materialien" tabs)
     // attributes are written in camelCase (for example: "anzahlGetränke"), ids have their "id" in uppercase and without underscores (for example: "kID")
     // in the early levels (with ER-diagrams) we include the foreign keys in the diagrams, but in the later levels we do not (the user must know on their own what has what key)
 
@@ -35,7 +35,8 @@ namespace AbiturEliteCode.cs
     {
         public static string[] CodesList = {
             "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EXM",
-            "JON", "IMP", "JOI", "JO3", "JOX"
+            "JON", "IMP", "JOI", "JO3", "JOX",
+            "LEF", "NUL", "DIS", "PRB"
         };
     }
 
@@ -182,7 +183,7 @@ namespace AbiturEliteCode.cs
                                    "{|SELECT Spalte1, AVG(Spalte2)\nFROM Tabelle\nGROUP BY Spalte1;|}\n" +
                                    ":end-hint\n" +
                                    "start-hint: Spaltenbenennung\n" +
-                                   "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Keyword:\n" +
+                                   "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Schlüsselwort:\n" +
                                    "{|SELECT AVG(Spalte) AS EigenerName\nFROM Tabelle;|}" +
                                    "Dies wird häufig zusammen mit Aggregatfunktionen genutzt.\n" +
                                    ":end-hint",
@@ -197,7 +198,7 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[5],
                     Title = "Daten Einfügen (INSERT)",
                     Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
-                                  "- [Schueler] (ID (Int), Name (Text), Klasse (Int))\n\n" +
+                                  "- [Schueler] (__ID__ ([Int]), Name ([Text]), Klasse ([Int]))\n\n" +
                                   "Aufgabe:\n" +
                                   "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
@@ -212,6 +213,8 @@ namespace AbiturEliteCode.cs
                                    "{|INSERT INTO Tabelle VALUES (Wert1, Wert2, ...);|}\n" +
                                    "Variante 2 (Spezifische Spalten):\n" +
                                    "{|INSERT INTO Tabelle (SpalteA, SpalteB) VALUES (WertA, WertB);|}\n" +
+                                   "Variante 3 (MySQL SET-Syntax):\n" +
+                                   "{|INSERT INTO Tabelle SET SpalteA = WertA, SpalteB = WertB;|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
@@ -316,8 +319,8 @@ namespace AbiturEliteCode.cs
                     Description = "Wir befinden uns in der Datenbank einer Schulbibliothek. Um Redundanzen zu vermeiden, wurden Bücher und Autoren in zwei getrennte Tabellen aufgeteilt (Normalisierung).\n\n" +
                                   "Das Buch 'Faust' speichert nicht mehr den Namen 'Goethe', sondern referenziert diesen über eine ID (Fremdschlüssel).\n\n" +
                                   "**Schema:**\n" +
-                                  "- [Autor] (--ID--, Vorname, Nachname)\n" +
-                                  "- [Buch] (--ID--, Titel, AutorID_FK)\n\n" +
+                                  "- [Autor] (__ID__, Vorname, Nachname)\n" +
+                                  "- [Buch] (__ID__, Titel, AutorID#)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie die [ID] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [Autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
@@ -353,8 +356,8 @@ namespace AbiturEliteCode.cs
                     Title = "Die erste Verbindung (Implicit Join)",
                     Description = "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
                                   "**Schema:**\n" +
-                                  "- [Autor] (--ID--, Vorname, Nachname)\n" +
-                                  "- [Buch] (--ID--, Titel, AutorID_FK)\n\n" +
+                                  "- [Autor] (__ID__, Vorname, Nachname)\n" +
+                                  "- [Buch] (__ID__, Titel, AutorID#)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Geben Sie eine Liste aller [Titel] und der zugehörigen [Nachname]n der Autoren aus.\n" +
                                   "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID_FK]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.",
@@ -374,7 +377,7 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: Kartesisches Produkt\n" +
                                    "Wenn Sie nur [FROM Buch, Autor] schreiben, wird jedes Buch mit jedem Autor kombiniert.\n" +
-                                   "Erst durch [WHERE Buch.AutorID_FK = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
+                                   "Erst durch [WHERE Buch.AutorID# = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -430,9 +433,9 @@ namespace AbiturEliteCode.cs
                     Title = "Wer liest was? (3-Wege Join)",
                     Description = "Die Datenbank wurde erweitert. Schüler können nun Bücher ausleihen. Da ein Schüler viele Bücher leiht und ein Buch (über die Zeit) von vielen Schülern geliehen wird, existiert eine Relationstabelle.\n\n" +
                                   "**Schema:**\n" +
-                                  "- [Schueler] (--ID--, Name, Klasse)\n" +
-                                  "- [Buch] (--ID--, Titel)\n" +
-                                  "- [Ausleihe] (--SchuelerID_FK--, --BuchID_FK--, Datum)\n\n" +
+                                  "- [Schueler] (__ID__, Name, Klasse)\n" +
+                                  "- [Buch] (__ID__, Titel)\n" +
+                                  "- [Ausleihe] (__SchuelerID#__, __BuchID#__, Datum)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie, welcher Schüler welches Buch ausgeliehen hat.\n" +
                                   "Geben Sie den [Name]n des Schülers und den [Titel] des Buches aus.",
@@ -458,6 +461,11 @@ namespace AbiturEliteCode.cs
                                    "{|FROM Schueler\n" +
                                    "JOIN Ausleihe ON ...\n" +
                                    "JOIN Buch ON ...|}\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Schreibfaul? (Aliase)\n" +
+                                   "Statt immer den vollen Tabellennamen zu tippen, können Sie Kürzel definieren:\n" +
+                                   "{|FROM Schueler s JOIN Ausleihe a ON s.ID = a.SchuelerID_FK|}" +
+                                   "Danach können Sie [s.Name] statt [Schueler.Name] schreiben.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -465,7 +473,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK <<key>>\n    BuchID_FK <<key>>\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
                     }
                 },
                 new SqlLevel
@@ -473,7 +481,7 @@ namespace AbiturEliteCode.cs
                     Id = 13,
                     Section = "Sektion 2: Die Bibliothek",
                     SkipCode = SqlLevelCodes.CodesList[12],
-                    NextLevelCode = "",
+                    NextLevelCode = SqlLevelCodes.CodesList[13],
                     Title = "Klasse 10b",
                     Description = "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
                                   "**Aufgabe:**\n" +
@@ -506,8 +514,191 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n    Klasse\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n    Klasse\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK <<key>>\n    BuchID_FK <<key>>\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
                     }
+                },
+
+                // --- SECTION 3 ---
+                new SqlLevel
+                {
+                    Id = 14,
+                    Section = "Sektion 3: Event-Management",
+                    SkipCode = SqlLevelCodes.CodesList[13],
+                    NextLevelCode = SqlLevelCodes.CodesList[14],
+                    Title = "VIPs ohne Tisch (LEFT JOIN)",
+                    Description = "Wir verwalten ein exklusives Konzert. Es gibt eine Liste von VIPs und eine separate Tabelle für Tischreservierungen.\n\n" +
+                                  "Das Problem: Ein normaler [INNER JOIN] würde VIPs, die noch keine Reservierung haben, einfach 'verschlucken' (nicht anzeigen).\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Erstellen Sie eine Liste aller VIPs und ihrer Tischnummern.\n" +
+                                  "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL]).\n\n" +
+                                  "Tipp: Probieren Sie ruhig auch einmal 'INNER JOIN' statt 'LEFT JOIN', um zu sehen, wie die VIPs ohne Tisch verschwinden.",
+                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
+                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, TischNr INTEGER);" +
+                                  "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
+                                  "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
+                                  "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
+                                  "INSERT INTO Reservierung VALUES (1, 101);" +
+                                  "INSERT INTO Reservierung VALUES (3, 102);",
+                    VerificationQuery = "",
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Taylor Swift", "101" },
+                        new[] { "Elon Musk", "NULL" },
+                        new[] { "Beyoncé", "102" }
+                    },
+                    MaterialDocs = "start-hint: Warum LEFT?\n" +
+                                   "Der [LEFT JOIN] heißt so, weil er **alle** Datensätze der linken Tabelle (die vor dem JOIN steht, hier: Vip) behält.\n" +
+                                   "Findet er in der rechten Tabelle (Reservierung) keinen Partner, füllt er die Lücken mit [NULL] auf.\n" +
+                                   "Syntax:\n" +
+                                   "{|SELECT ... \nFROM LinkeTabelle \nLEFT JOIN RechteTabelle ON ...|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec3\\lvl14-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,1)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
+                    }
+                },
+                new SqlLevel
+                {
+                    Id = 15,
+                    Section = "Sektion 3: Event-Management",
+                    SkipCode = SqlLevelCodes.CodesList[14],
+                    NextLevelCode = SqlLevelCodes.CodesList[15],
+                    Title = "Die Geister-Gäste (IS NULL)",
+                    Description = "Das Event-Team muss dringend wissen, welche VIPs noch **keinen** Sitzplatz haben, um ihnen einen zuzuweisen.\n\n" +
+                                  "Dies ist eine der häufigsten Abitur-Aufgabenstellungen: 'Finden Sie Datensätze, die keine Entsprechung haben'.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Nutzen Sie erneut den [LEFT JOIN] aus der vorherigen Aufgabe.\n" +
+                                  "Erweitern Sie die Abfrage um eine [WHERE]-Klausel, die nur die VIPs filtert, bei denen die [TischNr] leer ([NULL]) ist.\n" +
+                                  "Geben Sie nur den [Name]n aus.",
+                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
+                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, TischNr INTEGER);" +
+                                  "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
+                                  "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
+                                  "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
+                                  "INSERT INTO Reservierung VALUES (1, 101);" +
+                                  "INSERT INTO Reservierung VALUES (3, 102);",
+                    VerificationQuery = "",
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Elon Musk" }
+                    },
+                    MaterialDocs = "start-hint: Auf NULL prüfen\n" +
+                                   "In SQL kann man nicht [= NULL] schreiben.\n" +
+                                   "Man muss den Operator [IS NULL] verwenden:\n" +
+                                   "{|WHERE Spalte IS NULL|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec3\\lvl15-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,1)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
+                    }
+                },
+                new SqlLevel
+                {
+                    Id = 16,
+                    Section = "Sektion 3: Event-Management",
+                    SkipCode = SqlLevelCodes.CodesList[15],
+                    NextLevelCode = SqlLevelCodes.CodesList[16],
+                    Title = "Doppelte Einträge (DISTINCT)",
+                    Description = "Für eine gezielte Marketingkampagne benötigen wir eine Liste aller Städte, aus denen unsere VIP-Gäste anreisen.\n\n" +
+                                  "In der Tabelle [Gast] kommen Städte mehrfach vor (z.B. kommen viele Gäste aus Berlin). Zudem gibt es nun eine Tabelle [Ticket], die angibt, welchen Bereich ein Gast gebucht hat.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie eine Liste der Städte ([Stadt]) aus der Tabelle [Gast], aber **nur** von Gästen, die ein Ticket für den Bereich 'VIP' haben.\n" +
+                                  "Jede Stadt darf dabei **nur einmal** in der Ergebnisliste auftauchen.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, Name TEXT, Stadt TEXT);" +
+                                  "CREATE TABLE Ticket (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, Bereich TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Müller', 'Berlin');" +
+                                  "INSERT INTO Gast VALUES (2, 'Schmidt', 'München');" +
+                                  "INSERT INTO Gast VALUES (3, 'Schneider', 'Berlin');" +
+                                  "INSERT INTO Gast VALUES (4, 'Fischer', 'Hamburg');" +
+                                  "INSERT INTO Gast VALUES (5, 'Weber', 'München');" +
+                                  "INSERT INTO Ticket VALUES (101, 1, 'VIP');" +
+                                  "INSERT INTO Ticket VALUES (102, 2, 'Standard');" +
+                                  "INSERT INTO Ticket VALUES (103, 3, 'VIP');" +
+                                  "INSERT INTO Ticket VALUES (104, 4, 'Standard');" +
+                                  "INSERT INTO Ticket VALUES (105, 5, 'VIP');",
+                    VerificationQuery = "",
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Berlin" },
+                        new[] { "München" }
+                    },
+                    MaterialDocs = "start-hint: Duplikate entfernen\n" +
+                                   "Nutzen Sie das Schlüsselwort [DISTINCT] direkt nach dem [SELECT]:\n" +
+                                   "{|SELECT DISTINCT Spalte FROM Tabelle|}\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Kombination\n" +
+                                   "Sie müssen zuerst die beiden Tabellen verknüpfen ([JOIN]) und nach dem Bereich filtern ([WHERE]), bevor Sie die Städte ohne Duplikate ausgeben.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec3\\lvl16-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    Name\n    Stadt\n}\nentity Ticket {\n    ID <<key>>\n    GastID_FK\n    Bereich\n}\nrelationship bucht {\n}\nGast -(0,n)- bucht\nbucht -(1,1)- Ticket\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>()
+                },
+                new SqlLevel
+                {
+                    Id = 17,
+                    Section = "Sektion 3: Event-Management",
+                    SkipCode = SqlLevelCodes.CodesList[16],
+                    NextLevelCode = "",
+                    Title = "Die Problem-Gäste",
+                    Description = "Dies ist die Abschlussprüfung für Sektion 3.\n\n" +
+                                  "Das Event-Team ist in Panik: Einige VIPs hängen 'in der Luft' und könnten unzufrieden sein. Wir brauchen eine Liste dieser Personen.\n\n" +
+                                  "**Regeln:**\n" +
+                                  "1. Ein VIP gilt als Problem-Gast, wenn er **noch gar keine Reservierung** getätigt hat.\n" +
+                                  "2. Ein VIP gilt ebenfalls als Problem-Gast, wenn er eine Reservierung für den **'Hauptbereich'** hat, aber dort **noch keine Tischnummer zugewiesen** wurde (TischNr ist leer/[NULL]).\n" +
+                                  "3. VIPs, denen in anderen Bereichen (z. B. 'VIP-Lounge') noch kein Tisch zugewiesen wurde, sind für diese Liste irrelevant.\n" +
+                                  "4. Jeder Name darf **nur einmal** auf der Liste stehen.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Geben Sie die [Name]n dieser Problem-VIPs aus.",
+                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
+                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, Bereich TEXT, TischNr INTEGER);" +
+                                  "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
+                                  "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
+                                  "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
+                                  "INSERT INTO Vip VALUES (4, 'Ed Sheeran');" +
+                                  "INSERT INTO Vip VALUES (5, 'Rihanna');" +
+                                  "INSERT INTO Vip VALUES (6, 'Drake');" +
+                                  "INSERT INTO Reservierung VALUES (1, 'Hauptbereich', 101);" +
+                                  "INSERT INTO Reservierung VALUES (1, 'VIP-Lounge', 12);" +
+                                  "INSERT INTO Reservierung VALUES (2, 'VIP-Lounge', 110);" +
+                                  "INSERT INTO Reservierung VALUES (3, 'Hauptbereich', NULL);" +
+                                  "INSERT INTO Reservierung VALUES (4, 'Hauptbereich', 105);" +
+                                  "INSERT INTO Reservierung VALUES (6, 'VIP-Lounge', NULL);",
+                    VerificationQuery = "",
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Beyoncé" },
+                        new[] { "Rihanna" }
+                    },
+                    MaterialDocs = "start-tipp: Strategie\n" +
+                                   "1. Starten Sie mit der [Vip]-Tabelle und nutzen Sie einen [LEFT JOIN] zur Reservierung. Ein normaler JOIN würde VIPs ohne Reservierung verwerfen!\n" +
+                                   "2. Im [WHERE]-Teil müssen Sie zwei Fälle mit [OR] kombinieren:\n" +
+                                   "   - Fall A: [Bereich] ist 'Hauptbereich' UND [TischNr] ist NULL.\n" +
+                                   "   - Fall B: Der VIP hat gar keine Reservierung (die FK-Spalte der rechten Tabelle ist NULL).\n" +
+                                   "3. Nutzen Sie Klammern für die UND/ODER Logik und [DISTINCT] gegen Duplikate.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec3\\lvl17-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    Bereich\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,n)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>()
                 }
             };
         }

@@ -67,3 +67,12 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S12 | `JO3` | Wer liest was? (3-Wege Join) |
 | S13 | `JOX` | Klasse 10b |
 
+## Sektion 3: Event-Management
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| S14 | `LEF` | VIPs ohne Tisch (LEFT JOIN) |
+| S15 | `NUL` | Die Geister-Gäste (IS NULL) |
+| S16 | `DIS` | Doppelte Einträge (DISTINCT) |
+| S17 | `PRB` | Die Problem-Gäste |
+

@@ -163,6 +163,33 @@ namespace AbiturEliteCode.cs
 
             // -- mysql emulation additions --
 
+            // transforms "INSERT INTO table SET col1=val1, col2=val2" -> "INSERT INTO table (col1, col2) VALUES (val1, val2)"
+            var insertSetMatch = Regex.Match(q, @"^\s*INSERT\s+INTO\s+(\w+)\s+SET\s+(.+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (insertSetMatch.Success)
+            {
+                string tableName = insertSetMatch.Groups[1].Value;
+                string assignments = insertSetMatch.Groups[2].Value;
+
+                var columns = new List<string>();
+                var values = new List<string>();
+
+                // regex to capture "col = val" pairs
+                // captures the column name and the value (handling quoted strings vs raw numbers/functions)
+                var pairs = Regex.Matches(assignments, @"(\w+)\s*=\s*('[^']*'|[^,]+)");
+
+                foreach (Match m in pairs)
+                {
+                    columns.Add(m.Groups[1].Value);
+                    values.Add(m.Groups[2].Value.Trim());
+                }
+
+                if (columns.Count > 0)
+                {
+                    // rewrite the query structure entirely for sqlite
+                    q = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
+                }
+            }
+
             // 1. CONCAT(a, b) -> a || b
             q = Regex.Replace(q, @"CONCAT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2", RegexOptions.IgnoreCase);
 

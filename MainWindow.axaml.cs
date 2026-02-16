@@ -770,12 +770,26 @@ namespace AbiturEliteCode
             {
                 TxtConsole.Inlines ??= new Avalonia.Controls.Documents.InlineCollection();
 
-                TxtConsole.Inlines.Add(new Run
+                // split text to use explicit linebreaks
+                var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+                for (int i = 0; i < lines.Length; i++)
                 {
-                    Text = text,
-                    Foreground = color,
-                    FontFamily = new FontFamily(MonospaceFontFamily)
-                });
+                    if (i > 0)
+                    {
+                        TxtConsole.Inlines.Add(new LineBreak());
+                    }
+
+                    if (!string.IsNullOrEmpty(lines[i]))
+                    {
+                        TxtConsole.Inlines.Add(new Run
+                        {
+                            Text = lines[i],
+                            Foreground = color,
+                            FontFamily = new FontFamily(MonospaceFontFamily)
+                        });
+                    }
+                }
 
                 ConsoleScroller?.ScrollToEnd();
             });
@@ -1246,9 +1260,13 @@ namespace AbiturEliteCode
             CodeEditor.Text = rawCode;
 
             // reset uml zoom
-            if (!_isSqlMode)
+            if (!_isSqlMode && !level.NoUMLAutoScale)
             {
                 _currentScale = 0.5;
+            }
+            else
+            {
+                _currentScale = 1.0;
             }
             if (ImgScale != null)
             {
@@ -1361,7 +1379,7 @@ namespace AbiturEliteCode
                 return;
 
             string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
-            var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*|\-\-.*?\-\-)");
+            var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*|(?<!\w)__.*?__(?!\w))");
 
             SelectableTextBlock CreateTextBlock() => new SelectableTextBlock
             {
@@ -1464,7 +1482,7 @@ namespace AbiturEliteCode
                     });
                 }
                 // underline text
-                else if (part.StartsWith("--") && part.EndsWith("--") && part.Length >= 4)
+                else if (part.StartsWith("__") && part.EndsWith("__") && part.Length >= 4)
                 {
                     string content = part.Substring(2, part.Length - 4);
                     content = content.Replace("\x01", "[").Replace("\x02", "]");
@@ -1683,7 +1701,7 @@ namespace AbiturEliteCode
         {
             if (ImgScale != null && ImgTranslate != null)
             {
-                if (_isSqlMode)
+                if (_isSqlMode || currentLevel.NoUMLAutoScale)
                 {
                     _currentScale = 1.0;
                 }
@@ -4196,7 +4214,7 @@ namespace AbiturEliteCode
                 {
                     await ShowWarningDialog(
                        "Error-Hervorhebung",
-                       "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird strengstens empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
+                       "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
                    );
                 }
 
