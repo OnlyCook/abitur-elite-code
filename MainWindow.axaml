@@ -429,7 +429,7 @@
 						</Border>
 
 						<Border Name="PnlSqlQueryEditor" IsVisible="False" CornerRadius="10" ClipToBounds="True" Background="#1E1E1E" BorderBrush="#333" BorderThickness="1">
-							<Grid RowDefinitions="Auto, *">
+							<Grid RowDefinitions="Auto, *, Auto">
 								<TextBlock Text="SQL QUERY EDITOR" FontSize="10" Foreground="Gray" Margin="10,5" FontWeight="Bold"/>
 								<ae:TextEditor Name="SqlQueryEditor"
 											   Grid.Row="1"
@@ -441,6 +441,15 @@
 											   Padding="0,0,18,0"
 											   HorizontalScrollBarVisibility="Auto"
 											   VerticalScrollBarVisibility="Auto"/>
+
+								<Border Grid.Row="2" Background="#007ACC" Name="SqlVimStatusBorder" IsVisible="False" Padding="5,2">
+									<TextBlock Name="SqlVimStatusBar"
+											   Text="-- NORMAL --"
+											   FontFamily="Consolas"
+											   FontSize="12"
+											   Foreground="White"
+											   FontWeight="Bold"/>
+								</Border>
 							</Grid>
 						</Border>
 					</Panel>

@@ -6,6 +6,7 @@ using System.Linq;
 public class PlayerSettings
 {
     public bool IsVimEnabled { get; set; } = false;
+    public bool IsSqlVimEnabled { get; set; } = false;
     public bool IsSyntaxHighlightingEnabled { get; set; } = false;
     public bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
     public bool IsAutocompleteEnabled { get; set; } = false;
@@ -111,7 +112,7 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -164,6 +165,7 @@ public static class SaveSystem
                     if (kv.Length != 2) continue;
 
                     if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "sqlvim") data.Settings.IsSqlVimEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "sqlautocomplete") data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]);

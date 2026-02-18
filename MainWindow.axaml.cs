@@ -38,6 +38,7 @@ namespace AbiturEliteCode
     public static class AppSettings
     {
         public static bool IsVimEnabled { get; set; } = false;
+        public static bool IsSqlVimEnabled { get; set; } = false;
         public static bool IsSyntaxHighlightingEnabled { get; set; } = false;
         public static bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
         public static double UiScale { get; set; } = 1.0;
@@ -106,6 +107,7 @@ namespace AbiturEliteCode
         private string _currentCustomAuthor = "";
         private List<string> _currentCustomSvgs = null;
         private string _nextCustomLevelPath = null;
+        private string _newlyCreatedLevelPath = null;
         private enum DesignerSource
         {
             None,
@@ -151,6 +153,7 @@ namespace AbiturEliteCode
             customPlayerData = SaveSystem.LoadCustom();
 
             AppSettings.IsVimEnabled = playerData.Settings.IsVimEnabled;
+            AppSettings.IsSqlVimEnabled = playerData.Settings.IsSqlVimEnabled;
             AppSettings.IsSyntaxHighlightingEnabled = playerData.Settings.IsSyntaxHighlightingEnabled;
             AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
             AppSettings.IsAutocompleteEnabled = playerData.Settings.IsAutocompleteEnabled;
@@ -415,6 +418,8 @@ namespace AbiturEliteCode
             return references;
         }
 
+        private TextEditor ActiveEditor => _isSqlMode ? SqlQueryEditor : CodeEditor;
+
         private void ConfigureSqlQueryEditor()
         {
             SqlQueryEditor.Options.ConvertTabsToSpaces = true;
@@ -571,6 +576,44 @@ namespace AbiturEliteCode
                     }
                 }
             }
+
+            // -- vim logic --
+            if (!AppSettings.IsSqlVimEnabled)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                _vimMode = VimMode.Normal;
+                _vimCommandBuffer = "";
+                SqlQueryEditor.TextArea.ClearSelection();
+                UpdateVimUI();
+                e.Handled = true;
+                return;
+            }
+
+            if (_vimMode == VimMode.Insert)
+            {
+                // allow normal typing
+                return;
+            }
+            else if (_vimMode == VimMode.CommandLine)
+            {
+                HandleVimCommandLine(e);
+                e.Handled = true;
+                return;
+            }
+            else if (_vimMode == VimMode.Search)
+            {
+                HandleVimSearch(e);
+                e.Handled = true;
+                return;
+            }
+
+            // normal or commandpending mode -> intercept all
+            e.Handled = true;
+            HandleVimNormalInput(e);
         }
 
         private void SqlEditor_TextEntering(object sender, TextInputEventArgs e)
@@ -1134,6 +1177,7 @@ namespace AbiturEliteCode
             {
                 playerData.UserCode[currentLevel.Id] = CodeEditor.Text;
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
+                playerData.Settings.IsSqlVimEnabled = AppSettings.IsSqlVimEnabled;
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
                 playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
                 playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
@@ -2915,8 +2959,6 @@ namespace AbiturEliteCode
 
             BtnNextLevel.IsVisible = false;
 
-            TabVim.IsVisible = AppSettings.IsVimEnabled && !_isSqlMode;
-
             var rightGrid = this.FindControl<Grid>("RootGrid").Children
                 .OfType<Grid>().FirstOrDefault(g => g.ColumnDefinitions.Count == 3)
                 ?.Children.OfType<Grid>().FirstOrDefault(g => g.GetValue(Grid.ColumnProperty) == 2);
@@ -2955,6 +2997,7 @@ namespace AbiturEliteCode
                 int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
                 var startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
                 LoadSqlLevel(startLevel);
+                UpdateVimState();
             }
             else
             {
@@ -3419,8 +3462,12 @@ namespace AbiturEliteCode
                     ToolTip.SetTip(btnAdd, "Neues Level erstellen");
                     btnAdd.Click += async (_, __) =>
                     {
-                        await ShowAddLevelDialog(win);
-                        RefreshUI();
+                        string newPath = await ShowAddLevelDialog(win);
+                        if (!string.IsNullOrEmpty(newPath))
+                        {
+                            _newlyCreatedLevelPath = newPath;
+                            RefreshUI();
+                        }
                     };
                     headerRightPanel.Children.Add(btnAdd);
 
@@ -3480,11 +3527,27 @@ namespace AbiturEliteCode
                                 Content = btnContentGrid,
                                 HorizontalAlignment = HorizontalAlignment.Stretch,
                                 HorizontalContentAlignment = HorizontalAlignment.Left,
-                                Background = SolidColorBrush.Parse("#313133"),
+                                Background = (cl.FilePath == _newlyCreatedLevelPath) ? SolidColorBrush.Parse("#2E8B57") : SolidColorBrush.Parse("#313133"),
                                 CornerRadius = new CornerRadius(4),
                                 Padding = new Thickness(10),
                                 Cursor = cl.IsDraft ? Cursor.Default : Cursor.Parse("Hand")
                             };
+
+                            // remove highlight after delay
+                            if (cl.FilePath == _newlyCreatedLevelPath)
+                            {
+                                var timer = new DispatcherTimer
+                                {
+                                    Interval = TimeSpan.FromSeconds(2)
+                                };
+                                timer.Tick += (s, args) =>
+                                {
+                                    btnMain.Background = SolidColorBrush.Parse("#313133");
+                                    _newlyCreatedLevelPath = null;
+                                    timer.Stop();
+                                };
+                                timer.Start();
+                            }
 
                             btnMain.Click += (_, __) =>
                             {
@@ -3500,9 +3563,159 @@ namespace AbiturEliteCode
                                 Orientation = Orientation.Horizontal,
                                 Spacing = 5,
                                 Margin = new Thickness(0, 0, 10, 0),
-                                HorizontalAlignment = HorizontalAlignment.Right
+                                HorizontalAlignment = HorizontalAlignment.Right,
+                                Background = Brushes.Transparent
                             };
                             Grid.SetColumn(actionPanel, 2);
+
+                            if (cl.IsDraft && cl.QuickGenerate)
+                            {
+                                var btnQuickExport = new Button
+                                {
+                                    Content = LoadIcon("assets/icons/ic_generate.svg", 16),
+                                    Background = Brushes.Transparent,
+                                    Padding = new Thickness(8),
+                                    Tag = "idle"
+                                };
+                                ToolTip.SetTip(btnQuickExport, "Quick Export (Automatisch)");
+
+                                btnQuickExport.Click += async (s, e) =>
+                                {
+                                    if (btnQuickExport.Tag.ToString() != "idle") return;
+                                    btnQuickExport.Tag = "pending";
+                                    btnQuickExport.Content = LoadIcon("assets/icons/ic_pending.svg", 16);
+                                    btnQuickExport.IsEnabled = false;
+
+                                    var cts = new System.Threading.CancellationTokenSource();
+                                    EventHandler<WindowClosingEventArgs> closingHandler = (sender, args) => cts.Cancel();
+                                    win.Closing += closingHandler;
+
+                                    try
+                                    {
+                                        AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
+                                        var draft = LevelDesigner.LoadDraft(cl.FilePath);
+
+                                        bool valid = await System.Threading.Tasks.Task.Run(async () =>
+                                        {
+                                            try
+                                            {
+                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + draft.TestCode;
+                                                string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
+
+                                                var references = GetSafeReferences();
+
+                                                var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
+                                                var compilation = CSharpCompilation.Create(
+                                                    $"QuickExport_{Guid.NewGuid()}",
+                                                    new[] { tree },
+                                                    references,
+                                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+                                                using (var ms = new MemoryStream())
+                                                {
+                                                    var result = compilation.Emit(ms, cancellationToken: cts.Token);
+                                                    if (!result.Success)
+                                                    {
+                                                        var diag = result.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+                                                        throw new Exception($"Kompilierfehler: {diag?.GetMessage() ?? "Unbekannt"}");
+                                                    }
+
+                                                    ms.Seek(0, SeekOrigin.Begin);
+                                                    var assembly = Assembly.Load(ms.ToArray());
+
+                                                    // compile validator
+                                                    var valTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
+                                                    var valCompilation = CSharpCompilation.Create(
+                                                        $"Validator_{Guid.NewGuid()}",
+                                                        new[] { valTree },
+                                                        references,
+                                                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+                                                    using (var valMs = new MemoryStream())
+                                                    {
+                                                        var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
+                                                        if (!valResult.Success) throw new Exception("Fehler im Validierungs-Code.");
+
+                                                        valMs.Seek(0, SeekOrigin.Begin);
+                                                        var valAssembly = Assembly.Load(valMs.ToArray());
+                                                        var valType = valAssembly.GetType("DesignerValidator");
+                                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                                            .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
+
+                                                        // run validation
+                                                        object[] args = new object[] { assembly, null };
+                                                        bool passed = (bool)valMethod.Invoke(null, args);
+
+                                                        if (!passed) throw new Exception($"Validierung nicht bestanden: {args[1]}");
+                                                        return true;
+                                                    }
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                if (!cts.Token.IsCancellationRequested)
+                                                    await Dispatcher.UIThread.InvokeAsync(() => AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
+                                                return false;
+                                            }
+                                        }, cts.Token);
+
+                                        if (!valid) throw new Exception("Validierung fehlgeschlagen.");
+
+                                        // generate diagrams
+                                        AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
+
+                                        if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0 && !string.IsNullOrWhiteSpace(draft.PlantUmlSources[0]))
+                                        {
+                                            string prepared = PreparePlantUmlSource(draft.PlantUmlSources[0]);
+                                            string svgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                            if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
+                                            if (draft.PlantUmlSvgContents.Count == 0) draft.PlantUmlSvgContents.Add("");
+                                            draft.PlantUmlSvgContents[0] = svgContent;
+                                        }
+
+                                        for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
+                                            {
+                                                string prepared = PreparePlantUmlSource(draft.MaterialDiagrams[i].PlantUmlSource);
+                                                draft.MaterialDiagrams[i].PlantUmlSvgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                            }
+                                        }
+
+                                        // export
+                                        LevelDesigner.ExportLevel(cl.FilePath, draft);
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
+                                        AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
+
+                                        await System.Threading.Tasks.Task.Delay(2000);
+                                        RefreshUI();
+                                    }
+                                    catch (OperationCanceledException) { }
+                                    catch (Exception)
+                                    {
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
+                                        btnQuickExport.IsEnabled = true;
+                                        btnQuickExport.Tag = "idle";
+                                        await System.Threading.Tasks.Task.Delay(2000);
+                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
+                                    }
+                                    finally
+                                    {
+                                        win.Closing -= closingHandler;
+                                        cts.Dispose();
+
+                                        // reset button state after delay
+                                        await System.Threading.Tasks.Task.Delay(2000);
+                                        if (btnQuickExport.Content != null)
+                                        {
+                                            btnQuickExport.Content = LoadIcon("assets/icons/ic_generate.svg", 16);
+                                            btnQuickExport.IsEnabled = true;
+                                            btnQuickExport.Tag = "idle";
+                                        }
+                                    }
+                                };
+                                actionPanel.Children.Add(btnQuickExport);
+                            }
 
                             if (cl.IsDraft)
                             {
@@ -3679,41 +3892,46 @@ namespace AbiturEliteCode
             return list;
         }
 
-        private async System.Threading.Tasks.Task ShowAddLevelDialog(Window owner)
+        private async System.Threading.Tasks.Task<string> ShowAddLevelDialog(Window owner)
         {
             var dialog = new Window
             {
                 Title = "Neues Level",
                 Width = 400,
-                Height = 280,
+                Height = 320,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 SystemDecorations = SystemDecorations.BorderOnly,
                 Background = SolidColorBrush.Parse("#252526"),
                 CornerRadius = new CornerRadius(8)
             };
 
-            var grid = new Grid
+            var rootGrid = new Grid
             {
                 RowDefinitions = new RowDefinitions("Auto, *, Auto"),
                 Margin = new Thickness(20)
             };
 
-            grid.Children.Add(new TextBlock
+            // header
+            rootGrid.Children.Add(new TextBlock
             {
                 Text = "Neues Custom Level",
                 FontWeight = FontWeight.Bold,
                 Foreground = Brushes.White,
                 FontSize = 16,
-                Margin = new Thickness(0, 0, 0, 15)
+                Margin = new Thickness(0, 0, 0, 20)
             });
 
-            var inputStack = new StackPanel
-            {
-                Spacing = 10
-            };
-            Grid.SetRow(inputStack, 1);
+            var contentPanel = new Panel();
+            Grid.SetRow(contentPanel, 1);
 
-            inputStack.Children.Add(new TextBlock
+            // manual mode ui
+            var panelManual = new StackPanel
+            {
+                Spacing = 15,
+                IsVisible = true
+            };
+
+            panelManual.Children.Add(new TextBlock
             {
                 Text = "Name:",
                 Foreground = Brushes.Gray
@@ -3726,9 +3944,9 @@ namespace AbiturEliteCode
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(8)
             };
-            inputStack.Children.Add(txtName);
+            panelManual.Children.Add(txtName);
 
-            inputStack.Children.Add(new TextBlock
+            panelManual.Children.Add(new TextBlock
             {
                 Text = "Autor:",
                 Foreground = Brushes.Gray
@@ -3741,18 +3959,199 @@ namespace AbiturEliteCode
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(8)
             };
-            inputStack.Children.Add(txtAuthor);
+            panelManual.Children.Add(txtAuthor);
 
-            grid.Children.Add(inputStack);
+            contentPanel.Children.Add(panelManual);
 
-            var btnPanel = new StackPanel
+            // ai mode ui
+            var panelAi = new Grid
+            {
+                IsVisible = false,
+                RowDefinitions = new RowDefinitions("*, Auto")
+            };
+
+            var txtJson = new TextBox
+            {
+                Watermark = "Füge hier den JSON-Code der KI ein...",
+                Background = SolidColorBrush.Parse("#1E1E1E"),
+                Foreground = Brushes.Gray,
+                BorderThickness = new Thickness(1),
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily(MonospaceFontFamily),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Top,
+                MinHeight = 120
+            };
+            panelAi.Children.Add(txtJson);
+
+            // ai tools row
+            var aiRowGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*, Auto"),
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            Grid.SetRow(aiRowGrid, 1);
+
+            // error container
+            var errorStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5,
+                IsVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var txtErrorMsg = new TextBlock
+            {
+                Text = "Ungültiges JSON", // placeholder
+                Foreground = SolidColorBrush.Parse("#FF5555"),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 11,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 180
+            };
+            ToolTip.SetTip(txtErrorMsg, "Fehler im JSON Format");
+
+            string fullErrorText = ""; // store full error for copy
+
+            var btnCopyError = new Button
+            {
+                Content = LoadIcon("assets/icons/ic_copy.svg", 14),
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Padding = new Thickness(6),
+                CornerRadius = new CornerRadius(4)
+            };
+            ToolTip.SetTip(btnCopyError, "Fehler kopieren");
+            btnCopyError.Click += async (s, e) =>
+            {
+                var topLevel = TopLevel.GetTopLevel(dialog);
+                if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(fullErrorText))
+                {
+                    await topLevel.Clipboard.SetTextAsync(fullErrorText);
+                    btnCopyError.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                    await System.Threading.Tasks.Task.Delay(500);
+                    btnCopyError.Background = SolidColorBrush.Parse("#3C3C3C");
+                }
+            };
+
+            errorStack.Children.Add(txtErrorMsg);
+            errorStack.Children.Add(btnCopyError);
+            aiRowGrid.Children.Add(errorStack);
+
+            // tools container
+            var aiToolsPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Spacing = 10,
-                Margin = new Thickness(0, 15, 0, 0)
+                Spacing = 10
             };
-            Grid.SetRow(btnPanel, 2);
+            Grid.SetColumn(aiToolsPanel, 1);
+
+            var btnGuide = new Button
+            {
+                Content = LoadIcon("assets/icons/ic_guide.svg", 18),
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Padding = new Thickness(8),
+                CornerRadius = new CornerRadius(4)
+            };
+            ToolTip.SetTip(btnGuide, "Anleitung öffnen");
+            btnGuide.Click += (_, __) =>
+            {
+                try
+                {
+                    var url = "https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE";
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) Process.Start("open", url);
+                }
+                catch { }
+            };
+
+            var btnPaste = new Button
+            {
+                Content = LoadIcon("assets/icons/ic_import.svg", 18),
+                Background = SolidColorBrush.Parse("#007ACC"),
+                Padding = new Thickness(8),
+                CornerRadius = new CornerRadius(4)
+            };
+            ToolTip.SetTip(btnPaste, "Aus Zwischenablage einfügen");
+            btnPaste.Click += async (_, __) =>
+            {
+                var topLevel = TopLevel.GetTopLevel(dialog);
+                if (topLevel?.Clipboard != null)
+                {
+                    string text = await topLevel.Clipboard.GetTextAsync();
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        txtJson.Text = text;
+                        errorStack.IsVisible = false; // reset error
+                    }
+                }
+            };
+
+            aiToolsPanel.Children.Add(btnGuide);
+            aiToolsPanel.Children.Add(btnPaste);
+            aiRowGrid.Children.Add(aiToolsPanel);
+
+            panelAi.Children.Add(aiRowGrid);
+            contentPanel.Children.Add(panelAi);
+            rootGrid.Children.Add(contentPanel);
+
+            // footer grid
+            var footerGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto, *"),
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+            Grid.SetRow(footerGrid, 2);
+
+            // mode switching button
+            var btnSwitchMode = new Button
+            {
+                Content = "KI Import Modus",
+                Background = Brushes.Transparent,
+                Foreground = SolidColorBrush.Parse("#0088e3"),
+                FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = Cursor.Parse("Hand"),
+                Padding = new Thickness(5, 5, 5, 5)
+            };
+
+            bool isAiMode = false;
+            btnSwitchMode.Click += (_, __) =>
+            {
+                isAiMode = !isAiMode;
+                panelManual.IsVisible = !isAiMode;
+                panelAi.IsVisible = isAiMode;
+                errorStack.IsVisible = false;
+
+                if (isAiMode)
+                {
+                    btnSwitchMode.Content = "Manueller Modus";
+                    btnSwitchMode.Foreground = Brushes.Gray;
+                    txtJson.Focus();
+                }
+                else
+                {
+                    btnSwitchMode.Content = "KI Import Modus";
+                    btnSwitchMode.Foreground = SolidColorBrush.Parse("#0088e3");
+                    txtName.Focus();
+                }
+            };
+            footerGrid.Children.Add(btnSwitchMode);
+
+            // action buttons
+            var actionPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10
+            };
+            Grid.SetColumn(actionPanel, 1);
 
             var btnCancel = new Button
             {
@@ -3767,38 +4166,89 @@ namespace AbiturEliteCode
                 Foreground = Brushes.White
             };
 
+            string resultPath = null;
+
             btnCancel.Click += (_, __) => dialog.Close();
             btnCreate.Click += (_, __) =>
             {
-                if (string.IsNullOrWhiteSpace(txtName.Text)) return;
-
-                string safeName = string.Join("_", txtName.Text.Split(Path.GetInvalidFileNameChars()));
-                string filename = $"{safeName}.elitelvldraft";
-                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
-                string path = Path.Combine(dir, filename);
-
-                var newDraft = new LevelDraft
+                try
                 {
-                    Name = txtName.Text,
-                    Author = txtAuthor.Text
-                };
+                    if (isAiMode)
+                    {
+                        if (string.IsNullOrWhiteSpace(txtJson.Text)) return;
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(newDraft, options);
+                        try
+                        {
+                            var doc = JsonDocument.Parse(txtJson.Text);
 
-                File.WriteAllText(path, json);
+                            if (!doc.RootElement.TryGetProperty("Name", out var nameProp) ||
+                                !doc.RootElement.TryGetProperty("Author", out var authProp))
+                            {
+                                throw new Exception("JSON muss 'Name' und 'Author' enthalten.");
+                            }
 
-                dialog.Close();
+                            string name = nameProp.GetString();
+                            string safeName = string.Join("_", name.Split(Path.GetInvalidFileNameChars()));
+                            string filename = $"{safeName}.elitelvldraft";
+                            string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+                            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                            string path = Path.Combine(dir, filename);
+                            File.WriteAllText(path, txtJson.Text);
+
+                            resultPath = path;
+                            dialog.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            fullErrorText = ex.Message;
+                            txtErrorMsg.Text = "Fehler: " + ex.Message;
+                            ToolTip.SetTip(txtErrorMsg, ex.Message); // show full error on hover
+                            errorStack.IsVisible = true;
+                        }
+                    }
+                    else // manual mode
+                    {
+                        if (string.IsNullOrWhiteSpace(txtName.Text)) return;
+
+                        string safeName = string.Join("_", txtName.Text.Split(Path.GetInvalidFileNameChars()));
+                        string filename = $"{safeName}.elitelvldraft";
+                        string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+                        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                        string path = Path.Combine(dir, filename);
+
+                        var newDraft = new LevelDraft
+                        {
+                            Name = txtName.Text,
+                            Author = txtAuthor.Text
+                        };
+
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        string json = JsonSerializer.Serialize(newDraft, options);
+
+                        File.WriteAllText(path, json);
+                        resultPath = path;
+
+                        dialog.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddToConsole($"\n> Fehler beim Erstellen: {ex.Message}", Brushes.Red);
+                }
             };
 
-            btnPanel.Children.Add(btnCancel);
-            btnPanel.Children.Add(btnCreate);
-            grid.Children.Add(btnPanel);
+            actionPanel.Children.Add(btnCancel);
+            actionPanel.Children.Add(btnCreate);
+            footerGrid.Children.Add(actionPanel);
 
-            dialog.Content = new Border { Child = grid };
+            rootGrid.Children.Add(footerGrid);
+
+            dialog.Content = new Border { Child = rootGrid };
             await dialog.ShowDialog(owner);
+
+            return resultPath;
         }
 
         private async System.Threading.Tasks.Task DeleteCustomLevel(CustomLevelInfo info, Window owner)
@@ -3909,6 +4359,7 @@ namespace AbiturEliteCode
         private void BtnSettings_Click(object sender, RoutedEventArgs e)
         {
             bool originalVimEnabled = AppSettings.IsVimEnabled;
+            bool originalSqlVimEnabled = AppSettings.IsSqlVimEnabled;
             bool originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
             bool originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
             bool originalAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
@@ -4072,9 +4523,8 @@ namespace AbiturEliteCode
             var chkVim = new CheckBox
             {
                 Content = "Vim Steuerung",
-                IsChecked = AppSettings.IsVimEnabled,
-                Foreground = Brushes.White,
-                IsVisible = !_isSqlMode
+                IsChecked = _isSqlMode ? AppSettings.IsSqlVimEnabled : AppSettings.IsVimEnabled,
+                Foreground = Brushes.White
             };
 
             // display settings
@@ -4118,7 +4568,8 @@ namespace AbiturEliteCode
             void CheckChanges()
             {
                 bool hasChanges =
-                    (chkVim.IsChecked != originalVimEnabled) ||
+                    (!_isSqlMode && chkVim.IsChecked != originalVimEnabled) ||
+                    (_isSqlMode && chkVim.IsChecked != originalSqlVimEnabled) ||
                     (!_isSqlMode && chkSyntax.IsChecked != originalSyntaxEnabled) ||
                     (_isSqlMode && chkSyntax.IsChecked != originalSqlSyntaxEnabled) ||
                     (!_isSqlMode && chkAutocomplete.IsChecked != originalAutocompleteEnabled) ||
@@ -4168,6 +4619,7 @@ namespace AbiturEliteCode
                     if (_isSqlMode)
                     {
                         chkSyntax.IsChecked = false;
+                        chkVim.IsChecked = false;
                     }
                     else
                     {
@@ -4281,7 +4733,13 @@ namespace AbiturEliteCode
                 CheckChanges();
             };
 
-            chkVim.IsCheckedChanged += (s, ev) => { AppSettings.IsVimEnabled = chkVim.IsChecked ?? false; UpdateVimState(); CheckChanges(); };
+            chkVim.IsCheckedChanged += (s, ev) =>
+            {
+                if (_isSqlMode) AppSettings.IsSqlVimEnabled = chkVim.IsChecked ?? false;
+                else AppSettings.IsVimEnabled = chkVim.IsChecked ?? false;
+                UpdateVimState();
+                CheckChanges();
+            };
             chkPortable.IsCheckedChanged += (s, ev) => { CheckChanges(); };
 
             sliderScale.ValueChanged += (s, ev) =>
@@ -4358,6 +4816,7 @@ namespace AbiturEliteCode
             Action performSave = () =>
             {
                 playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
+                playerData.Settings.IsSqlVimEnabled = AppSettings.IsSqlVimEnabled;
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
                 playerData.Settings.IsSqlSyntaxHighlightingEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
                 playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
@@ -4457,6 +4916,7 @@ namespace AbiturEliteCode
                 if (btnSave.IsEnabled)
                 {
                     AppSettings.IsVimEnabled = originalVimEnabled;
+                    AppSettings.IsSqlVimEnabled = originalSqlVimEnabled;
                     AppSettings.IsSyntaxHighlightingEnabled = originalSyntaxEnabled;
                     AppSettings.IsSqlSyntaxHighlightingEnabled = originalSqlSyntaxEnabled;
                     AppSettings.IsAutocompleteEnabled = originalAutocompleteEnabled;
@@ -4556,19 +5016,14 @@ namespace AbiturEliteCode
         {
             if (TabVim != null)
             {
-                if (_isSqlMode)
-                {
-                    TabVim.IsVisible = false;
-                    VimStatusBorder.IsVisible = false;
-                    return;
-                }
+                bool isVimActive = _isSqlMode ? AppSettings.IsSqlVimEnabled : AppSettings.IsVimEnabled;
+                TabVim.IsVisible = isVimActive;
 
-                TabVim.IsVisible = AppSettings.IsVimEnabled;
-
-                if (!AppSettings.IsVimEnabled)
+                if (!isVimActive)
                 {
-                    CodeEditor.Cursor = Cursor.Default;
-                    VimStatusBorder.IsVisible = false;
+                    ActiveEditor.Cursor = Cursor.Default;
+                    if (VimStatusBorder != null) VimStatusBorder.IsVisible = false;
+                    if (SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;
                 }
                 else
                 {
@@ -4764,7 +5219,7 @@ namespace AbiturEliteCode
 
         private void HandleVimNormalInput(KeyEventArgs e)
         {
-            var textArea = CodeEditor.TextArea;
+            var textArea = ActiveEditor.TextArea;
             string keyChar = e.KeySymbol;
 
             if (e.Key == Key.Up) keyChar = "k";
@@ -4778,7 +5233,7 @@ namespace AbiturEliteCode
             // redo (ctrl + r)
             if (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
-                CodeEditor.Redo();
+                ActiveEditor.Redo();
                 UpdateVimUI();
                 return;
             }
@@ -4806,26 +5261,26 @@ namespace AbiturEliteCode
                     _vimMode = VimMode.Insert;
                     break;
                 case "a":
-                    var lineA = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    if (CodeEditor.CaretOffset < lineA.EndOffset)
+                    var lineA = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    if (ActiveEditor.CaretOffset < lineA.EndOffset)
                     {
-                        CodeEditor.CaretOffset++;
+                        ActiveEditor.CaretOffset++;
                     }
                     _vimMode = VimMode.Insert;
                     break;
                 case "o":
-                    var currentLineO = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    CodeEditor.CaretOffset = currentLineO.EndOffset;
+                    var currentLineO = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    ActiveEditor.CaretOffset = currentLineO.EndOffset;
                     textArea.PerformTextInput("\n");
                     _vimMode = VimMode.Insert;
                     break;
                 case "O":
-                    var currentLineBigO = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    CodeEditor.CaretOffset = currentLineBigO.Offset;
+                    var currentLineBigO = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    ActiveEditor.CaretOffset = currentLineBigO.Offset;
                     textArea.PerformTextInput("\n");
-                    var newLine = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    var newLine = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
                     if (newLine.PreviousLine != null)
-                        CodeEditor.CaretOffset = newLine.PreviousLine.Offset;
+                        ActiveEditor.CaretOffset = newLine.PreviousLine.Offset;
                     _vimMode = VimMode.Insert;
                     break;
                 case ":":
@@ -4839,9 +5294,9 @@ namespace AbiturEliteCode
 
                 // --- NAVIGATION ---
                 case "h":
-                    int lineStart = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).Offset;
-                    if (CodeEditor.CaretOffset > lineStart)
-                        CodeEditor.CaretOffset--;
+                    int lineStart = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset).Offset;
+                    if (ActiveEditor.CaretOffset > lineStart)
+                        ActiveEditor.CaretOffset--;
                     _vimDesiredColumn = -1;
                     break;
                 case "l":
@@ -4849,94 +5304,94 @@ namespace AbiturEliteCode
                     if (_csharpAutocompleteService.HasSuggestion)
                     {
                         _csharpAutocompleteService.ClearSuggestion();
-                        CodeEditor.TextArea.TextView.Redraw();
+                        ActiveEditor.TextArea.TextView.Redraw();
                     }
 
-                    int lineEndL = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset).EndOffset;
-                    if (CodeEditor.CaretOffset < lineEndL)
-                        CodeEditor.CaretOffset++;
+                    int lineEndL = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset).EndOffset;
+                    if (ActiveEditor.CaretOffset < lineEndL)
+                        ActiveEditor.CaretOffset++;
                     _vimDesiredColumn = -1;
                     break;
                 case "j":
-                    var currentLineJ = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    if (currentLineJ.LineNumber < CodeEditor.Document.LineCount)
+                    var currentLineJ = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    if (currentLineJ.LineNumber < ActiveEditor.Document.LineCount)
                     {   
                         if (_vimDesiredColumn == -1)
-                            _vimDesiredColumn = CodeEditor.CaretOffset - currentLineJ.Offset;
-                        var nextLine = CodeEditor.Document.GetLineByNumber(currentLineJ.LineNumber + 1);
+                            _vimDesiredColumn = ActiveEditor.CaretOffset - currentLineJ.Offset;
+                        var nextLine = ActiveEditor.Document.GetLineByNumber(currentLineJ.LineNumber + 1);
                         int newOffset = nextLine.Offset + Math.Min(_vimDesiredColumn, nextLine.Length);
-                        CodeEditor.CaretOffset = newOffset;
+                        ActiveEditor.CaretOffset = newOffset;
                     }
-                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    ActiveEditor.TextArea.Caret.BringCaretToView();
                     break;
                 case "k":
-                    var currentLineK = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
+                    var currentLineK = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
                     if (currentLineK.LineNumber > 1)
                     {
                         if (_vimDesiredColumn == -1)
-                            _vimDesiredColumn = CodeEditor.CaretOffset - currentLineK.Offset;
-                        var prevLine = CodeEditor.Document.GetLineByNumber(currentLineK.LineNumber - 1);
+                            _vimDesiredColumn = ActiveEditor.CaretOffset - currentLineK.Offset;
+                        var prevLine = ActiveEditor.Document.GetLineByNumber(currentLineK.LineNumber - 1);
                         int newOffset = prevLine.Offset + Math.Min(_vimDesiredColumn, prevLine.Length);
-                        CodeEditor.CaretOffset = newOffset;
+                        ActiveEditor.CaretOffset = newOffset;
                     }
-                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    ActiveEditor.TextArea.Caret.BringCaretToView();
                     break;
                 case "w": // simple word forward
-                    int nextSpace = CodeEditor.Text.IndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, CodeEditor.CaretOffset + 1);
-                    if (nextSpace != -1) CodeEditor.CaretOffset = nextSpace + 1;
+                    int nextSpace = ActiveEditor.Text.IndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, ActiveEditor.CaretOffset + 1);
+                    if (nextSpace != -1) ActiveEditor.CaretOffset = nextSpace + 1;
                     break;
                 case "b": // simple word backward
-                    int prevSpace = CodeEditor.Text.LastIndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, Math.Max(0, CodeEditor.CaretOffset - 2));
-                    if (prevSpace != -1) CodeEditor.CaretOffset = prevSpace + 1;
-                    else CodeEditor.CaretOffset = 0;
+                    int prevSpace = ActiveEditor.Text.LastIndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, Math.Max(0, ActiveEditor.CaretOffset - 2));
+                    if (prevSpace != -1) ActiveEditor.CaretOffset = prevSpace + 1;
+                    else ActiveEditor.CaretOffset = 0;
                     break;
                 case "0": // line start
-                    var line0 = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    string text0 = CodeEditor.Document.GetText(line0);
+                    var line0 = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    string text0 = ActiveEditor.Document.GetText(line0);
                     int indent = 0;
                     while (indent < text0.Length && char.IsWhiteSpace(text0[indent]))
                         indent++;
-                    CodeEditor.CaretOffset = line0.Offset + indent;
+                    ActiveEditor.CaretOffset = line0.Offset + indent;
                     break;
 
                 case "$": // line end
-                    var lineEnd1 = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    CodeEditor.CaretOffset = lineEnd1.EndOffset;
+                    var lineEnd1 = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    ActiveEditor.CaretOffset = lineEnd1.EndOffset;
                     break;
 
                 case "G": // file end
-                    CodeEditor.CaretOffset = CodeEditor.Document.TextLength;
-                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    ActiveEditor.CaretOffset = ActiveEditor.Document.TextLength;
+                    ActiveEditor.TextArea.Caret.BringCaretToView();
                     break;
                 case "D": // delete till line end
-                    var lineD = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                    int lenD = (lineD.Offset + lineD.Length) - CodeEditor.CaretOffset;
+                    var lineD = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                    int lenD = (lineD.Offset + lineD.Length) - ActiveEditor.CaretOffset;
                     if (lenD > 0)
                     {
-                        _vimClipboard = CodeEditor.Document.GetText(CodeEditor.CaretOffset, lenD);
-                        CodeEditor.Document.Remove(CodeEditor.CaretOffset, lenD);
+                        _vimClipboard = ActiveEditor.Document.GetText(ActiveEditor.CaretOffset, lenD);
+                        ActiveEditor.Document.Remove(ActiveEditor.CaretOffset, lenD);
                     }
                     break;
 
                 // --- EDITING ---
                 case "x": // delete char
-                    if (CodeEditor.Document.TextLength > CodeEditor.CaretOffset)
-                        CodeEditor.Document.Remove(CodeEditor.CaretOffset, 1);
+                    if (ActiveEditor.Document.TextLength > ActiveEditor.CaretOffset)
+                        ActiveEditor.Document.Remove(ActiveEditor.CaretOffset, 1);
                     break;
                 case "u": // undo
-                    CodeEditor.Undo();
+                    ActiveEditor.Undo();
                     break;
                 case "r": // replace single char
-                    if (CodeEditor.Document.TextLength > CodeEditor.CaretOffset)
+                    if (ActiveEditor.Document.TextLength > ActiveEditor.CaretOffset)
                     {
-                        CodeEditor.Document.Remove(CodeEditor.CaretOffset, 1);
+                        ActiveEditor.Document.Remove(ActiveEditor.CaretOffset, 1);
                         _vimMode = VimMode.Insert;
                     }
                     break;
                 case "p":
                     if (!string.IsNullOrEmpty(_vimClipboard))
                     {
-                        CodeEditor.Document.Insert(CodeEditor.CaretOffset, _vimClipboard);
+                        ActiveEditor.Document.Insert(ActiveEditor.CaretOffset, _vimClipboard);
                     }
                     break;
 
@@ -4955,39 +5410,39 @@ namespace AbiturEliteCode
 
         private void CompleteVimCommand(string key)
         {
-            var textArea = CodeEditor.TextArea;
+            var textArea = ActiveEditor.TextArea;
             string cmd = _vimCommandBuffer + key;
 
             // --- MOVEMENT COMMANDS ---
             if (cmd == "gg")
             {
-                CodeEditor.CaretOffset = 0;
+                ActiveEditor.CaretOffset = 0;
             }
 
             // --- DELETION COMMANDS ---
             else if (cmd == "dd")
             {
-                var line = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                _vimClipboard = CodeEditor.Document.GetText(line.Offset, line.TotalLength); // Save to buffer
-                CodeEditor.Document.Remove(line.Offset, line.TotalLength);
+                var line = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                _vimClipboard = ActiveEditor.Document.GetText(line.Offset, line.TotalLength); // Save to buffer
+                ActiveEditor.Document.Remove(line.Offset, line.TotalLength);
             }
             else if (cmd == "dw")
             {
-                int start = CodeEditor.CaretOffset;
-                int nextSpace = CodeEditor.Text.IndexOfAny(new[] { ' ', '\n', '\t' }, start + 1);
-                if (nextSpace == -1) nextSpace = CodeEditor.Document.TextLength;
+                int start = ActiveEditor.CaretOffset;
+                int nextSpace = ActiveEditor.Text.IndexOfAny(new[] { ' ', '\n', '\t' }, start + 1);
+                if (nextSpace == -1) nextSpace = ActiveEditor.Document.TextLength;
                 else nextSpace++;
 
                 int len = nextSpace - start;
-                _vimClipboard = CodeEditor.Document.GetText(start, len);
-                CodeEditor.Document.Remove(start, len);
+                _vimClipboard = ActiveEditor.Document.GetText(start, len);
+                ActiveEditor.Document.Remove(start, len);
             }
 
             // --- YANK ---
             else if (cmd == "yy")
             {
-                var line = CodeEditor.Document.GetLineByOffset(CodeEditor.CaretOffset);
-                _vimClipboard = CodeEditor.Document.GetText(line.Offset, line.TotalLength);
+                var line = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                _vimClipboard = ActiveEditor.Document.GetText(line.Offset, line.TotalLength);
                 AddToConsole("\n> Zeile kopiert.", Brushes.LightGray);
             }
 
@@ -5026,14 +5481,14 @@ namespace AbiturEliteCode
             if (e.Key == Key.Enter)
             {
                 string searchTerm = _vimCommandBuffer.Substring(1); // remove '/'
-                int index = CodeEditor.Text.IndexOf(searchTerm, CodeEditor.CaretOffset + 1, StringComparison.OrdinalIgnoreCase);
+                int index = ActiveEditor.Text.IndexOf(searchTerm, ActiveEditor.CaretOffset + 1, StringComparison.OrdinalIgnoreCase);
                 if (index == -1) // wrap around
-                    index = CodeEditor.Text.IndexOf(searchTerm, 0, StringComparison.OrdinalIgnoreCase);
+                    index = ActiveEditor.Text.IndexOf(searchTerm, 0, StringComparison.OrdinalIgnoreCase);
 
                 if (index != -1)
                 {
-                    CodeEditor.CaretOffset = index;
-                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    ActiveEditor.CaretOffset = index;
+                    ActiveEditor.TextArea.Caret.BringCaretToView();
                 }
 
                 _vimMode = VimMode.Normal;
@@ -5075,44 +5530,56 @@ namespace AbiturEliteCode
             // line jump
             else if (cmd.StartsWith(":") && int.TryParse(cmd.Substring(1), out int lineNum))
             {
-                if (lineNum > 0 && lineNum <= CodeEditor.Document.LineCount)
+                if (lineNum > 0 && lineNum <= ActiveEditor.Document.LineCount)
                 {
-                    var line = CodeEditor.Document.GetLineByNumber(lineNum);
-                    CodeEditor.CaretOffset = line.Offset;
-                    CodeEditor.TextArea.Caret.BringCaretToView();
+                    var line = ActiveEditor.Document.GetLineByNumber(lineNum);
+                    ActiveEditor.CaretOffset = line.Offset;
+                    ActiveEditor.TextArea.Caret.BringCaretToView();
                 }
             }
         }
 
         private void UpdateVimUI()
         {
-            if (!AppSettings.IsVimEnabled)
+            bool isVimActive = _isSqlMode ? AppSettings.IsSqlVimEnabled : AppSettings.IsVimEnabled;
+            if (!isVimActive)
             {
-                VimStatusBorder.IsVisible = false;
-                CodeEditor.Cursor = Cursor.Default;
+                if (VimStatusBorder != null) VimStatusBorder.IsVisible = false;
+                if (SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;
+                ActiveEditor.Cursor = Cursor.Default;
                 return;
             }
 
-            VimStatusBorder.IsVisible = true;
+            // determine target elements based on mode
+            Border activeBorder = _isSqlMode ? SqlVimStatusBorder : VimStatusBorder;
+            TextBlock activeText = _isSqlMode ? SqlVimStatusBar : VimStatusBar;
+
+            if (activeBorder == null || activeText == null) return;
+
+            // hide the inactive one
+            if (_isSqlMode && VimStatusBorder != null) VimStatusBorder.IsVisible = false;
+            else if (!_isSqlMode && SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;
+
+            activeBorder.IsVisible = true;
 
             switch (_vimMode)
             {
                 case VimMode.Normal:
-                    VimStatusBorder.Background = SolidColorBrush.Parse("#007ACC"); // blue
-                    VimStatusBar.Text = "-- NORMAL --";
+                    activeBorder.Background = SolidColorBrush.Parse("#007ACC"); // blue
+                    activeText.Text = "-- NORMAL --";
                     break;
                 case VimMode.Insert:
-                    VimStatusBorder.Background = SolidColorBrush.Parse("#28a745"); // green
-                    VimStatusBar.Text = "-- INSERT --";
+                    activeBorder.Background = SolidColorBrush.Parse("#28a745"); // green
+                    activeText.Text = "-- INSERT --";
                     break;
                 case VimMode.CommandPending:
-                    VimStatusBorder.Background = SolidColorBrush.Parse("#d08770"); // orange
-                    VimStatusBar.Text = _vimCommandBuffer;
+                    activeBorder.Background = SolidColorBrush.Parse("#d08770"); // orange
+                    activeText.Text = _vimCommandBuffer;
                     break;
                 case VimMode.CommandLine:
                 case VimMode.Search:
-                    VimStatusBorder.Background = SolidColorBrush.Parse("#444");
-                    VimStatusBar.Text = _vimCommandBuffer;
+                    activeBorder.Background = SolidColorBrush.Parse("#444");
+                    activeText.Text = _vimCommandBuffer;
                     break;
             }
         }

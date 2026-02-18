@@ -89,34 +89,61 @@ namespace AbiturEliteCode.cs
                     }
 
                     bool correct = true;
-                    // basic dimensional check
-                    if (actualRows.Count != level.ExpectedResult.Count)
-                    {
-                        correct = false;
-                    }
-                    else
-                    {
-                        // deep content check
-                        for (int i = 0; i < actualRows.Count; i++)
-                        {
-                            // row length check
-                            if (actualRows[i].Length != level.ExpectedResult[i].Length)
-                            {
-                                correct = false; break;
-                            }
+                    string errorFeedback = "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
 
-                            for (int j = 0; j < actualRows[i].Length; j++)
+                    // column name verification
+                    if (isSelect && userResultTable != null && level.ExpectedColumns != null && level.ExpectedColumns.Count > 0)
+                    {
+                        if (userResultTable.Columns.Count != level.ExpectedColumns.Count)
+                        {
+                            correct = false;
+                            errorFeedback = $"❌ Falsche Spaltenanzahl. Erwartet: {level.ExpectedColumns.Count}, Erhalten: {userResultTable.Columns.Count}";
+                        }
+                        else
+                        {
+                            for (int i = 0; i < level.ExpectedColumns.Count; i++)
                             {
-                                if (actualRows[i][j] != level.ExpectedResult[i][j])
+                                if (!userResultTable.Columns[i].ColumnName.Equals(level.ExpectedColumns[i], StringComparison.OrdinalIgnoreCase))
                                 {
-                                    correct = false; break;
+                                    correct = false;
+                                    errorFeedback = $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{level.ExpectedColumns[i]}', Erhalten: '{userResultTable.Columns[i].ColumnName}'";
+                                    break;
                                 }
                             }
-                            if (!correct) break;
                         }
                     }
 
-                    string msg = correct ? "✓ Richtig! Aufgabe gelöst." : "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
+                    if (correct)
+                    {
+                        // basic dimensional check
+                        if (actualRows.Count != level.ExpectedResult.Count)
+                        {
+                            correct = false;
+                        }
+                        else
+                        {
+                            // deep content check
+                            for (int i = 0; i < actualRows.Count; i++)
+                            {
+                                // row length check
+                                if (actualRows[i].Length != level.ExpectedResult[i].Length)
+                                {
+                                    correct = false; break;
+                                }
+
+                                for (int j = 0; j < actualRows[i].Length; j++)
+                                {
+                                    if (actualRows[i][j] != level.ExpectedResult[i][j])
+                                    {
+                                        correct = false; break;
+                                    }
+                                }
+                                if (!correct) break;
+                            }
+                        }
+                    }
+
+                    string msg = correct ? "✓ Richtig! Aufgabe gelöst." : errorFeedback;
                     if (!isSelect && correct) msg += $"\n({rowsAffected} Zeilen betroffen)";
 
                     return new SqlTestResult

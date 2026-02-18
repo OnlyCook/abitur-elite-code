@@ -23,6 +23,7 @@ namespace AbiturEliteCode.cs
         public string Description { get; set; }
         public string SetupScript { get; set; }
         public string VerificationQuery { get; set; }
+        public List<string> ExpectedColumns { get; set; } = new List<string>();
         public List<string[]> ExpectedResult { get; set; }
         public string MaterialDocs { get; set; }
 
@@ -163,7 +164,7 @@ namespace AbiturEliteCode.cs
                     Description = "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
                                   "- [Buch] (Titel, Autor, Genre, Preis)\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie für jedes [Genre] den **Durchschnittspreis** (als 'Durchschnitt').\n" +
+                                  "Ermitteln Sie für jedes [Genre] den **Durchschnittspreis** als 'Durchschnitt'.\n" +
                                   "Das Ergebnis soll das Genre und den berechneten Durchschnittspreis enthalten.",
                     SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Genre TEXT, Preis REAL);" +
                                   "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Faust', 'Goethe', 'Drama', 10.0);" +
@@ -172,6 +173,7 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Shining', 'King', 'Horror', 13.0);" +
                                   "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Der Marsianer', 'Weir', 'SciFi', 20.0);",
                     VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "Genre", "Durchschnitt" },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Drama", "11" }, // (10+12)/2 = 11
