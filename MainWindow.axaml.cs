@@ -17,6 +17,7 @@ using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.Data.Sqlite;
 using System;
@@ -2190,6 +2191,15 @@ namespace AbiturEliteCode
                     string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + codeText;
 
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
+
+                    // inject return into Run() method for level 17 to prevent infinite loops during testing
+                    if (!runDesignerTest && levelContext != null && levelContext.Id == 17)
+                    {
+                        var root = syntaxTree.GetRoot(token);
+                        var rewriter = new InfiniteLoopBreaker();
+                        syntaxTree = rewriter.Visit(root).SyntaxTree;
+                    }
+
                     var trees = new List<SyntaxTree> { syntaxTree };
 
                     // handle auxiliary code
@@ -2301,7 +2311,7 @@ namespace AbiturEliteCode
                             else
                             {
                                 // normal level logic
-                                var testResult = LevelTester.Run(levelContext.Id, assembly);
+                                var testResult = LevelTester.Run(levelContext.Id, assembly, codeText);
                                 return (Success: true, Diagnostics: (System.Collections.Immutable.ImmutableArray<Diagnostic>?)null, TestResult: (dynamic)testResult);
                             }
                         }
@@ -2395,6 +2405,39 @@ namespace AbiturEliteCode
                 BtnRun.IsEnabled = true;
                 ToolTip.SetTip(BtnRun, "Ausführen (F5)");
                 CodeEditor.Focus();
+            }
+        }
+
+        private class InfiniteLoopBreaker : CSharpSyntaxRewriter
+        {
+            private StatementSyntax GetReturnInjectedStatement(StatementSyntax statement)
+            {
+                var returnStatement = SyntaxFactory.ParseStatement("return;\n");
+                if (statement is BlockSyntax block)
+                {
+                    return block.AddStatements(returnStatement);
+                }
+                return SyntaxFactory.Block(statement, returnStatement);
+            }
+
+            public override SyntaxNode VisitWhileStatement(WhileStatementSyntax node)
+            {
+                var method = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+                if (method != null && method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase))
+                {
+                    return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                }
+                return base.VisitWhileStatement(node);
+            }
+
+            public override SyntaxNode VisitForStatement(ForStatementSyntax node)
+            {
+                var method = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+                if (method != null && method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase))
+                {
+                    return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                }
+                return base.VisitForStatement(node);
             }
         }
 
@@ -2495,67 +2538,6 @@ namespace AbiturEliteCode
                         : "Unbekannter Fehler";
                 TxtConsole.Text = "";
                 AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
-            }
-        }
-
-        private void RunTests(Assembly assembly)
-        {
-            var result = LevelTester.Run(currentLevel.Id, assembly);
-            if (result.Success)
-            {
-                AddToConsole("✓ TEST BESTANDEN: " + result.Feedback + "\n\n", Brushes.LightGreen);
-
-                if (!playerData.CompletedLevelIds.Contains(currentLevel.Id))
-                    playerData.CompletedLevelIds.Add(currentLevel.Id);
-
-                var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
-
-                if (nextLvl != null)
-                {
-                    // unlock the next level
-                    if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
-                    {
-                        playerData.UnlockedLevelIds.Add(nextLvl.Id);
-                        AddToConsole($"🔓 Level {nextLvl.Id} freigeschaltet!\n", Brushes.LightGreen);
-                    }
-
-                    AddToConsole($"Nächstes Level Code: {nextLvl.SkipCode}\n", Brushes.LightGray);
-
-                    // check if we are switching sections
-                    if (nextLvl.Section != currentLevel.Section)
-                    {
-                        AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?", Brushes.LightGreen);
-                        BtnNextLevel.Content = "NÄCHSTE SEKTION →";
-                    }
-                    else
-                    {
-                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                    }
-
-                    BtnNextLevel.IsVisible = true;
-                }
-                else
-                {
-                    // no next level -> course completed
-                    AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", Brushes.LightGreen);
-                    BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
-                    BtnNextLevel.IsVisible = true;
-                }
-
-                SaveSystem.Save(playerData);
-            }
-            else
-            {
-                string msg =
-                    result.Error != null
-                        ? (
-                              result.Error.InnerException != null
-                                  ? result.Error.InnerException.Message
-                                  : result.Error.Message
-                          )
-                        : "Unbekannter Fehler";
-                TxtConsole.Text = "";
-                AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Red);
             }
         }
 

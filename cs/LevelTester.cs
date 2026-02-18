@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AbiturEliteCode.cs
@@ -17,7 +18,7 @@ namespace AbiturEliteCode.cs
 
     public static class LevelTester
     {
-        public static TestResult Run(int levelId, Assembly assembly)
+        public static TestResult Run(int levelId, Assembly assembly, string sourceCode = "")
         {
             try
             {
@@ -33,7 +34,7 @@ namespace AbiturEliteCode.cs
                     5 => TestLevel5(assembly, out feedback),
                     6 => TestLevel6(assembly, out feedback),
                     7 => TestLevel7(assembly, out feedback),
-                    8 => TestLevel8(assembly, out feedback),
+                    8 => TestLevel8(assembly, sourceCode, out feedback),
                     9 => TestLevel9(assembly, out feedback),
                     10 => TestLevel10(assembly, out feedback),
                     11 => TestLevel11(assembly, out feedback),
@@ -42,7 +43,7 @@ namespace AbiturEliteCode.cs
                     14 => TestLevel14(assembly, out feedback),
                     15 => TestLevel15(assembly, out feedback),
                     16 => TestLevel16(assembly, out feedback),
-                    17 => TestLevel17(assembly, out feedback),
+                    17 => TestLevel17(assembly, sourceCode, out feedback),
                     18 => TestLevel18(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
@@ -438,8 +439,13 @@ namespace AbiturEliteCode.cs
             throw new Exception($"Falsche Anzahl Pakete zurückgegeben. Erwartet: 1, Erhalten: {list.Count}. Prüfen Sie die Bedingungen (ort == ziel && gewicht > 10).");
         }
 
-        private static bool TestLevel8(Assembly assembly, out string feedback)
+        private static bool TestLevel8(Assembly assembly, string sourceCode, out string feedback)
         {
+            if (sourceCode.Contains(".Sort(") || sourceCode.Contains(".OrderBy("))
+            {
+                throw new Exception("Anti-Cheat: Bitte verwenden Sie keine fertigen Sortierfunktionen wie .Sort() oder .OrderBy(), sondern implementieren Sie Bubble Sort selbst.");
+            }
+
             Type tLager = assembly.GetType("Lager");
             Type tPaket = assembly.GetType("Paket");
             if (tLager == null) throw new Exception("Klasse Lager fehlt.");
@@ -811,6 +817,13 @@ namespace AbiturEliteCode.cs
             ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
             if (ctorRover == null) throw new Exception("Konstruktor Rover(string id) fehlt.");
 
+            // check if id is set in constructor
+            object roverIdTest = ctorRover.Invoke(new object[] { "TESTID" });
+            FieldInfo fIdL15 = tRover.GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fIdL15 == null) throw new Exception("Feld 'id' in Rover fehlt.");
+            if ((string)fIdL15.GetValue(roverIdTest) != "TESTID")
+                throw new Exception("Konstruktor Rover(string id) setzt 'id' nicht. Füge hinzu: this.id = id;");
+
             ConstructorInfo ctorZentrum = tZentrum.GetConstructor(Type.EmptyTypes);
             if (ctorZentrum == null) throw new Exception("Standardkonstruktor für Kontrollzentrum fehlt.");
 
@@ -903,6 +916,13 @@ namespace AbiturEliteCode.cs
             if (ctorKnoten == null) throw new Exception("Konstruktor NetzwerkKnoten(string id) fehlt.");
 
             object knoten = ctorKnoten.Invoke(new object[] { "Node-01" });
+
+            // check if knotenId is set in constructor
+            FieldInfo fKnotenId = tKnoten.GetField("knotenId", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fKnotenId == null) throw new Exception("Feld 'knotenId' in NetzwerkKnoten fehlt.");
+            if ((string)fKnotenId.GetValue(knoten) != "Node-01")
+                throw new Exception("Konstruktor NetzwerkKnoten(string id) setzt 'knotenId' nicht. Füge hinzu: knotenId = id;");
+
             MethodInfo mValidiere = tKnoten.GetMethod("ValidierePaket") ?? tKnoten.GetMethod("validierePaket");
             if (mValidiere == null) throw new Exception("Methode 'ValidierePaket' in NetzwerkKnoten fehlt.");
 
@@ -957,7 +977,7 @@ namespace AbiturEliteCode.cs
             throw new Exception("Zeitüberschreitung: Die Methode läuft zu lange (Eventuell eine Endlosschleife in 'while'?).");
         }
 
-        private static bool TestLevel17(Assembly assembly, out string feedback)
+        private static bool TestLevel17(Assembly assembly, string sourceCode, out string feedback)
         {
             Type tRover = assembly.GetType("Rover");
             Type tReader = assembly.GetType("RFIDReader");
@@ -975,6 +995,11 @@ namespace AbiturEliteCode.cs
 
             object r1 = ctorRover.Invoke(new object[] { "R1" });
             object r2 = ctorRover.Invoke(new object[] { "R2" });
+
+            // check if id was properly assigned
+            FieldInfo fId = tRover.GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fId == null) throw new Exception("Aufgabe 1 (Rover): Feld 'id' fehlt.");
+            if ((string)fId.GetValue(r1) != "R1") throw new Exception("Aufgabe 1 (Rover): Die 'id' wurde im Konstruktor nicht zugewiesen.");
 
             MethodInfo mGetNr = tRover.GetMethod("GetFahrzeugNr") ?? tRover.GetMethod("getFahrzeugNr");
             MethodInfo mUnlock = tRover.GetMethod("Unlock") ?? tRover.GetMethod("unlock");
@@ -997,24 +1022,29 @@ namespace AbiturEliteCode.cs
             object serialMock = Activator.CreateInstance(tSerial, new object[] { "COM1", 9600, 8, 1, 0 });
             object reader = ctorReader.Invoke(new object[] { serialMock });
 
+            // prevent missing serial assignment
+            FieldInfo fReaderSerial = tReader.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fReaderSerial == null) throw new Exception("Aufgabe 2 (Reader): Feld 'serial' fehlt.");
+            if (fReaderSerial.GetValue(reader) == null) throw new Exception("Aufgabe 2 (Reader): Das Serial-Objekt wurde im Konstruktor nicht gespeichert.");
+
             // test IsCardAvailable
             MethodInfo mAvail = tReader.GetMethod("IsCardAvailable") ?? tReader.GetMethod("isCardAvailable");
             if (mAvail == null) throw new Exception("Aufgabe 2 (Reader): Methode IsCardAvailable() fehlt.");
 
+            // check if it correctly returns false when empty
+            bool isAvailEmpty = (bool)mAvail.Invoke(reader, null);
+            if (isAvailEmpty) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable() meldet sofort true, obwohl keine Daten anliegen. Nutzen Sie die korrekte Bedingung (serial.DataAvailable() > 0).");
+
             MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
-            // inject test byte
             mSetBytes.Invoke(serialMock, new object[] { new int[] { 0x02 } });
 
             bool isAvail = (bool)mAvail.Invoke(reader, null);
-            if (!isAvail) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
+            if (!isAvail) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable() gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
 
             MethodInfo mReadSerial = tSerial.GetMethod("Read");
             mReadSerial.Invoke(serialMock, null);
 
             // test ReadCard
-            // data: '1'(49), '2'(50), '3'(51), '4'(52), '5'(53), '6'(54)
-            // XOR: 49^50^51^52^53^54 = 7
-            // packet: STX(2) | Data... | Checksum(7) | ETX(3)
             int[] validPacket = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 };
             mSetBytes.Invoke(serialMock, new object[] { validPacket });
 
@@ -1024,7 +1054,6 @@ namespace AbiturEliteCode.cs
             string cardResult;
             try
             {
-                // using the timeout helper
                 cardResult = (string)InvokeWithTimeout(mReadCard, reader, null, 1000);
             }
             catch (Exception ex)
@@ -1049,6 +1078,11 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Aufgabe 3 (Controller): Fehler im Konstruktor: {ex.InnerException?.Message ?? ex.Message}");
             }
 
+            // validate controller references
+            FieldInfo fControllerRover = tController.GetField("rover", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fControllerRover == null || fControllerRover.GetValue(controller) != r1)
+                throw new Exception("Aufgabe 3 (Controller): Der übergebene Rover wurde im Konstruktor nicht korrekt zugewiesen.");
+
             FieldInfo fReader = tController.GetField("reader", BindingFlags.NonPublic | BindingFlags.Instance);
             if (fReader == null || fReader.GetValue(controller) == null)
                 throw new Exception("Aufgabe 3 (Controller): Das Feld 'reader' wurde nicht initialisiert.");
@@ -1061,6 +1095,63 @@ namespace AbiturEliteCode.cs
             FieldInfo fSerial = tController.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
             if (fSerial == null || fSerial.GetValue(controller) == null)
                 throw new Exception("Aufgabe 3 (Controller): Das Feld 'serial' wurde nicht initialisiert.");
+
+            // dynamic execution test
+            MethodInfo mRun = tController.GetMethod("Run") ?? tController.GetMethod("run");
+            if (mRun == null) throw new Exception("Aufgabe 3 (Controller): Methode Run() fehlt.");
+
+            // inject data into the controllers serial mock so IsCardAvailable() becomes true during the run cycle
+            object ctrlSerial = fSerial.GetValue(controller);
+            MethodInfo mSetBytesCtrl = tSerial.GetMethod("SetTestBytes");
+            int[] validPacketCtrl = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 };
+            mSetBytesCtrl.Invoke(ctrlSerial, new object[] { validPacketCtrl });
+
+            // able to safely call Run() as a "return;" was injected
+            try
+            {
+                mRun.Invoke(controller, null);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Aufgabe 3 (Controller): Fehler während Run(): {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            // verify FunkModul.Send was called with the correct argument
+            object funkObj = fFunk.GetValue(controller);
+            MethodInfo mGetLastCmd = tFunk.GetMethod("GetLastCommand");
+            if (mGetLastCmd != null)
+            {
+                string lastCmd = (string)mGetLastCmd.Invoke(funkObj, null);
+                if (string.IsNullOrEmpty(lastCmd))
+                    throw new Exception("Aufgabe 3 (Controller): Es wurde kein Befehl über das FunkModul gesendet. (Die Bedingungen wurden evtl. nicht erfüllt oder funk.Send() fehlt).");
+
+                int expectedNr = (int)mGetNr.Invoke(r1, null);
+                string expectedCmd = $"UNLOCK {expectedNr} 123456";
+
+                if (lastCmd != expectedCmd)
+                    throw new Exception($"Aufgabe 3 (Controller): Falscher Funk-Befehl gesendet. Erwartet: \"{expectedCmd}\", Erhalten: \"{lastCmd}\".");
+            }
+
+            // check if rover.Unlock() if actually in the active code (so not commented out)
+            string strippedSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
+            strippedSource = Regex.Replace(strippedSource, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            string cleanSource = strippedSource.Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+
+            if (!cleanSource.Contains("rover.unlock();"))
+                throw new Exception("Aufgabe 3 (Controller): Der Rover wurde nicht entriegelt (rover.Unlock() fehlt oder ist auskommentiert).");
+
+            // check if funk.Receive() isnt ignored and is in an if condition
+            bool receiveUsed = cleanSource.Contains("funk.receive()");
+            if (!receiveUsed)
+                throw new Exception("Aufgabe 3 (Controller): funk.Receive() wird nicht aufgerufen. Prüfen Sie: if (funk.Receive() == 0x06)");
+
+            bool receiveInIf = Regex.IsMatch(
+                strippedSource.Replace(" ", ""),
+                @"if\([^)]*funk\.Receive\(\)",
+                RegexOptions.IgnoreCase
+            );
+            if (!receiveInIf)
+                throw new Exception("Aufgabe 3 (Controller): funk.Receive() wird nicht in einer if-Bedingung geprüft. Erwartet: if (funk.Receive() == 0x06) { ... }");
 
             feedback = "Hervorragend! Alle 3 Teilaufgaben (Rover, Reader Protokoll, Controller Setup) wurden korrekt gelöst.";
             return true;
@@ -1080,6 +1171,32 @@ namespace AbiturEliteCode.cs
             if (tTicket == null) throw new Exception("Klasse 'WartungsTicket' fehlt.");
             if (tLog == null) throw new Exception("Klasse 'LogEintrag' fehlt.");
 
+            // check whether LogEintrag constructor actually sets the fields
+            ConstructorInfo ctorLog = tLog.GetConstructor(new[] { typeof(string), typeof(string) });
+            if (ctorLog == null) throw new Exception("Konstruktor LogEintrag(string typ, string inhalt) fehlt.");
+            object logTest = ctorLog.Invoke(new object[] { "ERR", "Testinhalt" });
+            FieldInfo fLogTyp = tLog.GetField("typ", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fLogInhalt = tLog.GetField("inhalt", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fLogTyp == null) throw new Exception("Feld 'typ' in LogEintrag fehlt.");
+            if (fLogInhalt == null) throw new Exception("Feld 'inhalt' in LogEintrag fehlt.");
+            if ((string)fLogTyp.GetValue(logTest) != "ERR")
+                throw new Exception("Konstruktor LogEintrag(string typ, string inhalt) setzt 'typ' nicht. Füge hinzu: this.typ = typ;");
+            if ((string)fLogInhalt.GetValue(logTest) != "Testinhalt")
+                throw new Exception("Konstruktor LogEintrag(string typ, string inhalt) setzt 'inhalt' nicht. Füge hinzu: this.inhalt = inhalt;");
+
+            // check whether WartungsTicket constructor actually sets the fields
+            ConstructorInfo ctorTicketCheck = tTicket.GetConstructor(new[] { typeof(string), typeof(string) });
+            if (ctorTicketCheck == null) throw new Exception("Konstruktor WartungsTicket(string id, string grund) fehlt.");
+            object ticketTest = ctorTicketCheck.Invoke(new object[] { "TESTID", "Testgrund" });
+            FieldInfo fTicketRoverId = tTicket.GetField("roverId", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fTicketGrund = tTicket.GetField("grund", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fTicketRoverId == null) throw new Exception("Feld 'roverId' in WartungsTicket fehlt.");
+            if (fTicketGrund == null) throw new Exception("Feld 'grund' in WartungsTicket fehlt.");
+            if ((string)fTicketRoverId.GetValue(ticketTest) != "TESTID")
+                throw new Exception("Konstruktor WartungsTicket(string id, string grund) setzt 'roverId' nicht. Füge hinzu: roverId = id;");
+            if ((string)fTicketGrund.GetValue(ticketTest) != "Testgrund")
+                throw new Exception("Konstruktor WartungsTicket(string id, string grund) setzt 'grund' nicht. Füge hinzu: this.grund = grund;");
+
             // 1. check WartungsDienst impl
             object wartung = Activator.CreateInstance(tWartung);
             MethodInfo mTicket = tWartung.GetMethod("ErstelleTicket") ?? tWartung.GetMethod("erstelleTicket");
@@ -1097,7 +1214,15 @@ namespace AbiturEliteCode.cs
             if (ctorRover == null) throw new Exception("Konstruktor Rover(string id) fehlt.");
             object r1 = ctorRover.Invoke(new object[] { "CURIOSITY" });
 
-            // check initial battery value
+            // check whether Rover.GetId() returns the actual id
+            MethodInfo mGetId = tRover.GetMethod("GetId") ?? tRover.GetMethod("getId");
+            if (mGetId == null) throw new Exception("Methode 'GetId' in Rover fehlt.");
+            FieldInfo fRoverId = tRover.GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fRoverId == null) throw new Exception("Feld 'id' in Rover fehlt.");
+            if ((string)fRoverId.GetValue(r1) != "CURIOSITY")
+                throw new Exception("Konstruktor Rover(string id) setzt 'id' nicht korrekt. Füge hinzu: this.id = id;");
+            if ((string)mGetId.Invoke(r1, null) != "CURIOSITY")
+                throw new Exception("GetId() gibt nicht den im Konstruktor gesetzten Wert zurück. Prüfen Sie: return id;");
             FieldInfo fBatterie = tRover.GetField("batterie", BindingFlags.NonPublic | BindingFlags.Instance);
             if (fBatterie == null) throw new Exception("Feld 'batterie' in Rover fehlt.");
             int battVal = (int)fBatterie.GetValue(r1);
@@ -1162,6 +1287,14 @@ namespace AbiturEliteCode.cs
             // verify ticket type
             object ticket = ticketList[0];
             if (ticket.GetType() != tTicket) throw new Exception("Das Objekt in der Ticket-Liste ist nicht vom Typ 'WartungsTicket'.");
+
+            // check if Ticket is actually set correctly
+            string actualRoverId = (string)fTicketRoverId.GetValue(ticket);
+            string actualGrund = (string)fTicketGrund.GetValue(ticket);
+            if (actualRoverId != "TESTROVER")
+                throw new Exception($"Das Ticket enthält die falsche Rover-ID: \"{actualRoverId}\". Erwartet: \"TESTROVER\". Übergeben Sie r.GetId() an ErstelleTicket().");
+            if (actualGrund != "Kritischer Batteriestatus")
+                throw new Exception($"Das Ticket enthält den falschen Grund: \"{actualGrund}\". Erwartet: \"Kritischer Batteriestatus\".");
 
             feedback = "Sektion 4 erfolgreich gemeistert! Datenstrom, Kollaboration und Protokolle funktionieren einwandfrei.";
             return true;

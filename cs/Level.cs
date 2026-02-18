@@ -128,8 +128,10 @@ namespace AbiturEliteCode.cs
                     }",
                 "FunkModul" => @"
                     public class FunkModul {
-                        public void Send(string cmd) {}
+                        private string lastCommand = """";
+                        public void Send(string cmd) { lastCommand = cmd; }
                         public char Receive() { return (char)0x06; }
+                        public string GetLastCommand() { return lastCommand; }
                     }",
                 _ => ""
             };
@@ -775,7 +777,7 @@ END.",
                                   "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
                                   "• Sie benötigt eine ID (String) und eine [fahrzeugNr] (int).\n" +
                                   "• Die [fahrzeugNr] wird über einen statischen Zähler ([autowert]) automatisch im Konstruktor vergeben (Start bei 1).\n" +
-                                  "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben (lasse diese leer).\n\n" +
+                                  "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben (Sie können diese leer lassen).\n\n" +
                                   "Aufgabe 2: Implementieren Sie [RFIDReader].\n" +
                                   "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle (siehe Protokoll unten).\n" +
                                   "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl die nicht [0] ist) an der Schnittstelle zum Lesen bereitstehen (siehe [Serial] in Material).\n" +
