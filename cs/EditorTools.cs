@@ -909,6 +909,8 @@ namespace AbiturEliteCode
              <Word>Math</Word>
              <Word>Convert</Word>
              <Word>Array</Word>
+             <Word>DateTime</Word>
+             <Word>Int32</Word>
         </Keywords>
 		<Rule color=""MethodCall"">
 			\b

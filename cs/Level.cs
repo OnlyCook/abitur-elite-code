@@ -97,15 +97,7 @@ namespace AbiturEliteCode.cs
                         public string GetZielort() { return zielort; }
                     }",
                 "LocalDate" => @"
-                    // Mock für die Anzeige im Materials-Tab
-                    // In C# nutzen Sie stattdessen struct DateTime
-                    public class LocalDate
-                    {
-                        public static LocalDate Now() { return new LocalDate(); }
-                        public bool IsAfter(LocalDate other) { return true; }
-                        public bool IsBefore(LocalDate other) { return true; }
-                        public LocalDate MinusMonths(long months) { return this; }
-                    }",
+                    // DateTime soll stattdessen genutzt werden",
                 "Serial" => @"
                     using System.Collections.Generic;
                     public class Serial {
@@ -382,9 +374,9 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(Paket p)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                        "@startuml\nclass Lager {\n  + Lager()\n  + hinzufuegen(p : Paket)\n  + filterePakete(ort : String) : List<Paket>\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
                     },
-                    AuxiliaryIds = new List<string> { "Paket" },
+                    AuxiliaryIds = new List<string> { "ListT", "Paket" },
                     Prerequisites = new List<string>
                     {
                         "Logical AND", "String Comparisons", "Adding to Lists", "Return values"
@@ -420,7 +412,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     {
                         "@startuml\nclass Lager {\n  + sortiere()\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
                     },
-                    AuxiliaryIds = new List<string> { "Paket" },
+                    AuxiliaryIds = new List<string> { "ListT", "Paket" },
                     Prerequisites = new List<string>
                     {
                         "For Loops", "Accessing List Elements", "Modifying Array Elements", "Variables"
@@ -502,7 +494,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     {
                         "@startuml\nclass LogistikZentrum {\n  + LogistikZentrum()\n  + getTop3Schwere(ort : String) : List<Paket>\n}\nLogistikZentrum x--> \"*\" Paket : -allePakete\n@enduml"
                     },
-                    AuxiliaryIds = new List<string> { "Paket" },
+                    AuxiliaryIds = new List<string> { "ListT", "Paket" },
                     Prerequisites = new List<string>
                     {
                         "Sorting Lists", "Accessing List Elements", "Constructors"
