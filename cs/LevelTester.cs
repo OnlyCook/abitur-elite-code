@@ -45,6 +45,7 @@ namespace AbiturEliteCode.cs
                     16 => TestLevel16(assembly, out feedback),
                     17 => TestLevel17(assembly, sourceCode, out feedback),
                     18 => TestLevel18(assembly, out feedback),
+                    19 => TestLevel19(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -1297,6 +1298,93 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Das Ticket enthält den falschen Grund: \"{actualGrund}\". Erwartet: \"Kritischer Batteriestatus\".");
 
             feedback = "Sektion 4 erfolgreich gemeistert! Datenstrom, Kollaboration und Protokolle funktionieren einwandfrei.";
+            return true;
+        }
+
+        private static bool TestLevel19(Assembly assembly, out string feedback)
+        {
+            Type tServer = assembly.GetType("SmartHomeServer");
+            Type tServerSocket = assembly.GetType("ServerSocket");
+            Type tSocket = assembly.GetType("Socket");
+
+            if (tServer == null) throw new Exception("Klasse 'SmartHomeServer' fehlt.");
+            if (tServerSocket == null) throw new Exception("Hilfsklasse 'ServerSocket' fehlt.");
+            if (tSocket == null) throw new Exception("Hilfsklasse 'Socket' fehlt.");
+
+            ConstructorInfo ctorServer = tServer.GetConstructor(new[] { typeof(int) });
+            if (ctorServer == null) throw new Exception("Konstruktor SmartHomeServer(int port) fehlt.");
+
+            object serverObj = null;
+            try
+            {
+                serverObj = ctorServer.Invoke(new object[] { 8080 });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler im Konstruktor von SmartHomeServer: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            FieldInfo fServer = tServer.GetField("server", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fServer == null) throw new Exception("Das private Feld 'server' (vom Typ ServerSocket) fehlt.");
+
+            object serverSocketObj = fServer.GetValue(serverObj);
+            if (serverSocketObj == null) throw new Exception("Das Feld 'server' wurde im Konstruktor nicht initialisiert. Erwartet: server = new ServerSocket(port);");
+
+            MethodInfo mStart = tServer.GetMethod("StartServer") ?? tServer.GetMethod("startServer");
+            if (mStart == null) throw new Exception("Methode 'StartServer()' fehlt.");
+
+            // mock data setup
+            PropertyInfo pMockSocket = tServerSocket.GetProperty("MockSocket");
+            if (pMockSocket == null) throw new Exception("Interner Fehler: MockSocket Property fehlt auf ServerSocket.");
+
+            object mockClientSocket = pMockSocket.GetValue(serverSocketObj);
+            MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
+
+            // simulated client command
+            string testDeviceId = "Thermostat_Wohnzimmer";
+            mSetInputs.Invoke(mockClientSocket, new object[] { new string[] { $"HELLO:{testDeviceId}" } });
+
+            // run StartServer (with timeout as precaution against infinite loop)
+            try
+            {
+                InvokeWithTimeout(mStart, serverObj, null, 1500);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler bei der Ausführung von StartServer(): {ex.Message}");
+            }
+
+            // output validation
+            FieldInfo fOutputs = tSocket.GetField("Outputs");
+            if (fOutputs == null) throw new Exception("Interner Fehler: Outputs-Feld im Mock-Socket fehlt.");
+
+            List<string> outputs = (List<string>)fOutputs.GetValue(mockClientSocket);
+
+            if (outputs.Count == 0)
+                throw new Exception("Der Server hat keine Antworten (write) an den Client gesendet.");
+
+            if (outputs.Count < 2)
+                throw new Exception("Der Server hat zu wenige Antworten gesendet. Erwartet werden die Begrüßung und das ACK.");
+
+            string greeting = outputs[0];
+            string ack = outputs[1];
+
+            if (!greeting.Contains("+OK Smart Home Hub"))
+                throw new Exception($"Die Begrüßungsnachricht ist inkorrekt. Erhalten: \"{greeting}\", Erwartet: \"+OK Smart Home Hub\\n\"");
+
+            if (!greeting.EndsWith("\n"))
+                throw new Exception("Vergessen Sie nicht den Zeilenumbruch (\\n) am Ende der Begrüßungsnachricht.");
+
+            string expectedAck = $"+ACK {testDeviceId}\n";
+            if (ack != expectedAck)
+            {
+                if (ack.Contains("HELLO:"))
+                    throw new Exception("Fehler bei der Substring-Extraktion. Die ID enthält noch das 'HELLO:'. Substring(6) verwenden!");
+
+                throw new Exception($"Das ACK-Protokoll ist inkorrekt formatiert. Erhalten: \"{ack}\", Erwartet: \"{expectedAck}\"");
+            }
+
+            feedback = "Klasse! Sektion 5 erfolgreich gestartet. Das Sequenzdiagramm wurde exakt in Code übersetzt und Strings korrekt manipuliert.";
             return true;
         }
     }

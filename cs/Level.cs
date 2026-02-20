@@ -58,7 +58,8 @@ namespace AbiturEliteCode.cs
             "ZOO", "CAP", "ABS", "LST", "ALG",
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
-            "COM", "CHK", "SEN", "PRO"
+            "COM", "CHK", "SEN", "PRO",
+            "NET"
         };
     }
 
@@ -73,6 +74,10 @@ namespace AbiturEliteCode.cs
         public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close() : void\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
 
         public static string FunkModul = "@startuml\nclass FunkModul {\n  + FunkModul()\n  + send(cmd : String)\n  + receive() : char\n}\n@enduml";
+        
+        public static string ServerSocket = "@startuml\nclass ServerSocket {\n  + ServerSocket(port : int)\n  + accept() : Socket\n  + close() : void\n}\n@enduml";
+
+        public static string Socket = "@startuml\nclass Socket {\n  + Socket(host : String, port : int)\n  + readLine() : String\n  + write(s : String) : void\n  + close() : void\n}\n@enduml";
     }
 
     public static class AuxiliaryImplementations
@@ -124,6 +129,33 @@ namespace AbiturEliteCode.cs
                         public void Send(string cmd) { lastCommand = cmd; }
                         public char Receive() { return (char)0x06; }
                         public string GetLastCommand() { return lastCommand; }
+                    }",
+                "ServerSocket" => @"
+                    public class ServerSocket {
+                        public Socket MockSocket { get; set; } = new Socket();
+                        public ServerSocket(int port) {}
+                        public Socket Accept() {
+                            return MockSocket;
+                        }
+                        public void Close() {}
+                    }",
+                "Socket" => @"
+                    using System.Collections.Generic;
+                    public class Socket {
+                        private Queue<string> _inputs = new Queue<string>();
+                        public List<string> Outputs = new List<string>();
+                        
+                        public void SetTestInputs(string[] inputs) {
+                            foreach(var i in inputs) _inputs.Enqueue(i);
+                        }
+                        
+                        public string ReadLine() {
+                            if (_inputs.Count > 0) return _inputs.Dequeue();
+                            return null;
+                        }
+                        
+                        public void Write(string s) { Outputs.Add(s); }
+                        public void Close() {}
                     }",
                 _ => ""
             };
@@ -182,7 +214,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Prerequisites = new List<string>
                     {
                         "Defining a Class", "Fields", "Public Access Modifier", "Private Access Modifier",
-                        "Basic Types", "Strings", "Integers", "Default Constructors", "Parameterized Constructors"
+                        "Variables", "Strings", "Integers", "Default Constructors", "Parameterized Constructors"
                     }
                 },
                 new Level
@@ -315,7 +347,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "For-Each Loops", "If statements", "Comparison operators", "Returning Values"
+                        "For-Each Loops", "If statements", "Comparison operators", "Return values"
                     }
                 },
 
@@ -497,7 +529,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     AuxiliaryIds = new List<string> { "ListT", "Paket" },
                     Prerequisites = new List<string>
                     {
-                        "Sorting Lists", "Accessing List Elements", "Constructors"
+                        "Sorting Lists", "Accessing List Elements", "Default Constructors"
                     },
                     OptionalPrerequisites = new List<string>
                     {
@@ -539,7 +571,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "Creating Lists", "Constructors", "For-Each Loops", "If statements", "Doubles"
+                        "Creating Lists", "Parameterized Constructors", "For-Each Loops", "If statements", "Doubles"
                     }
                 },
                 new Level
@@ -678,7 +710,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     AuxiliaryIds = new List<string> { "LocalDate" },
                     Prerequisites = new List<string>
                     {
-                        "String Operations", "Arrays", "Type Conversion", "Switch Statements", "DateTime Basics"
+                        "Split", "Creating Arrays", "Parse Methods", "Switch statements", "DateTime Basics"
                     }
                 },
                 new Level
@@ -755,7 +787,7 @@ END.",
                     NoUMLAutoScale = true,
                     Prerequisites = new List<string>
                     {
-                        "While Loops", "Arrays", "Arithmetic Operators", "If statements"
+                        "While Loops", "Creating Arrays", "Addition", "The Modulo operator", "If statements"
                     }
                 },
                 new Level
@@ -804,7 +836,7 @@ END.",
                     AuxiliaryIds = new List<string> { "Serial", "FunkModul" },
                     Prerequisites = new List<string>
                     {
-                        "Static Fields", "While Loops", "Bitwise Operators", "Casting", "Object Interaction"
+                        "Static Fields", "While Loops", "Bitwise Operators", "Explicit Conversion (Casting)", "Object Interaction"
                     }
                 },
                 new Level
@@ -812,7 +844,7 @@ END.",
                     Id = 18,
                     Section = "Sektion 4: Kommunikation & Protokolle",
                     SkipCode = LevelCodes.CodesList[17],
-                    NextLevelCode = "",
+                    NextLevelCode = LevelCodes.CodesList[18],
                     Title = "Missions-Zentrale",
                     Description = "Abschlussprüfung Sektion 4: Objekt-Kollaboration und Zustandsverwaltung.\n\n" +
                                   "Die Kommunikation mit der Mars-Basis wurde um einen Wartungsdienst erweitert. " +
@@ -888,9 +920,59 @@ END.",
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "String Parsing", "Object Interaction", "State Management", "Integer Parsing"
+                        "Split", "Object Interaction", "State Management", "Parse Methods"
                     }
-                }
+                },
+                // --- SECTION 5 --- (no more get/set explicitly given through diagrams)
+                new Level
+                {
+                    Id = 19,
+                    Section = "Sektion 5: Client-Server Prinzip",
+                    SkipCode = LevelCodes.CodesList[18],
+                    NextLevelCode = "",
+                    Title = "Smart Home Hub (Verbindungsaufbau)",
+                    Description = "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
+                                  "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klasse [SmartHomeServer].\n" +
+                                  "2. Der Konstruktor initialisiert den Server auf dem übergebenen [port].\n" +
+                                  "3. Setzen Sie den Ablauf aus dem Sequenzdiagramm **exakt** in der Methode [StartServer()] um.\n\n" +
+                                  "Details zur Logik:\n" +
+                                  "• Der Server wartet auf **einen** Client ([Accept()]).\n" +
+                                  "• Er sendet eine Begrüßung (inklusive Zeilenumbruch [\\n]).\n" +
+                                  "• Er liest den Befehl des Clients.\n" +
+                                  "• Der Client sendet Befehle im Format: \"HELLO:DeviceName\".\n" +
+                                  "• Nutzen Sie die Methode [Substring], um die ID (alles ab dem Doppelpunkt) zu extrahieren.\n" +
+                                  "• Senden Sie eine Bestätigung (\"+ACK \" + id + \"\\n\") zurück und schließen Sie den Socket.",
+                    StarterCode = "public class SmartHomeServer\n{\n    private int port;\n    private ServerSocket server;\n\n    // Implementation\n}",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden. \n" +
+                                   "start-hint: Getter/Setter Anpassung\n" +
+                                   "Ab jetzt werden im UML-Klassendiagramm keine standardmäßigen Get-/Set-Methoden mehr angezeigt, " +
+                                   "es wird vorausgesetzt, dass Sie diese selbständig bei Notwendigkeit deklarieren. " +
+                                   "Bei Klassen die nicht implementiert werden sollen, stehen diese automatisch zur Verfügung.\n" +
+                                   ":end-hint\n" + 
+                                   "start-hint: Substring in C#\n" +
+                                   "In C# nutzen wir [Substring(index)] oder [Substring(index, laenge)], um einen neuen \"Unter-String\" (kleineren String) aus einem anderen zu erzeugen.\n\n" +
+                                   "Beispiel 1: [\"HELLO:Thermostat\".Substring(6)] überspringt die ersten 6 Zeichen (H,E,L,L,O,:) und liefert [\"Thermostat\"].\n\n" +
+                                   "Beispiel 2: [\"HELLO:Thermostat\".Substring(6, 6)] überspringt die ersten 6 Zeichen (H,E,L,L,O,:) und liefert die nächsten 6 [\"Thermo\"].\n" +
+                                   ":end-hint\n",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec5\\lvl19-1.svg",
+                        "img\\sec5\\lvl19-2.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
+                        "@startuml\nhide footbox\nparticipant \"server: SmartHomeServer\" as S\nparticipant \"ss: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n\")\nactivate CS\ndeactivate CS\nS -> CS : readLine()\nactivate CS\nCS --> S : befehl\ndeactivate CS\nnote right of S : id = befehl.substring(6)\nS -> CS : write(\"+ACK \" + id + \"\\n\")\nactivate CS\ndeactivate CS\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
+                    },
+                    NoUMLAutoScale = false,
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket" },
+                    Prerequisites = new List<string>
+                    {
+                        "String Manipulation", "Substrings", "Object Interaction", "Variables"
+                    }
+                },
             };
         }
     }

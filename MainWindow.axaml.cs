@@ -4602,12 +4602,15 @@ namespace AbiturEliteCode
                     {
                         chkSyntax.IsChecked = false;
                         chkVim.IsChecked = false;
+                        chkAutocomplete.IsChecked = false;
                     }
                     else
                     {
                         chkSyntax.IsChecked = false;
                         chkError.IsChecked = false;
+                        chkErrorExplain.IsChecked = false;
                         chkVim.IsChecked = false;
+                        chkAutocomplete.IsChecked = false;
                     }
 
                     chkPortable.IsChecked = false;
