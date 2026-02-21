@@ -40,6 +40,13 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 17 | `SEN` | Die Sicherheitsschleuse (Serielle Schnittstelle) |
 | 18 | `PRO` | Missions-Zentrale |
 
+## Sektion 5: Client-Server-Prinzip
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 19 | `NET` | Smart Home Hub (Verbindungsaufbau) |
+| 20 | `HUB` | Gerätesteuerung (Command-Parsing) |
+
 ---
 
 # SQL Levels

@@ -59,7 +59,7 @@ namespace AbiturEliteCode.cs
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
             "COM", "CHK", "SEN", "PRO",
-            "NET"
+            "NET", "HUB", ""
         };
     }
 
@@ -923,13 +923,14 @@ END.",
                         "Split", "Object Interaction", "State Management", "Parse Methods"
                     }
                 },
+
                 // --- SECTION 5 --- (no more get/set explicitly given through diagrams)
                 new Level
                 {
                     Id = 19,
-                    Section = "Sektion 5: Client-Server Prinzip",
+                    Section = "Sektion 5: Client-Server-Prinzip",
                     SkipCode = LevelCodes.CodesList[18],
-                    NextLevelCode = "",
+                    NextLevelCode = LevelCodes.CodesList[19],
                     Title = "Smart Home Hub (Verbindungsaufbau)",
                     Description = "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
                                   "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
@@ -940,21 +941,24 @@ END.",
                                   "Details zur Logik:\n" +
                                   "• Der Server wartet auf **einen** Client ([Accept()]).\n" +
                                   "• Er sendet eine Begrüßung (inklusive Zeilenumbruch [\\n]).\n" +
-                                  "• Er liest den Befehl des Clients.\n" +
-                                  "• Der Client sendet Befehle im Format: \"HELLO:DeviceName\".\n" +
-                                  "• Nutzen Sie die Methode [Substring], um die ID (alles ab dem Doppelpunkt) zu extrahieren.\n" +
-                                  "• Senden Sie eine Bestätigung (\"+ACK \" + id + \"\\n\") zurück und schließen Sie den Socket.",
-                    StarterCode = "public class SmartHomeServer\n{\n    private int port;\n    private ServerSocket server;\n\n    // Implementation\n}",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden. \n" +
+                                  "• Er liest Befehle des Clients in einer Schleife (loop), solange der Befehl nicht \"QUIT\" lautet.\n" +
+                                  "• Beginnt der Befehl mit \"HELLO:\", extrahieren Sie die ID (alles nach dem Doppelpunkt) mit [Substring] und senden ein \"+ACK \" + id + \"\\n\".\n" +
+                                  "• Ist es ein anderer Befehl (nicht QUIT), senden Sie \"+ERR unbekannt\\n\".\n" +
+                                  "• Schließen Sie den Socket am Ende der Methode.",
+                    StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
                                    "start-hint: Getter/Setter Anpassung\n" +
                                    "Ab jetzt werden im UML-Klassendiagramm keine standardmäßigen Get-/Set-Methoden mehr angezeigt, " +
                                    "es wird vorausgesetzt, dass Sie diese selbständig bei Notwendigkeit deklarieren. " +
-                                   "Bei Klassen die nicht implementiert werden sollen, stehen diese automatisch zur Verfügung.\n" +
-                                   ":end-hint\n" + 
+                                   "Bei Klassen, die nicht implementiert werden sollen, stehen diese automatisch zur Verfügung.\n" +
+                                   ":end-hint\n" +
                                    "start-hint: Substring in C#\n" +
                                    "In C# nutzen wir [Substring(index)] oder [Substring(index, laenge)], um einen neuen \"Unter-String\" (kleineren String) aus einem anderen zu erzeugen.\n\n" +
-                                   "Beispiel 1: [\"HELLO:Thermostat\".Substring(6)] überspringt die ersten 6 Zeichen (H,E,L,L,O,:) und liefert [\"Thermostat\"].\n\n" +
-                                   "Beispiel 2: [\"HELLO:Thermostat\".Substring(6, 6)] überspringt die ersten 6 Zeichen (H,E,L,L,O,:) und liefert die nächsten 6 [\"Thermo\"].\n" +
+                                   "Beispiel 1: [\"MSG:Error404\".Substring(4)] überspringt die ersten 4 Zeichen (M,S,G,:) und liefert [\"Error404\"].\n\n" +
+                                   "Beispiel 2: [\"MSG:Error404\".Substring(4, 5)] überspringt die ersten 4 Zeichen und liefert die nächsten 5 [\"Error\"].\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: String-Prüfung\n" +
+                                   "Mit [string.StartsWith(\"Text\")] kann geprüft werden, ob ein String mit einem bestimmten Text beginnt.\n" +
                                    ":end-hint\n",
                     DiagramPaths = new List<string>
                     {
@@ -964,13 +968,62 @@ END.",
                     PlantUMLSources = new List<string>
                     {
                         "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
-                        "@startuml\nhide footbox\nparticipant \"server: SmartHomeServer\" as S\nparticipant \"ss: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n\")\nactivate CS\ndeactivate CS\nS -> CS : readLine()\nactivate CS\nCS --> S : befehl\ndeactivate CS\nnote right of S : id = befehl.substring(6)\nS -> CS : write(\"+ACK \" + id + \"\\n\")\nactivate CS\ndeactivate CS\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"+ERR unbekannt\\n/\")\n    activate CS\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket" },
                     Prerequisites = new List<string>
                     {
-                        "String Manipulation", "Substrings", "Object Interaction", "Variables"
+                        "String Manipulation", "Substrings", "While Loops", "If statements", "Object Interaction", "Variables"
+                    }
+                },
+                new Level
+                {
+                    Id = 20,
+                    Section = "Sektion 5: Client-Server-Prinzip",
+                    SkipCode = LevelCodes.CodesList[19],
+                    NextLevelCode = LevelCodes.CodesList[20],
+                    Title = "Gerätesteuerung (Command-Parsing)",
+                    Description = "Der Smart Home Server muss nun Steuerbefehle für verbundene Geräte verarbeiten.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "1. Implementieren Sie die Klassen [Licht] und [SmartHomeServer].\n" +
+                                  "2. Der Server hält eine Liste von Lichtern. Fügen Sie im Konstruktor des Servers drei Lichter mit den Bezeichnungen 'A', 'B' und 'C' hinzu.\n" +
+                                  "3. Implementieren Sie die Methode [StartServer()], die auf Befehle wartet und diese verarbeitet.\n\n" +
+                                  "Protokoll-Spezifikation:\n" +
+                                  "• Client sendet: \"TOGGLE_LIGHT;|[ID|]\" (z.B. \"TOGGLE_LIGHT;A\").\n" +
+                                  "• Sicherheits-Check: Die ID darf nur ein einzelner Großbuchstabe (A-Z) sein. Nutzen Sie zur Validierung die ASCII-Werte des Zeichens (siehe ASCII-Tabelle).\n" +
+                                  "• Ist die ID ungültig, senden Sie \"-ERR ungültige ID\\n\".\n" +
+                                  "• Ist die ID gültig, durchsuchen Sie die Lichter. Wird das Licht gefunden, rufen Sie [Toggle()] auf und senden \"+OK\\n\".\n" +
+                                  "• Wird das Licht nicht gefunden, senden Sie \"-ERR Licht nicht gefunden\\n\".\n" +
+                                  "• Bei \"QUIT\" beendet sich die Schleife und der Socket wird geschlossen.",
+                    StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}\n\npublic class Licht\n{\n    // Implementation\n}",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
+                                   "start-hint: Getter/Setter Anpassung\n" +
+                                   "Denken Sie daran: Get-/Set-Methoden werden in den Diagrammen nicht mehr explizit angezeigt. Sie müssen diese bei Bedarf selbst hinzufügen.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: ASCII Validierung in C#\n" +
+                                   "Ein [char] kann in C# direkt in einen [int] gecastet werden, um den ASCII-Wert zu erhalten: [(int)idZeichen].\n" +
+                                   "Ein Großbuchstabe liegt in der ASCII-Tabelle zwischen 65 (A) und 90 (Z).\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: String zu Char\n" +
+                                   "Wenn Sie den String am Semikolon splitten, ist der zweite Teil (die ID) ein String. Um das erste Zeichen zu prüfen, nutzen Sie [idString|[0|]].\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec5\\lvl20-1.svg",
+                        "img\\sec5\\lvl20-2.svg",
+                        "img\\ascii-table.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nclass Licht {\n  - bezeichnung : char\n  - istAn : boolean\n  + Licht(bez : char)\n  + toggle()\n}\nSmartHomeServer x--> \"*\" Licht : -lichter\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\nparticipant \"licht: Licht\" as L\n\n-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  \n  alt befehl beginnt mit \"TOGGLE_LIGHT;\"\n    alt ASCII-Wert von ID zwischen 'A' und 'Z'\n      S -> S : suche Licht\n      alt Licht gefunden\n        S -> L : toggle()\n        activate L\n        deactivate L\n        S -> CS : write(\"+OK\\n/\")\n        activate CS\n        deactivate CS\n      else\n        S -> CS : write(\"-ERR Licht nicht gefunden\\n/\")\n      end\n    else\n      S -> CS : write(\"-ERR ungültige ID\\n/\")\n    end\n  end\nend\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
+                    },
+                    NoUMLAutoScale = false,
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "String Manipulation", "Split", "Explicit Conversion (Casting)", "ASCII Table", "Object Interaction"
                     }
                 },
             };

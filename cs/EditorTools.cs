@@ -8,7 +8,6 @@ using AvaloniaEdit.Highlighting.Xshd;
 using AvaloniaEdit.Rendering;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -133,6 +132,114 @@ namespace AbiturEliteCode
                         element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
                     });
                 }
+            }
+        }
+    }
+
+    public class EscapeSequenceTransformer : DocumentColorizingTransformer
+    {
+        private static readonly Regex EscapePatternInString = new Regex(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|['\\\0abfnrtvN])", RegexOptions.Compiled);
+        private static readonly Regex EscapePatternInChar = new Regex(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|[""\\\0abfnrtvN])", RegexOptions.Compiled);
+
+        private static readonly SolidColorBrush EscapeBrush = new SolidColorBrush(Color.Parse("#D7BA7D"));
+
+        protected override void ColorizeLine(DocumentLine line)
+        {
+            string text = CurrentContext.Document.GetText(line);
+            if (string.IsNullOrEmpty(text)) return;
+
+            int lineStart = line.Offset;
+
+            bool inLineComment = false;
+            bool inBlockComment = false;
+            bool inString = false;
+            bool inVerbatim = false; // @"..."
+            bool inChar = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+
+                // block comment
+                if (inBlockComment)
+                {
+                    if (c == '*' && i + 1 < text.Length && text[i + 1] == '/')
+                    { inBlockComment = false; i++; }
+                    continue;
+                }
+
+                // line comment
+                if (inLineComment) continue;
+
+                // inside a verbatim string: only "" is an escape
+                if (inVerbatim)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < text.Length && text[i + 1] == '"') { i++; } // "" → skip pair
+                        else { inVerbatim = false; }
+                    }
+                    continue; // no \ escapes in verbatim strings
+                }
+
+                // inside a regular string
+                if (inString)
+                {
+                    if (c == '\\')
+                    {
+                        // try to match an escape sequence starting at position i
+                        var m = EscapePatternInString.Match(text, i);
+                        if (m.Success && m.Index == i)
+                        {
+                            int absStart = lineStart + i;
+                            int absEnd = absStart + m.Length;
+                            ChangeLinePart(absStart, absEnd, el =>
+                                el.TextRunProperties.SetForegroundBrush(EscapeBrush));
+                            i += m.Length - 1;
+                        }
+                        else
+                        {
+                            i++; // skip the next char (unknown escape)
+                        }
+                        continue;
+                    }
+                    if (c == '"') { inString = false; }
+                    continue;
+                }
+
+                // inside a char literal
+                if (inChar)
+                {
+                    if (c == '\\')
+                    {
+                        var m = EscapePatternInChar.Match(text, i);
+                        if (m.Success && m.Index == i)
+                        {
+                            int absStart = lineStart + i;
+                            int absEnd = absStart + m.Length;
+                            ChangeLinePart(absStart, absEnd, el =>
+                                el.TextRunProperties.SetForegroundBrush(EscapeBrush));
+                            i += m.Length - 1;
+                        }
+                        else { i++; }
+                        continue;
+                    }
+                    if (c == '\'') { inChar = false; }
+                    continue;
+                }
+
+                // not inside any literal
+                if (c == '/' && i + 1 < text.Length)
+                {
+                    if (text[i + 1] == '/') { inLineComment = true; i++; continue; }
+                    if (text[i + 1] == '*') { inBlockComment = true; i++; continue; }
+                }
+
+                if (c == '@' && i + 1 < text.Length && text[i + 1] == '"')
+                { inVerbatim = true; i++; continue; }
+
+                if (c == '"') { inString = true; continue; }
+                if (c == '\'') { inChar = true; continue; }
             }
         }
     }
@@ -630,7 +737,7 @@ namespace AbiturEliteCode
             if (!_service.HasSuggestion) return -1;
 
             int caretOffset = _editor.CaretOffset;
-            
+
             if (caretOffset >= startOffset) // only generate if the caret is within the current visual line segment
             {
                 return caretOffset;
@@ -733,16 +840,10 @@ namespace AbiturEliteCode
         <Span color=""String"">
             <Begin>""</Begin>
             <End>""</End>
-            <RuleSet>
-                <Span begin=""\\"" end="".""/>
-            </RuleSet>
         </Span>
 		<Span color=""Char"">
 			<Begin>'</Begin>
 			<End>'</End>
-			<RuleSet>
-				<Span begin=""\\"" end="".""/>
-			</RuleSet>
 		</Span>
 		<Span color=""Preprocessor"">
 			<Begin>\#</Begin>
@@ -934,7 +1035,6 @@ namespace AbiturEliteCode
             <RuleSet>
                 <Span begin=""\{\{"" end=""""/>
                 <Span begin=""}}"" end=""""/>
-                <Span begin=""\\"" end="".""/>
                 <Span color=""Punctuation"">
                     <Begin>\{</Begin>
                     <End>}</End>

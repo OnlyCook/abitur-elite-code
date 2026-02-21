@@ -42,6 +42,8 @@ namespace AbiturEliteCode
         public static bool IsSqlVimEnabled { get; set; } = false;
         public static bool IsSyntaxHighlightingEnabled { get; set; } = false;
         public static bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
+        public static double EditorFontSize { get; set; } = 16.0;
+        public static double SqlEditorFontSize { get; set; } = 16.0;
         public static double UiScale { get; set; } = 1.0;
         public static bool IsAutocompleteEnabled { get; set; } = false;
         public static bool IsSqlAutocompleteEnabled { get; set; } = false;
@@ -68,6 +70,7 @@ namespace AbiturEliteCode
         private System.Threading.CancellationTokenSource? _compilationCts;
         private TextMarkerService _textMarkerService;
         private UnusedCodeTransformer _unusedCodeTransformer;
+        private EscapeSequenceTransformer _escapeSequenceTransformer;
         private SemanticClassHighlightingTransformer _semanticClassTransformer;
         private DispatcherTimer _diagnosticTimer;
         private GhostCharacterTransformer _ghostCharTransformer;
@@ -159,6 +162,8 @@ namespace AbiturEliteCode
             AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
             AppSettings.IsAutocompleteEnabled = playerData.Settings.IsAutocompleteEnabled;
             AppSettings.IsSqlAutocompleteEnabled = playerData.Settings.IsSqlAutocompleteEnabled;
+            AppSettings.EditorFontSize = playerData.Settings.EditorFontSize;
+            AppSettings.SqlEditorFontSize = playerData.Settings.SqlEditorFontSize;
             AppSettings.UiScale = playerData.Settings.UiScale;
 
             ApplyUiScale();
@@ -431,7 +436,7 @@ namespace AbiturEliteCode
             SqlQueryEditor.Options.HighlightCurrentLine = false;
 
             SqlQueryEditor.FontFamily = new FontFamily(MonospaceFontFamily);
-            SqlQueryEditor.FontSize = 16;
+            SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
             SqlQueryEditor.Background = Brushes.Transparent;
             SqlQueryEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
 
@@ -690,7 +695,7 @@ namespace AbiturEliteCode
             CodeEditor.Options.HighlightCurrentLine = false;
 
             CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
-            CodeEditor.FontSize = 16;
+            CodeEditor.FontSize = AppSettings.EditorFontSize;
             CodeEditor.Background = Brushes.Transparent;
             CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
 
@@ -705,6 +710,9 @@ namespace AbiturEliteCode
 
             _unusedCodeTransformer = new UnusedCodeTransformer();
             CodeEditor.TextArea.TextView.LineTransformers.Add(_unusedCodeTransformer);
+
+            _escapeSequenceTransformer = new EscapeSequenceTransformer();
+            CodeEditor.TextArea.TextView.LineTransformers.Add(_escapeSequenceTransformer);
 
             _semanticClassTransformer = new SemanticClassHighlightingTransformer();
             CodeEditor.TextArea.TextView.LineTransformers.Add(_semanticClassTransformer);
@@ -1182,6 +1190,8 @@ namespace AbiturEliteCode
                 playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
                 playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
                 playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
+                playerData.Settings.EditorFontSize = AppSettings.EditorFontSize;
+                playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
                 playerData.Settings.UiScale = AppSettings.UiScale;
 
                 SaveSystem.Save(playerData);
@@ -4348,6 +4358,8 @@ namespace AbiturEliteCode
             bool originalSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
             bool originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
             bool originalErrorExplanation = AppSettings.IsErrorExplanationEnabled;
+            double originalEditorFontSize = AppSettings.EditorFontSize;
+            double originalSqlFontSize = AppSettings.SqlEditorFontSize;
             double originalUiScale = AppSettings.UiScale;
             bool isPortable = SaveSystem.IsPortableModeEnabled();
             bool originalPortableState = isPortable;
@@ -4520,6 +4532,28 @@ namespace AbiturEliteCode
             };
             var txtScaleVal = new TextBlock { Text = $"{AppSettings.UiScale:P0}", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
 
+            // editor font size
+            var sliderFontSize = new Slider
+            {
+                Minimum = 8,
+                Maximum = 48,
+                Value = AppSettings.EditorFontSize,
+                Width = 200,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            var txtFontSizeVal = new TextBlock { Text = $"{AppSettings.EditorFontSize:F0}px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+
+            // sql font size
+            var sliderSqlFontSize = new Slider
+            {
+                Minimum = 8,
+                Maximum = 48,
+                Value = AppSettings.SqlEditorFontSize,
+                Width = 200,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            var txtSqlFontSizeVal = new TextBlock { Text = $"{AppSettings.SqlEditorFontSize:F0}px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+
             // data settings
             var chkPortable = new CheckBox
             {
@@ -4558,6 +4592,8 @@ namespace AbiturEliteCode
                     (_isSqlMode && chkAutocomplete.IsChecked != originalSqlAutocompleteEnabled) ||
                     (chkError.IsChecked != originalErrorEnabled) ||
                     (chkErrorExplain.IsChecked != originalErrorExplanation) ||
+                    (Math.Abs(sliderFontSize.Value - originalEditorFontSize) > 0.004) ||
+                    (Math.Abs(sliderSqlFontSize.Value - originalSqlFontSize) > 0.004) ||
                     (chkPortable.IsChecked != isPortable) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
@@ -4613,6 +4649,8 @@ namespace AbiturEliteCode
                         chkAutocomplete.IsChecked = false;
                     }
 
+                    sliderFontSize.Value = 16.0;
+                    sliderSqlFontSize.Value = 16.0;
                     chkPortable.IsChecked = false;
                     sliderScale.Value = 1.0;
 
@@ -4735,6 +4773,22 @@ namespace AbiturEliteCode
                 CheckChanges();
             };
 
+            sliderFontSize.ValueChanged += (s, ev) =>
+            {
+                AppSettings.EditorFontSize = ev.NewValue;
+                txtFontSizeVal.Text = $"{ev.NewValue:F0}px";
+                CodeEditor.FontSize = ev.NewValue;
+                CheckChanges();
+            };
+
+            sliderSqlFontSize.ValueChanged += (s, ev) =>
+            {
+                AppSettings.SqlEditorFontSize = ev.NewValue;
+                txtSqlFontSizeVal.Text = $"{ev.NewValue:F0}px";
+                SqlQueryEditor.FontSize = ev.NewValue;
+                CheckChanges();
+            };
+
             // --- LAYOUT ASSEMBLY ---
 
             // editor
@@ -4750,11 +4804,22 @@ namespace AbiturEliteCode
             // display
             var displaySettings = new StackPanel { Spacing = 15 };
             var scalePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            var fontPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            fontPanel.Children.Add(sliderFontSize);
+            fontPanel.Children.Add(txtFontSizeVal);
+            var sqlFontPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            sqlFontPanel.Children.Add(sliderSqlFontSize);
+            sqlFontPanel.Children.Add(txtSqlFontSizeVal);
+
             scalePanel.Children.Add(sliderScale);
             scalePanel.Children.Add(txtScaleVal);
             displaySettings.Children.Add(new TextBlock { Text = "Darstellung", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
             displaySettings.Children.Add(new TextBlock { Text = "UI Skalierung", Foreground = Brushes.LightGray });
             displaySettings.Children.Add(scalePanel);
+            displaySettings.Children.Add(new TextBlock { Text = "C# Editor Schriftgröße", Foreground = Brushes.LightGray });
+            displaySettings.Children.Add(fontPanel);
+            displaySettings.Children.Add(new TextBlock { Text = "SQL Editor Schriftgröße", Foreground = Brushes.LightGray });
+            displaySettings.Children.Add(sqlFontPanel);
 
             // data
             var dataSettingsPanel = new StackPanel { Spacing = 15 };
@@ -4806,6 +4871,8 @@ namespace AbiturEliteCode
                 playerData.Settings.IsSqlSyntaxHighlightingEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
                 playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
                 playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
+                playerData.Settings.EditorFontSize = AppSettings.EditorFontSize;
+                playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
                 playerData.Settings.UiScale = AppSettings.UiScale;
 
                 SaveSystem.Save(playerData);
@@ -4908,6 +4975,10 @@ namespace AbiturEliteCode
                     AppSettings.IsSqlAutocompleteEnabled = originalSqlAutocompleteEnabled;
                     AppSettings.IsErrorHighlightingEnabled = originalErrorEnabled;
                     AppSettings.IsErrorExplanationEnabled = originalErrorExplanation;
+                    AppSettings.EditorFontSize = originalEditorFontSize;
+                    AppSettings.SqlEditorFontSize = originalSqlFontSize;
+                    CodeEditor.FontSize = originalEditorFontSize;
+                    SqlQueryEditor.FontSize = originalSqlFontSize;
                     AppSettings.UiScale = originalUiScale;
 
                     UpdateVimState();

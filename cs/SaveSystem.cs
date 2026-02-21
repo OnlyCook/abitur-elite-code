@@ -11,6 +11,8 @@ public class PlayerSettings
     public bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
     public bool IsAutocompleteEnabled { get; set; } = false;
     public bool IsSqlAutocompleteEnabled { get; set; } = false;
+    public double EditorFontSize { get; set; } = 16.0;
+    public double SqlEditorFontSize { get; set; } = 16.0;
     public double UiScale { get; set; } = 1.0;
     public int TabTipShownCount { get; set; } = 0;
 }
@@ -112,7 +114,7 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -170,6 +172,8 @@ public static class SaveSystem
                     else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "sqlautocomplete") data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]);
                     else if (kv[0] == "autocomplete") data.Settings.IsAutocompleteEnabled = bool.Parse(kv[1]);
+                    else if (kv[0] == "fontsize") data.Settings.EditorFontSize = double.Parse(kv[1]);
+                    else if (kv[0] == "sqlfontsize") data.Settings.SqlEditorFontSize = double.Parse(kv[1]);
                     else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
                     else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]);
                 }

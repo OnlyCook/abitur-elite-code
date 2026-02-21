@@ -46,6 +46,7 @@ namespace AbiturEliteCode.cs
                     17 => TestLevel17(assembly, sourceCode, out feedback),
                     18 => TestLevel18(assembly, out feedback),
                     19 => TestLevel19(assembly, out feedback),
+                    20 => TestLevel20(assembly, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -1311,38 +1312,55 @@ namespace AbiturEliteCode.cs
             if (tServerSocket == null) throw new Exception("Hilfsklasse 'ServerSocket' fehlt.");
             if (tSocket == null) throw new Exception("Hilfsklasse 'Socket' fehlt.");
 
+            int testPort = 54321;
             ConstructorInfo ctorServer = tServer.GetConstructor(new[] { typeof(int) });
             if (ctorServer == null) throw new Exception("Konstruktor SmartHomeServer(int port) fehlt.");
 
             object serverObj = null;
             try
             {
-                serverObj = ctorServer.Invoke(new object[] { 8080 });
+                serverObj = ctorServer.Invoke(new object[] { testPort });
             }
             catch (Exception ex)
             {
                 throw new Exception($"Fehler im Konstruktor von SmartHomeServer: {ex.InnerException?.Message ?? ex.Message}");
             }
 
+            // validate attributes
+            FieldInfo fPort = tServer.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fPort == null) throw new Exception("Das private Feld 'port' (int) fehlt in der Klasse SmartHomeServer.");
+
+            int portVal = (int)fPort.GetValue(serverObj);
+            if (portVal != testPort)
+                throw new Exception($"Das Attribut 'port' wurde im Konstruktor nicht korrekt zugewiesen. Erwartet: {testPort}, Gefunden: {portVal}");
+
+            // validate ServerSocket init
             FieldInfo fServer = tServer.GetField("server", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fServer == null) throw new Exception("Das private Feld 'server' (vom Typ ServerSocket) fehlt.");
+            if (fServer == null) throw new Exception("Das private Feld 'server' (ServerSocket) fehlt.");
 
             object serverSocketObj = fServer.GetValue(serverObj);
-            if (serverSocketObj == null) throw new Exception("Das Feld 'server' wurde im Konstruktor nicht initialisiert. Erwartet: server = new ServerSocket(port);");
+            if (serverSocketObj == null)
+                throw new Exception("Das Feld 'server' wurde im Konstruktor nicht initialisiert.");
+
+            FieldInfo fSsPort = tServerSocket.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fSsPort != null)
+            {
+                int ssPortVal = (int)fSsPort.GetValue(serverSocketObj);
+                if (ssPortVal != testPort)
+                    throw new Exception($"Der 'ServerSocket' wurde mit dem falschen Port initialisiert. Erwartet: {testPort}, Gefunden: {ssPortVal}. Stellen Sie sicher, dass Sie den Parameter 'port' an den Konstruktor von ServerSocket übergeben.");
+            }
 
             MethodInfo mStart = tServer.GetMethod("StartServer") ?? tServer.GetMethod("startServer");
             if (mStart == null) throw new Exception("Methode 'StartServer()' fehlt.");
 
             // mock data setup
             PropertyInfo pMockSocket = tServerSocket.GetProperty("MockSocket");
-            if (pMockSocket == null) throw new Exception("Interner Fehler: MockSocket Property fehlt auf ServerSocket.");
-
             object mockClientSocket = pMockSocket.GetValue(serverSocketObj);
             MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
 
-            // simulated client command
-            string testDeviceId = "Thermostat_Wohnzimmer";
-            mSetInputs.Invoke(mockClientSocket, new object[] { new string[] { $"HELLO:{testDeviceId}" } });
+            // simulated client commands testing loop and alt branches
+            string testDeviceId = "Thermostat_Bad";
+            mSetInputs.Invoke(mockClientSocket, new object[] { new string[] { $"HELLO:{testDeviceId}", "STATUS_CHECK", "QUIT" } });
 
             // run StartServer (with timeout as precaution against infinite loop)
             try
@@ -1356,35 +1374,172 @@ namespace AbiturEliteCode.cs
 
             // output validation
             FieldInfo fOutputs = tSocket.GetField("Outputs");
-            if (fOutputs == null) throw new Exception("Interner Fehler: Outputs-Feld im Mock-Socket fehlt.");
-
             List<string> outputs = (List<string>)fOutputs.GetValue(mockClientSocket);
 
             if (outputs.Count == 0)
                 throw new Exception("Der Server hat keine Antworten (write) an den Client gesendet.");
 
-            if (outputs.Count < 2)
-                throw new Exception("Der Server hat zu wenige Antworten gesendet. Erwartet werden die Begrüßung und das ACK.");
+            if (outputs.Count < 3)
+                throw new Exception("Der Server hat zu wenige Antworten gesendet. Haben Sie eine Schleife implementiert, die solange liest, bis 'QUIT' empfangen wird?");
 
             string greeting = outputs[0];
             string ack = outputs[1];
+            string err = outputs[2];
 
-            if (!greeting.Contains("+OK Smart Home Hub"))
-                throw new Exception($"Die Begrüßungsnachricht ist inkorrekt. Erhalten: \"{greeting}\", Erwartet: \"+OK Smart Home Hub\\n\"");
-
-            if (!greeting.EndsWith("\n"))
-                throw new Exception("Vergessen Sie nicht den Zeilenumbruch (\\n) am Ende der Begrüßungsnachricht.");
+            if (!greeting.Contains("+OK Smart Home Hub") || !greeting.EndsWith("\n"))
+                throw new Exception("Die Begrüßungsnachricht ist inkorrekt oder der Zeilenumbruch fehlt.");
 
             string expectedAck = $"+ACK {testDeviceId}\n";
             if (ack != expectedAck)
             {
                 if (ack.Contains("HELLO:"))
-                    throw new Exception("Fehler bei der Substring-Extraktion. Die ID enthält noch das 'HELLO:'. Substring(6) verwenden!");
-
-                throw new Exception($"Das ACK-Protokoll ist inkorrekt formatiert. Erhalten: \"{ack}\", Erwartet: \"{expectedAck}\"");
+                    throw new Exception("Fehler bei der Substring-Extraktion. Die ID enthält noch das 'HELLO:'. Nutzen Sie Substring(6)!");
+                throw new Exception($"Das ACK-Protokoll ist inkorrekt. Erhalten: \"{ack.Trim()}\", Erwartet: \"{expectedAck.Trim()}\"");
             }
 
-            feedback = "Klasse! Sektion 5 erfolgreich gestartet. Das Sequenzdiagramm wurde exakt in Code übersetzt und Strings korrekt manipuliert.";
+            if (!err.Contains("+ERR unbekannt"))
+                throw new Exception("Unbekannte Befehle (außer QUIT) müssen mit '+ERR unbekannt\\n' beantwortet werden.");
+
+            feedback = "Hervorragend! Sie haben die Port-Initialisierung korrekt umgesetzt und die Befehlsverarbeitung erfolgreich in einer Schleife mit Fallunterscheidung implementiert.";
+            return true;
+        }
+
+        private static bool TestLevel20(Assembly assembly, out string feedback)
+        {
+            Type tServer = assembly.GetType("SmartHomeServer");
+            Type tLicht = assembly.GetType("Licht");
+            Type tServerSocket = assembly.GetType("ServerSocket");
+            Type tSocket = assembly.GetType("Socket");
+
+            if (tServer == null) throw new Exception("Klasse 'SmartHomeServer' fehlt.");
+            if (tLicht == null) throw new Exception("Klasse 'Licht' fehlt.");
+
+            // check Licht
+            ConstructorInfo ctorLicht = tLicht.GetConstructor(new[] { typeof(char) });
+            if (ctorLicht == null) throw new Exception("Konstruktor Licht(char bez) fehlt.");
+
+            object lichtObj = ctorLicht.Invoke(new object[] { 'A' });
+            FieldInfo fIstAn = tLicht.GetField("istAn", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fIstAn == null) throw new Exception("Feld 'istAn' in der Klasse Licht fehlt.");
+
+            MethodInfo mToggle = tLicht.GetMethod("Toggle") ?? tLicht.GetMethod("toggle");
+            if (mToggle == null) throw new Exception("Methode 'Toggle()' in Licht fehlt.");
+
+            bool initialState = (bool)fIstAn.GetValue(lichtObj);
+            mToggle.Invoke(lichtObj, null);
+            bool toggledState = (bool)fIstAn.GetValue(lichtObj);
+
+            if (initialState == toggledState) throw new Exception("Die Methode 'Toggle()' ändert den Zustand von 'istAn' nicht.");
+
+            // check SmartHomeServer
+            int testPort = 8080;
+            ConstructorInfo ctorServer = tServer.GetConstructor(new[] { typeof(int) });
+            if (ctorServer == null) throw new Exception("Konstruktor SmartHomeServer(int port) fehlt.");
+
+            object serverObj = null;
+            try
+            {
+                serverObj = ctorServer.Invoke(new object[] { testPort });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler im Konstruktor von SmartHomeServer: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            // check port assignment
+            FieldInfo fPort = tServer.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fPort == null) throw new Exception("Feld 'port' in SmartHomeServer fehlt.");
+            if ((int)fPort.GetValue(serverObj) != testPort)
+                throw new Exception($"Das Attribut 'port' wurde im Konstruktor nicht zugewiesen. Erwartet: {testPort}.");
+
+            // check if lichter were added in the constructor and are exactly A, B, C
+            FieldInfo fLichter = tServer.GetField("lichter", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fLichter == null) throw new Exception("Feld 'lichter' (List<Licht>) fehlt in SmartHomeServer.");
+
+            IList lichterList = fLichter.GetValue(serverObj) as IList;
+            if (lichterList == null || lichterList.Count != 3)
+            {
+                throw new Exception("Die Liste 'lichter' muss im Konstruktor initialisiert und mit exakt drei Lichtern ('A', 'B', 'C') befüllt werden.");
+            }
+
+            MethodInfo mGetBez = tLicht.GetMethod("GetBezeichnung") ?? tLicht.GetMethod("getBezeichnung");
+            if (mGetBez == null) throw new Exception("Methode GetBezeichnung in Licht fehlt.");
+
+            List<char> bezList = new List<char>();
+            foreach (object licht in lichterList)
+            {
+                bezList.Add((char)mGetBez.Invoke(licht, null));
+            }
+
+            if (!bezList.Contains('A') || !bezList.Contains('B') || !bezList.Contains('C'))
+            {
+                throw new Exception("Die Liste 'lichter' muss exakt die Lichter mit den Bezeichnungen 'A', 'B' und 'C' enthalten.");
+            }
+
+            // check server socket initialization with correct port
+            FieldInfo fServer = tServer.GetField("server", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fServer == null) throw new Exception("Feld 'server' (ServerSocket) fehlt in SmartHomeServer.");
+            object serverSocketObj = fServer.GetValue(serverObj);
+            if (serverSocketObj == null) throw new Exception("ServerSocket wurde im Konstruktor nicht initialisiert.");
+
+            FieldInfo fSsPort = tServerSocket.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fSsPort != null && (int)fSsPort.GetValue(serverSocketObj) != testPort)
+            {
+                throw new Exception($"Der 'ServerSocket' wurde mit dem falschen Port initialisiert. Stellen Sie sicher, dass 'server = new ServerSocket(port);' genutzt wird.");
+            }
+
+            MethodInfo mStart = tServer.GetMethod("StartServer") ?? tServer.GetMethod("startServer");
+            if (mStart == null) throw new Exception("Methode 'StartServer()' fehlt.");
+
+            // setup mocks and simulate socket sonnection
+            PropertyInfo pMockSocket = tServerSocket.GetProperty("MockSocket");
+            object mockClientSocket = pMockSocket.GetValue(serverSocketObj);
+            MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
+
+            string[] commands = new string[]
+            {
+                "TOGGLE_LIGHT;B", // valid command
+                "TOGGLE_LIGHT;a", // invalid id (lowercase 'a' -> fails ascii validation)
+                "TOGGLE_LIGHT;#", // invalid id (symbol '#' -> fails ascii validation)
+                "TOGGLE_LIGHT;X", // valid ascii but light doesnt exist ('X')
+                "QUIT"
+            };
+            mSetInputs.Invoke(mockClientSocket, new object[] { commands });
+
+            try
+            {
+                InvokeWithTimeout(mStart, serverObj, null, 1500);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler bei der Ausführung von StartServer(): {ex.Message}");
+            }
+
+            FieldInfo fOutputs = tSocket.GetField("Outputs");
+            List<string> outputs = (List<string>)fOutputs.GetValue(mockClientSocket);
+
+            if (outputs.Count < 4)
+                throw new Exception("Der Server hat nicht auf alle Befehle (außer QUIT) geantwortet.");
+
+            string okResp = outputs[0].Trim();
+            string lowerCaseErrResp = outputs[1].Trim();
+            string symbolErrResp = outputs[2].Trim();
+            string notFoundResp = outputs[3].Trim();
+
+            if (okResp != "+OK")
+                throw new Exception($"Erwartete Antwort '+OK' für gültiges Licht 'B', aber erhalten: '{okResp}'.");
+
+            // check for misaligned else blocks (common when converting sequence diagrams)
+            if (lowerCaseErrResp == "-ERR Licht nicht gefunden" || symbolErrResp == "-ERR Licht nicht gefunden")
+                throw new Exception("Es wird eine falsche Fehlermeldung bei ungültigen IDs ausgegeben. Prüfen Sie die Schachtelung und Zuordnung Ihrer if-else-Blöcke (welches 'else' gehört zu welchem 'if'?).");
+
+            if (lowerCaseErrResp != "-ERR ungültige ID" || symbolErrResp != "-ERR ungültige ID")
+                throw new Exception("Die Validierung der ID funktioniert nicht korrekt. Stellen Sie sicher, dass nur Großbuchstaben (A-Z) akzeptiert werden.");
+
+            if (notFoundResp != "-ERR Licht nicht gefunden")
+                throw new Exception($"Wenn ein gültiges Licht nicht in der Liste existiert, muss '-ERR Licht nicht gefunden' gesendet werden. Erhalten: '{notFoundResp}'.");
+
+            feedback = "Perfekt! Sie haben die Gerätesteuerung, die ASCII-Validierung und das Sequenzdiagramm fehlerfrei implementiert.";
             return true;
         }
     }
