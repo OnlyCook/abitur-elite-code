@@ -503,6 +503,14 @@ namespace AbiturEliteCode
                 return;
             }
 
+            // ctrl/cmd + shift + z => redo
+            if (e.Key == Key.Z && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                SqlQueryEditor.Redo();
+                e.Handled = true;
+                return;
+            }
+
             // ctrl + s => save
             if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
             {
@@ -854,6 +862,14 @@ namespace AbiturEliteCode
             {
                 _csharpAutocompleteService.ClearSuggestion();
                 CodeEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
+                return;
+            }
+
+            // ctrl/cmd + shift + z => redo
+            if (e.Key == Key.Z && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                CodeEditor.Redo();
                 e.Handled = true;
                 return;
             }
@@ -1782,6 +1798,7 @@ namespace AbiturEliteCode
             if (level.AuxiliaryIds != null && level.AuxiliaryIds.Count > 0)
             {
                 bool headerAdded = false;
+                WrapPanel auxWrapPanel = null;
 
                 foreach (var auxId in level.AuxiliaryIds)
                 {
@@ -1803,16 +1820,21 @@ namespace AbiturEliteCode
                                     Margin = new Thickness(0, 0, 0, 5)
                                 }
                             );
+                            auxWrapPanel = new WrapPanel
+                            {
+                                Orientation = Orientation.Horizontal
+                            };
+                            PnlMaterials.Children.Add(auxWrapPanel);
                             headerAdded = true;
                         }
 
-                        PnlMaterials.Children.Add(
+                        auxWrapPanel.Children.Add(
                             new Image
                             {
                                 Source = auxImage,
                                 Height = 150,
                                 Stretch = Stretch.Uniform,
-                                Margin = new Thickness(0, 0, 0, 15),
+                                Margin = new Thickness(0, 0, 15, 15),
                                 HorizontalAlignment = HorizontalAlignment.Left
                             }
                         );
@@ -1834,6 +1856,12 @@ namespace AbiturEliteCode
                     }
                 );
 
+                var matWrapPanel = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+                PnlMaterials.Children.Add(matWrapPanel);
+
                 for (int i = 0; i < svgsToRender.Count; i++)
                 {
                     var svgContent = svgsToRender[i];
@@ -1847,7 +1875,7 @@ namespace AbiturEliteCode
                             Background = SolidColorBrush.Parse("#1A1A1A"),
                             CornerRadius = new CornerRadius(6),
                             Padding = new Thickness(10),
-                            Margin = new Thickness(0, 0, 0, 15),
+                            Margin = new Thickness(0, 0, 15, 15),
                             Child = new Image
                             {
                                 Source = img,
@@ -1856,7 +1884,7 @@ namespace AbiturEliteCode
                                 HorizontalAlignment = HorizontalAlignment.Left
                             }
                         };
-                        PnlMaterials.Children.Add(border);
+                        matWrapPanel.Children.Add(border);
                     }
                 }
             }
@@ -2453,8 +2481,6 @@ namespace AbiturEliteCode
 
         private void ProcessTestResult(Level levelContext, dynamic result, TimeSpan duration)
         {
-            TxtConsole.Inlines?.Clear();
-
             if (result.Success)
             {
                 AddToConsole($"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n", Brushes.LightGreen);
@@ -2546,7 +2572,6 @@ namespace AbiturEliteCode
                 string msg = result.Error != null
                         ? (result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message)
                         : "Unbekannter Fehler";
-                TxtConsole.Text = "";
                 AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
             }
         }

@@ -268,6 +268,9 @@ namespace AbiturEliteCode
                     // apply opacity to the single character at the caret position
                     ChangeLinePart(offset, offset + 1, element =>
                     {
+                        // skip autocompletion
+                        if (element is GhostTextElement || element.DocumentLength == 0) return;
+
                         element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#66D4D4D4")));
                     });
                 }
@@ -463,9 +466,32 @@ namespace AbiturEliteCode
             if (offset < 0 || offset >= _editor.Document.TextLength) return; // safety
 
             var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, new TextSegment { StartOffset = offset, Length = 1 });
+
+            double charWidth = textView.WideSpaceWidth;
+            if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2;
+
             foreach (var rect in rects)
             {
-                ctx.DrawRectangle(_highlightBrush, _highlightPen, rect);
+                var adjustedRect = rect;
+
+                // check if the rectangle is wider than a single character due to ghost text
+                if (rect.Width > charWidth * 1.5)
+                {
+                    if (offset == _editor.CaretOffset) // before
+                    {
+                        adjustedRect = new Rect(rect.Right - charWidth, rect.Y, charWidth, rect.Height);
+                    }
+                    else if (offset + 1 == _editor.CaretOffset) // after
+                    {
+                        adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
+                    }
+                    else // fallback
+                    {
+                        adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
+                    }
+                }
+
+                ctx.DrawRectangle(_highlightBrush, _highlightPen, adjustedRect);
             }
         }
 
@@ -787,7 +813,7 @@ namespace AbiturEliteCode
 <SyntaxDefinition name=""C# Dark"" extensions="".cs"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
 	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""// comment"" />
 	<Color name=""String"" foreground=""#CE9178"" exampleText=""string text = &quot;Hello&quot;"" />
-	<Color name=""Char"" foreground=""#D7BA7D"" exampleText=""char linefeed = '\n';"" />
+    <Color name=""Char"" foreground=""#CE9178"" exampleText=""char linefeed = '\n';"" />
 	<Color name=""Preprocessor"" foreground=""#9B9B9B"" exampleText=""#region Title"" />
 	<Color name=""Punctuation"" foreground=""#D4D4D4"" exampleText=""a(b.c);"" />
 	<Color name=""ValueTypeKeywords"" foreground=""#569CD6"" exampleText=""bool b = true;"" />
@@ -1068,16 +1094,106 @@ namespace AbiturEliteCode
 
             int lineStart = line.Offset;
 
-            // match potential class names
+            var safeRanges = new List<(int start, int end)>();
+            bool inString = false;
+            bool inInterpolated = false;
+            bool inChar = false;
+            int interpolationDepth = 0;
+            int safeStart = 0;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                // handle interpolation
+                if (inInterpolated && text[i] == '{')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '{') { i++; continue; } // Skip {{
+                    interpolationDepth++;
+                    safeStart = i + 1;
+                    continue;
+                }
+                if (inInterpolated && interpolationDepth > 0 && text[i] == '}')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '}') { i++; continue; } // Skip }}
+                    safeRanges.Add((safeStart, i));
+                    interpolationDepth--;
+                    continue;
+                }
+
+                if (interpolationDepth > 0) continue;
+
+                if (inString || inInterpolated)
+                {
+                    if (text[i] == '"' && (i == 0 || text[i - 1] != '\\'))
+                    {
+                        inString = false;
+                        inInterpolated = false;
+                        safeStart = i + 1;
+                    }
+                    continue;
+                }
+
+                if (inChar)
+                {
+                    if (text[i] == '\'' && (i == 0 || text[i - 1] != '\\'))
+                    {
+                        inChar = false;
+                        safeStart = i + 1;
+                    }
+                    continue;
+                }
+
+                // line comments
+                if (text[i] == '/' && i + 1 < text.Length && text[i + 1] == '/')
+                {
+                    safeRanges.Add((safeStart, i));
+                    safeStart = text.Length;
+                    break;
+                }
+
+                // string starts
+                if (text[i] == '$' && i + 1 < text.Length && text[i + 1] == '"')
+                {
+                    safeRanges.Add((safeStart, i));
+                    inInterpolated = true;
+                    i++; // skip "
+                }
+                else if (text[i] == '"')
+                {
+                    safeRanges.Add((safeStart, i));
+                    inString = true;
+                }
+                else if (text[i] == '\'')
+                {
+                    safeRanges.Add((safeStart, i));
+                    inChar = true;
+                }
+            }
+
+            if (safeStart < text.Length) safeRanges.Add((safeStart, text.Length));
+
+            // finds class, struct, record, interface, enum names
             var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
             foreach (Match match in matches)
             {
                 if (KnownClasses.Contains(match.Value))
                 {
-                    ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length, element =>
+                    bool isSafe = false;
+                    foreach (var range in safeRanges)
                     {
-                        element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#4EC9B0")));
-                    });
+                        if (match.Index >= range.start && (match.Index + match.Length) <= range.end)
+                        {
+                            isSafe = true;
+                            break;
+                        }
+                    }
+
+                    if (isSafe)
+                    {
+                        ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length, element =>
+                        {
+                            element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#4EC9B0")));
+                        });
+                    }
                 }
             }
         }
