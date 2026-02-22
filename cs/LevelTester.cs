@@ -48,6 +48,7 @@ namespace AbiturEliteCode.cs
                     19 => TestLevel19(assembly, out feedback),
                     20 => TestLevel20(assembly, out feedback),
                     21 => TestLevel21(assembly, sourceCode, out feedback),
+                    22 => TestLevel22(assembly, sourceCode, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -1675,6 +1676,173 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Die generierte Zufallszahl ({tokenValue}) liegt nicht im geforderten Bereich (0 bis 9999). Nutzen Sie NextInt(10000).");
 
             feedback = "Klasse! Sie haben das Multi-User-Konzept erfolgreich verinnerlicht, Threading-Klassen korrekt abgeleitet und den ServerThread implementiert.";
+            return true;
+        }
+
+        private static bool TestLevel22(Assembly assembly, string sourceCode, out string feedback)
+        {
+            Type tServer = assembly.GetType("SicherheitsServer");
+            Type tThread = assembly.GetType("SicherheitsThread");
+            Type tZentrale = assembly.GetType("SicherheitsZentrale");
+            Type tSocket = assembly.GetType("Socket");
+            Type tThreadBase = assembly.GetType("Thread");
+
+            if (tServer == null || tThread == null)
+                throw new Exception("Es wurden nicht alle geforderten Klassen implementiert. Prüfen Sie das Diagramm.");
+
+            // check SicherheitsServer constructor
+            ConstructorInfo ctorServer = tServer.GetConstructor(new[] { typeof(int), tZentrale });
+            if (ctorServer == null)
+                throw new Exception("Der Konstruktor von SicherheitsServer entspricht nicht den Vorgaben im UML-Diagramm.");
+
+            object testZentrale = Activator.CreateInstance(tZentrale);
+            int testPort = 8080;
+            object serverObj = null;
+            try
+            {
+                serverObj = ctorServer.Invoke(new object[] { testPort, testZentrale });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler im Konstruktor von SicherheitsServer: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            FieldInfo fPort = tServer.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fZentrale = tServer.GetField("zentrale", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fServerSocket = tServer.GetField("serverSocket", BindingFlags.NonPublic | BindingFlags.Instance) ?? tServer.GetField("server", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            bool isServerValid = true;
+            if (fPort == null || (int)fPort.GetValue(serverObj) != testPort) isServerValid = false;
+            if (fZentrale == null || fZentrale.GetValue(serverObj) != testZentrale) isServerValid = false;
+            if (fServerSocket == null || fServerSocket.GetValue(serverObj) == null) isServerValid = false;
+            else
+            {
+                Type tServerSocketTest = assembly.GetType("ServerSocket");
+                FieldInfo fSsPort = tServerSocketTest.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (fSsPort != null && (int)fSsPort.GetValue(fServerSocket.GetValue(serverObj)) != testPort) isServerValid = false;
+            }
+
+            if (!isServerValid)
+                throw new Exception("Der Konstruktor von SicherheitsServer initialisiert die Attribute oder Objekte nicht korrekt. Prüfen Sie das Klassendiagramm und Ihre Zuweisungen sorgfältig.");
+
+            if (!tThread.IsSubclassOf(tThreadBase))
+                throw new Exception("Die Klasse SicherheitsThread erbt nicht korrekt von Thread.");
+
+            ConstructorInfo ctorThread = tThread.GetConstructor(new[] { tSocket, tZentrale });
+            if (ctorThread == null)
+                throw new Exception("Der Konstruktor von SicherheitsThread entspricht nicht den Vorgaben im UML-Diagramm.");
+
+            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance);
+            if (mRun == null || mRun.DeclaringType != tThread)
+                throw new Exception("Die Methode Run() wurde nicht korrekt überschrieben.");
+
+            MethodInfo mVergleiche = tThread.GetMethod("VergleicheZugangsdaten", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance) ?? tThread.GetMethod("vergleicheZugangsdaten", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            if (mVergleiche == null)
+                throw new Exception("Die Methode 'VergleicheZugangsdaten' fehlt in SicherheitsThread. Halten Sie sich exakt an das Klassendiagramm.");
+            if (mVergleiche.ReturnType != typeof(bool))
+                throw new Exception("Die Methode 'VergleicheZugangsdaten' muss einen boolean zurückgeben.");
+
+            var parameters = mVergleiche.GetParameters();
+            if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string) || parameters[1].ParameterType != typeof(string))
+                throw new Exception("Die Methode 'VergleicheZugangsdaten' muss exakt zwei Parameter vom Typ string (user, pin) erwarten.");
+
+            // static code check for structural awareness
+            string cleanSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
+            cleanSource = Regex.Replace(cleanSource, @"/\*.*?\*/", "", RegexOptions.Singleline).Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+
+            if (!cleanSource.Contains("getadminuser") || !cleanSource.Contains("getadminpin"))
+                throw new Exception("Sie haben die Getter für 'adminUser' und 'adminPin' der BenutzerVerwaltung nicht genutzt.");
+
+            if (!cleanSource.Contains("getaktiv") || !cleanSource.Contains("setaktiv"))
+                throw new Exception("Der Status der Alarmanlage muss zwingend über deren Getter und Setter (GetAktiv / SetAktiv) abgerufen und modifiziert werden.");
+
+            if (!cleanSource.Contains("vergleichezugangsdaten("))
+                throw new Exception("Sie haben die Methode 'VergleicheZugangsdaten' zwar deklariert, aber rufen sie nicht auf (Self-Call aus dem Sequenzdiagramm fehlt).");
+
+            // setup mocks and instance
+            object zueObj = Activator.CreateInstance(tZentrale);
+            object mockSocket = Activator.CreateInstance(tSocket, new object[] { "localhost", 80 });
+            object threadObj = ctorThread.Invoke(new object[] { mockSocket, zueObj });
+
+            // scenario 1: valid login and commands execution
+            MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
+            string[] commands = new string[] { "LOGIN;Admin;1234", "STATUS", "TOGGLE", "STATUS", "QUIT" };
+            mSetInputs.Invoke(mockSocket, new object[] { commands });
+
+            try
+            {
+                InvokeWithTimeout(mRun, threadObj, null, 1500);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Laufzeitfehler im SicherheitsThread bei gültigem Login: {ex.Message}");
+            }
+
+            FieldInfo fOutputs = tSocket.GetField("Outputs");
+            List<string> outputs = (List<string>)fOutputs.GetValue(mockSocket);
+
+            if (outputs.Count < 5)
+                throw new Exception("Das Protokoll wurde nicht vollständig umgesetzt. Der Server antwortet nicht auf alle übermittelten Befehle.");
+
+            if (outputs[0].Trim() != "+OK Willkommen")
+                throw new Exception($"Falsche Antwort auf korrekten Login. Erwartet: '+OK Willkommen', Erhalten: '{outputs[0].Trim()}'");
+
+            if (outputs[1].Trim() != "+OK ALARM_ON")
+                throw new Exception($"Falsche Antwort auf STATUS. Erwartet: '+OK ALARM_ON', Erhalten: '{outputs[1].Trim()}'");
+
+            if (outputs[2].Trim() != "+OK Umschaltung erfolgreich")
+                throw new Exception($"Falsche Antwort auf TOGGLE. Erwartet: '+OK Umschaltung erfolgreich', Erhalten: '{outputs[2].Trim()}'");
+
+            if (outputs[3].Trim() != "+OK ALARM_OFF")
+                throw new Exception($"Die Alarmanlage wurde durch TOGGLE nicht ausgeschaltet (STATUS meldet immer noch ON).");
+
+            if (outputs[4].Trim() != "+OK Bye")
+                throw new Exception("Falsche Antwort auf QUIT oder die Schleife wurde danach nicht korrekt beendet.");
+
+            // internal state assertions
+            MethodInfo mGetAlarm = tZentrale.GetMethod("GetAlarmanlage");
+            object alarmObj = mGetAlarm.Invoke(zueObj, null);
+            MethodInfo mGetAktiv = alarmObj.GetType().GetMethod("GetAktiv");
+            bool isAktiv = (bool)mGetAktiv.Invoke(alarmObj, null);
+            if (isAktiv)
+                throw new Exception("Der TOGGLE Befehl hat den Status der Alarmanlage auf Objektebene nicht verändert. Nutzen Sie SetAktiv(!GetAktiv()).");
+
+            MethodInfo mGetLog = tZentrale.GetMethod("GetLog");
+            object logObj = mGetLog.Invoke(zueObj, null);
+            MethodInfo mGetEintraege = logObj.GetType().GetMethod("GetEintraege");
+            IList eintraege = mGetEintraege.Invoke(logObj, null) as IList;
+
+            if (eintraege == null || eintraege.Count == 0 || !eintraege[0].ToString().Contains("umgeschaltet"))
+            {
+                throw new Exception("Bei TOGGLE wurde kein entsprechender Eintrag in die 'eintraege'-Liste des ProtokollLogs eingefügt.");
+            }
+
+            // scenario 2: invalid login test
+            object mockSocketFail = Activator.CreateInstance(tSocket, new object[] { "localhost", 80 });
+            object threadObjFail = ctorThread.Invoke(new object[] { mockSocketFail, zueObj });
+            mSetInputs.Invoke(mockSocketFail, new object[] { new string[] { "LOGIN;Admin;0000", "STATUS" } });
+
+            try
+            {
+                InvokeWithTimeout(mRun, threadObjFail, null, 1000);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Laufzeitfehler bei fehlerhaftem Login: {ex.Message}");
+            }
+
+            List<string> outputsFail = (List<string>)fOutputs.GetValue(mockSocketFail);
+
+            if (outputsFail.Count == 0 || outputsFail[0].Trim() != "-ERR Login fehlgeschlagen")
+            {
+                throw new Exception("Fehlerhafter Login wurde nicht korrekt abgewiesen. Erwartet: '-ERR Login fehlgeschlagen'.");
+            }
+            if (outputsFail.Count > 1)
+            {
+                throw new Exception("Nach einem fehlerhaften Login darf der Server keine weiteren Befehle verarbeiten (Verbindung muss beendet werden).");
+            }
+
+            feedback = "Herzlichen Glückwunsch! Sie haben das Mini-Exam bestanden und das komplette Client-Server-Sicherheitsmodell wie im Abitur gefordert implementiert.";
             return true;
         }
     }

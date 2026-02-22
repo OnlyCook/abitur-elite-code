@@ -6,6 +6,9 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using AvaloniaEdit.Rendering;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -414,21 +417,33 @@ namespace AbiturEliteCode
 
         private int GetContextIndent(TextDocument doc, int lineNum)
         {
-            // look up (prev) to find the structural parent
+            int effectivePrev = 0;
             for (int i = lineNum - 1; i >= 1; i--)
             {
                 var l = doc.GetLineByNumber(i);
-                string text = doc.GetText(l).TrimEnd();
+                string text = doc.GetText(l).Trim();
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     int indent = GetIndentLevel(doc, l);
-                    // if previous line opened a block, the empty line is one level deeper
-                    if (text.EndsWith("{"))
-                        return indent + 1;
-                    return indent;
+                    effectivePrev = text.EndsWith("{") ? indent + 1 : indent;
+                    break;
                 }
             }
-            return 0;
+
+            int effectiveNext = effectivePrev; // fallback if no next line
+            for (int i = lineNum + 1; i <= doc.LineCount; i++)
+            {
+                var l = doc.GetLineByNumber(i);
+                string text = doc.GetText(l).Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    int indent = GetIndentLevel(doc, l);
+                    effectiveNext = text.StartsWith("}") ? indent + 1 : indent;
+                    break;
+                }
+            }
+
+            return Math.Min(effectivePrev, effectiveNext);
         }
     }
 
@@ -646,11 +661,18 @@ namespace AbiturEliteCode
 
     public class AutocompleteService
     {
-        private HashSet<string> _tokens = new HashSet<string>();
+        private List<string> _currentSuggestions = new List<string>();
+        private int _suggestionIndex = 0;
         private string _currentSuggestionSuffix = null;
-        private string _currentWordPrefix = "";
 
         private HashSet<string> _keywords;
+
+        // semantic context
+        private Dictionary<string, HashSet<string>> _instanceMembers = new Dictionary<string, HashSet<string>>();
+        private Dictionary<string, HashSet<string>> _staticMembers = new Dictionary<string, HashSet<string>>();
+        private Dictionary<string, string> _variableTypes = new Dictionary<string, string>();
+        private HashSet<string> _allClasses = new HashSet<string>();
+        private HashSet<string> _allLocals = new HashSet<string>();
 
         // c# keywords to ignore
         public static readonly HashSet<string> CsharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -681,40 +703,162 @@ namespace AbiturEliteCode
             _keywords = keywords ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        public bool HasSuggestion => !string.IsNullOrEmpty(_currentSuggestionSuffix);
-        public string CurrentSuggestionSuffix => _currentSuggestionSuffix;
+        public bool HasSuggestion => _currentSuggestions.Count > 0;
+        public string CurrentSuggestionSuffix => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
+
+        public void CycleNext()
+        {
+            if (HasSuggestion && _suggestionIndex < _currentSuggestions.Count - 1)
+            {
+                _suggestionIndex++;
+            }
+        }
+
+        public void CyclePrevious()
+        {
+            if (HasSuggestion && _suggestionIndex > 0)
+            {
+                _suggestionIndex--;
+            }
+        }
 
         public void ScanTokens(string text)
         {
             if (string.IsNullOrEmpty(text)) return;
 
-            var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
-
-            _tokens.Clear();
-            foreach (Match match in matches)
+            // sql mode fallback
+            if (_keywords == SqlKeywords)
             {
-                string token = match.Value;
-                if (token.Length > 2 && !_keywords.Contains(token))
+                var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+                _allLocals.Clear();
+                foreach (Match match in matches)
                 {
-                    _tokens.Add(token);
+                    string token = match.Value;
+                    if (token.Length > 2 && !_keywords.Contains(token)) _allLocals.Add(token);
+                }
+                return;
+            }
+
+            // c# mode semantic extraction
+            var tree = CSharpSyntaxTree.ParseText(text);
+            var root = tree.GetRoot();
+
+            _instanceMembers.Clear();
+            _staticMembers.Clear();
+            _variableTypes.Clear();
+            _allClasses.Clear();
+            _allLocals.Clear();
+
+            // extract explicitly declared classes and members
+            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            foreach (var cls in classes)
+            {
+                string className = cls.Identifier.Text;
+                _allClasses.Add(className);
+
+                if (!_instanceMembers.ContainsKey(className)) _instanceMembers[className] = new HashSet<string>();
+                if (!_staticMembers.ContainsKey(className)) _staticMembers[className] = new HashSet<string>();
+
+                foreach (var member in cls.Members)
+                {
+                    bool isStatic = member.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
+                    string memberName = null;
+
+                    if (member is MethodDeclarationSyntax method) memberName = method.Identifier.Text;
+                    else if (member is PropertyDeclarationSyntax prop) memberName = prop.Identifier.Text;
+                    else if (member is FieldDeclarationSyntax field) memberName = field.Declaration.Variables.FirstOrDefault()?.Identifier.Text;
+
+                    if (memberName != null)
+                    {
+                        if (isStatic) _staticMembers[className].Add(memberName);
+                        else _instanceMembers[className].Add(memberName);
+                    }
+                }
+            }
+
+            // extract parameters to trust user defined types
+            var parameters = root.DescendantNodes().OfType<ParameterSyntax>();
+            foreach (var param in parameters)
+            {
+                if (param.Type != null)
+                {
+                    string typeName = param.Type.ToString();
+                    string varName = param.Identifier.Text;
+                    _allLocals.Add(varName);
+
+                    if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                    {
+                        _variableTypes[varName] = typeName;
+                        _allClasses.Add(typeName);
+                    }
+                }
+            }
+
+            // extract local variables and fields to trust user defined types
+            var variables = root.DescendantNodes().OfType<VariableDeclarationSyntax>();
+            foreach (var varDecl in variables)
+            {
+                string typeName = varDecl.Type.ToString();
+
+                if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                {
+                    _allClasses.Add(typeName);
+                }
+
+                foreach (var v in varDecl.Variables)
+                {
+                    string varName = v.Identifier.Text;
+                    _allLocals.Add(varName);
+
+                    if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                    {
+                        _variableTypes[varName] = typeName;
+                    }
+                }
+            }
+
+            // infer members from usage
+            var memberAccesses = root.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
+            foreach (var access in memberAccesses)
+            {
+                if (access.Expression is IdentifierNameSyntax callerObj)
+                {
+                    string callerName = callerObj.Identifier.Text;
+                    string memberName = access.Name.Identifier.Text;
+
+                    // is it a static call?
+                    if (_allClasses.Contains(callerName))
+                    {
+                        if (!_staticMembers.ContainsKey(callerName)) _staticMembers[callerName] = new HashSet<string>();
+                        _staticMembers[callerName].Add(memberName);
+                    }
+                    // is it an instance call?
+                    else if (_variableTypes.ContainsKey(callerName))
+                    {
+                        string typeName = _variableTypes[callerName];
+                        if (!_instanceMembers.ContainsKey(typeName)) _instanceMembers[typeName] = new HashSet<string>();
+                        _instanceMembers[typeName].Add(memberName);
+                    }
                 }
             }
         }
 
         public void UpdateSuggestion(string text, int caretOffset)
         {
+            _currentSuggestions.Clear();
+            _suggestionIndex = 0;
             _currentSuggestionSuffix = null;
 
             if (caretOffset == 0 || caretOffset > text.Length) return;
+
+            // skip inside strings or comments in c#
+            if (_keywords != SqlKeywords && IsInsideStringOrComment(text, caretOffset)) return;
 
             // do not suggest if caret is directly before a word character
             if (caretOffset < text.Length)
             {
                 char nextChar = text[caretOffset];
-                if (char.IsLetterOrDigit(nextChar) || nextChar == '_')
-                {
-                    return;
-                }
+                if (char.IsLetterOrDigit(nextChar) || nextChar == '_') return;
             }
 
             // find word boundary before caret
@@ -728,20 +872,128 @@ namespace AbiturEliteCode
             start++;
 
             int length = caretOffset - start;
-            if (length < 2) return; // only trigger after 2 chars
+            string currentWord = length > 0 ? text.Substring(start, length) : "";
 
-            string currentWord = text.Substring(start, length);
+            // check if there is a dot before the word (caller)
+            int beforeWord = start - 1;
+            while (beforeWord >= 0 && char.IsWhiteSpace(text[beforeWord])) beforeWord--;
 
-            var match = _tokens.FirstOrDefault(t => t.StartsWith(currentWord) && t.Length > currentWord.Length);
+            bool hasDot = beforeWord >= 0 && text[beforeWord] == '.';
+            string caller = "";
 
-            if (match != null)
+            if (hasDot)
             {
-                _currentSuggestionSuffix = match.Substring(currentWord.Length);
+                int callerEnd = beforeWord - 1;
+                while (callerEnd >= 0 && char.IsWhiteSpace(text[callerEnd])) callerEnd--;
+
+                int callerStart = callerEnd;
+                while (callerStart >= 0)
+                {
+                    char c = text[callerStart];
+                    if (!char.IsLetterOrDigit(c) && c != '_') break;
+                    callerStart--;
+                }
+                callerStart++;
+
+                if (callerEnd >= callerStart)
+                {
+                    caller = text.Substring(callerStart, callerEnd - callerStart + 1);
+                }
             }
+
+            HashSet<string> possibleMatches = new HashSet<string>();
+
+            if (_keywords == SqlKeywords)
+            {
+                // sql fallback
+                foreach (var t in _allLocals) possibleMatches.Add(t);
+            }
+            else
+            {
+                // c# contextual completion
+                if (hasDot && !string.IsNullOrEmpty(caller))
+                {
+                    // static members of a class
+                    if (_allClasses.Contains(caller) && _staticMembers.ContainsKey(caller))
+                    {
+                        foreach (var m in _staticMembers[caller]) possibleMatches.Add(m);
+                    }
+                    // instance members of a variable
+                    else if (_variableTypes.ContainsKey(caller))
+                    {
+                        string type = _variableTypes[caller];
+                        if (_instanceMembers.ContainsKey(type))
+                        {
+                            foreach (var m in _instanceMembers[type]) possibleMatches.Add(m);
+                        }
+                    }
+                }
+                else if (!hasDot && length > 0)
+                {
+                    // current scope members, locals, classes
+                    var tree = CSharpSyntaxTree.ParseText(text);
+                    var root = tree.GetRoot();
+                    var nodeAtCaret = root.FindToken(caretOffset).Parent;
+                    var parentClass = nodeAtCaret?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+                    if (parentClass != null)
+                    {
+                        string cName = parentClass.Identifier.Text;
+                        if (_staticMembers.ContainsKey(cName)) foreach (var m in _staticMembers[cName]) possibleMatches.Add(m);
+                        if (_instanceMembers.ContainsKey(cName)) foreach (var m in _instanceMembers[cName]) possibleMatches.Add(m);
+                    }
+
+                    foreach (var c in _allClasses) possibleMatches.Add(c);
+                    foreach (var l in _allLocals) possibleMatches.Add(l);
+                }
+            }
+
+            if (possibleMatches.Count > 0 && currentWord.Length > 0)
+            {
+                _currentSuggestions = possibleMatches
+                    .Where(t => t.StartsWith(currentWord) && t.Length > currentWord.Length)
+                    .Select(t => t.Substring(currentWord.Length))
+                    .OrderBy(t => t)
+                    .ToList();
+            }
+
+            if (_currentSuggestions.Count > 0)
+            {
+                _currentSuggestionSuffix = _currentSuggestions[0];
+            }
+        }
+
+        private bool IsInsideStringOrComment(string text, int offset)
+        {
+            bool inString = false;
+            bool inChar = false;
+            bool inLineComment = false;
+            bool inBlockComment = false;
+
+            for (int i = 0; i < offset; i++)
+            {
+                char c = text[i];
+                if (inBlockComment) { if (c == '*' && i + 1 < text.Length && text[i + 1] == '/') { inBlockComment = false; i++; } continue; }
+                if (inLineComment) { if (c == '\n') inLineComment = false; continue; }
+                if (inString) { if (c == '\\') { i++; continue; } if (c == '"') inString = false; continue; }
+                if (inChar) { if (c == '\\') { i++; continue; } if (c == '\'') inChar = false; continue; }
+
+                if (c == '/' && i + 1 < text.Length)
+                {
+                    if (text[i + 1] == '/') { inLineComment = true; i++; continue; }
+                    if (text[i + 1] == '*') { inBlockComment = true; i++; continue; }
+                }
+                if (c == '"') { inString = true; continue; }
+                if (c == '\'') { inChar = true; continue; }
+            }
+
+            return inString || inChar || inLineComment || inBlockComment;
         }
 
         public void ClearSuggestion()
         {
+            _currentSuggestions.Clear();
+            _suggestionIndex = 0;
             _currentSuggestionSuffix = null;
         }
     }

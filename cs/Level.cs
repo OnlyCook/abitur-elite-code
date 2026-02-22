@@ -31,7 +31,7 @@ namespace AbiturEliteCode.cs
     // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
     // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur)
 
-    // on the final levels (22+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
+    // on the final levels (23+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
 
     public class Level
     {
@@ -59,7 +59,8 @@ namespace AbiturEliteCode.cs
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
             "COM", "CHK", "SEN", "PRO",
-            "NET", "HUB", "MUL", ""
+            "NET", "HUB", "MUL", "SEC", 
+            ""
         };
     }
 
@@ -178,6 +179,39 @@ namespace AbiturEliteCode.cs
                         public Random() {}
                         public int NextInt() { return _r.Next(); }
                         public int NextInt(int n) { return _r.Next(n); }
+                    }",
+                "SicherheitsZentrale" => @"
+                    public class SicherheitsZentrale {
+                        private BenutzerVerwaltung verwaltung = new BenutzerVerwaltung();
+                        private Alarmanlage alarmanlage = new Alarmanlage();
+                        private ProtokollLog log = new ProtokollLog();
+                        
+                        public BenutzerVerwaltung GetVerwaltung() { return verwaltung; }
+                        public Alarmanlage GetAlarmanlage() { return alarmanlage; }
+                        public ProtokollLog GetLog() { return log; }
+                    }",
+                "BenutzerVerwaltung" => @"
+                    public class BenutzerVerwaltung {
+                        private string adminUser = ""Admin"";
+                        private string adminPin = ""1234"";
+                        
+                        public string GetAdminUser() { return adminUser; }
+                        public string GetAdminPin() { return adminPin; }
+                    }",
+                "Alarmanlage" => @"
+                    public class Alarmanlage {
+                        private bool aktiv = true;
+                        
+                        public bool GetAktiv() { return aktiv; }
+                        public void SetAktiv(bool value) { aktiv = value; }
+                    }",
+                "ProtokollLog" => @"
+                    using System.Collections.Generic;
+                    public class ProtokollLog {
+                        private List<string> eintraege = new List<string>();
+                        
+                        public List<string> GetEintraege() { return eintraege; }
+                        public void SetEintraege(List<string> value) { eintraege = value; }
                     }",
                 _ => ""
             };
@@ -1089,6 +1123,42 @@ END.",
                         "While Loops", "Object Interaction", "Inheritance Basics", "Method Overriding", "Random Numbers"
                     }
                 },
+                new Level
+                {
+                    Id = 22,
+                    Section = "Sektion 5: Client-Server-Prinzip",
+                    SkipCode = LevelCodes.CodesList[21],
+                    NextLevelCode = LevelCodes.CodesList[22],
+                    Title = "Das Sicherheitssystem",
+                    Description = "Dies ist die Abschlussprüfung für Sektion 5. Eine hohe Eigenständigkeit wird vorausgesetzt.\n\n" +
+                                  "Aufgabe 1: Implementieren Sie die Klasse [SicherheitsServer].\n" +
+                                  "• Die Methode [RunServer()] enthält **nur** eine Endlosschleife, die dauerhaft Clients akzeptiert.\n" +
+                                  "• Für jeden Client wird ein neuer [SicherheitsThread] instanziiert und gestartet.\n\n" +
+                                  "Aufgabe 2: Implementieren Sie die Klasse [SicherheitsThread].\n" +
+                                  "• [VergleicheZugangsdaten(string user, string pin)]: Gibt [true] zurück, wenn die Daten mit den Werten aus der [BenutzerVerwaltung] der Zentrale übereinstimmen.\n" +
+                                  "• [Run()]: Setzen Sie das Sequenzdiagramm exakt um.\n\n" +
+                                  "Hinweise:\n" +
+                                  "• Die Klassen [SicherheitsZentrale], [BenutzerVerwaltung], [Alarmanlage] und [ProtokollLog] sind bereits im System implementiert. Sie müssen lediglich über deren Methoden und Getter/Setter auf sie zugreifen.\n" +
+                                  "• Denken Sie daran: Auf alle Attribute kann über die entsprechenden standardmäßigen Get-/Set-Methoden zugegriffen werden, auch wenn diese im Diagramm nicht explizit modelliert sind.",
+                    StarterCode = "public class SicherheitsServer\n{\n    // Implementation\n}\n\npublic class SicherheitsThread : Thread\n{\n    // Implementation\n}",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\nEine hohe Selbständigkeit wird hier erwartet. Achten Sie auf das, was Ihnen hier zuvor gegeben wurde.\n",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec5\\lvl22-1.svg",
+                        "img\\sec5\\lvl22-2.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass SicherheitsServer {\n  - port : int\n  + SicherheitsServer(port : int, z : SicherheitsZentrale)\n  + runServer()\n}\nclass SicherheitsThread {\n  + SicherheitsThread(cs : Socket, z : SicherheitsZentrale)\n  + run()\n  - vergleicheZugangsdaten(user : String, pin : String) : boolean\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SicherheitsZentrale {\n  + SicherheitsZentrale()\n}\nclass BenutzerVerwaltung {\n  - adminUser : String\n  - adminPin : String\n}\nclass Alarmanlage {\n  - aktiv : boolean\n}\nclass ProtokollLog {\n  - eintraege : List<String>\n}\nSicherheitsServer x--> \"1\" ServerSocket : -serverSocket\nSicherheitsServer x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsServer ..> SicherheitsThread : <<creates>>\nSicherheitsThread -up-|> Thread\nSicherheitsThread x--> \"1\" Socket : -clientSocket\nSicherheitsThread x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsZentrale x--> \"1\" BenutzerVerwaltung : -verwaltung\nSicherheitsZentrale x--> \"1\" Alarmanlage : -alarmanlage\nSicherheitsZentrale x--> \"1\" ProtokollLog : -log\n@enduml",
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \": SicherheitsThread\" as T\nparticipant \": Socket\" as CS\nparticipant \": SicherheitsZentrale\" as Z\n\n[o-> T : run()\nactivate T\nT -> CS : readLine()\nactivate CS\nCS --> T : befehl\ndeactivate CS\nopt befehl beginnt mit \"LOGIN;\"\n  T -> T : vergleicheZugangsdaten(user, pin)\n  activate T\n  T -> Z : getVerwaltung()\n  activate Z\n  Z --> T : verwaltung\n  deactivate Z\n  T --> T : true/false\n  deactivate T\n  alt erfolgreich\n    T -> CS : write(\"+OK Willkommen\\n/\")\n    activate CS\n    deactivate CS\n    loop befehl != \"QUIT\"\n      T -> CS : readLine()\n      activate CS\n      CS --> T : befehl\n      deactivate CS\n      alt befehl == \"STATUS\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> CS : write(\"+OK ALARM_ON (oder OFF)\\n/\")\n        activate CS\n        deactivate CS\n      else befehl == \"TOGGLE\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> T : wechsle Status (aktiv)\n        activate T\n        deactivate T\n        T -> Z : getLog()\n        activate Z\n        Z --> T : log\n        deactivate Z\n        T -> T : füge Eintrag hinzu\n        activate T\n        deactivate T\n        T -> CS : write(\"+OK Umschaltung erfolgreich\\n/\")\n        activate CS\n        deactivate CS\n      else befehl == \"QUIT\"\n        T -> CS : write(\"+OK Bye\\n/\")\n        activate CS\n        deactivate CS\n      end\n    end\n  else fehlgeschlagen\n    T -> CS : write(\"-ERR Login fehlgeschlagen\\n/\")\n    activate CS\n    deactivate CS\n  end\nend\nT -> CS : close()\nactivate CS\ndeactivate CS\n@enduml"
+                    },
+                    NoUMLAutoScale = true,
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "SicherheitsZentrale", "BenutzerVerwaltung", "Alarmanlage", "ProtokollLog", "ListT" },
+                    Prerequisites = new List<string>
+                    {
+                        "Multi-threading", "Client-Server Architecture", "String Manipulation", "Boolean Logic", "Object Navigation", "Helper Methods"
+                    }
+                }
             };
         }
     }

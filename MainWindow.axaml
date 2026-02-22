@@ -12,7 +12,7 @@
         Background="#121212"
         RequestedThemeVariant="Dark">
 
-	<LayoutTransformControl Name="RootScaleTransform">
+	<LayoutTransformControl>
 		<Grid Name="RootGrid" RowDefinitions="60,*">
 
 			<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
@@ -29,7 +29,7 @@
                             VerticalAlignment="Center" Margin="0,0,20,0"
                             FontWeight="Bold"
                             Click="BtnModeSwitch_Click"/>
-					
+
 					<Button Grid.Column="2" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
 							Background="#2D2D30" Foreground="White"
 							CornerRadius="4" Padding="15,8"
@@ -56,319 +56,386 @@
 				</Grid>
 			</Border>
 
-			<Grid Grid.Row="1" ColumnDefinitions="*, 4, *">
+			<Grid Grid.Row="1" ColumnDefinitions="*, 8, *">
 
-				<Panel Grid.Column="0" Margin="10,5,5,10">
+				<Panel Grid.Column="0" Margin="10,2,0,10">
 					<TabControl Name="MainTabs" Padding="0">
 						<TabControl.Styles>
 							<Style Selector="TabItem">
 								<Setter Property="FontSize" Value="15"/>
 								<Setter Property="Foreground" Value="#CCCCCC"/>
-								<Setter Property="Padding" Value="15,10"/>
-								<Setter Property="Margin" Value="0,0,0,0"/>
-								<Setter Property="MinHeight" Value="47"/>
+								<Setter Property="Margin" Value="0,2,2,2"/>
+								<Setter Property="Background" Value="Transparent"/>
+								<Setter Property="VerticalAlignment" Value="Center"/>
+								<Setter Property="Template">
+									<ControlTemplate>
+										<Border Name="PART_LayoutRoot"
+												Background="{TemplateBinding Background}"
+												CornerRadius="6"
+												Padding="15,12">
+											<ContentPresenter Name="PART_ContentPresenter"
+															  Content="{TemplateBinding Header}"
+															  HorizontalAlignment="Center"
+															  VerticalAlignment="Center"
+															  TextBlock.Foreground="{TemplateBinding Foreground}"
+															  TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
+										</Border>
+									</ControlTemplate>
+								</Setter>
 							</Style>
+
+							<Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
+								<Setter Property="Background" Value="#2D2D30"/>
+							</Style>
+							<Style Selector="TabItem:pointerover">
+								<Setter Property="Foreground" Value="#CCCCCC"/>
+							</Style>
+
 							<Style Selector="TabItem:selected">
 								<Setter Property="Foreground" Value="#32A852"/>
 								<Setter Property="FontWeight" Value="SemiBold"/>
 							</Style>
+							<Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
+								<Setter Property="Background" Value="Transparent"/>
+							</Style>
+
+							<Style Selector="TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+								<Setter Property="Background" Value="#2D2D30"/>
+							</Style>
+							<Style Selector="TabItem:selected:pointerover">
+								<Setter Property="Foreground" Value="#32A852"/>
+							</Style>
 						</TabControl.Styles>
 
-					<TabItem Header="Aufgabe">
-						<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
-							<ScrollViewer>
-								<StackPanel Name="PnlTask" Spacing="10" Margin="20"/>
-							</ScrollViewer>
-						</Border>
-					</TabItem>
-
-					<TabItem Header="UML/Diagramme">
-						<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
-							<Panel Name="DiagramPanel" Background="Transparent"
-								   PointerWheelChanged="Diagram_PointerWheelChanged"
-								   PointerPressed="Diagram_PointerPressed"
-								   PointerMoved="Diagram_PointerMoved"
-								   PointerReleased="Diagram_PointerReleased">
-
-								<TextBlock Name="TxtNoDiagram" Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
-										   Foreground="#444" FontSize="16" FontWeight="Bold"
-										   HorizontalAlignment="Center" VerticalAlignment="Center"
-										   TextAlignment="Center" IsVisible="False"/>
-
-								<Image Name="ImgDiagram" Stretch="Uniform"
-									   HorizontalAlignment="Center"
-									   VerticalAlignment="Center">
-									<Image.RenderTransform>
-										<TransformGroup>
-											<ScaleTransform/>
-											<TranslateTransform/>
-										</TransformGroup>
-									</Image.RenderTransform>
-								</Image>
-
-								<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
-											HorizontalAlignment="Left" VerticalAlignment="Bottom"
-											Margin="10,0,0,60" IsVisible="False">
-									<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
-											Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
-											ToolTip.Tip="Diagramm 1">
-										<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20"/>
-									</Button>
-									<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
-											Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
-											ToolTip.Tip="Diagramm 2">
-										<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20"/>
-									</Button>
-									<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
-											Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
-											ToolTip.Tip="Diagramm 3">
-										<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20"/>
-									</Button>
-								</StackPanel>
-
-								<Button Name="BtnResetDiagram"
-										Background="#3C3C3C"
-										Width="40" Height="40"
-										CornerRadius="5"
-										ToolTip.Tip="Diagramm zurücksetzen"
-										HorizontalAlignment="Left"
-										VerticalAlignment="Bottom"
-										Margin="10"
-										Click="BtnResetDiagram_Click">
-									<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
-								</Button>
-
-								<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
-										   Foreground="#666" FontSize="12"
-										   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-										   Margin="10"/>
-							</Panel>
-						</Border>
-					</TabItem>
-
-					<TabItem Header="Materialien">
-						<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
-							<ScrollViewer>
-								<StackPanel Name="PnlMaterials" Spacing="10" Margin="20"/>
-							</ScrollViewer>
-						</Border>
-					</TabItem>
-
-					<TabItem Header="Level Designer" Name="TabDesigner" IsVisible="False">
-						<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0" ClipToBounds="True">
-							<Grid RowDefinitions="Auto, *">
-								<Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto" Margin="0,0,0,15">
-									<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852" Width="40" Height="40" CornerRadius="5"
-											Click="BtnDesignerExport_Click" ToolTip.Tip="Level Exportieren (.elitelvl)">
-										<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20"/>
-									</Button>
-
-									<Button Grid.Column="1" Name="BtnDesignerSave" Background="#464646" Width="40" Height="40" CornerRadius="5"
-											Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern" Margin="10,0,0,0">
-										<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20"/>
-									</Button>
-
-									<CheckBox Grid.Column="2" Name="ChkDesignerAutoSave" Content="Auto-Save" IsChecked="True"
-											  Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
-
-									<TextBlock Grid.Column="4" Name="TxtDesignerStatus" Text="Bereit" VerticalAlignment="Center" Foreground="Gray" Margin="10,0,0,0"/>
-
-									<Button Grid.Column="5" Name="BtnDesignerGuide" Background="#007ACC" Width="40" Height="40" CornerRadius="5"
-											Click="BtnDesignerGuide_Click" ToolTip.Tip="Guide / Hilfe (GitHub)" Margin="10,0,0,0">
-										<svg:Svg Path="/assets/icons/ic_guide.svg" Width="20" Height="20"/>
-									</Button>
-								</Grid>
-
-								<ScrollViewer Grid.Row="1">
-									<StackPanel Spacing="15" Margin="0,0,20,0">
-										<Grid ColumnDefinitions="*, 10, *">
-											<StackPanel Grid.Column="0" Spacing="5">
-												<TextBlock Text="Level Name" Foreground="Gray"/>
-												<TextBox Name="TxtDesignName" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
-											</StackPanel>
-											<StackPanel Grid.Column="2" Spacing="5">
-												<TextBlock Text="Autor" Foreground="Gray"/>
-												<TextBox Name="TxtDesignAuthor" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
-											</StackPanel>
-										</Grid>
-
-										<StackPanel Spacing="5">
-											<TextBlock Text="Aufgabe" Foreground="Gray"/>
-											<TextBox Name="TxtDesignDesc" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-
-										<Separator Background="#333" Margin="0,15"/>
-
-										<StackPanel Spacing="5">
-											<TextBlock Text="UML/Diagramme (PlantUML)" Foreground="Gray"/>
-
-											<Border Background="#252526" CornerRadius="4" Padding="2">
-												<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
-													<ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,10,0">
-														<StackPanel Name="PnlDesignerDiagramTabs" Orientation="Horizontal" Spacing="2"/>
-													</ScrollViewer>
-
-													<Button Grid.Column="1" Name="BtnDeleteDiagramTab" Width="30" Height="30"
-															Background="Transparent" Click="BtnDeleteDiagramTab_Click"
-															ToolTip.Tip="Aktuelles Diagramm löschen" Margin="0,0,2,0" IsVisible="False">
-														<svg:Svg Path="/assets/icons/ic_delete.svg" Width="16" Height="16"/>
-													</Button>
-
-													<Button Grid.Column="2" Name="BtnWebUml" Width="30" Height="30"
-															Background="Transparent" Click="BtnWebUml_Click"
-															ToolTip.Tip="Online Editor öffnen" Margin="0,0,2,0">
-														<svg:Svg Path="/assets/icons/ic_web.svg" Width="16" Height="16"/>
-													</Button>
-
-													<Button Grid.Column="3" Name="BtnGenerateUml" Width="30" Height="30"
-															Background="Transparent" Click="BtnGenerateUml_Click"
-															ToolTip.Tip="Vorschau generieren (Aktives Tab)" Margin="0,0,5,0">
-														<svg:Svg Path="/assets/icons/ic_generate.svg" Width="16" Height="16"/>
-													</Button>
-
-													<Button Grid.Column="4" Name="BtnAddDiagramTab" Width="30" Height="30"
-															Background="Transparent" Click="BtnAddDiagramTab_Click"
-															ToolTip.Tip="Neues Material-Diagramm hinzufügen">
-														<svg:Svg Path="/assets/icons/ic_add.svg" Width="16" Height="16"/>
-													</Button>
-												</Grid>
-											</Border>
-
-											<TextBox Name="TxtDesignPlantUml" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-
-										<StackPanel Spacing="5">
-											<TextBlock Text="Materialien" Foreground="Gray"/>
-											<TextBox Name="TxtDesignMaterials" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-
-										<StackPanel Spacing="5" ZIndex="10">
-											<TextBlock Text="Voraussetzungen / Grundlagen (Suche auf Englisch)" Foreground="Gray"/>
-
-											<Grid>
-												<TextBox Name="TxtDesignPrereqInput" Watermark="z.B. If statements..."
-                                                         Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
-
-												<Border Name="PopupPrereqSuggestions" IsVisible="False"
-														Background="#252526" BorderBrush="#333" BorderThickness="1"
-														CornerRadius="4" ClipToBounds="True"
-														Margin="0,32,0,0" VerticalAlignment="Top" MaxHeight="175">
-													<ListBox Name="LstPrereqSuggestions" Background="Transparent" Foreground="#CCCCCC">
-														<ListBox.Styles>
-															<Style Selector="ListBoxItem">
-																<Setter Property="Padding" Value="10,8"/>
-																<Setter Property="Cursor" Value="Hand"/>
-															</Style>
-														</ListBox.Styles>
-													</ListBox>
-												</Border>
-											</Grid>
-
-											<StackPanel Name="PnlDesignPrereqsList" Spacing="2" Margin="0,5,0,0"/>
-										</StackPanel>
-
-										<Separator Background="#333" Margin="0,15"/>
-
-										<StackPanel Spacing="5">
-											<Grid ColumnDefinitions="*, Auto">
-												<TextBlock Text="Starter Code" Foreground="Gray" VerticalAlignment="Center"/>
-												<Button Grid.Column="1" Name="BtnEditStarter" Width="30" Height="30"
-														Background="Transparent" Click="BtnEditStarter_Click"
-														ToolTip.Tip="Im Editor bearbeiten">
-													<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
-												</Button>
-											</Grid>
-											<TextBox Name="TxtDesignStarter" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-
-										<StackPanel Spacing="5">
-											<Grid ColumnDefinitions="*, Auto">
-												<TextBlock Text="Musterlösung / Test-Code (Wird nicht exportiert)" Foreground="Gray" VerticalAlignment="Center"/>
-												<Button Grid.Column="1" Name="BtnEditTesting" Width="30" Height="30"
-														Background="Transparent" Click="BtnEditTesting_Click"
-														ToolTip.Tip="Im Editor testen">
-													<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
-												</Button>
-											</Grid>
-											<TextBox Name="TxtDesignTesting" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-
-										<StackPanel Spacing="5">
-											<Grid ColumnDefinitions="*, Auto, Auto">
-												<TextBlock Text="Validierungs-Code (Roslyn Test Logik)" Foreground="Gray" VerticalAlignment="Center"/>
-
-												<Button Grid.Column="1" Name="BtnResetValidation" Width="30" Height="30"
-														Background="Transparent" Click="BtnResetValidation_Click"
-														Margin="0,0,5,0"
-														ToolTip.Tip="Validierung zurücksetzen">
-													<svg:Svg Path="/assets/icons/ic_restart.svg" Width="16" Height="16"/>
-												</Button>
-
-												<Button Grid.Column="2" Name="BtnEditValidation" Width="30" Height="30"
-														Background="Transparent" Click="BtnEditValidation_Click"
-														ToolTip.Tip="Im Editor bearbeiten">
-													<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
-												</Button>
-											</Grid>
-
-											<TextBox Name="TxtDesignValidation" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-													 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
-													 BorderThickness="1" BorderBrush="#333"/>
-										</StackPanel>
-									</StackPanel>
+						<TabItem Header="Aufgabe">
+							<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
+								<ScrollViewer>
+									<StackPanel Name="PnlTask" Spacing="10" Margin="20"/>
 								</ScrollViewer>
-							</Grid>
-						</Border>
-					</TabItem>
+							</Border>
+						</TabItem>
 
-					<TabItem Header="Vim Hilfe" Name="TabVim" IsVisible="False">
-						<Border Background="#202124" CornerRadius="8" Padding="0" Margin="0" ClipToBounds="True">
-							<ScrollViewer>
-								<StackPanel Name="PnlVimCheatSheet" Spacing="10" Margin="20">
-									<TextBlock Text="Vim Cheat Sheet"
-											   FontSize="20" FontWeight="Bold" Foreground="#32A852"
-											   Margin="0,0,0,20"/>
+						<TabItem Header="UML/Diagramme">
+							<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
+								<Panel Name="DiagramPanel" Background="Transparent"
+									   PointerWheelChanged="Diagram_PointerWheelChanged"
+									   PointerPressed="Diagram_PointerPressed"
+									   PointerMoved="Diagram_PointerMoved"
+									   PointerReleased="Diagram_PointerReleased">
 
-									<Grid ColumnDefinitions="*, 20, *" RowDefinitions="Auto">
-										<StackPanel Grid.Column="0" Name="VimCol1" Spacing="20"/>
-										<StackPanel Grid.Column="2" Name="VimCol2" Spacing="20"/>
+									<TextBlock Name="TxtNoDiagram" Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
+											   Foreground="#444" FontSize="16" FontWeight="Bold"
+											   HorizontalAlignment="Center" VerticalAlignment="Center"
+											   TextAlignment="Center" IsVisible="False"/>
+
+									<Image Name="ImgDiagram" Stretch="Uniform"
+										   HorizontalAlignment="Center"
+										   VerticalAlignment="Center">
+										<Image.RenderTransform>
+											<TransformGroup>
+												<ScaleTransform/>
+												<TranslateTransform/>
+											</TransformGroup>
+										</Image.RenderTransform>
+									</Image>
+
+									<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
+												HorizontalAlignment="Left" VerticalAlignment="Bottom"
+												Margin="10,0,0,60" IsVisible="False">
+										<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
+												Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
+												ToolTip.Tip="Diagramm 1">
+											<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20"/>
+										</Button>
+										<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
+												Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
+												ToolTip.Tip="Diagramm 2">
+											<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20"/>
+										</Button>
+										<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
+												Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
+												ToolTip.Tip="Diagramm 3">
+											<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20"/>
+										</Button>
+									</StackPanel>
+
+									<Button Name="BtnResetDiagram"
+											Background="#3C3C3C"
+											Width="40" Height="40"
+											CornerRadius="5"
+											ToolTip.Tip="Diagramm zurücksetzen"
+											HorizontalAlignment="Left"
+											VerticalAlignment="Bottom"
+											Margin="10"
+											Click="BtnResetDiagram_Click">
+										<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
+									</Button>
+
+									<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
+											   Foreground="#666" FontSize="12"
+											   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+											   Margin="10"/>
+								</Panel>
+							</Border>
+						</TabItem>
+
+						<TabItem Header="Materialien">
+							<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
+								<ScrollViewer>
+									<StackPanel Name="PnlMaterials" Spacing="10" Margin="20"/>
+								</ScrollViewer>
+							</Border>
+						</TabItem>
+
+						<TabItem Header="Level Designer" Name="TabDesigner" IsVisible="False">
+							<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0" ClipToBounds="True">
+								<Grid RowDefinitions="Auto, *">
+									<Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto" Margin="0,0,0,15">
+										<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852" Width="40" Height="40" CornerRadius="5"
+												Click="BtnDesignerExport_Click" ToolTip.Tip="Level Exportieren (.elitelvl)">
+											<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20"/>
+										</Button>
+
+										<Button Grid.Column="1" Name="BtnDesignerSave" Background="#464646" Width="40" Height="40" CornerRadius="5"
+												Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern" Margin="10,0,0,0">
+											<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20"/>
+										</Button>
+
+										<CheckBox Grid.Column="2" Name="ChkDesignerAutoSave" Content="Auto-Save" IsChecked="True"
+												  Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+										<TextBlock Grid.Column="4" Name="TxtDesignerStatus" Text="Bereit" VerticalAlignment="Center" Foreground="Gray" Margin="10,0,0,0"/>
+
+										<Button Grid.Column="5" Name="BtnDesignerGuide" Background="#007ACC" Width="40" Height="40" CornerRadius="5"
+												Click="BtnDesignerGuide_Click" ToolTip.Tip="Guide / Hilfe (GitHub)" Margin="10,0,0,0">
+											<svg:Svg Path="/assets/icons/ic_guide.svg" Width="20" Height="20"/>
+										</Button>
 									</Grid>
 
-									<TextBlock Text="Hinweis: Dies ist eine vereinfachte Simulation."
-											   Foreground="#666" FontSize="12" Margin="0,30,0,0" HorizontalAlignment="Center"/>
-								</StackPanel>
-							</ScrollViewer>
-						</Border>
-					</TabItem>
+									<ScrollViewer Grid.Row="1">
+										<StackPanel Spacing="15" Margin="0,0,20,0">
+											<Grid ColumnDefinitions="*, 10, *">
+												<StackPanel Grid.Column="0" Spacing="5">
+													<TextBlock Text="Level Name" Foreground="Gray"/>
+													<TextBox Name="TxtDesignName" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
+												</StackPanel>
+												<StackPanel Grid.Column="2" Spacing="5">
+													<TextBlock Text="Autor" Foreground="Gray"/>
+													<TextBox Name="TxtDesignAuthor" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
+												</StackPanel>
+											</Grid>
 
-				</TabControl>
+											<StackPanel Spacing="5">
+												<TextBlock Text="Aufgabe" Foreground="Gray"/>
+												<TextBox Name="TxtDesignDesc" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
 
-				<Border Name="PnlTabTip" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Left"
-						Margin="0,-25,0,0" Background="#32A852" CornerRadius="4" Padding="10,5"
-						BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100">
-					<StackPanel Orientation="Horizontal" Spacing="8">
-						<TextBlock Text="Tipp: Nutze F1 - F4 zum Wechseln der Tabs" Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
-						<Button Name="BtnCloseTip" Content="×" Background="Transparent" Foreground="White"
-								Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"/>
-					</StackPanel>
-				</Border>
-			</Panel>
+											<Separator Background="#333" Margin="0,15"/>
 
-				<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns"/>
+											<StackPanel Spacing="5">
+												<TextBlock Text="UML/Diagramme (PlantUML)" Foreground="Gray"/>
 
-				<Grid Grid.Column="2" RowDefinitions="Auto, *, 4, 180" Margin="5,10,10,10">
+												<Border Background="#252526" CornerRadius="4" Padding="2">
+													<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
+														<ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,10,0">
+															<StackPanel Name="PnlDesignerDiagramTabs" Orientation="Horizontal" Spacing="2"/>
+														</ScrollViewer>
 
-					<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+														<Button Grid.Column="1" Name="BtnDeleteDiagramTab" Width="30" Height="30"
+																Background="Transparent" Click="BtnDeleteDiagramTab_Click"
+																ToolTip.Tip="Aktuelles Diagramm löschen" Margin="0,0,2,0" IsVisible="False">
+															<svg:Svg Path="/assets/icons/ic_delete.svg" Width="16" Height="16"/>
+														</Button>
+
+														<Button Grid.Column="2" Name="BtnWebUml" Width="30" Height="30"
+																Background="Transparent" Click="BtnWebUml_Click"
+																ToolTip.Tip="Online Editor öffnen" Margin="0,0,2,0">
+															<svg:Svg Path="/assets/icons/ic_web.svg" Width="16" Height="16"/>
+														</Button>
+
+														<Button Grid.Column="3" Name="BtnGenerateUml" Width="30" Height="30"
+																Background="Transparent" Click="BtnGenerateUml_Click"
+																ToolTip.Tip="Vorschau generieren (Aktives Tab)" Margin="0,0,5,0">
+															<svg:Svg Path="/assets/icons/ic_generate.svg" Width="16" Height="16"/>
+														</Button>
+
+														<Button Grid.Column="4" Name="BtnAddDiagramTab" Width="30" Height="30"
+																Background="Transparent" Click="BtnAddDiagramTab_Click"
+																ToolTip.Tip="Neues Material-Diagramm hinzufügen">
+															<svg:Svg Path="/assets/icons/ic_add.svg" Width="16" Height="16"/>
+														</Button>
+													</Grid>
+												</Border>
+
+												<TextBox Name="TxtDesignPlantUml" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Spacing="5">
+												<TextBlock Text="Materialien" Foreground="Gray"/>
+												<TextBox Name="TxtDesignMaterials" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Spacing="5" ZIndex="10">
+												<TextBlock Text="Voraussetzungen / Grundlagen (Suche auf Englisch)" Foreground="Gray"/>
+
+												<Grid>
+													<TextBox Name="TxtDesignPrereqInput" Watermark="z.B. If statements..."
+															 Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333"/>
+
+													<Border Name="PopupPrereqSuggestions" IsVisible="False"
+															Background="#252526" BorderBrush="#333" BorderThickness="1"
+															CornerRadius="4" ClipToBounds="True"
+															Margin="0,32,0,0" VerticalAlignment="Top" MaxHeight="175">
+														<ListBox Name="LstPrereqSuggestions" Background="Transparent" Foreground="#CCCCCC">
+															<ListBox.Styles>
+																<Style Selector="ListBoxItem">
+																	<Setter Property="Padding" Value="10,8"/>
+																	<Setter Property="Cursor" Value="Hand"/>
+																</Style>
+															</ListBox.Styles>
+														</ListBox>
+													</Border>
+												</Grid>
+
+												<StackPanel Name="PnlDesignPrereqsList" Spacing="2" Margin="0,5,0,0"/>
+											</StackPanel>
+
+											<Separator Background="#333" Margin="0,15"/>
+
+											<StackPanel Spacing="5">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Starter Code" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditStarter" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditStarter_Click"
+															ToolTip.Tip="Im Editor bearbeiten">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignStarter" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Spacing="5">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Musterlösung / Test-Code (Wird nicht exportiert)" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditTesting" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditTesting_Click"
+															ToolTip.Tip="Im Editor testen">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignTesting" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Spacing="5">
+												<Grid ColumnDefinitions="*, Auto, Auto">
+													<TextBlock Text="Validierungs-Code (Roslyn Test Logik)" Foreground="Gray" VerticalAlignment="Center"/>
+
+													<Button Grid.Column="1" Name="BtnResetValidation" Width="30" Height="30"
+															Background="Transparent" Click="BtnResetValidation_Click"
+															Margin="0,0,5,0"
+															ToolTip.Tip="Validierung zurücksetzen">
+														<svg:Svg Path="/assets/icons/ic_restart.svg" Width="16" Height="16"/>
+													</Button>
+
+													<Button Grid.Column="2" Name="BtnEditValidation" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditValidation_Click"
+															ToolTip.Tip="Im Editor bearbeiten">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+
+												<TextBox Name="TxtDesignValidation" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+										</StackPanel>
+									</ScrollViewer>
+								</Grid>
+							</Border>
+						</TabItem>
+
+						<TabItem Header="Vim Hilfe" Name="TabVim" IsVisible="False">
+							<Border Background="#202124" CornerRadius="8" Padding="0" Margin="0" ClipToBounds="True">
+								<ScrollViewer>
+									<StackPanel Name="PnlVimCheatSheet" Spacing="10" Margin="20">
+										<TextBlock Text="Vim Cheat Sheet"
+												   FontSize="20" FontWeight="Bold" Foreground="#32A852"
+												   Margin="0,0,0,20"/>
+
+										<Grid ColumnDefinitions="*, 20, *" RowDefinitions="Auto">
+											<StackPanel Grid.Column="0" Name="VimCol1" Spacing="20"/>
+											<StackPanel Grid.Column="2" Name="VimCol2" Spacing="20"/>
+										</Grid>
+
+										<TextBlock Text="Hinweis: Dies ist eine vereinfachte Simulation."
+												   Foreground="#666" FontSize="12" Margin="0,30,0,0" HorizontalAlignment="Center"/>
+									</StackPanel>
+								</ScrollViewer>
+							</Border>
+						</TabItem>
+
+					</TabControl>
+
+					<Border Name="PnlTabTip" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Left"
+							Margin="0,-25,0,0" Background="#32A852" CornerRadius="4" Padding="10,5"
+							BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100">
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="Tipp: Nutze F1 - F4 zum Wechseln der Tabs" Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+							<Button Name="BtnCloseTip" Content="×" Background="Transparent" Foreground="White"
+									Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"/>
+						</StackPanel>
+					</Border>
+				</Panel>
+
+				<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" Width="8" Cursor="SizeWestEast"
+							  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
+							  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+					<GridSplitter.Template>
+						<ControlTemplate>
+							<Grid Background="Transparent">
+								<Border Name="HoverLine" Background="#32A852" Width="2" HorizontalAlignment="Center" Opacity="0" />
+								<Border Name="Handle" Background="#555555" Width="2" Height="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+							</Grid>
+						</ControlTemplate>
+					</GridSplitter.Template>
+					<GridSplitter.Styles>
+						<Style Selector="GridSplitter /template/ Border#HoverLine">
+							<Setter Property="Transitions">
+								<Transitions>
+									<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+								</Transitions>
+							</Setter>
+						</Style>
+						<Style Selector="GridSplitter.hover-active /template/ Border#HoverLine">
+							<Setter Property="Opacity" Value="1"/>
+						</Style>
+
+						<Style Selector="GridSplitter /template/ Border#Handle">
+							<Setter Property="Transitions">
+								<Transitions>
+									<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+								</Transitions>
+							</Setter>
+						</Style>
+						<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+							<Setter Property="Opacity" Value="0"/>
+						</Style>
+					</GridSplitter.Styles>
+				</GridSplitter>
+
+				<Grid Grid.Column="2" RowDefinitions="Auto, *, 8, 180" Margin="0,10,10,10">
+
+					<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,10">
 						<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 
 							<Button Name="BtnSettings" Background="#464646" Width="40"
@@ -415,7 +482,41 @@
 						</Border>
 					</Panel>
 
-					<GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch"/>
+					<GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch" Height="8" Cursor="SizeNorthSouth"
+								  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
+                                  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+						<GridSplitter.Template>
+							<ControlTemplate>
+								<Grid Background="Transparent">
+									<Border Name="HoverLine" Background="#32A852" Height="2" VerticalAlignment="Center" Opacity="0" />
+									<Border Name="Handle" Background="#555555" Height="2" Width="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+								</Grid>
+							</ControlTemplate>
+						</GridSplitter.Template>
+						<GridSplitter.Styles>
+							<Style Selector="GridSplitter /template/ Border#HoverLine">
+								<Setter Property="Transitions">
+									<Transitions>
+										<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+									</Transitions>
+								</Setter>
+							</Style>
+							<Style Selector="GridSplitter.hover-active /template/ Border#HoverLine">
+								<Setter Property="Opacity" Value="1"/>
+							</Style>
+
+							<Style Selector="GridSplitter /template/ Border#Handle">
+								<Setter Property="Transitions">
+									<Transitions>
+										<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+									</Transitions>
+								</Setter>
+							</Style>
+							<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+								<Setter Property="Opacity" Value="0"/>
+							</Style>
+						</GridSplitter.Styles>
+					</GridSplitter>
 
 					<Panel Grid.Row="3">
 						<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">

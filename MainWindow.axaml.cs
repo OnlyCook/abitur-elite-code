@@ -58,6 +58,9 @@ namespace AbiturEliteCode
         private List<Level> levels;
         private System.Timers.Timer autoSaveTimer;
 
+        private Control? _hoveredSplitter;
+        private bool _isDraggingSplitter = false;
+
         private ScaleTransform ImgScale;
         private TranslateTransform ImgTranslate;
         private Point _lastMousePoint;
@@ -208,6 +211,15 @@ namespace AbiturEliteCode
                 }
             };
 
+            // fix 1 pixel vertical misalignment
+            foreach (var margin in CodeEditor.TextArea.LeftMargins)
+            {
+                if (margin is LineNumberMargin lineMargin)
+                {
+                    lineMargin.Margin = new Thickness(0, 1, 0, 0);
+                }
+            }
+
             int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
             var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
             LoadLevel(startLevel);
@@ -273,6 +285,20 @@ namespace AbiturEliteCode
                         return;
 
                     Dispatcher.UIThread.Post(() => CodeEditor.Focus());
+                },
+                RoutingStrategies.Tunnel
+            );
+
+            // remove hover active while dragging
+            this.AddHandler(
+                PointerReleasedEvent,
+                (s, e) =>
+                {
+                    if (!_isDraggingSplitter && _hoveredSplitter != null && !_hoveredSplitter.IsPointerOver)
+                    {
+                        _hoveredSplitter.Classes.Remove("hover-active");
+                        _hoveredSplitter = null;
+                    }
                 },
                 RoutingStrategies.Tunnel
             );
@@ -498,6 +524,17 @@ namespace AbiturEliteCode
             if (e.Key == Key.Escape && _sqlAutocompleteService.HasSuggestion)
             {
                 _sqlAutocompleteService.ClearSuggestion();
+                SqlQueryEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
+                return;
+            }
+
+            // up and down arrows for autocompletion cycling
+            if (AppSettings.IsSqlAutocompleteEnabled && (e.Key == Key.Up || e.Key == Key.Down) && _sqlAutocompleteService.HasSuggestion)
+            {
+                if (e.Key == Key.Up) _sqlAutocompleteService.CyclePrevious();
+                else _sqlAutocompleteService.CycleNext();
+
                 SqlQueryEditor.TextArea.TextView.Redraw();
                 e.Handled = true;
                 return;
@@ -777,6 +814,15 @@ namespace AbiturEliteCode
                     CodeEditor.TextArea.TextView.Redraw();
                 }
             };
+
+            // fix 1 pixel vertical misalignment
+            foreach (var margin in CodeEditor.TextArea.LeftMargins)
+            {
+                if (margin is LineNumberMargin lineMargin)
+                {
+                    lineMargin.Margin = new Thickness(0, 1, 0, 0);
+                }
+            }
         }
 
         private void CodeEditor_PointerMoved(object? sender, PointerEventArgs e)
@@ -861,6 +907,17 @@ namespace AbiturEliteCode
             if (e.Key == Key.Escape && _csharpAutocompleteService.HasSuggestion)
             {
                 _csharpAutocompleteService.ClearSuggestion();
+                CodeEditor.TextArea.TextView.Redraw();
+                e.Handled = true;
+                return;
+            }
+
+            // up and down arrows for autocompletion cycling
+            if (AppSettings.IsAutocompleteEnabled && (e.Key == Key.Up || e.Key == Key.Down) && _csharpAutocompleteService.HasSuggestion)
+            {
+                if (e.Key == Key.Up) _csharpAutocompleteService.CyclePrevious();
+                else _csharpAutocompleteService.CycleNext();
+
                 CodeEditor.TextArea.TextView.Redraw();
                 e.Handled = true;
                 return;
@@ -7066,6 +7123,66 @@ namespace AbiturEliteCode
                 return "DATETIME";
 
             return "TEXT"; // fallback
+        }
+
+        private void GridSplitter_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (sender is Control splitter)
+            {
+                // activate immediately when clicking/dragging
+                _isDraggingSplitter = true;
+                splitter.Classes.Add("hover-active");
+            }
+        }
+
+        private void GridSplitter_PointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (sender is Control splitter)
+            {
+                _isDraggingSplitter = false;
+
+                if (!splitter.IsPointerOver)
+                {
+                    splitter.Classes.Remove("hover-active");
+                    if (_hoveredSplitter == splitter) _hoveredSplitter = null;
+                }
+            }
+        }
+
+        private async void GridSplitter_PointerEntered(object? sender, PointerEventArgs e)
+        {
+            if (sender is Control splitter)
+            {
+                _hoveredSplitter = splitter;
+
+                // immediately active while starting to drag
+                if (e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
+                {
+                    splitter.Classes.Add("hover-active");
+                    return;
+                }
+
+                // delay to prevent regular mouse movement triggering
+                await Task.Delay(150);
+
+                if (splitter.IsPointerOver)
+                    splitter.Classes.Add("hover-active");
+            }
+        }
+
+        private void GridSplitter_PointerExited(object? sender, PointerEventArgs e)
+        {
+            if (sender is Control splitter)
+            {
+                // keep hover state while dragging
+                if (e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
+                    return;
+
+                splitter.Classes.Remove("hover-active");
+
+                if (_hoveredSplitter == splitter)
+                    _hoveredSplitter = null;
+            }
         }
     }
 }
