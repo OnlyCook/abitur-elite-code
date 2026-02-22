@@ -46,6 +46,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | :--- | :---: | :--- |
 | 19 | `NET` | Smart Home Hub (Verbindungsaufbau) |
 | 20 | `HUB` | Gerätesteuerung (Command-Parsing) |
+| 21 | `MUL` | Multi-User Hub (Threads) |
 
 ---
 

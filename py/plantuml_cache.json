@@ -1,6 +1,6 @@
 {
   "shared_ListT": {
-    "hash": "cf0cd39a5ccd478c37c26f2770ce49bb",
+    "hash": "95ec6fc71760727c73fa66e68b3b034f",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_ListT.svg"
   },
   "shared_Paket": {
@@ -100,7 +100,7 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl18-1.svg"
   },
   "shared_Serial": {
-    "hash": "a250bc1459cec4c7d806367601389346",
+    "hash": "b015775edbede295c25f204e369465a9",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Serial.svg"
   },
   "shared_FunkModul": {
@@ -128,11 +128,11 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl17-1.svg"
   },
   "shared_ServerSocket": {
-    "hash": "a49c38023f7d228839965fc796210e89",
+    "hash": "102a220854f1db849b8b316176a23293",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_ServerSocket.svg"
   },
   "shared_Socket": {
-    "hash": "f28f0033f9c63900071394e858ecb8c2",
+    "hash": "c3644703060035d80f38d3ff91506516",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Socket.svg"
   },
   "lvl_19_1": {
@@ -150,5 +150,17 @@
   "lvl_20_2": {
     "hash": "96c7948ff9816c984f5ff74a64b3fb05",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl20-2.svg"
+  },
+  "shared_Thread": {
+    "hash": "46e9daa0d17620f4fd165326c4c40d80",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Thread.svg"
+  },
+  "shared_Random": {
+    "hash": "90c46ad8143dd11612f10ab8ce11b590",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Random.svg"
+  },
+  "lvl_21_1": {
+    "hash": "62f9ec43becd7ee2514f619b528ffc24",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-1.svg"
   }
 }

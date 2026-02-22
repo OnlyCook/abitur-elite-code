@@ -2230,8 +2230,8 @@ namespace AbiturEliteCode
 
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
 
-                    // inject return into Run() method for level 17 to prevent infinite loops during testing
-                    if (!runDesignerTest && levelContext != null && levelContext.Id == 17)
+                    // inject return into Run() method for certain levels to prevent infinite loops during testing
+                    if (!runDesignerTest && levelContext != null && (levelContext.Id == 17 || levelContext.Id == 21))
                     {
                         var root = syntaxTree.GetRoot(token);
                         var rewriter = new InfiniteLoopBreaker();
@@ -2461,9 +2461,14 @@ namespace AbiturEliteCode
             public override SyntaxNode VisitWhileStatement(WhileStatementSyntax node)
             {
                 var method = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-                if (method != null && method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase))
+                if (method != null && (method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase) ||
+                                       method.Identifier.Text.Equals("RunServer", StringComparison.OrdinalIgnoreCase)))
                 {
-                    return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                    // only inject return if it is explicitly an infinite loop
+                    if (node.Condition is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.TrueLiteralExpression))
+                    {
+                        return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                    }
                 }
                 return base.VisitWhileStatement(node);
             }
@@ -2471,9 +2476,14 @@ namespace AbiturEliteCode
             public override SyntaxNode VisitForStatement(ForStatementSyntax node)
             {
                 var method = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-                if (method != null && method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase))
+                if (method != null && (method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase) ||
+                                       method.Identifier.Text.Equals("RunServer", StringComparison.OrdinalIgnoreCase)))
                 {
-                    return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                    // only inject return if it is an infinite for loop
+                    if (node.Condition == null)
+                    {
+                        return node.WithStatement(GetReturnInjectedStatement(node.Statement));
+                    }
                 }
                 return base.VisitForStatement(node);
             }

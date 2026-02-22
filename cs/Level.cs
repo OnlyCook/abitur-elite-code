@@ -16,7 +16,7 @@ namespace AbiturEliteCode.cs
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
     // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class, for example, should be able to be initalized inside their constructor, as thats how the abitur does it, initalizing them in the declaration should be possible, but not the expected way)
-    // on later levels (19+) the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
+    // on later levels (19+) the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." (note that it can also be: "get-/set-Methoden" if the user is meant to set an attribute)  i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
     // what you commonly also see in the uml class diagrams in the abitur exams is "static int autowert = 0" or an id for a class, which the user must increment in the constructor (or in rare cases) set to a given id, this mechanic should also be added in more difficult levels where its appropriate
     // note: adequate abitur level language should be used as well as technical vocabulary
 
@@ -29,7 +29,7 @@ namespace AbiturEliteCode.cs
     // if the plantuml should actually add a new line instead of converting it by the python script that reads the plantuml source code, then use: "\n/"
     // note: in the abitur association attributes arent included in the actual class, but are indicated on the association only (this also includes its access modifiers: +/-/#), the attribute should be placed on the side of the class its referencing (and not on the side of the class which is referencing it), lists are marked with an asterisk and single attributes with a number (multiplicity)
     // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
-    // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur) [this contraint is exluded from auxiliary class diagrams]
+    // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur)
 
     // on the final levels (22+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
 
@@ -45,7 +45,7 @@ namespace AbiturEliteCode.cs
         public string MaterialDocs { get; set; }
         public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
         public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
-        public string NassiShneiderSource { get; set; }
+        public string NassiShneiderSource { get; set; } // pascal code for Structorizer
         public bool NoUMLAutoScale { get; set; } = false; // set to true for large (especially wide) diagrams
         public List<string> AuxiliaryIds { get; set; } = new List<string>();
         public List<string> Prerequisites { get; set; } = new List<string>();
@@ -59,25 +59,29 @@ namespace AbiturEliteCode.cs
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
             "COM", "CHK", "SEN", "PRO",
-            "NET", "HUB", ""
+            "NET", "HUB", "MUL", ""
         };
     }
 
     public static class SharedDiagrams
     {
-        public static string ListT = "@startuml\nclass \"List<T>\" {\n  + add(item : T) : void\n  + remove(item : T) : void\n  + get(index : int) : T\n  + size() : int\n  + contains(item : T) : boolean\n}\n@enduml";
+        public static string ListT = "@startuml\nclass \"List<T>\" {\n  + add(item : T)\n  + remove(item : T)\n  + get(index : int) : T\n  + size() : int\n  + contains(item : T) : boolean\n}\n@enduml";
 
         public static string Paket = "@startuml\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n  + getZielort() : String\n}\n@enduml";
 
         public static string LocalDate = "@startuml\nclass LocalDate {\n  + {static} now() : LocalDate\n  + isAfter(other : LocalDate) : boolean\n  + isBefore(other : LocalDate) : boolean\n  + minusMonths(months : long) : LocalDate\n  + plusDays(days : long) : LocalDate\n}\n@enduml";
 
-        public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close() : void\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
+        public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close()\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
 
         public static string FunkModul = "@startuml\nclass FunkModul {\n  + FunkModul()\n  + send(cmd : String)\n  + receive() : char\n}\n@enduml";
         
-        public static string ServerSocket = "@startuml\nclass ServerSocket {\n  + ServerSocket(port : int)\n  + accept() : Socket\n  + close() : void\n}\n@enduml";
+        public static string ServerSocket = "@startuml\nclass ServerSocket {\n  + ServerSocket(port : int)\n  + accept() : Socket\n  + close()\n}\n@enduml";
 
-        public static string Socket = "@startuml\nclass Socket {\n  + Socket(host : String, port : int)\n  + readLine() : String\n  + write(s : String) : void\n  + close() : void\n}\n@enduml";
+        public static string Socket = "@startuml\nclass Socket {\n  + Socket(host : String, port : int)\n  + readLine() : String\n  + write(s : String)\n  + close()\n}\n@enduml";
+
+        public static string Thread = ""; // not needed as implemented into the main class diagram in the abitur exams
+
+        public static string Random = "@startuml\nclass Random {\n  + Random()\n  + nextInt() : int\n  + nextInt(n : int) : int\n}\n@enduml";
     }
 
     public static class AuxiliaryImplementations
@@ -145,6 +149,9 @@ namespace AbiturEliteCode.cs
                         private Queue<string> _inputs = new Queue<string>();
                         public List<string> Outputs = new List<string>();
                         
+                        public Socket() {}
+                        public Socket(string host, int port) {}
+                        
                         public void SetTestInputs(string[] inputs) {
                             foreach(var i in inputs) _inputs.Enqueue(i);
                         }
@@ -156,6 +163,21 @@ namespace AbiturEliteCode.cs
                         
                         public void Write(string s) { Outputs.Add(s); }
                         public void Close() {}
+                    }",
+                "Thread" => @"
+                    public abstract class Thread {
+                        public virtual void Run() {}
+                        public void Start() { 
+                            // Im Test-Mock führen wir Run im Task aus
+                            System.Threading.Tasks.Task.Run(() => Run());
+                        }
+                    }",
+                "Random" => @"
+                    public class Random {
+                        private System.Random _r = new System.Random();
+                        public Random() {}
+                        public int NextInt() { return _r.Next(); }
+                        public int NextInt(int n) { return _r.Next(n); }
                     }",
                 _ => ""
             };
@@ -588,7 +610,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n" +
                                   "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
                                   "\n\nHinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.",
-                    StarterCode = "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben\n}\n",
+                    StarterCode = "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben (Hilfsklasse)\n}\n",
                     MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
                                    "Hier ist die Kette: Schule -> Lehrer -> Liste<Klasse>.\n" +
                                    "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und *darauf* die Eigenschaft [.Count] prüfen.\n" +
@@ -946,7 +968,7 @@ END.",
                                   "• Ist es ein anderer Befehl (nicht QUIT), senden Sie \"+ERR unbekannt\\n\".\n" +
                                   "• Schließen Sie den Socket am Ende der Methode.",
                     StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
+                    MaterialDocs = "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
                                    "start-hint: Getter/Setter Anpassung\n" +
                                    "Ab jetzt werden im UML-Klassendiagramm keine standardmäßigen Get-/Set-Methoden mehr angezeigt, " +
                                    "es wird vorausgesetzt, dass Sie diese selbständig bei Notwendigkeit deklarieren. " +
@@ -997,7 +1019,7 @@ END.",
                                   "• Wird das Licht nicht gefunden, senden Sie \"-ERR Licht nicht gefunden\\n\".\n" +
                                   "• Bei \"QUIT\" beendet sich die Schleife und der Socket wird geschlossen.",
                     StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}\n\npublic class Licht\n{\n    // Implementation\n}",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
+                    MaterialDocs = "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
                                    "start-hint: Getter/Setter Anpassung\n" +
                                    "Denken Sie daran: Get-/Set-Methoden werden in den Diagrammen nicht mehr explizit angezeigt. Sie müssen diese bei Bedarf selbst hinzufügen.\n" +
                                    ":end-hint\n" +
@@ -1024,6 +1046,47 @@ END.",
                     Prerequisites = new List<string>
                     {
                         "String Manipulation", "Split", "Explicit Conversion (Casting)", "ASCII Table", "Object Interaction"
+                    }
+                },
+                new Level
+                {
+                    Id = 21,
+                    Section = "Sektion 5: Client-Server-Prinzip",
+                    SkipCode = LevelCodes.CodesList[20],
+                    NextLevelCode = LevelCodes.CodesList[21],
+                    Title = "Multi-User Hub (Threads)",
+                    Description = "Der Smart Home Server soll nun mehrere Clients (z. B. verschiedene Smart-Panels) gleichzeitig bedienen können. Dazu wird die Client-Verwaltung in einen eigenen Thread ausgelagert.\n\n" +
+                                  "Aufgaben:\n" +
+                                  "1. Überführen Sie das Klassendiagramm exakt in objektorientierten Code.\n" +
+                                  "2. Implementieren Sie die Methode [RunServer()] in [SmartHomeServer]. Sie soll in einer Endlosschleife auf Clients warten, für jeden Client einen neuen [ServerThread] instanziieren und diesen starten.\n" +
+                                  "3. Implementieren Sie die Methode [Run()] in [ServerThread]. Diese liest in einer Schleife Kommandos vom Socket.\n\n" +
+                                  "Protokoll für [Run()] in [ServerThread]:\n" +
+                                  "• Bei Kommando \"PING\" antwortet der Server mit \"+PONG\\n\".\n" +
+                                  "• Bei Kommando \"LOGIN\" wird ein zufälliger Session-Token (0 bis 9999) generiert (Nutzen Sie die Klasse [Random]). Der Server antwortet mit \"+TOKEN \" + token + \"\\n\".\n" +
+                                  "• Bei \"QUIT\" wird die Schleife beendet und der Socket geschlossen.",
+                    StarterCode = "// Implementieren Sie alle Klassen selbständig",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n\n" +
+                                   "start-hint: Threading in Java vs C#\n" +
+                                   "In Java erbt ein Thread von [Thread] und überschreibt die Methode [run()] (in C# [Run()]).\n" +
+                                   "Java: [public void run()]\nC#: [public override void Run()]\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Random in C#\n" +
+                                   "Die Klasse Random aus dem Abitur (Java) nutzt [nextInt(n)], dies generiert eine Zufallszahl von 0 (einschließlich) bis n (ausschließlich). " +
+                                   "In C# rufen Sie dementsprechend die übersetzte Mock-Methode [NextInt(n)] auf dem Random-Objekt auf.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec5\\lvl21-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int, hub : SmartHomeHub)\n  + runServer()\n}\nclass ServerThread {\n  + ServerThread(cs : Socket, hub : SmartHomeHub)\n  + run()\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SmartHomeHub {\n  + SmartHomeHub()\n}\nSmartHomeServer x-down-> \"1\" ServerSocket : -serverSocket\nSmartHomeServer ..> ServerThread : <<creates>>\nServerThread -up-|> Thread\nServerThread x--> \"1\" Socket : -clientSocket\nSmartHomeServer x--> \"1\" SmartHomeHub : -hub\nServerThread x--> \"1\" SmartHomeHub : -hub\n@enduml"
+                    },
+                    NoUMLAutoScale = true,
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "Random" },
+                    Prerequisites = new List<string>
+                    {
+                        "While Loops", "Object Interaction", "Inheritance Basics", "Method Overriding", "Random Numbers"
                     }
                 },
             };

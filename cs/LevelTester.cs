@@ -47,6 +47,7 @@ namespace AbiturEliteCode.cs
                     18 => TestLevel18(assembly, out feedback),
                     19 => TestLevel19(assembly, out feedback),
                     20 => TestLevel20(assembly, out feedback),
+                    21 => TestLevel21(assembly, sourceCode, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -1540,6 +1541,140 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Wenn ein gültiges Licht nicht in der Liste existiert, muss '-ERR Licht nicht gefunden' gesendet werden. Erhalten: '{notFoundResp}'.");
 
             feedback = "Perfekt! Sie haben die Gerätesteuerung, die ASCII-Validierung und das Sequenzdiagramm fehlerfrei implementiert.";
+            return true;
+        }
+
+        private static bool TestLevel21(Assembly assembly, string sourceCode, out string feedback)
+        {
+            Type tServer = assembly.GetType("SmartHomeServer");
+            Type tThread = assembly.GetType("ServerThread");
+            Type tHub = assembly.GetType("SmartHomeHub");
+            Type tSocket = assembly.GetType("Socket");
+            Type tServerSocket = assembly.GetType("ServerSocket");
+            Type tThreadBase = assembly.GetType("Thread");
+
+            if (tServer == null) throw new Exception("Klasse 'SmartHomeServer' fehlt.");
+            if (tThread == null) throw new Exception("Klasse 'ServerThread' fehlt.");
+            if (tHub == null) throw new Exception("Klasse 'SmartHomeHub' fehlt.");
+
+            // TEST 1: SmartHomeServer check (static analysis due to infinite loop)
+            string cleanSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
+            cleanSource = Regex.Replace(cleanSource, @"/\*.*?\*/", "", RegexOptions.Singleline).Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+
+            if (!cleanSource.Contains("while(true)") && !cleanSource.Contains("for(;;)"))
+                throw new Exception("Die Methode RunServer() in SmartHomeServer muss eine Endlosschleife enthalten (z. B. while(true)), um dauerhaft Clients zu akzeptieren.");
+
+            if (!cleanSource.Contains("serverthread") || !cleanSource.Contains(".start()"))
+                throw new Exception("In RunServer() muss ein neuer ServerThread instanziiert und mit .Start() gestartet werden.");
+
+            // check server constructor
+            ConstructorInfo ctorServer = tServer.GetConstructor(new[] { typeof(int), tHub });
+            if (ctorServer == null) throw new Exception("Konstruktor SmartHomeServer(int port, SmartHomeHub hub) fehlt.");
+
+            int testPort = 8080;
+            object testHub = Activator.CreateInstance(tHub);
+            object serverObj = null;
+            try
+            {
+                serverObj = ctorServer.Invoke(new object[] { testPort, testHub });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler im Konstruktor von SmartHomeServer: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            FieldInfo fPort = tServer.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fPort == null) throw new Exception("Das Feld 'port' (int) in SmartHomeServer fehlt.");
+            if ((int)fPort.GetValue(serverObj) != testPort)
+                throw new Exception($"Das Attribut 'port' wurde im Konstruktor nicht korrekt zugewiesen. Erwartet: {testPort}.");
+
+            FieldInfo fServerHub = tServer.GetField("hub", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fServerHub == null) throw new Exception("Das Feld 'hub' (SmartHomeHub) in SmartHomeServer fehlt.");
+            if (fServerHub.GetValue(serverObj) != testHub)
+                throw new Exception("Das Attribut 'hub' wurde im Konstruktor nicht korrekt zugewiesen.");
+
+            FieldInfo fServerSocket = tServer.GetField("serverSocket", BindingFlags.NonPublic | BindingFlags.Instance) ?? tServer.GetField("server", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fServerSocket == null) throw new Exception("Das Feld 'serverSocket' (ServerSocket) in SmartHomeServer fehlt.");
+
+            object serverSocketObj = fServerSocket.GetValue(serverObj);
+            if (serverSocketObj == null) throw new Exception("Das Feld 'serverSocket' wurde im Konstruktor nicht initialisiert.");
+
+            FieldInfo fSsPort = tServerSocket.GetField("port", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fSsPort != null && (int)fSsPort.GetValue(serverSocketObj) != testPort)
+            {
+                throw new Exception($"Der 'ServerSocket' wurde mit dem falschen Port initialisiert. Stellen Sie sicher, dass 'serverSocket = new ServerSocket(port);' genutzt wird.");
+            }
+
+            // TEST 2: ServerThread check (dynamic test)
+            if (!tThread.IsSubclassOf(tThreadBase))
+                throw new Exception("Die Klasse 'ServerThread' muss von 'Thread' erben (public class ServerThread : Thread).");
+
+            ConstructorInfo ctorThread = tThread.GetConstructor(new[] { tSocket, tHub });
+            if (ctorThread == null) throw new Exception("Konstruktor ServerThread(Socket cs, SmartHomeHub hub) fehlt.");
+
+            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance);
+            if (mRun == null || mRun.GetBaseDefinition().DeclaringType == mRun.DeclaringType)
+                throw new Exception("Sie müssen die Methode 'Run()' mit dem Schlüsselwort 'override' überschreiben.");
+
+            if (mRun.DeclaringType == tThreadBase)
+                throw new Exception("Sie müssen die Methode 'Run()' überschreiben (verwenden Sie 'public override void Run()').");
+
+            // setup mocks
+            object hubObj = Activator.CreateInstance(tHub);
+            object mockSocket = Activator.CreateInstance(tSocket, new object[] { "localhost", 80 });
+            object serverThreadObj = ctorThread.Invoke(new object[] { mockSocket, hubObj });
+
+            // validate fields in ServerThread
+            FieldInfo fClientSocket = tThread.GetField("clientSocket", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fClientSocket == null || fClientSocket.GetValue(serverThreadObj) == null)
+                throw new Exception("Das private Feld 'clientSocket' (Socket) fehlt in ServerThread oder wurde im Konstruktor nicht zugewiesen.");
+
+            FieldInfo fHub = tThread.GetField("hub", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fHub == null || fHub.GetValue(serverThreadObj) == null)
+                throw new Exception("Das private Feld 'hub' (SmartHomeHub) fehlt in ServerThread oder wurde im Konstruktor nicht zugewiesen.");
+
+            // inject commands
+            MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
+            string[] commands = new string[] { "PING", "LOGIN", "UNKNOWN", "QUIT" };
+            mSetInputs.Invoke(mockSocket, new object[] { commands });
+
+            // execute Run() with timeout
+            try
+            {
+                InvokeWithTimeout(mRun, serverThreadObj, null, 1500);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fehler bei der Ausführung von Run() im ServerThread: {ex.Message}");
+            }
+
+            // verify outputs
+            FieldInfo fOutputs = tSocket.GetField("Outputs");
+            List<string> outputs = (List<string>)fOutputs.GetValue(mockSocket);
+
+            if (outputs.Count < 2)
+                throw new Exception("Der ServerThread hat nicht ausreichend auf die Befehle geantwortet.");
+
+            string pongResp = outputs[0].Trim();
+            string tokenResp = outputs[1].Trim();
+
+            if (pongResp != "+PONG")
+                throw new Exception($"Erwartete Antwort '+PONG' auf Befehl 'PING', aber erhalten: '{pongResp}'.");
+
+            if (!tokenResp.StartsWith("+TOKEN "))
+                throw new Exception($"Auf 'LOGIN' muss der Server mit '+TOKEN [Zufallszahl]' antworten. Erhalten: '{tokenResp}'.");
+
+            if (!cleanSource.Contains("newrandom()") && !cleanSource.Contains("nextint("))
+                throw new Exception("Es sieht so aus, als hätten Sie die Random-Klasse nicht verwendet, um den Token zu generieren. Erstellen Sie ein Objekt der Hilfsklasse Random.");
+
+            string[] tokenParts = tokenResp.Split(' ');
+            if (tokenParts.Length < 2 || !int.TryParse(tokenParts[1], out int tokenValue))
+                throw new Exception("Der generierte Token enthält keine gültige Zahl.");
+
+            if (tokenValue < 0 || tokenValue > 9999)
+                throw new Exception($"Die generierte Zufallszahl ({tokenValue}) liegt nicht im geforderten Bereich (0 bis 9999). Nutzen Sie NextInt(10000).");
+
+            feedback = "Klasse! Sie haben das Multi-User-Konzept erfolgreich verinnerlicht, Threading-Klassen korrekt abgeleitet und den ServerThread implementiert.";
             return true;
         }
     }
