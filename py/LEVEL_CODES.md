@@ -37,17 +37,18 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | :--- | :---: | :--- |
 | 15 | `COM` | Protokoll-Parser (Switch) |
 | 16 | `CHK` | Paket-Validierung (Struktogramm) |
-| 17 | `SEN` | Die Sicherheitsschleuse (Serielle Schnittstelle) |
-| 18 | `PRO` | Missions-Zentrale |
+| 17 | `SER` | RFID-Scanner (Serielle Schnittstelle) |
+| 18 | `SAF` | Die Sicherheitsschleuse (System-Integration) |
+| 19 | `PRO` | Missions-Zentrale |
 
 ## Sektion 5: Client-Server-Prinzip
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| 19 | `NET` | Smart Home Hub (Verbindungsaufbau) |
-| 20 | `HUB` | Gerätesteuerung (Command-Parsing) |
-| 21 | `MUL` | Multi-User Hub (Threads) |
-| 22 | `SEC` | Das Sicherheitssystem |
+| 20 | `NET` | Smart Home Hub (Verbindungsaufbau) |
+| 21 | `HUB` | Gerätesteuerung (Command-Parsing) |
+| 22 | `MUL` | Multi-User Hub (Threads) |
+| 23 | `SEC` | Das Sicherheitssystem |
 
 ---
 

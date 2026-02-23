@@ -44,11 +44,12 @@ namespace AbiturEliteCode.cs
                     15 => TestLevel15(assembly, out feedback),
                     16 => TestLevel16(assembly, out feedback),
                     17 => TestLevel17(assembly, sourceCode, out feedback),
-                    18 => TestLevel18(assembly, out feedback),
+                    18 => TestLevel18(assembly, sourceCode, out feedback),
                     19 => TestLevel19(assembly, out feedback),
                     20 => TestLevel20(assembly, out feedback),
-                    21 => TestLevel21(assembly, sourceCode, out feedback),
+                    21 => TestLevel21(assembly, out feedback),
                     22 => TestLevel22(assembly, sourceCode, out feedback),
+                    23 => TestLevel23(assembly, sourceCode, out feedback),
                     _ => throw new Exception($"Keine Tests für Level {levelId} definiert."),
                 };
                 return new TestResult { Success = success, Feedback = feedback };
@@ -983,77 +984,44 @@ namespace AbiturEliteCode.cs
 
         private static bool TestLevel17(Assembly assembly, string sourceCode, out string feedback)
         {
-            Type tRover = assembly.GetType("Rover");
             Type tReader = assembly.GetType("RFIDReader");
-            Type tController = assembly.GetType("Controller");
             Type tSerial = assembly.GetType("Serial");
-            Type tFunk = assembly.GetType("FunkModul");
 
-            if (tRover == null) throw new Exception("Klasse 'Rover' fehlt.");
             if (tReader == null) throw new Exception("Klasse 'RFIDReader' fehlt.");
-            if (tController == null) throw new Exception("Klasse 'Controller' fehlt.");
+            if (tSerial == null) throw new Exception("Hilfsklasse 'Serial' fehlt im Assembly.");
 
-            // --- TASK 1: ROVER ---
-            ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
-            if (ctorRover == null) throw new Exception("Aufgabe 1 (Rover): Konstruktor Rover(string id) fehlt.");
-
-            object r1 = ctorRover.Invoke(new object[] { "R1" });
-            object r2 = ctorRover.Invoke(new object[] { "R2" });
-
-            // check if id was properly assigned
-            FieldInfo fId = tRover.GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fId == null) throw new Exception("Aufgabe 1 (Rover): Feld 'id' fehlt.");
-            if ((string)fId.GetValue(r1) != "R1") throw new Exception("Aufgabe 1 (Rover): Die 'id' wurde im Konstruktor nicht zugewiesen.");
-
-            MethodInfo mGetNr = tRover.GetMethod("GetFahrzeugNr") ?? tRover.GetMethod("getFahrzeugNr");
-            MethodInfo mUnlock = tRover.GetMethod("Unlock") ?? tRover.GetMethod("unlock");
-            MethodInfo mLock = tRover.GetMethod("Lock") ?? tRover.GetMethod("lock");
-
-            if (mGetNr == null) throw new Exception("Aufgabe 1 (Rover): Methode GetFahrzeugNr() fehlt.");
-            if (mUnlock == null) throw new Exception("Aufgabe 1 (Rover): Methode Unlock() fehlt.");
-            if (mLock == null) throw new Exception("Aufgabe 1 (Rover): Methode Lock() fehlt.");
-
-            int nr1 = (int)mGetNr.Invoke(r1, null);
-            int nr2 = (int)mGetNr.Invoke(r2, null);
-
-            if (nr1 < 1 || nr2 != nr1 + 1)
-                throw new Exception($"Aufgabe 1 (Rover): Autowert nicht korrekt. Rover 1 hat Nr {nr1}, Rover 2 hat Nr {nr2}. Erwartet: Fortlaufende Nummerierung.");
-
-            // --- TASK 2: RFID READER ---
             ConstructorInfo ctorReader = tReader.GetConstructor(new[] { tSerial });
-            if (ctorReader == null) throw new Exception("Aufgabe 2 (Reader): Konstruktor RFIDReader(Serial s) fehlt.");
+            if (ctorReader == null) throw new Exception("Konstruktor RFIDReader(Serial s) fehlt.");
 
             object serialMock = Activator.CreateInstance(tSerial, new object[] { "COM1", 9600, 8, 1, 0 });
             object reader = ctorReader.Invoke(new object[] { serialMock });
 
-            // prevent missing serial assignment
             FieldInfo fReaderSerial = tReader.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fReaderSerial == null) throw new Exception("Aufgabe 2 (Reader): Feld 'serial' fehlt.");
-            if (fReaderSerial.GetValue(reader) == null) throw new Exception("Aufgabe 2 (Reader): Das Serial-Objekt wurde im Konstruktor nicht gespeichert.");
+            if (fReaderSerial == null) throw new Exception("Feld 'serial' fehlt in RFIDReader.");
+            if (fReaderSerial.GetValue(reader) == null) throw new Exception("Das Serial-Objekt wurde im Konstruktor nicht gespeichert.");
 
             // test IsCardAvailable
             MethodInfo mAvail = tReader.GetMethod("IsCardAvailable") ?? tReader.GetMethod("isCardAvailable");
-            if (mAvail == null) throw new Exception("Aufgabe 2 (Reader): Methode IsCardAvailable() fehlt.");
+            if (mAvail == null) throw new Exception("Methode IsCardAvailable() fehlt.");
 
-            // check if it correctly returns false when empty
             bool isAvailEmpty = (bool)mAvail.Invoke(reader, null);
-            if (isAvailEmpty) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable() meldet sofort true, obwohl keine Daten anliegen. Nutzen Sie die korrekte Bedingung (serial.DataAvailable() > 0).");
+            if (isAvailEmpty) throw new Exception("IsCardAvailable() meldet sofort true, obwohl keine Daten anliegen. Nutzen Sie die korrekte Bedingung (serial.DataAvailable() > 0).");
 
             MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
             mSetBytes.Invoke(serialMock, new object[] { new int[] { 0x02 } });
 
             bool isAvail = (bool)mAvail.Invoke(reader, null);
-            if (!isAvail) throw new Exception("Aufgabe 2 (Reader): IsCardAvailable() gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
+            if (!isAvail) throw new Exception("IsCardAvailable() gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
 
             MethodInfo mReadSerial = tSerial.GetMethod("Read");
             mReadSerial.Invoke(serialMock, null);
 
             // test ReadCard
-            int[] validPacket = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 };
+            int[] validPacket = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 }; // STX, "123456", XOR(7), ETX
             mSetBytes.Invoke(serialMock, new object[] { validPacket });
 
             MethodInfo mReadCard = tReader.GetMethod("ReadCard") ?? tReader.GetMethod("readCard");
-            if (mReadCard == null) throw new Exception("Aufgabe 2 (Reader): Methode ReadCard() fehlt.");
+            if (mReadCard == null) throw new Exception("Methode ReadCard() fehlt.");
 
             string cardResult;
             try
@@ -1062,15 +1030,76 @@ namespace AbiturEliteCode.cs
             }
             catch (Exception ex)
             {
-                throw new Exception($"Aufgabe 2 (Reader): Fehler in ReadCard: {ex.Message}");
+                throw new Exception($"Fehler in ReadCard: {ex.Message}");
             }
 
             if (cardResult != "123456")
-                throw new Exception($"Aufgabe 2 (Reader): ReadCard liefert falsches Ergebnis. Erwartet \"123456\", erhalten \"{cardResult}\".\nPrüfen Sie: \n1. Lesen Sie genau 6 Datenbytes?\n2. Ist die XOR-Prüfung korrekt?\n3. Prüfen Sie auf ETX (0x03) am Ende?");
+                throw new Exception($"ReadCard liefert falsches Ergebnis. Erwartet \"123456\", erhalten \"{cardResult}\".\nPrüfen Sie: \n1. Lesen Sie genau 6 Datenbytes?\n2. Ist die XOR-Prüfung korrekt?\n3. Prüfen Sie auf ETX (0x03) am Ende?");
 
-            // --- TASK 3: CONTROLLER ---
+            feedback = "Klasse! Das Auslesen und Validieren des hardwarenahen Protokolls funktioniert fehlerfrei.";
+            return true;
+        }
+
+        private static bool TestLevel18(Assembly assembly, string sourceCode, out string feedback)
+        {
+            Type tRover = assembly.GetType("Rover");
+            Type tController = assembly.GetType("Controller");
+            Type tSerial = assembly.GetType("Serial");
+            Type tFunk = assembly.GetType("FunkModul");
+            Type tReader = assembly.GetType("RFIDReader");
+
+            if (tRover == null) throw new Exception("Klasse 'Rover' fehlt.");
+            if (tController == null) throw new Exception("Klasse 'Controller' fehlt.");
+            if (tReader == null) throw new Exception("Klasse 'RFIDReader' fehlt.");
+
+            string strippedSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
+            strippedSource = Regex.Replace(strippedSource, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            string cleanSourceExact = strippedSource.Replace(" ", "").Replace("\r", "").Replace("\n", "");
+            string cleanSourceLower = cleanSourceExact.ToLower();
+
+            if (!cleanSourceExact.Contains("this.id=id;"))
+                throw new Exception("Konstruktor Rover: Sie müssen die ID exakt mit 'this.id = id;' zuweisen.");
+            if (!cleanSourceExact.Contains("fahrzeugNr=++autowert;") && !cleanSourceLower.Contains("fahrzeugnr=++autowert;"))
+                throw new Exception("Konstruktor Rover: Sie müssen die Fahrzeugnummer exakt mit 'fahrzeugNr = ++autowert;' setzen (Pre-Inkrement).");
+
+            if (!cleanSourceLower.Contains("rover=r;") && !cleanSourceLower.Contains("this.rover=r;"))
+                throw new Exception("Konstruktor Controller: Der Rover wurde nicht zugewiesen. Erwartet: rover = r;");
+
+            if (!cleanSourceExact.Contains("serial=new(port,9600,8,1,0);") &&
+                !cleanSourceExact.Contains("serial=newSerial(port,9600,8,1,0);") &&
+                !cleanSourceExact.Contains("this.serial=new(port,9600,8,1,0);") &&
+                !cleanSourceExact.Contains("this.serial=newSerial(port,9600,8,1,0);"))
+                throw new Exception("Konstruktor Controller: Der Serial-Port wurde nicht exakt initialisiert. Erwartet: serial = new(port, 9600, 8, 1, 0);");
+
+            if (!cleanSourceExact.Contains("reader=new(serial);") &&
+                !cleanSourceExact.Contains("reader=newRFIDReader(serial);") &&
+                !cleanSourceExact.Contains("this.reader=new(serial);") &&
+                !cleanSourceExact.Contains("this.reader=newRFIDReader(serial);"))
+                throw new Exception("Konstruktor Controller: Der Reader wurde nicht exakt initialisiert. Erwartet: reader = new(serial);");
+
+            if (!cleanSourceExact.Contains("funk=new();") &&
+                !cleanSourceExact.Contains("funk=newFunkModul();") &&
+                !cleanSourceExact.Contains("this.funk=new();") &&
+                !cleanSourceExact.Contains("this.funk=newFunkModul();"))
+                throw new Exception("Konstruktor Controller: Das Funkmodul wurde nicht exakt initialisiert. Erwartet: funk = new();");
+
+            // --- TASK 1 ---
+            ConstructorInfo ctorRover = tRover.GetConstructor(new[] { typeof(string) });
+            if (ctorRover == null) throw new Exception("Konstruktor Rover(string id) fehlt.");
+
+            object r1 = ctorRover.Invoke(new object[] { "R1" });
+            object r2 = ctorRover.Invoke(new object[] { "R2" });
+
+            MethodInfo mGetNr = tRover.GetMethod("GetFahrzeugNr") ?? tRover.GetMethod("getFahrzeugNr");
+            int nr1 = (int)mGetNr.Invoke(r1, null);
+            int nr2 = (int)mGetNr.Invoke(r2, null);
+
+            if (nr1 < 1 || nr2 != nr1 + 1)
+                throw new Exception($"Autowert nicht korrekt. Rover 1 hat Nr {nr1}, Rover 2 hat Nr {nr2}. Erwartet: Fortlaufende Nummerierung.");
+
+            // --- TASK 2 ---
             ConstructorInfo ctorController = tController.GetConstructor(new[] { typeof(string), tRover });
-            if (ctorController == null) throw new Exception("Aufgabe 3 (Controller): Konstruktor Controller(string port, Rover r) fehlt.");
+            if (ctorController == null) throw new Exception("Konstruktor Controller(string port, Rover r) fehlt.");
 
             object controller = null;
             try
@@ -1079,89 +1108,49 @@ namespace AbiturEliteCode.cs
             }
             catch (Exception ex)
             {
-                throw new Exception($"Aufgabe 3 (Controller): Fehler im Konstruktor: {ex.InnerException?.Message ?? ex.Message}");
+                throw new Exception($"Fehler im Konstruktor: {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            // validate controller references
-            FieldInfo fControllerRover = tController.GetField("rover", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fControllerRover == null || fControllerRover.GetValue(controller) != r1)
-                throw new Exception("Aufgabe 3 (Controller): Der übergebene Rover wurde im Konstruktor nicht korrekt zugewiesen.");
-
-            FieldInfo fReader = tController.GetField("reader", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fReader == null || fReader.GetValue(controller) == null)
-                throw new Exception("Aufgabe 3 (Controller): Das Feld 'reader' wurde nicht initialisiert.");
-
-            FieldInfo fFunk = tController.GetField("funk", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fFunk == null) fFunk = tController.GetField("funkModul", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fFunk == null || fFunk.GetValue(controller) == null)
-                throw new Exception("Aufgabe 3 (Controller): Das Feld 'funk' wurde nicht initialisiert.");
-
             FieldInfo fSerial = tController.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fSerial == null || fSerial.GetValue(controller) == null)
-                throw new Exception("Aufgabe 3 (Controller): Das Feld 'serial' wurde nicht initialisiert.");
+            FieldInfo fFunk = tController.GetField("funk", BindingFlags.NonPublic | BindingFlags.Instance) ?? tController.GetField("funkModul", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            // dynamic execution test
             MethodInfo mRun = tController.GetMethod("Run") ?? tController.GetMethod("run");
-            if (mRun == null) throw new Exception("Aufgabe 3 (Controller): Methode Run() fehlt.");
+            if (mRun == null) throw new Exception("Methode Run() fehlt.");
 
-            // inject data into the controllers serial mock so IsCardAvailable() becomes true during the run cycle
             object ctrlSerial = fSerial.GetValue(controller);
             MethodInfo mSetBytesCtrl = tSerial.GetMethod("SetTestBytes");
-            int[] validPacketCtrl = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 };
+            int[] validPacketCtrl = new int[] { 2, 49, 50, 51, 52, 53, 54, 7, 3 }; // id: "123456"
             mSetBytesCtrl.Invoke(ctrlSerial, new object[] { validPacketCtrl });
 
-            // able to safely call Run() as a "return;" was injected
             try
             {
                 mRun.Invoke(controller, null);
             }
             catch (Exception ex)
             {
-                throw new Exception($"Aufgabe 3 (Controller): Fehler während Run(): {ex.InnerException?.Message ?? ex.Message}");
+                throw new Exception($"Fehler während Run(): {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            // verify FunkModul.Send was called with the correct argument
+            // validate FunkModul input
             object funkObj = fFunk.GetValue(controller);
             MethodInfo mGetLastCmd = tFunk.GetMethod("GetLastCommand");
-            if (mGetLastCmd != null)
-            {
-                string lastCmd = (string)mGetLastCmd.Invoke(funkObj, null);
-                if (string.IsNullOrEmpty(lastCmd))
-                    throw new Exception("Aufgabe 3 (Controller): Es wurde kein Befehl über das FunkModul gesendet. (Die Bedingungen wurden evtl. nicht erfüllt oder funk.Send() fehlt).");
+            string lastCmd = (string)mGetLastCmd.Invoke(funkObj, null);
 
-                int expectedNr = (int)mGetNr.Invoke(r1, null);
-                string expectedCmd = $"UNLOCK {expectedNr} 123456";
+            if (string.IsNullOrEmpty(lastCmd))
+                throw new Exception("Es wurde kein Befehl über das FunkModul gesendet.");
 
-                if (lastCmd != expectedCmd)
-                    throw new Exception($"Aufgabe 3 (Controller): Falscher Funk-Befehl gesendet. Erwartet: \"{expectedCmd}\", Erhalten: \"{lastCmd}\".");
-            }
+            string expectedCmd = $"UNLOCK {nr1} 123456";
+            if (lastCmd != expectedCmd)
+                throw new Exception($"Falscher Funk-Befehl gesendet. Erwartet: \"{expectedCmd}\", Erhalten: \"{lastCmd}\". Prüfen Sie Variablen und Leerzeichen.");
 
-            // check if rover.Unlock() if actually in the active code (so not commented out)
-            string strippedSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
-            strippedSource = Regex.Replace(strippedSource, @"/\*.*?\*/", "", RegexOptions.Singleline);
-            string cleanSource = strippedSource.Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+            if (!cleanSourceLower.Contains("rover.unlock();"))
+                throw new Exception("Der Rover wurde nicht entriegelt (rover.Unlock() fehlt oder ist auskommentiert).");
 
-            if (!cleanSource.Contains("rover.unlock();"))
-                throw new Exception("Aufgabe 3 (Controller): Der Rover wurde nicht entriegelt (rover.Unlock() fehlt oder ist auskommentiert).");
-
-            // check if funk.Receive() isnt ignored and is in an if condition
-            bool receiveUsed = cleanSource.Contains("funk.receive()");
-            if (!receiveUsed)
-                throw new Exception("Aufgabe 3 (Controller): funk.Receive() wird nicht aufgerufen. Prüfen Sie: if (funk.Receive() == 0x06)");
-
-            bool receiveInIf = Regex.IsMatch(
-                strippedSource.Replace(" ", ""),
-                @"if\([^)]*funk\.Receive\(\)",
-                RegexOptions.IgnoreCase
-            );
-            if (!receiveInIf)
-                throw new Exception("Aufgabe 3 (Controller): funk.Receive() wird nicht in einer if-Bedingung geprüft. Erwartet: if (funk.Receive() == 0x06) { ... }");
-
-            feedback = "Hervorragend! Alle 3 Teilaufgaben (Rover, Reader Protokoll, Controller Setup) wurden korrekt gelöst.";
+            feedback = "Hervorragend! Sie haben die Hardware-Komponenten exakt initialisiert und erfolgreich durch den Controller verknüpft.";
             return true;
         }
 
-        private static bool TestLevel18(Assembly assembly, out string feedback)
+        private static bool TestLevel19(Assembly assembly, out string feedback)
         {
             Type tZentrale = assembly.GetType("MissionsZentrale");
             Type tRover = assembly.GetType("Rover");
@@ -1304,7 +1293,7 @@ namespace AbiturEliteCode.cs
             return true;
         }
 
-        private static bool TestLevel19(Assembly assembly, out string feedback)
+        private static bool TestLevel20(Assembly assembly, out string feedback)
         {
             Type tServer = assembly.GetType("SmartHomeServer");
             Type tServerSocket = assembly.GetType("ServerSocket");
@@ -1406,7 +1395,7 @@ namespace AbiturEliteCode.cs
             return true;
         }
 
-        private static bool TestLevel20(Assembly assembly, out string feedback)
+        private static bool TestLevel21(Assembly assembly, out string feedback)
         {
             Type tServer = assembly.GetType("SmartHomeServer");
             Type tLicht = assembly.GetType("Licht");
@@ -1545,7 +1534,7 @@ namespace AbiturEliteCode.cs
             return true;
         }
 
-        private static bool TestLevel21(Assembly assembly, string sourceCode, out string feedback)
+        private static bool TestLevel22(Assembly assembly, string sourceCode, out string feedback)
         {
             Type tServer = assembly.GetType("SmartHomeServer");
             Type tThread = assembly.GetType("ServerThread");
@@ -1679,7 +1668,7 @@ namespace AbiturEliteCode.cs
             return true;
         }
 
-        private static bool TestLevel22(Assembly assembly, string sourceCode, out string feedback)
+        private static bool TestLevel23(Assembly assembly, string sourceCode, out string feedback)
         {
             Type tServer = assembly.GetType("SicherheitsServer");
             Type tThread = assembly.GetType("SicherheitsThread");

@@ -2288,7 +2288,7 @@ namespace AbiturEliteCode
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
 
                     // inject return into Run() method for certain levels to prevent infinite loops during testing
-                    if (!runDesignerTest && levelContext != null && (levelContext.Id == 17 || levelContext.Id == 21))
+                    if (!runDesignerTest && levelContext != null && (levelContext.Id == 18 || levelContext.Id == 21))
                     {
                         var root = syntaxTree.GetRoot(token);
                         var rewriter = new InfiniteLoopBreaker();

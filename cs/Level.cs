@@ -16,7 +16,7 @@ namespace AbiturEliteCode.cs
     // the further the level progression the less handholding the user will get, although if the user had to implement a class for example which has to be used exactly as is in the next level, may be already implemented to not repeat the exact same thing (if it has changed a solid amout, the user should re-implement it though)
     // getters and setters should match the abiturs scheme of "getVariable()" [so in c# "GetVariable()"], using "{ get; set; }" should be avoided
     // in the abitur basically all classes (if they have any attributes that is) have a constructor which should be represented in the uml class diagram (list attributes of a class, for example, should be able to be initalized inside their constructor, as thats how the abitur does it, initalizing them in the declaration should be possible, but not the expected way)
-    // on later levels (19+) the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." (note that it can also be: "get-/set-Methoden" if the user is meant to set an attribute)  i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
+    // on later levels (20+) the getters and setters of a class should not be included in the diagram as the user has to know that those are available anyways, that is because in the abitur we often get this note: "Auf alle Attribute kann mittels get-Methoden zugegriffen werden." (note that it can also be: "get-/set-Methoden" if the user is meant to set an attribute)  i would like to add this to the more difficult levels so that the user becomes familiar with these background getters/setters that arent explicitly stated/defined by the user
     // what you commonly also see in the uml class diagrams in the abitur exams is "static int autowert = 0" or an id for a class, which the user must increment in the constructor (or in rare cases) set to a given id, this mechanic should also be added in more difficult levels where its appropriate
     // note: adequate abitur level language should be used as well as technical vocabulary
 
@@ -31,7 +31,7 @@ namespace AbiturEliteCode.cs
     // if a class does not have a reference to the other (at all) it should be marked using an X on the associating arrow (note: if there is an X that means this side should not have a multiplicity as there is no reference to it)
     // note: if a method is returning 'void' it shouldnt be marked (as its like this in the abitur)
 
-    // on the final levels (23+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
+    // on the final levels (24+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
 
     public class Level
     {
@@ -58,8 +58,8 @@ namespace AbiturEliteCode.cs
             "ZOO", "CAP", "ABS", "LST", "ALG",
             "LOG", "INV", "SRT", "LNK", "EXP",
             "NAV", "COL", "DAT", "ELT",
-            "COM", "CHK", "SEN", "PRO",
-            "NET", "HUB", "MUL", "SEC", 
+            "COM", "CHK", "SER", "SAF", "PRO",
+            "NET", "HUB", "MUL", "SEC",
             ""
         };
     }
@@ -852,37 +852,64 @@ END.",
                     Section = "Sektion 4: Kommunikation & Protokolle",
                     SkipCode = LevelCodes.CodesList[16],
                     NextLevelCode = LevelCodes.CodesList[17],
-                    Title = "Die Sicherheitsschleuse (Serielle Schnittstelle)",
-                    Description = "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. Sie müssen die Hardware-Ansteuerung implementieren.\n\n" +
-                                  "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
-                                  "• Sie benötigt eine ID (String) und eine [fahrzeugNr] (int).\n" +
-                                  "• Die [fahrzeugNr] wird über einen statischen Zähler ([autowert]) automatisch im Konstruktor vergeben (Start bei 1).\n" +
-                                  "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben (Sie können diese leer lassen).\n\n" +
-                                  "Aufgabe 2: Implementieren Sie [RFIDReader].\n" +
-                                  "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle (siehe Protokoll unten).\n" +
-                                  "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl die nicht [0] ist) an der Schnittstelle zum Lesen bereitstehen (siehe [Serial] in Material).\n" +
-                                  "• Protokoll: Warten auf STX (0x02) -> 6 Datenbytes lesen -> Prüfsumme lesen -> Auf ETX (0x03) prüfen.\n" +
-                                  "• Validierung: Die XOR-Prüfsumme (alle 6 Datenbytes XOR verknüpfen) muss mit der gelesenen Summe übereinstimmen. Sonst Leerstring zurückgeben.\n\n" +
-                                  "Aufgabe 3: Implementieren Sie [Controller].\n" +
-                                  "• Der Konstruktor initialisiert [Serial] mit dem übergebenen [port] und den Werten (siehe Material), öffnet den Port und erstellt den Reader.\n" +
-                                  "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK (0x06) prüfen -> [rover.Unlock()] aufrufen.\n\n" +
-                                  "Hinweis: Die Klassen [Serial] und [FunkModul] sind gegeben (siehe Material).",
-                    StarterCode = "public class Rover\n{\n    // Implementation\n}\n\npublic class RFIDReader\n{\n    private Serial serial;\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}",
-                    MaterialDocs = "Verwenden Sie zur Initialisierung der seriellen Schnittstelle folgende Parameter:\n" +
-                                   "{|Baud=9600, DataBits=8, StopBits=1, Parity=0|}\n" +
-                                   "start-hint: Autowert\n" +
-                                   "Setzen Sie die [fahrzeugNr] auf das Vorinkrement (\"pre-increment\") des Autowerts ([++autowert]), damit die Nummer bei 1 anfangen muss und es keine Duplikate gibt.\n" +
-                                   ":end-hint\n" +
-                                   "start-hint: XOR Operator\n" +
+                    Title = "RFID-Scanner (Serielle Schnittstelle)",
+                    Description = "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. In diesem ersten Teil implementieren Sie nur das Auslesen der Hardware auf unterster Ebene.\n\n" +
+                                  "Aufgabe: Implementieren Sie die Klasse [RFIDReader].\n" +
+                                  "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl, die nicht 0 ist) an der Schnittstelle bereitstehen (nutzen Sie [serial.DataAvailable()]).\n" +
+                                  "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle und validiert das Protokoll.\n\n" +
+                                  "Protokoll-Spezifikation:\n" +
+                                  "1. Warten Sie auf das Start-Byte STX (0x02).\n" +
+                                  "2. Lesen Sie exakt 6 Datenbytes aus und bauen Sie daraus einen String zusammen.\n" +
+                                  "3. Lesen Sie das nächste Byte: die übertragene Prüfsumme.\n" +
+                                  "4. Prüfen Sie auf das End-Byte ETX (0x03).\n" +
+                                  "5. Validierung: Verknüpfen Sie alle 6 Datenbytes mit XOR. Das Ergebnis muss mit der übertragenen Prüfsumme übereinstimmen. Ist die Prüfsumme falsch oder fehlt STX/ETX, geben Sie einen Leerstring [\"\"] zurück.",
+                    StarterCode = "public class RFIDReader\n{\n    private Serial serial;\n    // Implementation\n}",
+                    MaterialDocs = "start-hint: XOR Operator\n" +
                                    "In C# wird der XOR-Operator durch das Zirkumflex-Symbol [^] dargestellt.\n" +
                                    "Beispiel: [int ergebnis = byte1 ^ byte2;]\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Char vs Int\n" +
-                                   "Serial.Read() gibt [int] zurück. Für den String müssen Sie diesen in [char] casten.\n" +
+                                   "Serial.Read() gibt [int] zurück. Für den String müssen Sie diesen in [char] casten, z.B. [string id += (char)b;].\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
                         "img\\sec4\\lvl17-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass RFIDReader {\n  + RFIDReader(s : Serial)\n  + readCard() : String\n  + isCardAvailable() : boolean\n}\nclass Serial {\n}\nRFIDReader x--> \"1\" Serial : -serial\n@enduml"
+                    },
+                    NoUMLAutoScale = false,
+                    AuxiliaryIds = new List<string> { "Serial" },
+                    Prerequisites = new List<string>
+                    {
+                        "While Loops", "Bitwise Operators", "Explicit Conversion (Casting)", "Variables"
+                    }
+                },
+                new Level
+                {
+                    Id = 18,
+                    Section = "Sektion 4: Kommunikation & Protokolle",
+                    SkipCode = LevelCodes.CodesList[17],
+                    NextLevelCode = LevelCodes.CodesList[18],
+                    Title = "Die Sicherheitsschleuse (System-Integration)",
+                    Description = "Nun integrieren wir den [RFIDReader] in das Gesamtsystem, um den Rover freizugeben.\n\n" +
+                                  "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
+                                  "• Sie benötigt eine ID (String) und eine [fahrzeugNr] (int).\n" +
+                                  "• Die [fahrzeugNr] wird über einen statischen Zähler ([autowert]) automatisch im Konstruktor vergeben (Start bei 1).\n" +
+                                  "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben.\n\n" +
+                                  "Aufgabe 2: Implementieren Sie [Controller].\n" +
+                                  "• Der Konstruktor initialisiert [Serial] mit dem übergebenen [port] und den nötigen Werten (siehe Material), öffnet den Port und erstellt den [RFIDReader].\n" +
+                                  "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> String 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK (0x06) vom [FunkModul] warten -> [rover.Unlock()] aufrufen.",
+                    StarterCode = "public class Rover\n{\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}\n\n// Den RFIDReader haben Sie bereits im letzten Level erfolgreich implementiert!\npublic class RFIDReader\n{\n    private Serial serial;\n    \n    public RFIDReader(Serial s)\n    {\n        serial = s;\n    }\n    \n    public bool IsCardAvailable()\n    {\n        return serial.DataAvailable() > 0;\n    }\n    \n    public string ReadCard()\n    {\n        if (serial.Read() != 0x02) return \"\";\n        \n        char[] data = new char[6];\n        int xor = 0;\n        for (int i = 0; i < 6; i++)\n        {\n            data[i] = (char)serial.Read();\n            xor ^= data[i];\n        }\n        \n        if (serial.Read() != xor) return \"\";\n        \n        if (serial.Read() != 0x03) return \"\";\n        \n        return new string(data);\n    }\n}",
+                    MaterialDocs = "Verwenden Sie zur Initialisierung der seriellen Schnittstelle folgende Parameter:\n" +
+                                   "{|Baud=9600, DataBits=8, StopBits=1, Parity=0|}\n" +
+                                   "start-hint: Autowert\n" +
+                                   "Setzen Sie die [fahrzeugNr] auf das Vorinkrement (\"pre-increment\") des Autowerts ([++autowert]), damit die Nummer bei 1 anfangen muss und es keine Duplikate gibt.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec4\\lvl18-1.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
@@ -892,15 +919,15 @@ END.",
                     AuxiliaryIds = new List<string> { "Serial", "FunkModul" },
                     Prerequisites = new List<string>
                     {
-                        "Static Fields", "While Loops", "Bitwise Operators", "Explicit Conversion (Casting)", "Object Interaction"
+                        "Static Fields", "While Loops", "Object Interaction"
                     }
                 },
                 new Level
                 {
-                    Id = 18,
+                    Id = 19,
                     Section = "Sektion 4: Kommunikation & Protokolle",
-                    SkipCode = LevelCodes.CodesList[17],
-                    NextLevelCode = LevelCodes.CodesList[18],
+                    SkipCode = LevelCodes.CodesList[18],
+                    NextLevelCode = LevelCodes.CodesList[19],
                     Title = "Missions-Zentrale",
                     Description = "Abschlussprüfung Sektion 4: Objekt-Kollaboration und Zustandsverwaltung.\n\n" +
                                   "Die Kommunikation mit der Mars-Basis wurde um einen Wartungsdienst erweitert. " +
@@ -930,8 +957,8 @@ END.",
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "img\\sec4\\lvl18-1.svg",
-                        "img\\sec4\\lvl18-2.svg"
+                        "img\\sec4\\lvl19-1.svg",
+                        "img\\sec4\\lvl19-2.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
@@ -983,10 +1010,10 @@ END.",
                 // --- SECTION 5 --- (no more get/set explicitly given through diagrams)
                 new Level
                 {
-                    Id = 19,
+                    Id = 20,
                     Section = "Sektion 5: Client-Server-Prinzip",
-                    SkipCode = LevelCodes.CodesList[18],
-                    NextLevelCode = LevelCodes.CodesList[19],
+                    SkipCode = LevelCodes.CodesList[19],
+                    NextLevelCode = LevelCodes.CodesList[20],
                     Title = "Smart Home Hub (Verbindungsaufbau)",
                     Description = "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
                                   "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
@@ -1018,8 +1045,8 @@ END.",
                                    ":end-hint\n",
                     DiagramPaths = new List<string>
                     {
-                        "img\\sec5\\lvl19-1.svg",
-                        "img\\sec5\\lvl19-2.svg"
+                        "img\\sec5\\lvl20-1.svg",
+                        "img\\sec5\\lvl20-2.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
@@ -1035,10 +1062,10 @@ END.",
                 },
                 new Level
                 {
-                    Id = 20,
+                    Id = 21,
                     Section = "Sektion 5: Client-Server-Prinzip",
-                    SkipCode = LevelCodes.CodesList[19],
-                    NextLevelCode = LevelCodes.CodesList[20],
+                    SkipCode = LevelCodes.CodesList[20],
+                    NextLevelCode = LevelCodes.CodesList[21],
                     Title = "Gerätesteuerung (Command-Parsing)",
                     Description = "Der Smart Home Server muss nun Steuerbefehle für verbundene Geräte verarbeiten.\n\n" +
                                   "Aufgabe:\n" +
@@ -1066,8 +1093,8 @@ END.",
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "img\\sec5\\lvl20-1.svg",
-                        "img\\sec5\\lvl20-2.svg",
+                        "img\\sec5\\lvl21-1.svg",
+                        "img\\sec5\\lvl21-2.svg",
                         "img\\ascii-table.svg"
                     },
                     PlantUMLSources = new List<string>
@@ -1084,10 +1111,10 @@ END.",
                 },
                 new Level
                 {
-                    Id = 21,
+                    Id = 22,
                     Section = "Sektion 5: Client-Server-Prinzip",
-                    SkipCode = LevelCodes.CodesList[20],
-                    NextLevelCode = LevelCodes.CodesList[21],
+                    SkipCode = LevelCodes.CodesList[21],
+                    NextLevelCode = LevelCodes.CodesList[22],
                     Title = "Multi-User Hub (Threads)",
                     Description = "Der Smart Home Server soll nun mehrere Clients (z. B. verschiedene Smart-Panels) gleichzeitig bedienen können. Dazu wird die Client-Verwaltung in einen eigenen Thread ausgelagert.\n\n" +
                                   "Aufgaben:\n" +
@@ -1110,7 +1137,7 @@ END.",
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "img\\sec5\\lvl21-1.svg"
+                        "img\\sec5\\lvl22-1.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
@@ -1125,10 +1152,10 @@ END.",
                 },
                 new Level
                 {
-                    Id = 22,
+                    Id = 23,
                     Section = "Sektion 5: Client-Server-Prinzip",
-                    SkipCode = LevelCodes.CodesList[21],
-                    NextLevelCode = LevelCodes.CodesList[22],
+                    SkipCode = LevelCodes.CodesList[22],
+                    NextLevelCode = LevelCodes.CodesList[23],
                     Title = "Das Sicherheitssystem",
                     Description = "Dies ist die Abschlussprüfung für Sektion 5. Eine hohe Eigenständigkeit wird vorausgesetzt.\n\n" +
                                   "Aufgabe 1: Implementieren Sie die Klasse [SicherheitsServer].\n" +
@@ -1144,8 +1171,8 @@ END.",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\nEine hohe Selbständigkeit wird hier erwartet. Achten Sie auf das, was Ihnen hier zuvor gegeben wurde.\n",
                     DiagramPaths = new List<string>
                     {
-                        "img\\sec5\\lvl22-1.svg",
-                        "img\\sec5\\lvl22-2.svg"
+                        "img\\sec5\\lvl23-1.svg",
+                        "img\\sec5\\lvl23-2.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
