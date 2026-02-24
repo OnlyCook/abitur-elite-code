@@ -753,7 +753,7 @@ namespace AbiturEliteCode
             _textMarkerService = new TextMarkerService(CodeEditor);
             CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_textMarkerService);
 
-            _unusedCodeTransformer = new UnusedCodeTransformer();
+            _unusedCodeTransformer = new UnusedCodeTransformer(CodeEditor);
             CodeEditor.TextArea.TextView.LineTransformers.Add(_unusedCodeTransformer);
 
             _escapeSequenceTransformer = new EscapeSequenceTransformer();
@@ -1457,10 +1457,13 @@ namespace AbiturEliteCode
                         FontWeight = FontWeight.Bold,
                         Foreground = BrushTextNormal,
                         TextWrapping = TextWrapping.Wrap,
-                        Margin = new Thickness(0, 0, 0, 20)
+                        Margin = new Thickness(0, 0, 0, 15)
                     }
                 );
             }
+
+            WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false);
+            if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
             RenderRichText(PnlTask, level.Description);
 
@@ -1499,6 +1502,91 @@ namespace AbiturEliteCode
             UpdateSemanticHighlighting(); // init scan
 
             Dispatcher.UIThread.Post(() => CodeEditor.Focus());
+        }
+
+
+        private WrapPanel BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql)
+        {
+            if (difficulty == "" && (topics == null || topics.Count == 0)  && (diagrams == null || diagrams.Count == 0))
+            {
+                return null;
+            }
+
+            var panel = new WrapPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, -10, 0, 15)
+            };
+
+            // difficulty tag
+            if (!string.IsNullOrEmpty(difficulty))
+            {
+                IBrush diffColor = Brushes.Gray;
+                string tooltip = "";
+
+                switch (difficulty.ToLower())
+                {
+                    case "einfach":
+                        diffColor = SolidColorBrush.Parse("#28a745");
+                        tooltip = isSql ? "Einfache SELECT-Abfragen, meist auf einer einzelnen Tabelle." : "Grundlegende Programmierkonzepte, wenig Vernetzung.";
+                        break;
+                    case "mittel":
+                        diffColor = SolidColorBrush.Parse("#d08770");
+                        tooltip = isSql ? "Abfragen mit JOINs, GROUP BY und einfachen Unterabfragen." : "Komplexere Logik, erste Objektinteraktionen und Datenstrukturen.";
+                        break;
+                    case "schwer":
+                        diffColor = SolidColorBrush.Parse("#B43232");
+                        tooltip = isSql ? "Komplexe Unterabfragen, aggregierte Joins und Verschachtelungen." : "Komplexe Algorithmen, Datenstrukturen (Listen/Arrays) und Architektur.";
+                        break;
+                    case "abitur":
+                        diffColor = SolidColorBrush.Parse("#8A2BE2");
+                        tooltip = isSql ? "Auf Abitur-Niveau: Komplexe Auswertungen über viele Relationen." : "Auf Abitur-Niveau: Netzwerkkommunikation, Parsing, komplexe Objektgeflechte.";
+                        break;
+                }
+
+                var diffBorder = CreateTagBorder(difficulty.ToUpper(), diffColor);
+                ToolTip.SetTip(diffBorder, tooltip);
+                panel.Children.Add(diffBorder);
+            }
+
+            // topic tags (max of 3, currently c# only)
+            if (!isSql && topics != null)
+            {
+                foreach (var topic in topics.Take(3))
+                {
+                    panel.Children.Add(CreateTagBorder(topic, SolidColorBrush.Parse("#007ACC")));
+                }
+            }
+
+            // diagram tags (max of 3)
+            if (diagrams != null)
+            {
+                foreach (var diag in diagrams.Take(3))
+                {
+                    panel.Children.Add(CreateTagBorder(diag, SolidColorBrush.Parse("#555555")));
+                }
+            }
+
+            return panel;
+        }
+
+        private Border CreateTagBorder(string text, IBrush bgColor)
+        {
+            return new Border
+            {
+                Background = bgColor,
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2),
+                Margin = new Thickness(0, 0, 5, 5),
+                Child = new TextBlock
+                {
+                    Text = text,
+                    FontSize = 11,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
         }
 
         private void RenderRichText(StackPanel panel, string text)
@@ -1728,7 +1816,7 @@ namespace AbiturEliteCode
                     // unused vars
                     if (unusedWarningIds.Contains(diag.Id))
                     {
-                        _unusedCodeTransformer.UnusedSegments.Add((start, length));
+                        _unusedCodeTransformer.UnusedSegments.Add(new TextSegment { StartOffset = start, Length = length });
                     }
                     else
                     {
@@ -3350,6 +3438,29 @@ namespace AbiturEliteCode
                         }
                     };
                     codePanel.Children.Add(txtLevelCode);
+
+                    var btnLevelGuide = new Button
+                    {
+                        Content = LoadIcon("assets/icons/ic_guide.svg", 16),
+                        Background = SolidColorBrush.Parse("#007ACC"),
+                        Padding = new Thickness(8),
+                        CornerRadius = new CornerRadius(4)
+                    };
+                    // placeholder for "Level Codes & Lösungen" after adding sample solutions later
+                    ToolTip.SetTip(btnLevelGuide, "Level Codes");
+                    btnLevelGuide.Click += (_, __) =>
+                    {
+                        try
+                        {
+                            var url = "https://github.com/OnlyCook/abitur-elite-code/blob/main/py/LEVEL_CODES.md";
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
+                            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) Process.Start("open", url);
+                        }
+                        catch { }
+                    };
+                    codePanel.Children.Add(btnLevelGuide);
+
                     headerRightPanel.Children.Add(codePanel);
 
 
@@ -6789,8 +6900,11 @@ namespace AbiturEliteCode
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = BrushTextNormal,
-                Margin = new Thickness(0, 0, 0, 20)
+                Margin = new Thickness(0, 0, 0, 15)
             });
+
+            WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, null, level.DiagramTags, true);
+            if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
             RenderRichText(PnlTask, level.Description);
 

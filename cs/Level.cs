@@ -40,6 +40,9 @@ namespace AbiturEliteCode.cs
         public string SkipCode { get; set; }
         public string NextLevelCode { get; set; }
         public string Title { get; set; }
+        public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
+        public List<string> Topics { get; set; } = new List<string>(); // max of 3
+        public List<string> DiagramTags { get; set; } = new List<string>(); // max of 3: "Klassen", "Strukto", "Sequenz"
         public string Description { get; set; }
         public string StarterCode { get; set; }
         public string MaterialDocs { get; set; }
@@ -647,7 +650,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     StarterCode = "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben (Hilfsklasse)\n}\n",
                     MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
                                    "Hier ist die Kette: Schule -> Lehrer -> Liste<Klasse>.\n" +
-                                   "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und *darauf* die Eigenschaft [.Count] prüfen.\n" +
+                                   "Sie müssen die Liste des Lehrers abrufen (z.B. [l.GetKlassen()]) und **darauf** die Eigenschaft [.Count] prüfen.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -749,11 +752,11 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     StarterCode = "public class Kontrollzentrum\n{\n    // Implementation hier\n}\n\npublic class Rover\n{\n    // Implementation hier\n}",
                     MaterialDocs = localDateHint + "\n\n" +
                                    "start-hint: Strings zerlegen\n" +
-                                   "In C# nutzen Sie [befehl.Split(';')]. Das Ergebnis ist ein Array von Strings (string[]).\n" +
-                                   "Beispiel: \"MV;50;90\" -> [\"MV\", \"50\", \"90\"].\n" +
+                                   "In C# nutzen Sie [befehl.Split(char c)]. Das Ergebnis ist ein Array von Strings (string[]).\n" +
+                                   "Beispiel: [befehl.Split(',')] bei [\"A,1,2\"] -> [|[\"A\", \"1\", \"2\"|]].\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Arrays in C#\n" +
-                                   "Ein Array mit zwei Integern erstellen Sie im Code mit [new int|[2|]].\n" +
+                                   "Ein Array mit n Integern erstellen Sie im Code mit [new int|[n|]].\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -791,6 +794,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                    ":end-hint\n" +
                                    "start-tipp: Array Länge\n" +
                                    "Die Länge eines Arrays erhalten Sie in C# mit [array.Length].\n" +
+                                   "Verwechseln Sie Arrays nicht mit Listen ([list.Count]).\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1089,7 +1093,7 @@ END.",
                                    "Ein Großbuchstabe liegt in der ASCII-Tabelle zwischen 65 (A) und 90 (Z).\n" +
                                    ":end-hint\n" +
                                    "start-tipp: String zu Char\n" +
-                                   "Wenn Sie den String am Semikolon splitten, ist der zweite Teil (die ID) ein String. Um das erste Zeichen zu prüfen, nutzen Sie [idString|[0|]].\n" +
+                                   "Wenn Sie den String am Semikolon teilen, ist der zweite Teil (die ID) ein String. Um das erste Zeichen zu prüfen, nutzen Sie [idString|[0|]].\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {

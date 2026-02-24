@@ -20,6 +20,8 @@ namespace AbiturEliteCode.cs
         public string SkipCode { get; set; }
         public string NextLevelCode { get; set; }
         public string Title { get; set; }
+        public string Difficulty { get; set; } = "Einfach"; // "Einfach", "Mittel", "Schwer", "Abitur"
+        public List<string> DiagramTags { get; set; } = new List<string>(); // "ER"
         public string Description { get; set; }
         public string SetupScript { get; set; }
         public string VerificationQuery { get; set; }

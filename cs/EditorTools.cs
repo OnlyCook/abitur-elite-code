@@ -114,27 +114,38 @@ namespace AbiturEliteCode
 
     public class UnusedCodeTransformer : DocumentColorizingTransformer
     {
-        public List<(int Start, int Length)> UnusedSegments { get; set; } = new();
+        private readonly TextEditor _editor;
+        public TextSegmentCollection<TextSegment> UnusedSegments { get; private set; }
+
+        public UnusedCodeTransformer(TextEditor editor)
+        {
+            _editor = editor;
+            UnusedSegments = new TextSegmentCollection<TextSegment>(editor.Document);
+
+            // handle document replacement just in case
+            _editor.DocumentChanged += (s, e) =>
+            {
+                if (_editor.Document != null)
+                    UnusedSegments = new TextSegmentCollection<TextSegment>(_editor.Document);
+            };
+        }
 
         protected override void ColorizeLine(DocumentLine line)
         {
-            if (UnusedSegments.Count == 0) return;
+            if (UnusedSegments == null || UnusedSegments.Count == 0) return;
 
             int lineStart = line.Offset;
             int lineEnd = lineStart + line.Length;
 
-            foreach (var segment in UnusedSegments)
+            foreach (var segment in UnusedSegments.FindOverlappingSegments(lineStart, line.Length))
             {
-                if (segment.Start < lineEnd && segment.Start + segment.Length > lineStart)
-                {
-                    int start = Math.Max(lineStart, segment.Start);
-                    int end = Math.Min(lineEnd, segment.Start + segment.Length);
+                int start = Math.Max(lineStart, segment.StartOffset);
+                int end = Math.Min(lineEnd, segment.EndOffset);
 
-                    ChangeLinePart(start, end, element =>
-                    {
-                        element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
-                    });
-                }
+                ChangeLinePart(start, end, element =>
+                {
+                    element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
+                });
             }
         }
     }
@@ -782,14 +793,17 @@ namespace AbiturEliteCode
             {
                 if (param.Type != null)
                 {
-                    string typeName = param.Type.ToString();
+                    string typeName = param.Type.ToString().Replace("[]", "").Trim();
                     string varName = param.Identifier.Text;
                     _allLocals.Add(varName);
 
-                    if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                    // Basisname ohne Generics (z.B. "List" aus "List<string>") fuer Keyword-Pruefung
+                    string baseTypeName = typeName.Contains('<') ? typeName.Substring(0, typeName.IndexOf('<')).Trim() : typeName;
+
+                    if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
                     {
                         _variableTypes[varName] = typeName;
-                        _allClasses.Add(typeName);
+                        _allClasses.Add(baseTypeName);
                     }
                 }
             }
@@ -798,11 +812,13 @@ namespace AbiturEliteCode
             var variables = root.DescendantNodes().OfType<VariableDeclarationSyntax>();
             foreach (var varDecl in variables)
             {
-                string typeName = varDecl.Type.ToString();
+                string typeName = varDecl.Type.ToString().Replace("[]", "").Trim();
 
-                if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                string baseTypeName = typeName.Contains('<') ? typeName.Substring(0, typeName.IndexOf('<')).Trim() : typeName;
+
+                if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
                 {
-                    _allClasses.Add(typeName);
+                    _allClasses.Add(baseTypeName);
                 }
 
                 foreach (var v in varDecl.Variables)
@@ -810,7 +826,7 @@ namespace AbiturEliteCode
                     string varName = v.Identifier.Text;
                     _allLocals.Add(varName);
 
-                    if (typeName != "var" && !CsharpKeywords.Contains(typeName))
+                    if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
                     {
                         _variableTypes[varName] = typeName;
                     }
@@ -969,13 +985,32 @@ namespace AbiturEliteCode
             bool inChar = false;
             bool inLineComment = false;
             bool inBlockComment = false;
+            bool inInterpolated = false;
+            int interpolationDepth = 0;
 
             for (int i = 0; i < offset; i++)
             {
                 char c = text[i];
                 if (inBlockComment) { if (c == '*' && i + 1 < text.Length && text[i + 1] == '/') { inBlockComment = false; i++; } continue; }
                 if (inLineComment) { if (c == '\n') inLineComment = false; continue; }
-                if (inString) { if (c == '\\') { i++; continue; } if (c == '"') inString = false; continue; }
+
+                // handle interpolation
+                if (inInterpolated && c == '{')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '{') { i++; continue; }
+                    interpolationDepth++;
+                    continue;
+                }
+                if (inInterpolated && interpolationDepth > 0 && c == '}')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '}') { i++; continue; }
+                    interpolationDepth--;
+                    continue;
+                }
+
+                if (interpolationDepth > 0) continue;
+
+                if (inString || inInterpolated) { if (c == '\\') { i++; continue; } if (c == '"') { inString = false; inInterpolated = false; } continue; }
                 if (inChar) { if (c == '\\') { i++; continue; } if (c == '\'') inChar = false; continue; }
 
                 if (c == '/' && i + 1 < text.Length)
@@ -983,11 +1018,12 @@ namespace AbiturEliteCode
                     if (text[i + 1] == '/') { inLineComment = true; i++; continue; }
                     if (text[i + 1] == '*') { inBlockComment = true; i++; continue; }
                 }
+                if (c == '$' && i + 1 < text.Length && text[i + 1] == '"') { inInterpolated = true; i++; continue; }
                 if (c == '"') { inString = true; continue; }
                 if (c == '\'') { inChar = true; continue; }
             }
 
-            return inString || inChar || inLineComment || inBlockComment;
+            return (inString || inInterpolated) && interpolationDepth == 0 || inChar || inLineComment || inBlockComment;
         }
 
         public void ClearSuggestion()
