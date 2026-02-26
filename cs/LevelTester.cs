@@ -144,14 +144,27 @@ namespace AbiturEliteCode.cs
             if (!tTier.IsAbstract) throw new Exception("Klasse Tier muss 'abstract' sein. Schreibe: public abstract class Tier");
             if (!tLoewe.IsSubclassOf(tTier)) throw new Exception("Loewe erbt nicht von Tier. Füge hinzu: public class Loewe : Tier");
 
-            // check constructor chaining
+            FieldInfo fName = tTier.GetField("name", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fName == null) throw new Exception("Feld 'name' fehlt in Tier. Laut Diagramm muss es geschützt sein: protected string name;");
+            if (!fName.IsFamily) throw new Exception("Feld 'name' in Tier muss 'protected' sein (#), nicht private oder public. Ändere zu: protected string name;");
+
+            FieldInfo fLaenge = tLoewe.GetField("laenge", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fLaenge == null) throw new Exception("Feld 'laenge' fehlt in Loewe. Füge hinzu: private int laenge;");
+            if (!fLaenge.IsPrivate) throw new Exception("Feld 'laenge' in Loewe muss 'private' sein. Ändere zu: private int laenge;");
+
+            // check constructor
             ConstructorInfo ctor = tLoewe.GetConstructor(new[] { typeof(string), typeof(int) });
             if (ctor == null) throw new Exception("Konstruktor Loewe(string, int) fehlt. Erstelle: public Loewe(string name, int laenge) : base(name)");
 
             // we cannot instantiate Tier, but we can instantiate Loewe
             object leo = ctor.Invoke(new object[] { "Simba", 50 });
 
-            // check Bruellen
+            string actualName = (string)fName.GetValue(leo);
+            if (actualName != "Simba") throw new Exception("Der Konstruktor von Tier setzt 'name' nicht. Füge im Konstruktor von Tier hinzu: this.name = name; (und stelle sicher, dass Loewe base(name) aufruft)");
+
+            int actualLaenge = (int)fLaenge.GetValue(leo);
+            if (actualLaenge != 50) throw new Exception("Der Konstruktor von Loewe setzt 'laenge' nicht. Füge im Konstruktor von Loewe hinzu: this.laenge = laenge;");
+
             MethodInfo mB = tLoewe.GetMethod("Bruellen");
 
             if (mB == null)
@@ -162,7 +175,7 @@ namespace AbiturEliteCode.cs
             }
 
             string sound = (string)mB.Invoke(leo, null);
-            if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück. Die Methode sollte einen String zurückgeben.");
+            if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück. Die Methode sollte einen nicht-leeren String zurückgeben.");
 
             feedback = "Vererbung und Abstraktion korrekt implementiert!";
             return true;

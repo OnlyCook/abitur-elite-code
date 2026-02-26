@@ -78,7 +78,7 @@ namespace AbiturEliteCode.cs
         public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close()\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
 
         public static string FunkModul = "@startuml\nclass FunkModul {\n  + FunkModul()\n  + send(cmd : String)\n  + receive() : char\n}\n@enduml";
-        
+
         public static string ServerSocket = "@startuml\nclass ServerSocket {\n  + ServerSocket(port : int)\n  + accept() : Socket\n  + close()\n}\n@enduml";
 
         public static string Socket = "@startuml\nclass Socket {\n  + Socket(host : String, port : int)\n  + readLine() : String\n  + write(s : String)\n  + close()\n}\n@enduml";
@@ -320,7 +320,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                                   "1. [Tier] ist eine abstrakte Klasse mit einem geschützten Attribut [name].\n" +
                                   "2. [Loewe] erbt von [Tier] und implementiert die Methode [Bruellen()].\n" +
                                   "3. Der Konstruktor von [Loewe] ruft den Basis-Konstruktor auf.",
-                    StarterCode = "// Implementieren Sie beide Klassen vollständig\n",
+                    StarterCode = "// Implementieren Sie beide Klassen eigenständig\n",
                     MaterialDocs = "start-hint: Syntax für Vererbung\n" +
                                    "In Java schreibt man [public abstract class Tier], in C# identisch.\n" +
                                    "Vererbung: Java verwendet [extends], C# verwendet [:].\n" +
@@ -866,7 +866,8 @@ END.",
                                   "2. Lesen Sie exakt 6 Datenbytes aus und bauen Sie daraus einen String zusammen.\n" +
                                   "3. Lesen Sie das nächste Byte: die übertragene Prüfsumme.\n" +
                                   "4. Prüfen Sie auf das End-Byte ETX (0x03).\n" +
-                                  "5. Validierung: Verknüpfen Sie alle 6 Datenbytes mit XOR. Das Ergebnis muss mit der übertragenen Prüfsumme übereinstimmen. Ist die Prüfsumme falsch oder fehlt STX/ETX, geben Sie einen Leerstring [\"\"] zurück.",
+                                  "5. Validierung: Verknüpfen Sie alle 6 Datenbytes mit XOR. Das Ergebnis muss mit der übertragenen Prüfsumme übereinstimmen. Ist die Prüfsumme falsch oder fehlt STX/ETX, geben Sie einen Leerstring [\"\"] zurück.\n" +
+                                  "6. Rückgabe: Wenn alle Prüfungen erfolgreich waren, geben Sie den aus den 6 Datenbytes gebildeten String zurück.",
                     StarterCode = "public class RFIDReader\n{\n    private Serial serial;\n    // Implementation\n}",
                     MaterialDocs = "start-hint: XOR Operator\n" +
                                    "In C# wird der XOR-Operator durch das Zirkumflex-Symbol [^] dargestellt.\n" +
@@ -874,6 +875,29 @@ END.",
                                    ":end-hint\n" +
                                    "start-tipp: Char vs Int\n" +
                                    "Serial.Read() gibt [int] zurück. Für den String müssen Sie diesen in [char] casten, z.B. [string id += (char)b;].\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: String aus Char-Array aufbauen\n" +
+                                   "Eine gängige Technik zum Aufbau eines Strings aus einzelnen Bytes ist die Nutzung eines [char]-Arrays.\n" +
+                                   "Deklarieren Sie ein Array passender Größe und füllen Sie es in einer Schleife. Am Ende wandeln Sie es mit [new string(charArray)] in einen String um.\n" +
+                                   "Beispiel (Java):\n" +
+                                   "{|int[] serialRead = { 72, 73, 33 };\r\n\r\nchar[] data = new char[3];\r\nfor (int i = 0; i < 3; i++) {\r\n    data[i] = (char)serialRead[i];\r\n}\r\nreturn new String(data);|}\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: XOR-Prüfsumme akkumulieren\n" +
+                                   "Um eine XOR-Prüfsumme über mehrere Bytes zu berechnen, beginnt man mit dem Startwert 0 und verknüpft jeden Byte-Wert nacheinander mit XOR.\n" +
+                                   "Beispiel: Die Bytes 5, 3 und 6 XOR-verknüpft:\n" +
+                                   "{|int xor = 0;\n" +
+                                   "xor ^= 5; // xor = 5\n" +
+                                   "xor ^= 3; // xor = 6\n" +
+                                   "xor ^= 6; // xor = 0|}\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Kein Ansatz für ReadCard()?\n" +
+                                   "Empfehlenswert ist folgender grober Ablauf:\n" +
+                                   "1. STX lesen und prüfen (bei Fehler sofort [return \"\"]).\n" +
+                                   "2. In einer Schleife 6 Bytes lesen, dabei XOR akkumulieren und das char-Array befüllen.\n" +
+                                   "3. Prüfsumme-Byte lesen und speichern.\n" +
+                                   "4. ETX lesen und prüfen (bei Fehler [return \"\"]).\n" +
+                                   "5. XOR-Ergebnis mit Prüfsumme vergleichen (bei Abweichung [return \"\"]).\n" +
+                                   "6. Den gebildeten String zurückgeben.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1021,6 +1045,7 @@ END.",
                     Title = "Smart Home Hub (Verbindungsaufbau)",
                     Description = "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
                                   "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
+                                  "Hinweis: Im Abitur werden Sequenzdiagramme in der Regel **gezeichnet** (also von vorhandenem Code abgeleitet), nicht als Code implementiert. Jedoch sollen Sie dies hier umgekehrt tun, dadurch lernen Sie, Diagramme präzise zu lesen, was die Fähigkeit, diese in der Prüfung zu zeichnen deutlich stärken sollte.\n\n" +
                                   "Aufgabe:\n" +
                                   "1. Implementieren Sie die Klasse [SmartHomeServer].\n" +
                                   "2. Der Konstruktor initialisiert den Server auf dem übergebenen [port].\n" +
@@ -1055,7 +1080,7 @@ END.",
                     PlantUMLSources = new List<string>
                     {
                         "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
-                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"+ERR unbekannt\\n/\")\n    activate CS\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\nCS --> S\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"+ERR unbekannt\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket" },
@@ -1104,7 +1129,7 @@ END.",
                     PlantUMLSources = new List<string>
                     {
                         "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nclass Licht {\n  - bezeichnung : char\n  - istAn : boolean\n  + Licht(bez : char)\n  + toggle()\n}\nSmartHomeServer x--> \"*\" Licht : -lichter\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
-                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\nparticipant \"licht: Licht\" as L\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n\n  opt befehl beginnt mit \"TOGGLE_LIGHT;\"\n    alt ASCII-Wert von ID zwischen 'A' und 'Z'\n      S -> S : suche Licht\n      activate S\n      deactivate S\n      alt Licht gefunden\n        S -> L : toggle()\n        activate L\n        deactivate L\n        S -> CS : write(\"+OK\\n/\")\n        activate CS\n      else\n        S -> CS : write(\"-ERR Licht nicht gefunden\\n/\")\n      end\n    else\n      S -> CS : write(\"-ERR ungültige ID\\n/\")\n    end\n  deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\ndeactivate CS\ndeactivate S\n@enduml"
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\nparticipant \"licht: Licht\" as L\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n\n  opt befehl beginnt mit \"TOGGLE_LIGHT;\"\n    alt ASCII-Wert von ID zwischen 'A' und 'Z'\n      S -> S : suche Licht\n      activate S\n      S --> S\n      deactivate S\n      alt Licht gefunden\n        S -> L : toggle()\n        activate L\n        L --> S\n        deactivate L\n        S -> CS : write(\"+OK\\n/\")\n        activate CS\n        CS --> S\n        deactivate CS\n      else\n        S -> CS : write(\"-ERR Licht nicht gefunden\\n/\")\n        activate CS\n        CS --> S\n        deactivate CS\n      end\n    else\n      S -> CS : write(\"-ERR ungültige ID\\n/\")\n      activate CS\n      CS --> S\n      deactivate CS\n    end\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "ListT" },
@@ -1181,7 +1206,7 @@ END.",
                     PlantUMLSources = new List<string>
                     {
                         "@startuml\nclass SicherheitsServer {\n  - port : int\n  + SicherheitsServer(port : int, z : SicherheitsZentrale)\n  + runServer()\n}\nclass SicherheitsThread {\n  + SicherheitsThread(cs : Socket, z : SicherheitsZentrale)\n  + run()\n  - vergleicheZugangsdaten(user : String, pin : String) : boolean\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SicherheitsZentrale {\n  + SicherheitsZentrale()\n}\nclass BenutzerVerwaltung {\n  - adminUser : String\n  - adminPin : String\n}\nclass Alarmanlage {\n  - aktiv : boolean\n}\nclass ProtokollLog {\n  - eintraege : List<String>\n}\nSicherheitsServer x--> \"1\" ServerSocket : -serverSocket\nSicherheitsServer x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsServer ..> SicherheitsThread : <<creates>>\nSicherheitsThread -up-|> Thread\nSicherheitsThread x--> \"1\" Socket : -clientSocket\nSicherheitsThread x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsZentrale x--> \"1\" BenutzerVerwaltung : -verwaltung\nSicherheitsZentrale x--> \"1\" Alarmanlage : -alarmanlage\nSicherheitsZentrale x--> \"1\" ProtokollLog : -log\n@enduml",
-                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \": SicherheitsThread\" as T\nparticipant \": Socket\" as CS\nparticipant \": SicherheitsZentrale\" as Z\n\n[o-> T : run()\nactivate T\nT -> CS : readLine()\nactivate CS\nCS --> T : befehl\ndeactivate CS\nopt befehl beginnt mit \"LOGIN;\"\n  T -> T : vergleicheZugangsdaten(user, pin)\n  activate T\n  T -> Z : getVerwaltung()\n  activate Z\n  Z --> T : verwaltung\n  deactivate Z\n  T --> T : true/false\n  deactivate T\n  alt erfolgreich\n    T -> CS : write(\"+OK Willkommen\\n/\")\n    activate CS\n    deactivate CS\n    loop befehl != \"QUIT\"\n      T -> CS : readLine()\n      activate CS\n      CS --> T : befehl\n      deactivate CS\n      alt befehl == \"STATUS\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> CS : write(\"+OK ALARM_ON (oder OFF)\\n/\")\n        activate CS\n        deactivate CS\n      else befehl == \"TOGGLE\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> T : wechsle Status (aktiv)\n        activate T\n        deactivate T\n        T -> Z : getLog()\n        activate Z\n        Z --> T : log\n        deactivate Z\n        T -> T : füge Eintrag hinzu\n        activate T\n        deactivate T\n        T -> CS : write(\"+OK Umschaltung erfolgreich\\n/\")\n        activate CS\n        deactivate CS\n      else befehl == \"QUIT\"\n        T -> CS : write(\"+OK Bye\\n/\")\n        activate CS\n        deactivate CS\n      end\n    end\n  else fehlgeschlagen\n    T -> CS : write(\"-ERR Login fehlgeschlagen\\n/\")\n    activate CS\n    deactivate CS\n  end\nend\nT -> CS : close()\nactivate CS\ndeactivate CS\n@enduml"
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \": SicherheitsThread\" as T\nparticipant \": Socket\" as CS\nparticipant \": SicherheitsZentrale\" as Z\n\n[o-> T : run()\nactivate T\nT -> CS : readLine()\nactivate CS\nCS --> T : befehl\ndeactivate CS\nopt befehl beginnt mit \"LOGIN;\"\n  T -> T : vergleicheZugangsdaten(user, pin)\n  activate T\n  T -> Z : getVerwaltung()\n  activate Z\n  Z --> T : verwaltung\n  deactivate Z\n  T --> T : true/false\n  deactivate T\n  alt erfolgreich\n    T -> CS : write(\"+OK Willkommen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n    loop befehl != \"QUIT\"\n      T -> CS : readLine()\n      activate CS\n      CS --> T : befehl\n      deactivate CS\n      alt befehl == \"STATUS\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> CS : write(\"+OK ALARM_ON (oder OFF)\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"TOGGLE\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> T : wechsle Status (aktiv)\n        activate T\n        T --> T\n        deactivate T\n        T -> Z : getLog()\n        activate Z\n        Z --> T : log\n        deactivate Z\n        T -> T : füge Eintrag hinzu\n        activate T\n        T --> T\n        deactivate T\n        T -> CS : write(\"+OK Umschaltung erfolgreich\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"QUIT\"\n        T -> CS : write(\"+OK Bye\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      end\n    end\n  else fehlgeschlagen\n    T -> CS : write(\"-ERR Login fehlgeschlagen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n  end\nend\nT -> CS : close()\nactivate CS\nCS --> T\ndeactivate CS\ndeactivate T\n@enduml"
                     },
                     NoUMLAutoScale = true,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "SicherheitsZentrale", "BenutzerVerwaltung", "Alarmanlage", "ProtokollLog", "ListT" },
