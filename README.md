@@ -25,7 +25,7 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von Le
 
 ## Update-Anleitung (Windows)
 
-https://github.com/user-attachments/assets/2559b4f3-071f-4ddd-98a2-fbae073a64c6
+https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 
 ## Skip-Codes
 Eine Übersicht aller Level-Codes findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).
