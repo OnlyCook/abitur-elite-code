@@ -23,12 +23,14 @@
 ## Über das Projekt
 Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von LeetCode, jedoch speziell auf die Anforderungen des hessischen Informatik-Abiturs ausgerichtet. Die Anwendung ermöglicht es Schülerinnen und Schülern, sowohl objektorientierte Programmierung (C#) als auch SQL (MySQL) praxisnah zu trainieren und ihre Kompetenzen systematisch auszubauen.
 
+## Update-Anleitung (Windows)
+
+https://github.com/user-attachments/assets/2559b4f3-071f-4ddd-98a2-fbae073a64c6
+
 ## Skip-Codes
-> *Die Liste aller Level-Codes findest du [hier](py/LEVEL_CODES.md).*
+Eine Übersicht aller Level-Codes findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).
 
 ## Level Designer
-Erstelle intern eigene C#-Levels die andere lösen können.
-> *Die Dokumentation zum Level Designer findest du [hier](https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE).*
+Mit dem integrierten Level Designer kannst du eigene C#-Levels erstellen, die andere Nutzer lösen können. Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE).
 
-Falls du dir selbst C#-Level erstellen willst um eigenständig für das Abitur zu lernen, kannst du diese auch einfach mithilfe von KI generieren.
-> *Die Anleitung zur Level-Erstellung mit KI findest du [hier](https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE).*
+Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE) weiter.
