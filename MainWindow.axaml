@@ -110,72 +110,119 @@
 						<TabItem Header="Aufgabe">
 							<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
 								<ScrollViewer>
-									<StackPanel Name="PnlTask" Spacing="10" Margin="20"/>
+									<StackPanel Margin="20">
+										<StackPanel Name="PnlTask" Spacing="10"/>
+										<StackPanel Name="PnlTaskRelationalModel" Spacing="10" Margin="0,20,0,0"/>
+									</StackPanel>
 								</ScrollViewer>
 							</Border>
 						</TabItem>
 
 						<TabItem Header="UML/Diagramme">
 							<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
-								<Panel Name="DiagramPanel" Background="Transparent"
-									   PointerWheelChanged="Diagram_PointerWheelChanged"
-									   PointerPressed="Diagram_PointerPressed"
-									   PointerMoved="Diagram_PointerMoved"
-									   PointerReleased="Diagram_PointerReleased">
+								<Grid Name="UmlTabGrid" RowDefinitions="*, 8, Auto">
+									<Panel Name="DiagramPanel" Grid.Row="0" Background="Transparent"
+										   PointerWheelChanged="Diagram_PointerWheelChanged"
+										   PointerPressed="Diagram_PointerPressed"
+										   PointerMoved="Diagram_PointerMoved"
+										   PointerReleased="Diagram_PointerReleased">
 
-									<TextBlock Name="TxtNoDiagram" Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
-											   Foreground="#444" FontSize="16" FontWeight="Bold"
-											   HorizontalAlignment="Center" VerticalAlignment="Center"
-											   TextAlignment="Center" IsVisible="False"/>
+										<TextBlock Name="TxtNoDiagram" Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
+												   Foreground="#444" FontSize="16" FontWeight="Bold"
+												   HorizontalAlignment="Center" VerticalAlignment="Center"
+												   TextAlignment="Center" IsVisible="False"/>
 
-									<Image Name="ImgDiagram" Stretch="Uniform"
-										   HorizontalAlignment="Center"
-										   VerticalAlignment="Center">
-										<Image.RenderTransform>
-											<TransformGroup>
-												<ScaleTransform/>
-												<TranslateTransform/>
-											</TransformGroup>
-										</Image.RenderTransform>
-									</Image>
+										<Image Name="ImgDiagram" Stretch="Uniform"
+											   HorizontalAlignment="Center"
+											   VerticalAlignment="Center">
+											<Image.RenderTransform>
+												<TransformGroup>
+													<ScaleTransform/>
+													<TranslateTransform/>
+												</TransformGroup>
+											</Image.RenderTransform>
+										</Image>
 
-									<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
-												HorizontalAlignment="Left" VerticalAlignment="Bottom"
-												Margin="10,0,0,60" IsVisible="False">
-										<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
-												Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
-												ToolTip.Tip="Diagramm 1">
-											<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20"/>
+										<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
+													HorizontalAlignment="Left" VerticalAlignment="Bottom"
+													Margin="10,0,0,60" IsVisible="False">
+											<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
+													Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
+													ToolTip.Tip="Diagramm 1">
+												<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20"/>
+											</Button>
+											<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
+													Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
+													ToolTip.Tip="Diagramm 2">
+												<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20"/>
+											</Button>
+											<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
+													Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
+													ToolTip.Tip="Diagramm 3">
+												<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20"/>
+											</Button>
+										</StackPanel>
+
+										<Button Name="BtnResetDiagram"
+												Background="#3C3C3C"
+												Width="40" Height="40"
+												CornerRadius="5"
+												ToolTip.Tip="Diagramm zurücksetzen"
+												HorizontalAlignment="Left"
+												VerticalAlignment="Bottom"
+												Margin="10"
+												Click="BtnResetDiagram_Click">
+											<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
 										</Button>
-										<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
-												Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
-												ToolTip.Tip="Diagramm 2">
-											<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20"/>
-										</Button>
-										<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
-												Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
-												ToolTip.Tip="Diagramm 3">
-											<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20"/>
-										</Button>
-									</StackPanel>
 
-									<Button Name="BtnResetDiagram"
-											Background="#3C3C3C"
-											Width="40" Height="40"
-											CornerRadius="5"
-											ToolTip.Tip="Diagramm zurücksetzen"
-											HorizontalAlignment="Left"
-											VerticalAlignment="Bottom"
-											Margin="10"
-											Click="BtnResetDiagram_Click">
-										<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20"/>
-									</Button>
+										<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
+												   Foreground="#666" FontSize="12"
+												   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+												   Margin="10"/>
+									</Panel>
 
-									<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
-											   Foreground="#666" FontSize="12"
-											   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-											   Margin="10"/>
-								</Panel>
+									<GridSplitter Name="UmlRelationalSplitter" IsVisible="False" Grid.Row="1" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch" Height="8" Cursor="SizeNorthSouth"
+												  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
+												  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+										<GridSplitter.Template>
+											<ControlTemplate>
+												<Grid Background="Transparent">
+													<Border Name="HoverLine" Background="#32A852" Height="2" VerticalAlignment="Center" Opacity="0" />
+													<Border Name="Handle" Background="#555555" Height="2" Width="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+												</Grid>
+											</ControlTemplate>
+										</GridSplitter.Template>
+										<GridSplitter.Styles>
+											<Style Selector="GridSplitter /template/ Border#HoverLine">
+												<Setter Property="Transitions">
+													<Transitions>
+														<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+													</Transitions>
+												</Setter>
+											</Style>
+											<Style Selector="GridSplitter.hover-active /template/ Border#HoverLine">
+												<Setter Property="Opacity" Value="1"/>
+											</Style>
+
+											<Style Selector="GridSplitter /template/ Border#Handle">
+												<Setter Property="Transitions">
+													<Transitions>
+														<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+													</Transitions>
+												</Setter>
+											</Style>
+											<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+												<Setter Property="Opacity" Value="0"/>
+											</Style>
+										</GridSplitter.Styles>
+									</GridSplitter>
+
+									<Border Name="UmlRelationalBorder" IsVisible="False" Grid.Row="2" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0">
+										<ScrollViewer MaxHeight="350">
+											<StackPanel Name="PnlUmlRelationalModel" Margin="20" Spacing="10"/>
+										</ScrollViewer>
+									</Border>
+								</Grid>
 							</Border>
 						</TabItem>
 

@@ -26,10 +26,10 @@ public class PlayerData
     public List<int> CompletedSqlLevelIds { get; set; } = new List<int>();
 
     public Dictionary<int, string> UserSqlCode { get; set; } = new Dictionary<int, string>();
+    public Dictionary<int, string> UserSqlModels { get; set; } = new Dictionary<int, string>(); // new
     public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
     public PlayerSettings Settings { get; set; } = new PlayerSettings();
 }
-
 public class CustomPlayerData
 {
     public HashSet<string> CompletedCustomLevels { get; set; } = new HashSet<string>();
@@ -119,9 +119,10 @@ public static class SaveSystem
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
         string sqlCodes = string.Join(";", data.UserSqlCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
+        string sqlModels = string.Join(";", data.UserSqlModels.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
 
-        // format: unlocked|codes|completed|settings|sqlUnlocked|sqlCompleted|sqlCodes
-        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}|{sqlUnlocked}|{sqlCompleted}|{sqlCodes}");
+        // format: unlocked|codes|completed|settings|sqlUnlocked|sqlCompleted|sqlCodes|sqlModels
+        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}|{sqlUnlocked}|{sqlCompleted}|{sqlCodes}|{sqlModels}");
     }
 
     public static PlayerData Load()
@@ -196,6 +197,20 @@ public static class SaveSystem
                     int id = int.Parse(pair[0]);
                     string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
                     if (!data.UserSqlCode.ContainsKey(id)) data.UserSqlCode.Add(id, code);
+                }
+            }
+
+            if (parts.Length > 7 && !string.IsNullOrEmpty(parts[7]))
+            {
+                foreach (var item in parts[7].Split(';'))
+                {
+                    if (string.IsNullOrWhiteSpace(item)) continue;
+                    var pair = item.Split(':');
+                    if (pair.Length < 2) continue;
+
+                    int id = int.Parse(pair[0]);
+                    string modelJson = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
+                    if (!data.UserSqlModels.ContainsKey(id)) data.UserSqlModels.Add(id, modelJson);
                 }
             }
         }

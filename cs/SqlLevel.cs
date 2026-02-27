@@ -13,6 +13,19 @@ namespace AbiturEliteCode.cs
     // attributes are written in camelCase (for example: "anzahlGetränke"), ids have their "id" in uppercase and without underscores (for example: "kID")
     // in the early levels (with ER-diagrams) we include the foreign keys in the diagrams, but in the later levels we do not (the user must know on their own what has what key)
 
+    public class RTable
+    {
+        public string Name { get; set; } = "Neu";
+        public List<RColumn> Columns { get; set; } = new List<RColumn>();
+    }
+
+    public class RColumn
+    {
+        public string Name { get; set; } = "ID";
+        public bool IsPk { get; set; }
+        public bool IsFk { get; set; }
+    }
+
     public class SqlLevel
     {
         public int Id { get; set; }
@@ -20,7 +33,7 @@ namespace AbiturEliteCode.cs
         public string SkipCode { get; set; }
         public string NextLevelCode { get; set; }
         public string Title { get; set; }
-        public string Difficulty { get; set; } = "Einfach"; // "Einfach", "Mittel", "Schwer", "Abitur"
+        public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
         public List<string> DiagramTags { get; set; } = new List<string>(); // "ER"
         public string Description { get; set; }
         public string SetupScript { get; set; }
@@ -28,6 +41,9 @@ namespace AbiturEliteCode.cs
         public List<string> ExpectedColumns { get; set; } = new List<string>();
         public List<string[]> ExpectedResult { get; set; }
         public string MaterialDocs { get; set; }
+
+        public bool IsRelationalModelReadOnly { get; set; } = false;
+        public List<RTable> InitialRelationalModel { get; set; } = new List<RTable>();
 
         public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
         public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
@@ -39,7 +55,8 @@ namespace AbiturEliteCode.cs
         public static string[] CodesList = {
             "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EXM",
             "JON", "IMP", "JOI", "JO3", "JOX",
-            "LEF", "NUL", "DIS", "PRB"
+            "LEF", "NUL", "DIS", "PRB",
+            "SUB", "HAV", ""
         };
     }
 
@@ -68,11 +85,6 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[1],
                     Title = "Projektion (SELECT)",
                     Description = "In der Datenbank der Schulbibliothek existiert eine Tabelle [Buch].\n\n" +
-                                  "Die Tabelle [Buch] besitzt folgende Spalten:\n" +
-                                  "- [Titel] (Text)\n" +
-                                  "- [Autor] (Text)\n" +
-                                  "- [Preis] (Dezimalzahl)\n" +
-                                  "- [ISBN] (Text)\n\n" +
                                   "Aufgabe:\n" +
                                   "Wählen Sie nur den [Titel] und den [Preis] aller Bücher aus.",
                     SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Preis REAL, ISBN TEXT);" +
@@ -90,6 +102,10 @@ namespace AbiturEliteCode.cs
                                    "Mit [SELECT spalte1, spalte2 FROM Tabelle] wählen Sie spezifische Spalten aus.\n" +
                                    "Möchten Sie alle Spalten, nutzen Sie das Wildcard-Symbol [*] (Sternchen).\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -121,6 +137,10 @@ namespace AbiturEliteCode.cs
                                    "- Gleich: [=]\n" +
                                    "- Ungleich: [!=] oder [<>]\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -153,6 +173,10 @@ namespace AbiturEliteCode.cs
                                    "start-tipp: Strings\n" +
                                    "Textwerte müssen in einfachen Anführungszeichen stehen: ['Kafka'].\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Erscheinungsjahr" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -164,7 +188,6 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[4],
                     Title = "Gruppierung (GROUP BY)",
                     Description = "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
-                                  "- [Buch] (Titel, Autor, Genre, Preis)\n\n" +
                                   "Aufgabe:\n" +
                                   "Ermitteln Sie für jedes [Genre] den **Durchschnittspreis** als 'Durchschnitt'.\n" +
                                   "Das Ergebnis soll das Genre und den berechneten Durchschnittspreis enthalten.",
@@ -191,6 +214,10 @@ namespace AbiturEliteCode.cs
                                    "{|SELECT AVG(Spalte) AS EigenerName\nFROM Tabelle;|}" +
                                    "Dies wird häufig zusammen mit Aggregatfunktionen genutzt.\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Genre" }, new RColumn { Name = "Preis" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -202,7 +229,6 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[5],
                     Title = "Daten Einfügen (INSERT)",
                     Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
-                                  "- [Schueler] (__ID__ ([Int]), Name ([Text]), Klasse ([Int]))\n\n" +
                                   "Aufgabe:\n" +
                                   "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
@@ -220,6 +246,10 @@ namespace AbiturEliteCode.cs
                                    "Variante 3 (MySQL SET-Syntax):\n" +
                                    "{|INSERT INTO Tabelle SET SpalteA = WertA, SpalteB = WertB;|}\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -246,6 +276,10 @@ namespace AbiturEliteCode.cs
                                    "{|UPDATE Tabelle SET Spalte = NeuerWert WHERE Bedingung;|}\n" +
                                    "Ohne [WHERE] würden **alle** Schüler in Klasse 13 versetzt werden.\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -272,6 +306,10 @@ namespace AbiturEliteCode.cs
                                    "{|DELETE FROM Tabelle WHERE Bedingung;|}\n" +
                                    "Vorsicht: [DELETE FROM Tabelle] (ohne Where) löscht den gesamten Inhalt!\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -283,10 +321,6 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[8],
                     Title = "Klausurphase",
                     Description = "Dies ist eine komplexe Abfrage zum Abschluss der Grundlagen.\n\n" +
-                                  "Gegeben ist die Tabelle [Klausur] mit:\n" +
-                                  "- [Schueler] (Text)\n" +
-                                  "- [Fach] (Text)\n" +
-                                  "- [Notenpunkte] (Integer, 0-15)\n\n" +
                                   "Aufgabe:\n" +
                                   "Ermitteln Sie [Schueler] und [Notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** (also < 5) sind.\n" +
                                   "Sortieren Sie das Ergebnis absteigend nach den Notenpunkten.",
@@ -308,6 +342,10 @@ namespace AbiturEliteCode.cs
                                    "3. [WHERE]: Welche Bedingungen müssen gleichzeitig gelten ([AND])?\n" +
                                    "4. [ORDER BY]: Wie soll sortiert werden?\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Klausur", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Schueler" }, new RColumn { Name = "Fach" }, new RColumn { Name = "Notenpunkte" } } }
+                    },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>()
                 },
@@ -322,9 +360,6 @@ namespace AbiturEliteCode.cs
                     Title = "Der Schlüssel zum Erfolg (PK & FK)",
                     Description = "Wir befinden uns in der Datenbank einer Schulbibliothek. Um Redundanzen zu vermeiden, wurden Bücher und Autoren in zwei getrennte Tabellen aufgeteilt (Normalisierung).\n\n" +
                                   "Das Buch 'Faust' speichert nicht mehr den Namen 'Goethe', sondern referenziert diesen über eine ID (Fremdschlüssel).\n\n" +
-                                  "**Schema:**\n" +
-                                  "- [Autor] (__ID__, Vorname, Nachname)\n" +
-                                  "- [Buch] (__ID__, Titel, AutorID#)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie die [ID] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [Autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
@@ -342,6 +377,11 @@ namespace AbiturEliteCode.cs
                                    "Jeder Datensatz in der Tabelle [Autor] ist durch die [ID] eindeutig identifizierbar.\n" +
                                    "In der Tabelle [Buch] wird diese ID genutzt, um auf den Autor zu verweisen.\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                    },
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec2\\lvl9-1.svg"
@@ -359,14 +399,11 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[10],
                     Title = "Die erste Verbindung (Implicit Join)",
                     Description = "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
-                                  "**Schema:**\n" +
-                                  "- [Autor] (__ID__, Vorname, Nachname)\n" +
-                                  "- [Buch] (__ID__, Titel, AutorID#)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Geben Sie eine Liste aller [Titel] und der zugehörigen [Nachname]n der Autoren aus.\n" +
-                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID_FK]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.",
+                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
+                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
@@ -381,8 +418,13 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: Kartesisches Produkt\n" +
                                    "Wenn Sie nur [FROM Buch, Autor] schreiben, wird jedes Buch mit jedem Autor kombiniert.\n" +
-                                   "Erst durch [WHERE Buch.AutorID# = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
+                                   "Erst durch [WHERE Buch.AutorID = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                    },
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec2\\lvl10-1.svg"
@@ -403,7 +445,7 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Erstellen Sie exakt dieselbe Liste wie im vorherigen Level ([Titel], [Nachname]), nutzen Sie diesmal jedoch den **INNER JOIN**.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
+                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
@@ -419,6 +461,11 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: JOIN Syntax\n" +
                                    "{|SELECT ...\nFROM TabelleA\nJOIN TabelleB ON TabelleA.FK = TabelleB.PK;|}\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                    },
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec2\\lvl11-1.svg"
@@ -436,10 +483,6 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[12],
                     Title = "Wer liest was? (3-Wege Join)",
                     Description = "Die Datenbank wurde erweitert. Schüler können nun Bücher ausleihen. Da ein Schüler viele Bücher leiht und ein Buch (über die Zeit) von vielen Schülern geliehen wird, existiert eine Relationstabelle.\n\n" +
-                                  "**Schema:**\n" +
-                                  "- [Schueler] (__ID__, Name, Klasse)\n" +
-                                  "- [Buch] (__ID__, Titel)\n" +
-                                  "- [Ausleihe] (__SchuelerID#__, __BuchID#__, Datum)\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie, welcher Schüler welches Buch ausgeliehen hat.\n" +
                                   "Geben Sie den [Name]n des Schülers und den [Titel] des Buches aus.",
@@ -471,13 +514,19 @@ namespace AbiturEliteCode.cs
                                    "{|FROM Schueler s JOIN Ausleihe a ON s.ID = a.SchuelerID_FK|}" +
                                    "Danach können Sie [s.Name] statt [Schueler.Name] schreiben.\n" +
                                    ":end-hint",
+                    IsRelationalModelReadOnly = true,
+                    InitialRelationalModel = new List<RTable> {
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" } } },
+                        new RTable { Name = "Ausleihe", Columns = new List<RColumn> { new RColumn { Name = "SchuelerID", IsFk = true }, new RColumn { Name = "BuchID", IsFk = true }, new RColumn { Name = "Datum" } } }
+                    },
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec2\\lvl12-1.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK <<key>>\n    BuchID_FK <<key>>\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
                     }
                 },
                 new SqlLevel
@@ -488,6 +537,7 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[13],
                     Title = "Klasse 10b",
                     Description = "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
+                                  "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus konvertieren.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Nutzen Sie das gegebene ER-Diagramm.\n" +
                                   "Geben Sie [Name] und [Titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
@@ -656,7 +706,7 @@ namespace AbiturEliteCode.cs
                     Id = 17,
                     Section = "Sektion 3: Event-Management",
                     SkipCode = SqlLevelCodes.CodesList[16],
-                    NextLevelCode = "",
+                    NextLevelCode = SqlLevelCodes.CodesList[17],
                     Title = "Die Problem-Gäste",
                     Description = "Dies ist die Abschlussprüfung für Sektion 3.\n\n" +
                                   "Das Event-Team ist in Panik: Einige VIPs hängen 'in der Luft' und könnten unzufrieden sein. Wir brauchen eine Liste dieser Personen.\n\n" +
@@ -701,6 +751,86 @@ namespace AbiturEliteCode.cs
                     PlantUMLSources = new List<string>
                     {
                         "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    Bereich\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,n)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>()
+                },
+
+                // --- SECTION 4 ---
+                new SqlLevel
+                {
+                    Id = 18,
+                    Section = "Sektion 4: Das Fitnessstudio",
+                    SkipCode = SqlLevelCodes.CodesList[17],
+                    NextLevelCode = SqlLevelCodes.CodesList[18],
+                    Title = "Überdurchschnittlich (Unterabfragen)",
+                    Description = "Wir verwalten ein neues Fitnessstudio. Die Geschäftsführung möchte analysieren, welche Mitglieder besonders viel investieren.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Geben Sie den [name]n und den [beitrag] aller Mitglieder aus, deren Beitrag **größer** ist als der Durchschnittsbeitrag aller Mitglieder.",
+                    SetupScript = "CREATE TABLE Mitglied (ID INTEGER PRIMARY KEY, name TEXT, beitrag REAL);" +
+                                  "INSERT INTO Mitglied VALUES (1, 'Anna', 45.0);" +
+                                  "INSERT INTO Mitglied VALUES (2, 'Ben', 30.0);" +
+                                  "INSERT INTO Mitglied VALUES (3, 'Chris', 60.0);" +
+                                  "INSERT INTO Mitglied VALUES (4, 'Diana', 40.0);",
+                    VerificationQuery = "",
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Anna", "45" },
+                        new[] { "Chris", "60" }
+                    },
+                    MaterialDocs = "start-hint: Unterabfragen (Subqueries)\n" +
+                                   "Sie können eine SELECT-Abfrage innerhalb einer anderen verwenden. Dies ist ideal, um Werte dynamisch zu berechnen, anstatt sie hart zu codieren:\n" +
+                                   "{|WHERE spalte > (SELECT AVG(spalte) FROM Tabelle)|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec4\\lvl18-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Mitglied {\n    ID <<key>>\n    name\n    beitrag\n}\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>()
+                },
+                new SqlLevel
+                {
+                    Id = 19,
+                    Section = "Sektion 4: Das Fitnessstudio",
+                    SkipCode = SqlLevelCodes.CodesList[18],
+                    NextLevelCode = "",
+                    Title = "Beliebte Kurse (HAVING)",
+                    Description = "Das Studio bietet verschiedene Kurse an. Um das Angebot zu optimieren, sollen nur die gut besuchten Kurse ermittelt werden.\n\n" +
+                                  "Beachten Sie das ER-Diagramm. **Hinweis:** Ab diesem Level sind die Fremdschlüssel nicht mehr im Diagramm vorgegeben. Sie müssen die IDs anhand der Relationen selbst korrekt verknüpfen.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie die [bezeichnung] der Kurse und die Anzahl der Buchungen (als 'anzahl').\n" +
+                                  "Zeigen Sie **nur** Kurse an, die **mehr als 1** Buchung haben.",
+                    SetupScript = "CREATE TABLE Mitglied (ID INTEGER PRIMARY KEY, name TEXT, beitrag REAL);" +
+                                  "CREATE TABLE Kurs (ID INTEGER PRIMARY KEY, bezeichnung TEXT);" +
+                                  "CREATE TABLE bucht (mitgliedID_FK INTEGER, kursID_FK INTEGER, datum TEXT);" +
+                                  "INSERT INTO Kurs VALUES (10, 'Yoga');" +
+                                  "INSERT INTO Kurs VALUES (11, 'Spinning');" +
+                                  "INSERT INTO Kurs VALUES (12, 'Zumba');" +
+                                  "INSERT INTO Mitglied VALUES (1, 'Anna', 45.0);" +
+                                  "INSERT INTO Mitglied VALUES (2, 'Ben', 30.0);" +
+                                  "INSERT INTO bucht VALUES (1, 10, '2023-01-01');" +
+                                  "INSERT INTO bucht VALUES (2, 10, '2023-01-02');" +
+                                  "INSERT INTO bucht VALUES (1, 11, '2023-01-03');",
+                    VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "bezeichnung", "anzahl" },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Yoga", "2" }
+                    },
+                    MaterialDocs = "start-hint: HAVING-Klausel\n" +
+                                   "Die [WHERE]-Klausel filtert Datensätze **vor** der Gruppierung. Um Ergebnisse **nach** einer Aggregation (wie [COUNT]) zu filtern, müssen Sie [HAVING] direkt im Anschluss an das [GROUP BY] verwenden:\n" +
+                                   "{|GROUP BY Spalte\nHAVING COUNT(Spalte) > 1|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec4\\lvl19-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Mitglied {\n    ID <<key>>\n    name\n    beitrag\n}\nentity Kurs {\n    ID <<key>>\n    bezeichnung\n}\nrelationship bucht {\n    datum\n}\nMitglied -(0,n)- bucht\nbucht -(0,m)- Kurs\n@endchen"
                     },
                     AuxiliaryIds = new List<string>()
                 }

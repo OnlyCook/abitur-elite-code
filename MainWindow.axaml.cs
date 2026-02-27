@@ -58,6 +58,13 @@ namespace AbiturEliteCode
         private List<Level> levels;
         private System.Timers.Timer autoSaveTimer;
 
+        private System.Timers.Timer _relationalAutoSaveTimer;
+        private List<RTable> _currentRelationalModel = new List<RTable>();
+        private RColumn _focusedRColumn;
+        private TextBox _focusedRColumnTextBox;
+        private Button _btnGlobalPk;
+        private Button _btnGlobalFk;
+
         private Control? _hoveredSplitter;
         private bool _isDraggingSplitter = false;
 
@@ -181,6 +188,9 @@ namespace AbiturEliteCode
 
             autoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
             autoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
+
+            _relationalAutoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
+            _relationalAutoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
 
             _designerSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
             _designerSyncTimer.Tick += (s, e) =>
@@ -369,6 +379,14 @@ namespace AbiturEliteCode
         private void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source != MainTabs) return;
+
+            if (_isSqlMode && currentSqlLevel != null)
+            {
+                if (MainTabs.SelectedIndex == 0 && PnlTaskRelationalModel != null)
+                    RenderRelationalModel(PnlTaskRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
+                else if (MainTabs.SelectedIndex == 1 && PnlUmlRelationalModel != null)
+                    RenderRelationalModel(PnlUmlRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
+            }
 
             if (_isKeyboardTabSwitch)
             {
@@ -1238,6 +1256,12 @@ namespace AbiturEliteCode
                     playerData.UserSqlCode[currentSqlLevel.Id] = codeToSave;
                 else
                     playerData.UserSqlCode.Add(currentSqlLevel.Id, codeToSave);
+
+                string modelJson = JsonSerializer.Serialize(_currentRelationalModel);
+                if (playerData.UserSqlModels.ContainsKey(currentSqlLevel.Id))
+                    playerData.UserSqlModels[currentSqlLevel.Id] = modelJson;
+                else
+                    playerData.UserSqlModels.Add(currentSqlLevel.Id, modelJson);
 
                 SaveSystem.Save(playerData);
                 return;
@@ -3141,6 +3165,10 @@ namespace AbiturEliteCode
 
             if (_isSqlMode)
             {
+                PnlTaskRelationalModel.IsVisible = true;
+                UmlRelationalSplitter.IsVisible = true;
+                UmlRelationalBorder.IsVisible = true;
+
                 if (bottomRow != null)
                 {
                     _lastCsharpRowHeight = bottomRow.Height;
@@ -3173,6 +3201,15 @@ namespace AbiturEliteCode
             }
             else
             {
+                PnlTaskRelationalModel.IsVisible = false;
+                UmlRelationalSplitter.IsVisible = false;
+                UmlRelationalBorder.IsVisible = false;
+
+                if (UmlTabGrid != null && UmlTabGrid.RowDefinitions.Count > 2)
+                {
+                    UmlTabGrid.RowDefinitions[2].Height = GridLength.Auto;
+                }
+
                 if (bottomRow != null)
                 {
                     _lastSqlRowHeight = bottomRow.Height;
@@ -6881,6 +6918,8 @@ namespace AbiturEliteCode
         {
             SaveCurrentProgress();
 
+            UpdateFocusedColumn(null, null);
+
             currentSqlLevel = level;
             UpdateNavigationButtons();
             if (playerData.UserSqlCode.ContainsKey(level.Id))
@@ -6902,6 +6941,34 @@ namespace AbiturEliteCode
                 Foreground = BrushTextNormal,
                 Margin = new Thickness(0, 0, 0, 15)
             });
+
+            PnlTaskRelationalModel.Children.Clear();
+            PnlUmlRelationalModel.Children.Clear();
+
+            _currentRelationalModel.Clear();
+            if (playerData.UserSqlModels.ContainsKey(level.Id))
+            {
+                try
+                {
+                    _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(playerData.UserSqlModels[level.Id]) ?? new List<RTable>();
+                }
+                catch { }
+
+                if (_currentRelationalModel.Count == 0 && level.InitialRelationalModel != null && level.InitialRelationalModel.Count > 0)
+                {
+                    string json = JsonSerializer.Serialize(level.InitialRelationalModel);
+                    _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(json);
+                }
+            }
+            else if (level.InitialRelationalModel != null && level.InitialRelationalModel.Count > 0)
+            {
+                string json = JsonSerializer.Serialize(level.InitialRelationalModel);
+                _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(json);
+            }
+
+            // initial rendering for active tab
+            if (MainTabs.SelectedIndex == 0) RenderRelationalModel(PnlTaskRelationalModel, level.IsRelationalModelReadOnly);
+            else if (MainTabs.SelectedIndex == 1) RenderRelationalModel(PnlUmlRelationalModel, level.IsRelationalModelReadOnly);
 
             WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, null, level.DiagramTags, true);
             if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
@@ -7296,6 +7363,333 @@ namespace AbiturEliteCode
 
                 if (_hoveredSplitter == splitter)
                     _hoveredSplitter = null;
+            }
+        }
+
+        private void TriggerRelationalAutoSave()
+        {
+            _relationalAutoSaveTimer.Stop();
+            _relationalAutoSaveTimer.Start();
+        }
+
+        private void RenderRelationalModel(StackPanel targetPanel, bool isReadOnly)
+        {
+            targetPanel.Children.Clear();
+
+            if (isReadOnly && _currentRelationalModel.Count == 0) return;
+
+            // header with global buttons
+            var headerGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*, Auto"),
+                Margin = new Thickness(0, 0, 0, 15)
+            };
+            headerGrid.Children.Add(new TextBlock
+            {
+                Text = "Relationales Modell (Schema)",
+                FontSize = 16,
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextTitle,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            if (!isReadOnly)
+            {
+                var btnStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8
+                };
+
+                _btnGlobalPk = new Button
+                {
+                    Content = "PK",
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
+                    Cursor = Cursor.Parse("Hand"),
+                    IsEnabled = false,
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(10, 4)
+                };
+                ToolTip.SetTip(_btnGlobalPk, "Primärschlüssel (Unterstreichen)");
+                _btnGlobalPk.Click += (s, e) => {
+                    if (_focusedRColumn != null)
+                    {
+                        _focusedRColumn.IsPk = !_focusedRColumn.IsPk;
+                        TriggerRelationalAutoSave();
+                        RenderRelationalModel(targetPanel, false);
+                    }
+                };
+
+                _btnGlobalFk = new Button
+                {
+                    Content = "FK",
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
+                    Cursor = Cursor.Parse("Hand"),
+                    IsEnabled = false,
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(10, 4)
+                };
+                ToolTip.SetTip(_btnGlobalFk, "Fremdschlüssel (Hashtag anhängen)");
+                _btnGlobalFk.Click += (s, e) => {
+                    if (_focusedRColumn != null)
+                    {
+                        _focusedRColumn.IsFk = !_focusedRColumn.IsFk;
+                        TriggerRelationalAutoSave();
+                        RenderRelationalModel(targetPanel, false);
+                    }
+                };
+
+                btnStack.Children.Add(_btnGlobalPk);
+                btnStack.Children.Add(_btnGlobalFk);
+                Grid.SetColumn(btnStack, 1);
+                headerGrid.Children.Add(btnStack);
+            }
+            targetPanel.Children.Add(headerGrid);
+
+            // --- READ ONLY MODE ---
+            if (isReadOnly)
+            {
+                foreach (var table in _currentRelationalModel)
+                {
+                    var tb = new SelectableTextBlock
+                    {
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 0, 0, 5),
+                        FontFamily = new FontFamily(MonospaceFontFamily),
+                        FontSize = 15
+                    };
+                    tb.Inlines.Add(new Run { Text = table.Name, Foreground = BrushTextHighlight, FontWeight = FontWeight.Bold });
+                    tb.Inlines.Add(new Run { Text = " (", Foreground = BrushTextNormal });
+
+                    for (int i = 0; i < table.Columns.Count; i++)
+                    {
+                        var col = table.Columns[i];
+                        var run = new Run { Text = col.Name + (col.IsFk ? "#" : ""), Foreground = BrushTextNormal };
+                        if (col.IsPk) run.TextDecorations = TextDecorations.Underline;
+                        tb.Inlines.Add(run);
+                        if (i < table.Columns.Count - 1) tb.Inlines.Add(new Run { Text = ", ", Foreground = BrushTextNormal });
+                    }
+                    tb.Inlines.Add(new Run { Text = ")", Foreground = BrushTextNormal });
+                    targetPanel.Children.Add(tb);
+                }
+                return;
+            }
+
+            // --- EDIT MODE ---
+            foreach (var table in _currentRelationalModel)
+            {
+                var rowPanel = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+
+                // table name
+                var txtTableName = new TextBox
+                {
+                    Text = table.Name,
+                    Foreground = BrushTextHighlight,
+                    FontFamily = new FontFamily(MonospaceFontFamily),
+                    FontWeight = FontWeight.Bold,
+                    FontSize = 15,
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Padding = new Thickness(0), // hidden initially
+                    MinHeight = 0,
+                    MinWidth = 40,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                // only valid sql characters allowed
+                txtTableName.TextChanged += (s, e) => {
+                    string filtered = new string(txtTableName.Text?.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray() ?? Array.Empty<char>());
+                    if (txtTableName.Text != filtered) txtTableName.Text = filtered;
+                    table.Name = txtTableName.Text;
+                    TriggerRelationalAutoSave();
+                };
+
+                txtTableName.GotFocus += (s, e) => UpdateFocusedColumn(null, null);
+
+                rowPanel.Children.Add(txtTableName);
+                rowPanel.Children.Add(new TextBlock { Text = " (", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
+
+                // add/delete column button
+                var btnAddCol = new Button
+                {
+                    Content = "+",
+                    Background = Brushes.Transparent,
+                    Foreground = BrushTextTitle,
+                    FontWeight = FontWeight.Bold,
+                    FontSize = 16,
+                    Padding = new Thickness(4, 0),
+                    Margin = new Thickness(2, 0, 0, 0),
+                    Cursor = Cursor.Parse("Hand"),
+                    VerticalContentAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
+
+                btnAddCol.Click += (s, e) => {
+                    if (btnAddCol.Content?.ToString() == "×")
+                    {
+                        if (table.Columns.Count > 0)
+                        {
+                            var lastCol = table.Columns.Last();
+                            if (_focusedRColumn == lastCol) UpdateFocusedColumn(null, null);
+                            table.Columns.Remove(lastCol);
+                            RenderRelationalModel(targetPanel, false);
+                            TriggerRelationalAutoSave();
+                        }
+                    }
+                    else
+                    {
+                        var newCol = new RColumn { Name = "Neu" };
+                        table.Columns.Add(newCol);
+                        UpdateFocusedColumn(newCol, null);
+                        RenderRelationalModel(targetPanel, false);
+                        TriggerRelationalAutoSave();
+                    }
+                };
+
+                // columns
+                for (int i = 0; i < table.Columns.Count; i++)
+                {
+                    var col = table.Columns[i];
+                    int capturedIndex = i;
+                    var colStack = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+
+                    var txtCol = new TextBox
+                    {
+                        Text = col.Name,
+                        Foreground = BrushTextNormal,
+                        FontFamily = new FontFamily(MonospaceFontFamily),
+                        FontSize = 15,
+                        Background = Brushes.Transparent,
+                        BorderThickness = new Thickness(0),
+                        Padding = new Thickness(0),
+                        MinHeight = 0,
+                        MinWidth = 20,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+
+                    // wrap in border to fake underline
+                    var pkUnderlineBorder = new Border
+                    {
+                        BorderThickness = col.IsPk ? new Thickness(0, 0, 0, 1) : new Thickness(0),
+                        BorderBrush = BrushTextNormal,
+                        Child = txtCol
+                    };
+
+                    txtCol.TextChanged += (s, e) => {
+                        string filtered = new string(txtCol.Text?.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray() ?? Array.Empty<char>());
+                        if (txtCol.Text != filtered) txtCol.Text = filtered;
+                        col.Name = txtCol.Text;
+                        TriggerRelationalAutoSave();
+
+                        // turn into delete column button if last column name is empty
+                        if (capturedIndex == table.Columns.Count - 1)
+                        {
+                            if (string.IsNullOrEmpty(col.Name))
+                            {
+                                btnAddCol.Content = "×";
+                                btnAddCol.Foreground = SolidColorBrush.Parse("#B43232");
+                                ToolTip.SetTip(btnAddCol, "Spalte löschen");
+                            }
+                            else
+                            {
+                                btnAddCol.Content = "+";
+                                btnAddCol.Foreground = BrushTextTitle;
+                                ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
+                            }
+                        }
+                    };
+
+                    if (i == table.Columns.Count - 1 && string.IsNullOrEmpty(col.Name))
+                    {
+                        btnAddCol.Content = "×";
+                        btnAddCol.Foreground = SolidColorBrush.Parse("#B43232");
+                        ToolTip.SetTip(btnAddCol, "Spalte löschen");
+                    }
+
+                    txtCol.GotFocus += (s, e) => UpdateFocusedColumn(col, txtCol);
+                    if (_focusedRColumn == col) Dispatcher.UIThread.Post(() => txtCol.Focus());
+
+                    colStack.Children.Add(pkUnderlineBorder);
+
+                    if (col.IsFk)
+                    {
+                        colStack.Children.Add(new TextBlock { Text = "#", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
+                    }
+
+                    if (i < table.Columns.Count - 1)
+                    {
+                        colStack.Children.Add(new TextBlock { Text = ", ", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
+                    }
+
+                    rowPanel.Children.Add(colStack);
+                }
+
+                rowPanel.Children.Add(btnAddCol);
+                rowPanel.Children.Add(new TextBlock { Text = ")", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
+
+                var btnDelTable = new Button
+                {
+                    Content = "×",
+                    Background = Brushes.Transparent,
+                    Foreground = SolidColorBrush.Parse("#B43232"),
+                    FontSize = 16,
+                    Padding = new Thickness(6, 0),
+                    Margin = new Thickness(10, 0, 0, 0),
+                    Cursor = Cursor.Parse("Hand"),
+                    VerticalContentAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnDelTable, "Tabelle löschen");
+                btnDelTable.Click += (s, e) => {
+                    _currentRelationalModel.Remove(table);
+                    if (table.Columns.Contains(_focusedRColumn)) UpdateFocusedColumn(null, null);
+                    RenderRelationalModel(targetPanel, false);
+                    TriggerRelationalAutoSave();
+                };
+                rowPanel.Children.Add(btnDelTable);
+
+                targetPanel.Children.Add(rowPanel);
+            }
+
+            var btnAddTable = new Button { Content = "+ Tabelle", Background = SolidColorBrush.Parse("#2D2D30"), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(4), Cursor = Cursor.Parse("Hand"), Margin = new Thickness(0, 10, 0, 0) };
+            btnAddTable.Click += (s, e) => {
+                _currentRelationalModel.Add(new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true } } });
+                RenderRelationalModel(targetPanel, false);
+                TriggerRelationalAutoSave();
+            };
+            targetPanel.Children.Add(btnAddTable);
+
+            UpdateGlobalKeyButtons();
+        }
+
+        private void UpdateFocusedColumn(RColumn col, TextBox tb)
+        {
+            _focusedRColumn = col;
+            _focusedRColumnTextBox = tb;
+            UpdateGlobalKeyButtons();
+        }
+
+        private void UpdateGlobalKeyButtons()
+        {
+            if (_btnGlobalPk != null)
+            {
+                _btnGlobalPk.IsEnabled = _focusedRColumn != null;
+                _btnGlobalPk.Background = (_focusedRColumn != null && _focusedRColumn.IsPk) ? SolidColorBrush.Parse("#D08770") : SolidColorBrush.Parse("#3C3C3C");
+            }
+            if (_btnGlobalFk != null)
+            {
+                _btnGlobalFk.IsEnabled = _focusedRColumn != null;
+                _btnGlobalFk.Background = (_focusedRColumn != null && _focusedRColumn.IsFk) ? SolidColorBrush.Parse("#B48EAD") : SolidColorBrush.Parse("#3C3C3C");
             }
         }
     }

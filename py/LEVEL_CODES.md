@@ -86,3 +86,10 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S16 | `DIS` | Doppelte Einträge (DISTINCT) |
 | S17 | `PRB` | Die Problem-Gäste |
 
+## Sektion 4: Das Fitnessstudio
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| S18 | `SUB` | Überdurchschnittlich (Unterabfragen) |
+| S19 | `HAV` | Beliebte Kurse (HAVING) |
+

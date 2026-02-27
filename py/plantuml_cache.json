@@ -80,7 +80,7 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl11-1.svg"
   },
   "sql_lvl_12_1": {
-    "hash": "212902bb832cc1ab1dc6d881b1eeffeb",
+    "hash": "fd63bbf15b28a12ef423bcab99ec5748",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl12-1.svg"
   },
   "lvl_15_1": {
@@ -182,5 +182,13 @@
   "lvl_23_2": {
     "hash": "257e87198016fcad241f184eff2bf978",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-2.svg"
+  },
+  "sql_lvl_18_1": {
+    "hash": "a398cc47063ec79927c62f2a21dc8ff7",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec4\\lvl18-1.svg"
+  },
+  "sql_lvl_19_1": {
+    "hash": "9cf61fba6a6683ff7905331d9cbc5185",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec4\\lvl19-1.svg"
   }
 }
