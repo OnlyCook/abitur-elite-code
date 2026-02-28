@@ -685,6 +685,9 @@ namespace AbiturEliteCode
         private HashSet<string> _allClasses = new HashSet<string>();
         private HashSet<string> _allLocals = new HashSet<string>();
 
+        // sql schema context
+        private Dictionary<string, List<string>> _sqlSchema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
         // c# keywords to ignore
         public static readonly HashSet<string> CsharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -921,8 +924,39 @@ namespace AbiturEliteCode
 
             if (_keywords == SqlKeywords)
             {
-                // sql fallback
-                foreach (var t in _allLocals) possibleMatches.Add(t);
+                string queryUpToCaret = text.Substring(0, start).TrimEnd();
+                var wordMatches = Regex.Matches(queryUpToCaret, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+                string lastWordUpper = wordMatches.Count > 0 ? wordMatches[wordMatches.Count - 1].Value.ToUpper() : "";
+
+                bool expectTable = lastWordUpper == "FROM" || lastWordUpper == "JOIN" || lastWordUpper == "INTO" || lastWordUpper == "UPDATE";
+                bool expectColumn = lastWordUpper == "SELECT" || lastWordUpper == "WHERE" || lastWordUpper == "ON" || lastWordUpper == "SET" || lastWordUpper == "BY" || lastWordUpper == "HAVING" || lastWordUpper == "AND" || lastWordUpper == "OR";
+
+                if (hasDot && !string.IsNullOrEmpty(caller))
+                {
+                    if (_sqlSchema.ContainsKey(caller))
+                    {
+                        foreach (var col in _sqlSchema[caller]) possibleMatches.Add(col);
+                    }
+                }
+                else if (expectTable)
+                {
+                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table);
+                }
+                else if (expectColumn)
+                {
+                    foreach (var cols in _sqlSchema.Values)
+                        foreach (var col in cols) possibleMatches.Add(col);
+
+                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table); // table names might still be typed
+                    foreach (var t in _allLocals) possibleMatches.Add(t);
+                }
+                else
+                {
+                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table);
+                    foreach (var cols in _sqlSchema.Values)
+                        foreach (var col in cols) possibleMatches.Add(col);
+                    foreach (var t in _allLocals) possibleMatches.Add(t);
+                }
             }
             else
             {
@@ -966,11 +1000,24 @@ namespace AbiturEliteCode
 
             if (possibleMatches.Count > 0 && currentWord.Length > 0)
             {
-                _currentSuggestions = possibleMatches
-                    .Where(t => t.StartsWith(currentWord) && t.Length > currentWord.Length)
-                    .Select(t => t.Substring(currentWord.Length))
-                    .OrderBy(t => t)
-                    .ToList();
+                if (_keywords == SqlKeywords)
+                {
+                    _currentSuggestions = possibleMatches
+                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
+                        .Select(t => t.Substring(currentWord.Length))
+                        .Distinct()
+                        .OrderBy(t => t)
+                        .ToList();
+                }
+                else
+                {
+                    _currentSuggestions = possibleMatches
+                        .Where(t => t.StartsWith(currentWord) && t.Length > currentWord.Length)
+                        .Select(t => t.Substring(currentWord.Length))
+                        .Distinct()
+                        .OrderBy(t => t)
+                        .ToList();
+                }
             }
 
             if (_currentSuggestions.Count > 0)
@@ -1031,6 +1078,11 @@ namespace AbiturEliteCode
             _currentSuggestions.Clear();
             _suggestionIndex = 0;
             _currentSuggestionSuffix = null;
+        }
+
+        public void SetSqlSchema(Dictionary<string, List<string>> schema)
+        {
+            _sqlSchema = schema ?? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         }
     }
 

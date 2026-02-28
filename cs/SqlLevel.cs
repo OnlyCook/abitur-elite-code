@@ -5,13 +5,15 @@ namespace AbiturEliteCode.cs
     // SQL LEVEL CRATION GUIDE
     // the app uses SQLite but we are trying our best to emulate MySQL syntax and behavior as that is what we are supposed to learn and is expected from us in the abitur
 
-    // regarding "PlantUMLSources" we are using plantuml and only ER-diagrams (Chen's notation)
+    // regarding "PlantUMLSources" we are using plantuml and only enitity-relation-diagrams (Chen's notation)
 
-    // the entity-relationship diagrams should match the ones in the abitur exams, here is how they should be structured:
+    // the entity-relation-diagrams should match the ones in the abitur exams, here is how they should be structured:
     // multiplicities are written in the min-max-notation like this for each side: [min,max] (for example: ET1 -(0,n)- REL -(0,m)- ET2; not actually valid just for visualization)
-    // primary keys are underlined (<<key>> in the plantuml diagram, __TEXT__ to underline text in the "Aufgabe" or "Materialien" tabs)
+    // primary keys are underlined (<<key>> in the plantuml diagram, relational model: primary key RColumn has 'IsPk = true')
     // attributes are written in camelCase (for example: "anzahlGetränke"), ids have their "id" in uppercase and without underscores (for example: "kID")
-    // in the early levels (with ER-diagrams) we include the foreign keys in the diagrams, but in the later levels we do not (the user must know on their own what has what key)
+    // foreign keys are hashtags '#' in the relational model and '_FK' in the actual database as well as in the diagrams
+    // up to level 17 we include the foreign keys in the ER-diagrams, but in the later levels we do not (the user must know on their own what has what key)
+    // multiplicities in relations are flipped in the abitur exams, thats why we arent using the variant that is commonly used for the chens notation, but the flipped variant (instead of: "A -(1,1)-b-(0,n)- C" we do: "A -(0,n)-b-(1,1)- C")
 
     public class RTable
     {
@@ -48,6 +50,9 @@ namespace AbiturEliteCode.cs
         public List<string> DiagramPaths { get; set; } = new List<string>(); // max of 3
         public List<string> PlantUMLSources { get; set; } = new List<string>(); // max of 3
         public List<string> AuxiliaryIds { get; set; } = new List<string>();
+
+        public List<string> Prerequisites { get; set; } = new List<string>();
+        public List<string> OptionalPrerequisites { get; set; } = new List<string>();
     }
 
     public static class SqlLevelCodes
@@ -56,7 +61,8 @@ namespace AbiturEliteCode.cs
             "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EXM",
             "JON", "IMP", "JOI", "JO3", "JOX",
             "LEF", "NUL", "DIS", "PRB",
-            "SUB", "HAV", ""
+            "MAT", "SUM", "TOP", "HAV", "EX4",
+            ""
         };
     }
 
@@ -107,7 +113,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "Datenbanken", "Tabellen", "SELECT", "FROM" },
+                    OptionalPrerequisites = new List<string> { "INT", "VARCHAR", "FLOAT / DECIMAL" }
                 },
                 new SqlLevel
                 {
@@ -142,7 +150,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "WHERE", "Vergleichsoperatoren" },
+                    OptionalPrerequisites = new List<string> { "Literale (Strings, Zahlen, Datumswerte)" }
                 },
                 new SqlLevel
                 {
@@ -178,7 +188,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Erscheinungsjahr" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "ORDER BY (ASC / DESC)" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
@@ -219,7 +231,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Genre" }, new RColumn { Name = "Preis" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "GROUP BY", "AVG()", "Aliase (AS)" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
@@ -251,7 +265,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "INSERT INTO ... VALUES" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
@@ -281,7 +297,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "UPDATE ... SET ... WHERE" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
@@ -311,7 +329,9 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "DELETE ... WHERE" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
@@ -347,14 +367,16 @@ namespace AbiturEliteCode.cs
                         new RTable { Name = "Klausur", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Schueler" }, new RColumn { Name = "Fach" }, new RColumn { Name = "Notenpunkte" } } }
                     },
                     DiagramPaths = new List<string>(),
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "Logische Operatoren (AND, OR, NOT)" },
+                    OptionalPrerequisites = new List<string> { }
                 },
 
                 // --- SECTION 2 ---
                 new SqlLevel
                 {
                     Id = 9,
-                    Section = "Sektion 2: Die Bibliothek",
+                    Section = "Sektion 2: Relationen & Joins",
                     SkipCode = SqlLevelCodes.CodesList[8],
                     NextLevelCode = SqlLevelCodes.CodesList[9],
                     Title = "Der Schlüssel zum Erfolg (PK & FK)",
@@ -388,13 +410,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Vorname\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(0,n)- verfasst\nverfasst -(1,1)- Buch\n@endchen"
-                    }
+                        "@startchen\nentity Autor {\n    ID <<key>>\n    Vorname\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "Primärschlüssel (PRIMARY KEY)", "Fremdschlüssel (FOREIGN KEY)" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 10,
-                    Section = "Sektion 2: Die Bibliothek",
+                    Section = "Sektion 2: Relationen & Joins",
                     SkipCode = SqlLevelCodes.CodesList[9],
                     NextLevelCode = SqlLevelCodes.CodesList[10],
                     Title = "Die erste Verbindung (Implicit Join)",
@@ -431,13 +455,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(0,n)- verfasst\nverfasst -(1,1)- Buch\n@endchen"
-                    }
+                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "Implicit Join" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 11,
-                    Section = "Sektion 2: Die Bibliothek",
+                    Section = "Sektion 2: Relationen & Joins",
                     SkipCode = SqlLevelCodes.CodesList[10],
                     NextLevelCode = SqlLevelCodes.CodesList[11],
                     Title = "Modernes Verbinden (INNER JOIN)",
@@ -472,13 +498,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(0,n)- verfasst\nverfasst -(1,1)- Buch\n@endchen"
-                    }
+                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "JOINs verstehen", "INNER JOIN ... ON" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 12,
-                    Section = "Sektion 2: Die Bibliothek",
+                    Section = "Sektion 2: Relationen & Joins",
                     SkipCode = SqlLevelCodes.CodesList[11],
                     NextLevelCode = SqlLevelCodes.CodesList[12],
                     Title = "Wer liest was? (3-Wege Join)",
@@ -526,13 +554,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
-                    }
+                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,m)- Ausleihe\nAusleihe -(0,n)- Buch\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "Ausführungsreihenfolge von SQL-Klauseln" },
+                    OptionalPrerequisites = new List<string> { "Aliase (AS)" }
                 },
                 new SqlLevel
                 {
                     Id = 13,
-                    Section = "Sektion 2: Die Bibliothek",
+                    Section = "Sektion 2: Relationen & Joins",
                     SkipCode = SqlLevelCodes.CodesList[12],
                     NextLevelCode = SqlLevelCodes.CodesList[13],
                     Title = "Klasse 10b",
@@ -558,7 +588,11 @@ namespace AbiturEliteCode.cs
                         new[] { "Max", "Faust" },
                         new[] { "Tom", "HTML für Anfänger" }
                     },
-                    MaterialDocs = "start-tipp: Kombination\n" +
+                    MaterialDocs = "start-hint: Fremdschlüssel\n" +
+                                   "Im **relationalen Datenmodel** werden Fremdschlüssel als [#] (Raute) angezeigt.\n" +
+                                   "Da in **SQL** die Raute nicht für die Namesgebung genutzt werden kann, wird stattdessen [_FK] verwendet.\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Kombination\n" +
                                    "Verbinden Sie erst alle Tabellen per [JOIN].\n" +
                                    "Filtern Sie das Ergebnis am Ende mit einer [WHERE]-Klausel.\n" +
                                    ":end-hint",
@@ -568,15 +602,17 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n    Klasse\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK <<key>>\n    BuchID_FK <<key>>\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
-                    }
+                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n    Klasse\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "ER-Diagramm lesen (Chen-Notation)", "Relationales Schema aus ER-Diagramm ableiten" },
+                    OptionalPrerequisites = new List<string> { }
                 },
 
                 // --- SECTION 3 ---
                 new SqlLevel
                 {
                     Id = 14,
-                    Section = "Sektion 3: Event-Management",
+                    Section = "Sektion 3: NULL & Outer Joins",
                     SkipCode = SqlLevelCodes.CodesList[13],
                     NextLevelCode = SqlLevelCodes.CodesList[14],
                     Title = "VIPs ohne Tisch (LEFT JOIN)",
@@ -612,13 +648,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,1)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
-                    }
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "LEFT JOIN", "NULL-Werte" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 15,
-                    Section = "Sektion 3: Event-Management",
+                    Section = "Sektion 3: NULL & Outer Joins",
                     SkipCode = SqlLevelCodes.CodesList[14],
                     NextLevelCode = SqlLevelCodes.CodesList[15],
                     Title = "Die Geister-Gäste (IS NULL)",
@@ -651,13 +689,15 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,1)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
-                    }
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
+                    },
+                    Prerequisites = new List<string> { "IS NULL / IS NOT NULL" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 16,
-                    Section = "Sektion 3: Event-Management",
+                    Section = "Sektion 3: NULL & Outer Joins",
                     SkipCode = SqlLevelCodes.CodesList[15],
                     NextLevelCode = SqlLevelCodes.CodesList[16],
                     Title = "Doppelte Einträge (DISTINCT)",
@@ -697,14 +737,16 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    Name\n    Stadt\n}\nentity Ticket {\n    ID <<key>>\n    GastID_FK\n    Bereich\n}\nrelationship bucht {\n}\nGast -(0,n)- bucht\nbucht -(1,1)- Ticket\n@endchen"
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    Name\n    Stadt\n}\nentity Ticket {\n    ID <<key>>\n    GastID_FK\n    Bereich\n}\nrelationship bucht {\n}\nGast -(1,1)- bucht\nbucht -(0,n)- Ticket\n@endchen"
                     },
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "DISTINCT" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 17,
-                    Section = "Sektion 3: Event-Management",
+                    Section = "Sektion 3: NULL & Outer Joins",
                     SkipCode = SqlLevelCodes.CodesList[16],
                     NextLevelCode = SqlLevelCodes.CodesList[17],
                     Title = "Die Problem-Gäste",
@@ -750,36 +792,45 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    Bereich\n    TischNr\n}\nrelationship bucht {\n}\nVip -(0,n)- bucht\nbucht -(1,1)- Reservierung\n@endchen"
+                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    Bereich\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,n)- Reservierung\n@endchen"
                     },
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "Logische Operatoren (AND, OR, NOT)" },
+                    OptionalPrerequisites = new List<string> { }
                 },
 
                 // --- SECTION 4 ---
                 new SqlLevel
                 {
                     Id = 18,
-                    Section = "Sektion 4: Das Fitnessstudio",
+                    Section = "Sektion 4: Aggregation & Mathe",
                     SkipCode = SqlLevelCodes.CodesList[17],
                     NextLevelCode = SqlLevelCodes.CodesList[18],
-                    Title = "Überdurchschnittlich (Unterabfragen)",
-                    Description = "Wir verwalten ein neues Fitnessstudio. Die Geschäftsführung möchte analysieren, welche Mitglieder besonders viel investieren.\n\n" +
+                    Title = "Der Warenkorb (Rechnen im Select)",
+                    Description = "Wir werten die Datenbank eines E-Commerce-Shops aus. Im ersten Schritt müssen wir den Wert einzelner Warenkorb-Positionen berechnen.\n\n" +
+                                  "Zur Erklärung: Eine **Position** (oder Bestellposition) repräsentiert eine einzelne Zeile auf einem Kassenbon oder in einem Warenkorb (z.B. '3x Socken'). Sie verknüpft das eigentliche Produkt mit der gekauften Menge.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Geben Sie den [name]n und den [beitrag] aller Mitglieder aus, deren Beitrag **größer** ist als der Durchschnittsbeitrag aller Mitglieder.",
-                    SetupScript = "CREATE TABLE Mitglied (ID INTEGER PRIMARY KEY, name TEXT, beitrag REAL);" +
-                                  "INSERT INTO Mitglied VALUES (1, 'Anna', 45.0);" +
-                                  "INSERT INTO Mitglied VALUES (2, 'Ben', 30.0);" +
-                                  "INSERT INTO Mitglied VALUES (3, 'Chris', 60.0);" +
-                                  "INSERT INTO Mitglied VALUES (4, 'Diana', 40.0);",
+                                  "Berechnen Sie für jede Position den Gesamtpreis (Preis multipliziert mit der Menge). \n" +
+                                  "Geben Sie die [bezeichnung] des Produkts und den berechneten Wert unter dem Alias 'Gesamt' aus.",
+                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
+                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                                  "INSERT INTO Produkt VALUES (1, 'T-Shirt', 19.99);" +
+                                  "INSERT INTO Produkt VALUES (2, 'Hose', 49.90);" +
+                                  "INSERT INTO Produkt VALUES (3, 'Socken', 5.50);" +
+                                  "INSERT INTO Position VALUES (101, 1, 2);" +
+                                  "INSERT INTO Position VALUES (102, 2, 1);" +
+                                  "INSERT INTO Position VALUES (103, 3, 3);",
                     VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "bezeichnung", "Gesamt" },
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "Anna", "45" },
-                        new[] { "Chris", "60" }
+                        new[] { "T-Shirt", "39.98" },
+                        new[] { "Hose", "49.9" },
+                        new[] { "Socken", "16.5" }
                     },
-                    MaterialDocs = "start-hint: Unterabfragen (Subqueries)\n" +
-                                   "Sie können eine SELECT-Abfrage innerhalb einer anderen verwenden. Dies ist ideal, um Werte dynamisch zu berechnen, anstatt sie hart zu codieren:\n" +
-                                   "{|WHERE spalte > (SELECT AVG(spalte) FROM Tabelle)|}\n" +
+                    MaterialDocs = "start-hint: Rechnen in SQL\n" +
+                                   "Sie können in der [SELECT]-Klausel mathematische Operatoren verwenden, um Spalten miteinander zu verrechnen:\n" +
+                                   "{|SELECT spalteA, spalteX * spalteY AS AliasName FROM ...|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -787,42 +838,48 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Mitglied {\n    ID <<key>>\n    name\n    beitrag\n}\n@endchen"
+                        "@startchen\nentity Produkt {\n    ID <<key>>\n    bezeichnung\n    preis\n}\nentity Position {\n    ID <<key>>\n    produktID_FK\n    menge\n}\nrelationship enthaelt {\n}\nProdukt -(1,1)- enthaelt\nenthaelt -(0,n)- Position\n@endchen"
                     },
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "Arithmetische Ausdrücke" },
+                    OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
                 {
                     Id = 19,
-                    Section = "Sektion 4: Das Fitnessstudio",
+                    Section = "Sektion 4: Aggregation & Mathe",
                     SkipCode = SqlLevelCodes.CodesList[18],
-                    NextLevelCode = "",
-                    Title = "Beliebte Kurse (HAVING)",
-                    Description = "Das Studio bietet verschiedene Kurse an. Um das Angebot zu optimieren, sollen nur die gut besuchten Kurse ermittelt werden.\n\n" +
-                                  "Beachten Sie das ER-Diagramm. **Hinweis:** Ab diesem Level sind die Fremdschlüssel nicht mehr im Diagramm vorgegeben. Sie müssen die IDs anhand der Relationen selbst korrekt verknüpfen.\n\n" +
+                    NextLevelCode = SqlLevelCodes.CodesList[19],
+                    Title = "Der Tagesumsatz (SUM)",
+                    Description = "Die Geschäftsführung möchte wissen, wie viel Geld heute insgesamt eingenommen wurde.\n\n" +
+                                  "**Hinweis:** Ab diesem Level werden Fremdschlüssel nicht mehr im ER-Diagramm angezeigt. Sie müssen anhand der Kardinalitäten selbst ableiten, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Ermitteln Sie die [bezeichnung] der Kurse und die Anzahl der Buchungen (als 'anzahl').\n" +
-                                  "Zeigen Sie **nur** Kurse an, die **mehr als 1** Buchung haben.",
-                    SetupScript = "CREATE TABLE Mitglied (ID INTEGER PRIMARY KEY, name TEXT, beitrag REAL);" +
-                                  "CREATE TABLE Kurs (ID INTEGER PRIMARY KEY, bezeichnung TEXT);" +
-                                  "CREATE TABLE bucht (mitgliedID_FK INTEGER, kursID_FK INTEGER, datum TEXT);" +
-                                  "INSERT INTO Kurs VALUES (10, 'Yoga');" +
-                                  "INSERT INTO Kurs VALUES (11, 'Spinning');" +
-                                  "INSERT INTO Kurs VALUES (12, 'Zumba');" +
-                                  "INSERT INTO Mitglied VALUES (1, 'Anna', 45.0);" +
-                                  "INSERT INTO Mitglied VALUES (2, 'Ben', 30.0);" +
-                                  "INSERT INTO bucht VALUES (1, 10, '2023-01-01');" +
-                                  "INSERT INTO bucht VALUES (2, 10, '2023-01-02');" +
-                                  "INSERT INTO bucht VALUES (1, 11, '2023-01-03');",
+                                  "Ermitteln Sie den gesamten Umsatz (Summe aus Preis * Menge) für alle Bestellungen, die am '2024-02-28' getätigt wurden.\n" +
+                                  "Geben Sie das Ergebnis als 'Tagesumsatz' aus.",
+                    SetupScript = "CREATE TABLE Bestellung (ID INTEGER PRIMARY KEY, datum TEXT);" +
+                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, bestellungID_FK INTEGER, preis REAL, menge INTEGER);" +
+                                  "INSERT INTO Bestellung VALUES (1, '2024-02-28');" +
+                                  "INSERT INTO Bestellung VALUES (2, '2024-02-27');" +
+                                  "INSERT INTO Position VALUES (101, 1, 10.0, 2);" +
+                                  "INSERT INTO Position VALUES (102, 1, 15.0, 1);" +
+                                  "INSERT INTO Position VALUES (103, 2, 5.0, 4);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "bezeichnung", "anzahl" },
+                    ExpectedColumns = new List<string> { "Tagesumsatz" },
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "Yoga", "2" }
+                        new[] { "35" }
                     },
-                    MaterialDocs = "start-hint: HAVING-Klausel\n" +
-                                   "Die [WHERE]-Klausel filtert Datensätze **vor** der Gruppierung. Um Ergebnisse **nach** einer Aggregation (wie [COUNT]) zu filtern, müssen Sie [HAVING] direkt im Anschluss an das [GROUP BY] verwenden:\n" +
-                                   "{|GROUP BY Spalte\nHAVING COUNT(Spalte) > 1|}\n" +
+                    MaterialDocs = "start-hint: Überführung ins relationale Modell\n" +
+                                   "1. [1:1-Beziehung]: Der Primärschlüssel einer der beiden Tabellen wird als Fremdschlüssel in die andere Tabelle übernommen.\n" +
+                                   "2. [1:n-Beziehung]: Der Primärschlüssel der 1-Seite wird als Fremdschlüssel in die Tabelle der n-Seite eingetragen.\n" +
+                                   "3. [n:m-Beziehung]: Es entsteht eine neue Verknüpfungstabelle, die die Primärschlüssel beider Tabellen als Fremdschlüssel enthält.\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Datumswerte in SQL\n" +
+                                   "Ein Datum wird in SQL standardmäßig als Text im Format ['YYYY-MM-DD'] (Jahr-Monat-Tag) geschrieben, z.B. '2024-02-28'.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Aggregatfunktionen\n" +
+                                   "Nutzen Sie die Funktion [SUM()], um alle Einzelwerte einer Spalte (oder einer Berechnung) zu addieren.\n" +
+                                   "{|SELECT SUM(spalteA * spalteB) FROM ...|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -830,9 +887,153 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Mitglied {\n    ID <<key>>\n    name\n    beitrag\n}\nentity Kurs {\n    ID <<key>>\n    bezeichnung\n}\nrelationship bucht {\n    datum\n}\nMitglied -(0,n)- bucht\nbucht -(0,m)- Kurs\n@endchen"
+                        "@startchen\nentity Bestellung {\n    ID <<key>>\n    datum\n}\nentity Position {\n    ID <<key>>\n    preis\n    menge\n}\nrelationship umfasst {\n}\nBestellung -(1,1)- umfasst\numfasst -(1,n)- Position\n@endchen"
                     },
-                    AuxiliaryIds = new List<string>()
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "SUM()", "1:1 Beziehungen", "1:n Beziehungen", "n:m Beziehungen" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 20,
+                    Section = "Sektion 4: Aggregation & Mathe",
+                    SkipCode = SqlLevelCodes.CodesList[19],
+                    NextLevelCode = SqlLevelCodes.CodesList[20],
+                    Title = "Topseller (GROUP BY & ORDER)",
+                    Description = "Welches Produkt wurde wie oft verkauft? Wir wollen unsere Verkaufsschlager identifizieren.\n\n" +
+                                  "Denken Sie daran: Überlegen Sie sich, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie den [name]n der Produkte und die insgesamt verkaufte Menge (als 'Anzahl').\n" +
+                                  "Sortieren Sie die Liste **absteigend** nach der Anzahl, sodass das meistverkaufte Produkt oben steht.",
+                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                                  "INSERT INTO Produkt VALUES (1, 'T-Shirt');" +
+                                  "INSERT INTO Produkt VALUES (2, 'Hose');" +
+                                  "INSERT INTO Produkt VALUES (3, 'Schuhe');" +
+                                  "INSERT INTO Position VALUES (101, 1, 3);" +
+                                  "INSERT INTO Position VALUES (102, 1, 2);" +
+                                  "INSERT INTO Position VALUES (103, 2, 1);",
+                    VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "name", "Anzahl" },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "T-Shirt", "5" },
+                        new[] { "Hose", "1" }
+                    },
+                    MaterialDocs = "start-hint: Überführung ins relationale Modell\n" +
+                                   "1. [1:1-Beziehung]: Der Primärschlüssel einer der beiden Tabellen wird als Fremdschlüssel in die andere Tabelle übernommen.\n" +
+                                   "2. [1:n-Beziehung]: Der Primärschlüssel der 1-Seite wird als Fremdschlüssel in die Tabelle der n-Seite eingetragen.\n" +
+                                   "3. [n:m-Beziehung]: Es entsteht eine neue Verknüpfungstabelle, die die Primärschlüssel beider Tabellen als Fremdschlüssel enthält.\n" +
+                                   ":end-hint\n" +
+                                   "start-tipp: Gruppieren\n" +
+                                   "Wenn Sie nach einer Kategorie oder einem Namen zusammenfassen wollen, nutzen Sie [GROUP BY spalte].\n" +
+                                   "Die restlichen Spalten in der [SELECT]-Anweisung müssen dann aggregiert werden (z.B. mit [SUM]).\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec4\\lvl20-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Produkt {\n    ID <<key>>\n    name\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "GROUP BY", "SUM()" },
+                    OptionalPrerequisites = new List<string> { "ORDER BY (ASC / DESC)" }
+                },
+                new SqlLevel
+                {
+                    Id = 21,
+                    Section = "Sektion 4: Aggregation & Mathe",
+                    SkipCode = SqlLevelCodes.CodesList[20],
+                    NextLevelCode = SqlLevelCodes.CodesList[21],
+                    Title = "Die Ladenhüter (HAVING)",
+                    Description = "Wir möchten unser Sortiment bereinigen und Kategorien finden, die sich schlecht verkaufen.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie die [kategorie] und die insgesamt verkaufte Menge als 'Verkauft'.\n" +
+                                  "Zeigen Sie **nur** Kategorien an, bei denen die Summe der verkauften Menge **kleiner als 5** ist.",
+                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, kategorie TEXT);" +
+                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                                  "INSERT INTO Produkt VALUES (1, 'Elektronik');" +
+                                  "INSERT INTO Produkt VALUES (2, 'Kleidung');" +
+                                  "INSERT INTO Produkt VALUES (3, 'Bücher');" +
+                                  "INSERT INTO Position VALUES (101, 1, 2);" +
+                                  "INSERT INTO Position VALUES (102, 1, 1);" +
+                                  "INSERT INTO Position VALUES (103, 2, 10);" +
+                                  "INSERT INTO Position VALUES (104, 3, 4);",
+                    VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "kategorie", "Verkauft" },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Elektronik", "3" },
+                        new[] { "Bücher", "4" }
+                    },
+                    MaterialDocs = "start-hint: Überführung ins relationale Modell\n" +
+                                   "1. [1:1-Beziehung]: Der Primärschlüssel einer der beiden Tabellen wird als Fremdschlüssel in die andere Tabelle übernommen.\n" +
+                                   "2. [1:n-Beziehung]: Der Primärschlüssel der 1-Seite wird als Fremdschlüssel in die Tabelle der n-Seite eingetragen.\n" +
+                                   "3. [n:m-Beziehung]: Es entsteht eine neue Verknüpfungstabelle, die die Primärschlüssel beider Tabellen als Fremdschlüssel enthält.\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: HAVING vs. WHERE\n" +
+                                   "Die [WHERE]-Klausel filtert Daten **vor** der Gruppierung.\n" +
+                                   "Um nach einem aggregierten Wert wie [SUM()] zu filtern, müssen Sie die [HAVING]-Klausel **nach** dem [GROUP BY] verwenden:\n" +
+                                   "{|GROUP BY spalteX HAVING SUM(spalteY) < 10|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec4\\lvl21-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Produkt {\n    ID <<key>>\n    kategorie\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "HAVING" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 22,
+                    Section = "Sektion 4: Aggregation & Mathe",
+                    SkipCode = SqlLevelCodes.CodesList[21],
+                    NextLevelCode = SqlLevelCodes.CodesList[22],
+                    Title = "Die Umsatzanalyse",
+                    Description = "Der Abteilungsleiter verlangt einen umfassenden Bericht zum aktuellen Geschäftsjahr.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Zeigen Sie alle Produktkategorien ([kategorie]) und deren Gesamtumsatz (Preis * Menge) als 'Gesamtumsatz' an.\n" +
+                                  "Es sollen jedoch **nur** Kategorien angezeigt werden, deren Gesamtumsatz **über 100 Euro** liegt.\n" +
+                                  "Sortieren Sie das Ergebnis **absteigend** nach dem Gesamtumsatz.",
+                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, kategorie TEXT, preis REAL);" +
+                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                                  "INSERT INTO Produkt VALUES (1, 'Elektronik', 250.0);" +
+                                  "INSERT INTO Produkt VALUES (2, 'Kleidung', 20.0);" +
+                                  "INSERT INTO Produkt VALUES (3, 'Medien', 15.0);" +
+                                  "INSERT INTO Position VALUES (101, 1, 2);" +
+                                  "INSERT INTO Position VALUES (102, 2, 6);" +
+                                  "INSERT INTO Position VALUES (103, 3, 2);",
+                    VerificationQuery = "",
+                    ExpectedColumns = new List<string> { "kategorie", "Gesamtumsatz" },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Elektronik", "500" },
+                        new[] { "Kleidung", "120" }
+                    },
+                    MaterialDocs = "start-tipp: Alles kombinieren\n" +
+                                   "1. Tabellen per JOIN verknüpfen.\n" +
+                                   "2. Mit GROUP BY zusammenfassen.\n" +
+                                   "3. Mit HAVING filtern.\n" +
+                                   "4. Mit ORDER BY sortieren.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec4\\lvl22-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Produkt {\n    ID <<key>>\n    kategorie\n    preis\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "GROUP BY", "HAVING", "INNER JOIN ... ON", "ORDER BY (ASC / DESC)" },
+                    OptionalPrerequisites = new List<string> { }
                 }
             };
         }

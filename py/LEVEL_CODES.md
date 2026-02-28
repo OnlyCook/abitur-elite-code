@@ -67,7 +67,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S7 | `DEL` | Daten Löschen (DELETE) |
 | S8 | `EXM` | Klausurphase |
 
-## Sektion 2: Die Bibliothek
+## Sektion 2: Relationen & Joins
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
@@ -77,7 +77,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S12 | `JO3` | Wer liest was? (3-Wege Join) |
 | S13 | `JOX` | Klasse 10b |
 
-## Sektion 3: Event-Management
+## Sektion 3: NULL & Outer Joins
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
@@ -86,10 +86,13 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S16 | `DIS` | Doppelte Einträge (DISTINCT) |
 | S17 | `PRB` | Die Problem-Gäste |
 
-## Sektion 4: Das Fitnessstudio
+## Sektion 4: Aggregation & Mathe
 
 | Level | Code | Titel |
 | :--- | :---: | :--- |
-| S18 | `SUB` | Überdurchschnittlich (Unterabfragen) |
-| S19 | `HAV` | Beliebte Kurse (HAVING) |
+| S18 | `MAT` | Der Warenkorb (Rechnen im Select) |
+| S19 | `SUM` | Der Tagesumsatz (SUM) |
+| S20 | `TOP` | Topseller (GROUP BY & ORDER) |
+| S21 | `HAV` | Die Ladenhüter (HAVING) |
+| S22 | `EX4` | Die Umsatzanalyse |
 

@@ -72,7 +72,7 @@
 										<Border Name="PART_LayoutRoot"
 												Background="{TemplateBinding Background}"
 												CornerRadius="6"
-												Padding="15,12">
+												Padding="16,13">
 											<ContentPresenter Name="PART_ContentPresenter"
 															  Content="{TemplateBinding Header}"
 															  HorizontalAlignment="Center"
@@ -94,13 +94,26 @@
 							<Style Selector="TabItem:selected">
 								<Setter Property="Foreground" Value="#32A852"/>
 								<Setter Property="FontWeight" Value="SemiBold"/>
+								<Setter Property="Margin" Value="0,2,2,2"/>
 							</Style>
+
 							<Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
-								<Setter Property="Background" Value="Transparent"/>
+								<Setter Property="Background" Value="#202124"/>
+								<Setter Property="CornerRadius" Value="8"/>
+								<Setter Property="Padding" Value="16,13"/>
+							</Style>
+
+							<Style Selector="TabItem.latch:selected">
+								<Setter Property="Margin" Value="0,2,2,-13"/>
+							</Style>
+
+							<Style Selector="TabItem.latch:selected /template/ Border#PART_LayoutRoot">
+								<Setter Property="CornerRadius" Value="8,8,0,0"/>
+								<Setter Property="Padding" Value="16,13,16,26"/>
 							</Style>
 
 							<Style Selector="TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-								<Setter Property="Background" Value="#2D2D30"/>
+								<Setter Property="Background" Value="#202124"/>
 							</Style>
 							<Style Selector="TabItem:selected:pointerover">
 								<Setter Property="Foreground" Value="#32A852"/>

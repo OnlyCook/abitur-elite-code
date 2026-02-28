@@ -911,7 +911,7 @@ END.",
                     AuxiliaryIds = new List<string> { "Serial" },
                     Prerequisites = new List<string>
                     {
-                        "While Loops", "Bitwise Operators", "Explicit Conversion (Casting)", "Variables"
+                        "While Loops", "For Loops", "Compound assignment operators", "Explicit Conversion (Casting)", "Variables"
                     }
                 },
                 new Level
@@ -947,7 +947,7 @@ END.",
                     AuxiliaryIds = new List<string> { "Serial", "FunkModul" },
                     Prerequisites = new List<string>
                     {
-                        "Static Fields", "While Loops", "Object Interaction"
+                        "Static Fields", "While Loops", "Defining a Class", "Fields", "Increment and Decrement"
                     }
                 },
                 new Level
@@ -1031,7 +1031,7 @@ END.",
                     AuxiliaryIds = new List<string> { "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "Split", "Object Interaction", "State Management", "Parse Methods"
+                        "Split", "Parse Methods", "While Loops", "If statements", "Booleans"
                     }
                 },
 
@@ -1086,7 +1086,7 @@ END.",
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket" },
                     Prerequisites = new List<string>
                     {
-                        "String Manipulation", "Substrings", "While Loops", "If statements", "Object Interaction", "Variables"
+                        "Substring", "StartsWith and EndsWith", "While Loops", "If statements", "Variables", "String concatenation"
                     }
                 },
                 new Level
@@ -1135,7 +1135,7 @@ END.",
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "String Manipulation", "Split", "Explicit Conversion (Casting)", "ASCII Table", "Object Interaction"
+                        "Split", "Explicit Conversion (Casting)", "For-Each Loops", "Comparison operators", "If statements"
                     }
                 },
                 new Level
@@ -1176,7 +1176,7 @@ END.",
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "Random" },
                     Prerequisites = new List<string>
                     {
-                        "While Loops", "Object Interaction", "Inheritance Basics", "Method Overriding", "Random Numbers"
+                        "While Loops", "Inheritance Basics", "Method Overriding", "Defining a Class", "Integers"
                     }
                 },
                 new Level
@@ -1212,7 +1212,7 @@ END.",
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "SicherheitsZentrale", "BenutzerVerwaltung", "Alarmanlage", "ProtokollLog", "ListT" },
                     Prerequisites = new List<string>
                     {
-                        "Multi-threading", "Client-Server Architecture", "String Manipulation", "Boolean Logic", "Object Navigation", "Helper Methods"
+                        "Inheritance Basics", "Method Overriding", "While Loops", "Booleans", "If-Else statements", "Defining void methods"
                     }
                 }
             };

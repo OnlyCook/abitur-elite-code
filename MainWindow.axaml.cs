@@ -90,6 +90,8 @@ namespace AbiturEliteCode
         private AutocompleteGhostGenerator _csharpAutocompleteGenerator;
         private AutocompleteService _sqlAutocompleteService;
         private AutocompleteGhostGenerator _sqlAutocompleteGenerator;
+        private bool _suppressCsharpAutocomplete = false;
+        private bool _suppressSqlAutocomplete = false;
 
         private const string MonospaceFontFamily = "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
@@ -157,6 +159,7 @@ namespace AbiturEliteCode
             InitializeComponent();
 
             PrerequisiteSystem.Initialize();
+            SqlPrerequisiteSystem.Initialize();
 
             var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
             ImgScale = (ScaleTransform)transformGroup.Children[0];
@@ -201,6 +204,7 @@ namespace AbiturEliteCode
 
             BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
             MainTabs.SelectionChanged += OnMainTabChanged;
+            MainTabs.LayoutUpdated += (s, e) => UpdateTabStyles();
 
             CodeEditor.TextChanged += (s, e) =>
             {
@@ -376,9 +380,33 @@ namespace AbiturEliteCode
             };
         }
 
+        private void UpdateTabStyles()
+        {
+            var tabItems = MainTabs.Items.OfType<TabItem>().Where(t => t.IsVisible).ToList();
+            if (tabItems.Count == 0) return;
+
+            // find bottom most row
+            double maxY = tabItems.Max(t => t.Bounds.Y);
+
+            foreach (var tab in tabItems)
+            {
+                if (Math.Abs(tab.Bounds.Y - maxY) < 2.0) // small buffer
+                {
+                    if (!tab.Classes.Contains("latch"))
+                        tab.Classes.Add("latch");
+                }
+                else
+                {
+                    tab.Classes.Remove("latch");
+                }
+            }
+        }
+
         private void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source != MainTabs) return;
+
+            bool wasQueryEditorFocused = SqlQueryEditor?.IsFocused == true;
 
             if (_isSqlMode && currentSqlLevel != null)
             {
@@ -386,6 +414,11 @@ namespace AbiturEliteCode
                     RenderRelationalModel(PnlTaskRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
                 else if (MainTabs.SelectedIndex == 1 && PnlUmlRelationalModel != null)
                     RenderRelationalModel(PnlUmlRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
+            }
+
+            if (wasQueryEditorFocused)
+            {
+                Dispatcher.UIThread.Post(() => SqlQueryEditor.Focus());
             }
 
             if (_isKeyboardTabSwitch)
@@ -404,6 +437,17 @@ namespace AbiturEliteCode
             {
                 ShowTabTip();
             }
+        }
+
+        private void UpdateSqlAutocompleteSchema()
+        {
+            if (_sqlAutocompleteService == null) return;
+            var schema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in _currentRelationalModel)
+            {
+                schema[t.Name] = t.Columns.Select(c => c.IsFk ? c.Name + "_FK" : c.Name).ToList();
+            }
+            _sqlAutocompleteService.SetSqlSchema(schema);
         }
 
         private void ShowTabTip()
@@ -502,9 +546,16 @@ namespace AbiturEliteCode
 
                 if (AppSettings.IsSqlAutocompleteEnabled)
                 {
-                    _sqlAutocompleteService.ScanTokens(SqlQueryEditor.Text);
-                    _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
-                    SqlQueryEditor.TextArea.TextView.Redraw();
+                    if (_suppressSqlAutocomplete)
+                    {
+                        _suppressSqlAutocomplete = false;
+                    }
+                    else
+                    {
+                        _sqlAutocompleteService.ScanTokens(SqlQueryEditor.Text);
+                        _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
+                        SqlQueryEditor.TextArea.TextView.Redraw();
+                    }
                 }
             };
 
@@ -520,20 +571,14 @@ namespace AbiturEliteCode
                 }
             };
 
-            SqlQueryEditor.TextChanged += (s, e) =>
-            {
-                autoSaveTimer.Stop();
-                autoSaveTimer.Start();
-            };
-
-            SqlQueryEditor.TextArea.Caret.PositionChanged += (s, e) =>
-            {
-                SqlQueryEditor.TextArea.Caret.BringCaretToView(40);
-                SqlQueryEditor.TextArea.TextView.Redraw();
-            };
-
             SqlQueryEditor.TextArea.TextEntering += SqlEditor_TextEntering;
             SqlQueryEditor.AddHandler(InputElement.KeyDownEvent, SqlQueryEditor_KeyDown, RoutingStrategies.Tunnel);
+
+            // clear relational model focus tracking when the sql editor is focused manually
+            SqlQueryEditor.GotFocus += (s, e) =>
+            {
+                UpdateFocusedColumn(null, null);
+            };
         }
 
         private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
@@ -591,8 +636,8 @@ namespace AbiturEliteCode
                 return;
             }
 
-            // tab or enter => confirm autocompletion
-            if (AppSettings.IsSqlAutocompleteEnabled && (e.Key == Key.Enter || e.Key == Key.Tab) && _sqlAutocompleteService.HasSuggestion)
+            // tab => confirm autocompletion
+            if (AppSettings.IsSqlAutocompleteEnabled && e.Key == Key.Tab && _sqlAutocompleteService.HasSuggestion)
             {
                 string suffix = _sqlAutocompleteService.CurrentSuggestionSuffix;
                 if (!string.IsNullOrEmpty(suffix))
@@ -614,6 +659,13 @@ namespace AbiturEliteCode
 
             if (e.Key == Key.Back)
             {
+                if (AppSettings.IsSqlAutocompleteEnabled && _sqlAutocompleteService.HasSuggestion)
+                {
+                    _sqlAutocompleteService.ClearSuggestion();
+                    SqlQueryEditor.TextArea.TextView.Redraw();
+                    _suppressSqlAutocomplete = true;
+                }
+
                 int offset = SqlQueryEditor.CaretOffset;
 
                 // smart delete pairs
@@ -827,9 +879,16 @@ namespace AbiturEliteCode
 
                 if (AppSettings.IsAutocompleteEnabled)
                 {
-                    _csharpAutocompleteService.ScanTokens(CodeEditor.Text);
-                    _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
-                    CodeEditor.TextArea.TextView.Redraw();
+                    if (_suppressCsharpAutocomplete)
+                    {
+                        _suppressCsharpAutocomplete = false;
+                    }
+                    else
+                    {
+                        _csharpAutocompleteService.ScanTokens(CodeEditor.Text);
+                        _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
+                        CodeEditor.TextArea.TextView.Redraw();
+                    }
                 }
             };
 
@@ -988,8 +1047,8 @@ namespace AbiturEliteCode
                 return;
             }
 
-            // tab or enter => confirm autocompletion
-            if (AppSettings.IsAutocompleteEnabled && (e.Key == Key.Enter || e.Key == Key.Tab) && _csharpAutocompleteService.HasSuggestion)
+            // tab => confirm autocompletion
+            if (AppSettings.IsAutocompleteEnabled && e.Key == Key.Tab && _csharpAutocompleteService.HasSuggestion)
             {
                 if (!AppSettings.IsVimEnabled || _vimMode == VimMode.Insert)
                 {
@@ -1014,6 +1073,13 @@ namespace AbiturEliteCode
 
             if (e.Key == Key.Back)
             {
+                if (AppSettings.IsAutocompleteEnabled && _csharpAutocompleteService.HasSuggestion)
+                {
+                    _csharpAutocompleteService.ClearSuggestion();
+                    CodeEditor.TextArea.TextView.Redraw();
+                    _suppressCsharpAutocomplete = true;
+                }
+
                 if (AppSettings.IsVimEnabled && _vimMode == VimMode.Normal)
                 {
                     e.Handled = true;
@@ -2211,8 +2277,40 @@ namespace AbiturEliteCode
 
                 foreach (var reqTitle in topics)
                 {
-                    var lesson = PrerequisiteSystem.GetLesson(reqTitle);
-                    if (lesson == null) continue;
+                    string lessonTitle = "";
+                    string vidBtnText = "";
+                    string vidUrl = "";
+                    string docUrl = "";
+                    string vidTooltip = "";
+                    string docTooltip = "";
+                    Avalonia.Media.IBrush vidColor = null;
+
+                    if (_isSqlMode)
+                    {
+                        var sqlLesson = SqlPrerequisiteSystem.GetLesson(reqTitle);
+                        if (sqlLesson == null) continue;
+
+                        lessonTitle = sqlLesson.Title;
+                        vidBtnText = "Video";
+                        vidUrl = sqlLesson.YoutubeUrl;
+                        docUrl = sqlLesson.DocsUrl;
+                        vidTooltip = "Zu YouTube";
+                        docTooltip = "Zu MySQL Docs";
+                        vidColor = Avalonia.Media.SolidColorBrush.Parse("#b00000");
+                    }
+                    else
+                    {
+                        var lesson = PrerequisiteSystem.GetLesson(reqTitle);
+                        if (lesson == null) continue;
+
+                        lessonTitle = lesson.Title;
+                        vidBtnText = "Kurs";
+                        vidUrl = lesson.DometrainUrl;
+                        docUrl = lesson.DocsUrl;
+                        vidTooltip = "Zu Dometrain.com";
+                        docTooltip = "Zu Microsoft Learn";
+                        vidColor = Avalonia.Media.SolidColorBrush.Parse("#5D3FD3");
+                    }
 
                     var row = new Grid
                     {
@@ -2225,8 +2323,8 @@ namespace AbiturEliteCode
 
                     var txtTitle = new TextBlock
                     {
-                        Text = "• " + lesson.Title,
-                        Foreground = Brushes.LightGray,
+                        Text = "• " + lessonTitle,
+                        Foreground = Avalonia.Media.Brushes.LightGray,
                         VerticalAlignment = VerticalAlignment.Center,
                         TextWrapping = TextWrapping.Wrap
                     };
@@ -2236,8 +2334,8 @@ namespace AbiturEliteCode
                     {
                         var badge = new Border
                         {
-                            Background = SolidColorBrush.Parse("#333333"),
-                            BorderBrush = Brushes.Gray,
+                            Background = Avalonia.Media.SolidColorBrush.Parse("#333333"),
+                            BorderBrush = Avalonia.Media.Brushes.Gray,
                             BorderThickness = new Thickness(1),
                             CornerRadius = new CornerRadius(3),
                             Padding = new Thickness(4, 1),
@@ -2246,26 +2344,30 @@ namespace AbiturEliteCode
                             {
                                 Text = "Optional",
                                 FontSize = 10,
-                                Foreground = Brushes.Gray
+                                Foreground = Avalonia.Media.Brushes.Gray
                             }
                         };
                         titleStack.Children.Add(badge);
                     }
 
-                    // dometrain
-                    var btnDt = new Button
+                    // video/course
+                    var btnVid = new Button
                     {
-                        Content = "Kurs",
+                        Content = vidBtnText,
                         FontSize = 11,
                         Padding = new Thickness(8, 4),
                         Margin = new Thickness(0, 0, 5, 0),
-                        Background = SolidColorBrush.Parse("#5D3FD3"),
-                        Foreground = Brushes.White,
+                        Background = vidColor,
+                        Foreground = Avalonia.Media.Brushes.White,
                         CornerRadius = new CornerRadius(4),
-                        Cursor = Cursor.Parse("Hand")
+                        Cursor = Avalonia.Input.Cursor.Parse("Hand"),
+                        IsVisible = !string.IsNullOrEmpty(vidUrl)
                     };
-                    ToolTip.SetTip(btnDt, "Zu Dometrain.com");
-                    btnDt.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DometrainUrl);
+                    ToolTip.SetTip(btnVid, vidTooltip);
+                    btnVid.Click += (s, e) => {
+                        if (_isSqlMode) SqlPrerequisiteSystem.OpenUrl(vidUrl);
+                        else PrerequisiteSystem.OpenUrl(vidUrl);
+                    };
 
                     // docs
                     var btnDoc = new Button
@@ -2273,20 +2375,24 @@ namespace AbiturEliteCode
                         Content = "Docs",
                         FontSize = 11,
                         Padding = new Thickness(8, 4),
-                        Background = SolidColorBrush.Parse("#0078D4"),
-                        Foreground = Brushes.White,
+                        Background = Avalonia.Media.SolidColorBrush.Parse("#0078D4"),
+                        Foreground = Avalonia.Media.Brushes.White,
                         CornerRadius = new CornerRadius(4),
-                        Cursor = Cursor.Parse("Hand")
+                        Cursor = Avalonia.Input.Cursor.Parse("Hand"),
+                        IsVisible = !string.IsNullOrEmpty(docUrl)
                     };
-                    ToolTip.SetTip(btnDoc, "Zu Microsoft Learn");
-                    btnDoc.Click += (s, e) => PrerequisiteSystem.OpenUrl(lesson.DocsUrl);
+                    ToolTip.SetTip(btnDoc, docTooltip);
+                    btnDoc.Click += (s, e) => {
+                        if (_isSqlMode) SqlPrerequisiteSystem.OpenUrl(docUrl);
+                        else PrerequisiteSystem.OpenUrl(docUrl);
+                    };
 
                     Grid.SetColumn(titleStack, 0);
-                    Grid.SetColumn(btnDt, 1);
+                    Grid.SetColumn(btnVid, 1);
                     Grid.SetColumn(btnDoc, 2);
 
                     row.Children.Add(titleStack);
-                    row.Children.Add(btnDt);
+                    row.Children.Add(btnVid);
                     row.Children.Add(btnDoc);
 
                     innerList.Children.Add(row);
@@ -6966,6 +7072,8 @@ namespace AbiturEliteCode
                 _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(json);
             }
 
+            UpdateSqlAutocompleteSchema();
+
             // initial rendering for active tab
             if (MainTabs.SelectedIndex == 0) RenderRelationalModel(PnlTaskRelationalModel, level.IsRelationalModelReadOnly);
             else if (MainTabs.SelectedIndex == 1) RenderRelationalModel(PnlUmlRelationalModel, level.IsRelationalModelReadOnly);
@@ -6979,7 +7087,9 @@ namespace AbiturEliteCode
             GenerateMaterials(new Level
             {
                 MaterialDocs = level.MaterialDocs,
-                AuxiliaryIds = level.AuxiliaryIds
+                AuxiliaryIds = level.AuxiliaryIds,
+                Prerequisites = level.Prerequisites,
+                OptionalPrerequisites = level.OptionalPrerequisites
             });
 
             // diagrams
@@ -7368,6 +7478,7 @@ namespace AbiturEliteCode
 
         private void TriggerRelationalAutoSave()
         {
+            UpdateSqlAutocompleteSchema();
             _relationalAutoSaveTimer.Stop();
             _relationalAutoSaveTimer.Start();
         }
@@ -7384,7 +7495,14 @@ namespace AbiturEliteCode
                 ColumnDefinitions = new ColumnDefinitions("*, Auto"),
                 Margin = new Thickness(0, 0, 0, 15)
             };
-            headerGrid.Children.Add(new TextBlock
+            var titleStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            titleStack.Children.Add(new TextBlock
             {
                 Text = "Relationales Modell (Schema)",
                 FontSize = 16,
@@ -7392,6 +7510,46 @@ namespace AbiturEliteCode
                 Foreground = BrushTextTitle,
                 VerticalAlignment = VerticalAlignment.Center
             });
+
+            var btnCopyModel = new Button
+            {
+                Content = LoadIcon("assets/icons/ic_copy.svg", 16),
+                Background = Brushes.Transparent,
+                Padding = new Thickness(6),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ToolTip.SetTip(btnCopyModel, "Modell kopieren");
+            btnCopyModel.Click += async (s, e) =>
+            {
+                var sb = new System.Text.StringBuilder();
+                foreach (var table in _currentRelationalModel)
+                {
+                    sb.Append(table.Name).Append(" (");
+                    for (int i = 0; i < table.Columns.Count; i++)
+                    {
+                        var col = table.Columns[i];
+                        sb.Append(col.Name);
+                        if (col.IsFk) sb.Append("#");
+                        if (col.IsPk) sb.Append("[PK]");
+                        if (i < table.Columns.Count - 1) sb.Append(", ");
+                    }
+                    sb.AppendLine(")");
+                }
+
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(sb.ToString().TrimEnd());
+                    btnCopyModel.Background = SolidColorBrush.Parse("#2E8B57");
+                    await Task.Delay(500);
+                    btnCopyModel.Background = Brushes.Transparent;
+                }
+            };
+            titleStack.Children.Add(btnCopyModel);
+
+            headerGrid.Children.Add(titleStack);
 
             if (!isReadOnly)
             {
@@ -7431,7 +7589,7 @@ namespace AbiturEliteCode
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(10, 4)
                 };
-                ToolTip.SetTip(_btnGlobalFk, "Fremdschlüssel (Hashtag anhängen)");
+                ToolTip.SetTip(_btnGlobalFk, "Fremdschlüssel (Raute anhängen)");
                 _btnGlobalFk.Click += (s, e) => {
                     if (_focusedRColumn != null)
                     {
@@ -7588,9 +7746,29 @@ namespace AbiturEliteCode
 
                     txtCol.TextChanged += (s, e) => {
                         string filtered = new string(txtCol.Text?.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray() ?? Array.Empty<char>());
+                        bool fkToggled = false;
+
+                        // check for '_FK' suffix and strip it
+                        if (filtered.EndsWith("_FK", StringComparison.OrdinalIgnoreCase))
+                        {
+                            filtered = filtered.Substring(0, filtered.Length - 3);
+                            if (!col.IsFk)
+                            {
+                                col.IsFk = true;
+                                fkToggled = true;
+                            }
+                        }
+
                         if (txtCol.Text != filtered) txtCol.Text = filtered;
                         col.Name = txtCol.Text;
                         TriggerRelationalAutoSave();
+
+                        // re-render if it was newly marked as FK
+                        if (fkToggled)
+                        {
+                            RenderRelationalModel(targetPanel, false);
+                            return;
+                        }
 
                         // turn into delete column button if last column name is empty
                         if (capturedIndex == table.Columns.Count - 1)

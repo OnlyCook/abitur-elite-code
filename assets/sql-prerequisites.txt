@@ -1,0 +1,92 @@
+> Grundlagen
+Datenbanken|youtube:https://youtu.be/5OdVJbNCSso?t=629|docs:https://dev.mysql.com/doc/refman/8.0/en/what-is-mysql.html
+Tabellen|youtube:https://youtu.be/5OdVJbNCSso?t=869:|docs:https://dev.mysql.com/doc/refman/8.0/en/tables.html
+SELECT|youtube:https://youtu.be/5OdVJbNCSso?t=1712|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+FROM|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+WHERE|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+Vergleichsoperatoren|youtube:https://youtu.be/6sog_BqM-dg?t=4|docs:https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html
+Logische Operatoren (AND, OR, NOT)|youtube:https://youtu.be/5OdVJbNCSso?t=5320|docs:https://dev.mysql.com/doc/refman/8.0/en/logical-operators.html
+Aliase (AS)|youtube:https://youtu.be/FY6uFn1xPbg?t=4|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+Comments|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/comments.html
+
+> Datentypen & Werte
+INT|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
+VARCHAR|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/char.html
+DATE / DATETIME|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/datetime.html
+FLOAT / DECIMAL|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/floating-point-types.html
+NULL-Werte|youtube:https://www.youtube.com/watch?v=RKUYYrmv6gw|docs:https://dev.mysql.com/doc/refman/8.0/en/null-values.html
+Literale (Strings, Zahlen, Datumswerte)|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/literals.html
+
+> Filtern & Sortieren
+BETWEEN|youtube:https://youtu.be/lScJW5Qz_5k?t=269|docs:https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_between
+IN / NOT IN|youtube:https://youtu.be/lScJW5Qz_5k?t=311|docs:https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in
+LIKE (Wildcards % und _)|youtube:https://www.youtube.com/watch?v=T11d2ScMtk8|docs:https://dev.mysql.com/doc/refman/8.0/en/string-comparison-functions.html#operator_like
+IS NULL / IS NOT NULL|youtube:https://www.youtube.com/watch?v=RKUYYrmv6gw|docs:https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_is-null
+ORDER BY (ASC / DESC)|youtube:https://youtu.be/5OdVJbNCSso?t=5935|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+LIMIT|youtube:https://youtu.be/5OdVJbNCSso?t=6091|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+
+> Relationen & Schlüssel
+Primärschlüssel (PRIMARY KEY)|youtube:https://youtu.be/5OdVJbNCSso?t=3736|docs:https://dev.mysql.com/doc/refman/8.0/en/primary-key-optimization.html
+Fremdschlüssel (FOREIGN KEY)|youtube:https://youtu.be/5OdVJbNCSso?t=4296|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+ER-Diagramm lesen (Chen-Notation)|youtube:https://www.youtube.com/watch?v=I-ctLA--THs|docs:https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html
+Relationales Schema aus ER-Diagramm ableiten|youtube:https://youtu.be/bGX30rZ0seY?t=14|docs:https://dev.mysql.com/doc/refman/8.0/en/data-modeling.html
+1:1 Beziehungen|youtube:https://youtu.be/bGX30rZ0seY?t=240|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+1:n Beziehungen|youtube:https://youtu.be/bGX30rZ0seY?t=104|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+n:m Beziehungen|youtube:https://youtu.be/bGX30rZ0seY?t=166|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+Referentielle Integrität|youtube:https://youtu.be/w5eAmcpDJsk?t=16|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+
+> Joins
+Implicit Join|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/join.html
+INNER JOIN ... ON|youtube:https://www.youtube.com/watch?v=G3lJAxg1cy8|docs:https://dev.mysql.com/doc/refman/8.0/en/join.html
+LEFT JOIN|youtube:https://youtu.be/G3lJAxg1cy8?t=228|docs:https://dev.mysql.com/doc/refman/8.0/en/join.html
+JOINs verstehen|youtube:https://youtu.be/xUsY2jWQa1w?t=49|docs:https://dev.mysql.com/doc/refman/8.0/en/join.html
+
+> Aggregation
+COUNT()|youtube:https://youtu.be/9HXJUGT-06w?t=22|docs:https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html#function_count
+SUM()|youtube:https://youtu.be/9HXJUGT-06w?t=137|docs:https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html#function_sum
+AVG()|youtube:https://youtu.be/9HXJUGT-06w?t=127|docs:https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html#function_avg
+MIN() / MAX()|youtube:https://youtu.be/9HXJUGT-06w?t=97|docs:https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html#function_min
+GROUP BY|youtube:https://youtu.be/5OdVJbNCSso?t=8272|docs:https://dev.mysql.com/doc/refman/8.0/en/group-by-modifiers.html
+HAVING|youtube:https://www.youtube.com/watch?v=dCNjUOc1cBY|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+
+> Berechnungen im SELECT
+Arithmetische Ausdrücke|youtube:https://www.youtube.com/watch?v=ORwi_f4vPps|docs:https://dev.mysql.com/doc/refman/8.0/en/arithmetic-functions.html
+ROUND()|youtube:https://youtu.be/AUXw2JRwCFY?t=15|docs:https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_round
+POWER()|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_power
+
+> Datumsfunktionen
+YEAR()|youtube:https://youtu.be/pa5FRjansVg?t=405|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_year
+MONTH()|youtube:https://youtu.be/pa5FRjansVg?t=394|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_month
+DAY()|youtube:https://youtu.be/pa5FRjansVg?t=377|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_day
+NOW()|youtube:https://youtu.be/pa5FRjansVg?t=59|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_now
+TIMEDIFF()|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timediff
+DATEDIFF()|youtube:https://youtu.be/pa5FRjansVg?t=216|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_datediff
+DATE_ADD()|youtube:https://youtu.be/pa5FRjansVg?t=288|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-add
+Datumsvergleiche|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html
+
+> Unterabfragen (Subqueries)
+Subquery im WHERE mit IN|youtube:https://www.youtube.com/watch?v=i5acg3Hvu6g|docs:https://dev.mysql.com/doc/refman/8.0/en/subqueries.html
+Subquery im WHERE mit NOT IN|youtube:https://www.youtube.com/watch?v=i5acg3Hvu6g|docs:https://dev.mysql.com/doc/refman/8.0/en/subqueries.html
+Korrelierte Unterabfragen|youtube:https://youtu.be/nJIEIzF7tDw?t=1334|docs:https://dev.mysql.com/doc/refman/8.0/en/correlated-subqueries.html
+Subquery im FROM (abgeleitete Tabelle)|youtube:https://youtu.be/nJIEIzF7tDw?t=2260|docs:https://dev.mysql.com/doc/refman/8.0/en/derived-tables.html
+Scalar Subquery (einzelner Wert)|youtube:https://youtu.be/nJIEIzF7tDw?t=496|docs:https://dev.mysql.com/doc/refman/8.0/en/scalar-subqueries.html
+
+> Daten manipulieren (DML)
+INSERT INTO ... VALUES|youtube:https://youtu.be/5OdVJbNCSso?t=1358|docs:https://dev.mysql.com/doc/refman/8.0/en/insert.html
+UPDATE ... SET ... WHERE|youtube:https://youtu.be/5OdVJbNCSso?t=2012|docs:https://dev.mysql.com/doc/refman/8.0/en/update.html
+DELETE ... WHERE|youtube:https://youtu.be/5OdVJbNCSso?t=2178|docs:https://dev.mysql.com/doc/refman/8.0/en/delete.html
+
+> Struktur definieren (DDL)
+CREATE TABLE|youtube:https://youtu.be/5OdVJbNCSso?t=869|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table.html
+Constraints (UNIQUE, NOT NULL, PRIMARY KEY, FOREIGN KEY)|youtube:https://youtu.be/5OdVJbNCSso?t=2546|docs:https://dev.mysql.com/doc/refman/8.0/en/create-table.html
+DROP TABLE|youtube:https://youtu.be/5OdVJbNCSso?t=1087|docs:https://dev.mysql.com/doc/refman/8.0/en/drop-table.html
+
+> Erweiterte Konzepte
+DISTINCT|youtube:https://www.youtube.com/watch?v=yuYKEx6VDPE|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+Variablen (SET @variable)|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/user-variables.html
+Transaktionen (BEGIN, COMMIT, ROLLBACK)|youtube:https://youtu.be/5OdVJbNCSso?t=2223|docs:https://dev.mysql.com/doc/refman/8.0/en/commit.html
+Ausführungsreihenfolge von SQL-Klauseln|youtube:|docs:https://dev.mysql.com/doc/refman/8.0/en/select.html
+
+> Datenbankdesign
+Normalisierung (3NF)|youtube:https://youtu.be/GFQaEYEc8_8|docs:https://dev.mysql.com/doc/refman/8.0/en/data-modeling.html
+Vererbung|youtube:https://youtu.be/4_vsGgy9cGs|docs:https://dev.mysql.com/doc/refman/8.0/en/data-modeling.html

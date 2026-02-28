@@ -60,6 +60,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<AvaloniaResource Include="assets\sql-prerequisites.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<AvaloniaResource Include="assets\imgsql\**" />
 	</ItemGroup>
 </Project>
