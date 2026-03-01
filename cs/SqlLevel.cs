@@ -28,6 +28,13 @@ namespace AbiturEliteCode.cs
         public bool IsFk { get; set; }
     }
 
+    public class SqlExpectedColumn
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public bool StrictName { get; set; } = false;
+    }
+
     public class SqlLevel
     {
         public int Id { get; set; }
@@ -40,7 +47,7 @@ namespace AbiturEliteCode.cs
         public string Description { get; set; }
         public string SetupScript { get; set; }
         public string VerificationQuery { get; set; }
-        public List<string> ExpectedColumns { get; set; } = new List<string>();
+        public List<SqlExpectedColumn> ExpectedSchema { get; set; } = new List<SqlExpectedColumn>();
         public List<string[]> ExpectedResult { get; set; }
         public string MaterialDocs { get; set; }
 
@@ -61,7 +68,7 @@ namespace AbiturEliteCode.cs
             "SEL", "WHE", "ORD", "GRP", "INS", "UPD", "DEL", "EXM",
             "JON", "IMP", "JOI", "JO3", "JOX",
             "LEF", "NUL", "DIS", "PRB",
-            "MAT", "SUM", "TOP", "HAV", "EX4",
+            "MAT", "SUM", "TOP", "HAV", "SAL",
             ""
         };
     }
@@ -98,6 +105,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
                                   "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Preis", Type = "DOUBLE", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Faust", "9.99" },
@@ -132,6 +144,14 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
                                   "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Autor", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Preis", Type = "DOUBLE", StrictName = false },
+                        new SqlExpectedColumn { Name = "ISBN", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "2", "Die Verwandlung", "Kafka", "5.5", "978-4" },
@@ -170,6 +190,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Faust', 'Goethe', 1808);" +
                                   "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Die Verwandlung', 'Kafka', 1915);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Erscheinungsjahr", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Das Schloss", "1926" },
@@ -210,7 +235,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Shining', 'King', 'Horror', 13.0);" +
                                   "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Der Marsianer', 'Weir', 'SciFi', 20.0);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "Genre", "Durchschnitt" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Genre", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "Durchschnitt", Type = "DOUBLE", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Drama", "11" }, // (10+12)/2 = 11
@@ -248,6 +277,12 @@ namespace AbiturEliteCode.cs
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', 11);",
                     VerificationQuery = "SELECT * FROM Schueler WHERE ID = 10",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "10", "Leon", "12" }
@@ -284,6 +319,12 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Schueler VALUES (1, 'Max', 12); " +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', 11);",
                     VerificationQuery = "SELECT * FROM Schueler WHERE ID = 1",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "1", "Max", "13" }
@@ -316,6 +357,12 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Schueler VALUES (2, 'BleibtHier', 12); " +
                                   "INSERT INTO Schueler VALUES (3, 'AuchWeg', 13);",
                     VerificationQuery = "SELECT * FROM Schueler",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "2", "BleibtHier", "12" }
@@ -351,6 +398,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Sarah', 'Informatik', 4);" +
                                   "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Jan', 'Deutsch', 2);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Schueler", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Notenpunkte", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Sarah", "4" },
@@ -391,6 +443,10 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Buch VALUES (1, 'Faust', 101);" +
                                   "INSERT INTO Buch VALUES (2, 'Die Räuber', 102);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "101" }
@@ -425,15 +481,21 @@ namespace AbiturEliteCode.cs
                     Description = "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Geben Sie eine Liste aller [Titel] und der zugehörigen [Nachname]n der Autoren aus.\n" +
-                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.",
+                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.\n\n" +
+                                  "**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptiert, wird stattdessen standardmäßig [_FK] genutzt.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID INTEGER);" +
+                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
                                   "INSERT INTO Buch VALUES (11, 'Die Verwandlung', 2);" +
                                   "INSERT INTO Buch VALUES (12, 'Der Prozess', 2);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Nachname", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Faust", "Goethe" },
@@ -443,6 +505,7 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: Kartesisches Produkt\n" +
                                    "Wenn Sie nur [FROM Buch, Autor] schreiben, wird jedes Buch mit jedem Autor kombiniert.\n" +
                                    "Erst durch [WHERE Buch.AutorID = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
+                                   "Testen Sie dies gerne aus, um den Unterschied visuell zu erkennen.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
@@ -471,13 +534,18 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Erstellen Sie exakt dieselbe Liste wie im vorherigen Level ([Titel], [Nachname]), nutzen Sie diesmal jedoch den **INNER JOIN**.",
                     SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID INTEGER);" +
+                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
                                   "INSERT INTO Buch VALUES (11, 'Die Verwandlung', 2);" +
                                   "INSERT INTO Buch VALUES (12, 'Der Prozess', 2);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Nachname", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Faust", "Goethe" },
@@ -525,6 +593,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Ausleihe VALUES (2, 101, '2023-01-05');" +
                                   "INSERT INTO Ausleihe VALUES (2, 100, '2023-02-01');",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Max", "Faust" },
@@ -583,16 +656,17 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Ausleihe VALUES (2, 100, '2023-01-05');" +
                                   "INSERT INTO Ausleihe VALUES (3, 101, '2023-02-01');",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Max", "Faust" },
                         new[] { "Tom", "HTML für Anfänger" }
                     },
-                    MaterialDocs = "start-hint: Fremdschlüssel\n" +
-                                   "Im **relationalen Datenmodel** werden Fremdschlüssel als [#] (Raute) angezeigt.\n" +
-                                   "Da in **SQL** die Raute nicht für die Namesgebung genutzt werden kann, wird stattdessen [_FK] verwendet.\n" +
-                                   ":end-hint\n" +
-                                   "start-tipp: Kombination\n" +
+                    MaterialDocs = "start-tipp: Kombination\n" +
                                    "Verbinden Sie erst alle Tabellen per [JOIN].\n" +
                                    "Filtern Sie das Ergebnis am Ende mit einer [WHERE]-Klausel.\n" +
                                    ":end-hint",
@@ -630,6 +704,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Reservierung VALUES (1, 101);" +
                                   "INSERT INTO Reservierung VALUES (3, 102);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "TischNr", Type = "INT", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Taylor Swift", "101" },
@@ -674,6 +753,10 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Reservierung VALUES (1, 101);" +
                                   "INSERT INTO Reservierung VALUES (3, 102);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Elon Musk" }
@@ -719,6 +802,10 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Ticket VALUES (104, 4, 'Standard');" +
                                   "INSERT INTO Ticket VALUES (105, 5, 'VIP');",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Stadt", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Berlin" },
@@ -774,6 +861,10 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Reservierung VALUES (4, 'Hauptbereich', 105);" +
                                   "INSERT INTO Reservierung VALUES (6, 'VIP-Lounge', NULL);",
                     VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Beyoncé" },
@@ -821,7 +912,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Position VALUES (102, 2, 1);" +
                                   "INSERT INTO Position VALUES (103, 3, 3);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "bezeichnung", "Gesamt" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "bezeichnung", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "Gesamt", Type = "DOUBLE", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "T-Shirt", "39.98" },
@@ -864,7 +959,10 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Position VALUES (102, 1, 15.0, 1);" +
                                   "INSERT INTO Position VALUES (103, 2, 5.0, 4);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "Tagesumsatz" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "Tagesumsatz", Type = "DOUBLE", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "35" }
@@ -899,7 +997,7 @@ namespace AbiturEliteCode.cs
                     Section = "Sektion 4: Aggregation & Mathe",
                     SkipCode = SqlLevelCodes.CodesList[19],
                     NextLevelCode = SqlLevelCodes.CodesList[20],
-                    Title = "Topseller (GROUP BY & ORDER)",
+                    Title = "Topseller (GROUP & ORDER BY)",
                     Description = "Welches Produkt wurde wie oft verkauft? Wir wollen unsere Verkaufsschlager identifizieren.\n\n" +
                                   "Denken Sie daran: Überlegen Sie sich, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
                                   "**Aufgabe:**\n" +
@@ -914,7 +1012,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Position VALUES (102, 1, 2);" +
                                   "INSERT INTO Position VALUES (103, 2, 1);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "name", "Anzahl" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "Anzahl", Type = "INT", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "T-Shirt", "5" },
@@ -962,7 +1064,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Position VALUES (103, 2, 10);" +
                                   "INSERT INTO Position VALUES (104, 3, 4);",
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "kategorie", "Verkauft" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "kategorie", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "Verkauft", Type = "INT", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Elektronik", "3" },
@@ -999,7 +1105,7 @@ namespace AbiturEliteCode.cs
                     Title = "Die Umsatzanalyse",
                     Description = "Der Abteilungsleiter verlangt einen umfassenden Bericht zum aktuellen Geschäftsjahr.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Zeigen Sie alle Produktkategorien ([kategorie]) und deren Gesamtumsatz (Preis * Menge) als 'Gesamtumsatz' an.\n" +
+                                  "Zeigen Sie alle Produktkategorien und deren Gesamtumsatz als 'Gesamtumsatz' an.\n" +
                                   "Es sollen jedoch **nur** Kategorien angezeigt werden, deren Gesamtumsatz **über 100 Euro** liegt.\n" +
                                   "Sortieren Sie das Ergebnis **absteigend** nach dem Gesamtumsatz.",
                     SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, kategorie TEXT, preis REAL);" +
@@ -1007,21 +1113,28 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Produkt VALUES (1, 'Elektronik', 250.0);" +
                                   "INSERT INTO Produkt VALUES (2, 'Kleidung', 20.0);" +
                                   "INSERT INTO Produkt VALUES (3, 'Medien', 15.0);" +
-                                  "INSERT INTO Position VALUES (101, 1, 2);" +
-                                  "INSERT INTO Position VALUES (102, 2, 6);" +
-                                  "INSERT INTO Position VALUES (103, 3, 2);",
+                                  "INSERT INTO Position VALUES (101, 1, 1);" + // elektroniks split into 2 rows (250 * 1)
+                                  "INSERT INTO Position VALUES (102, 1, 1);" + // (250 * 1) -> total: 500
+                                  "INSERT INTO Position VALUES (103, 2, 3);" + // kleidung split into 2 rows (20 * 3)
+                                  "INSERT INTO Position VALUES (104, 2, 3);" + // (20 * 3) -> total: 120
+                                  "INSERT INTO Position VALUES (105, 3, 2);",  // medien (15 * 2) -> total: 30
+                    
                     VerificationQuery = "",
-                    ExpectedColumns = new List<string> { "kategorie", "Gesamtumsatz" },
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "kategorie", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "Gesamtumsatz", Type = "DOUBLE", StrictName = true }
+                    },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "Elektronik", "500" },
                         new[] { "Kleidung", "120" }
                     },
                     MaterialDocs = "start-tipp: Alles kombinieren\n" +
-                                   "1. Tabellen per JOIN verknüpfen.\n" +
-                                   "2. Mit GROUP BY zusammenfassen.\n" +
-                                   "3. Mit HAVING filtern.\n" +
-                                   "4. Mit ORDER BY sortieren.\n" +
+                                   "1. Tabellen per [JOIN] verknüpfen.\n" +
+                                   "2. Mit [GROUP BY] zusammenfassen.\n" +
+                                   "3. Mit [HAVING] filtern.\n" +
+                                   "4. Mit [ORDER BY] sortieren.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {

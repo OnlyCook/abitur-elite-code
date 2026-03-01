@@ -92,7 +92,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | :--- | :---: | :--- |
 | S18 | `MAT` | Der Warenkorb (Rechnen im Select) |
 | S19 | `SUM` | Der Tagesumsatz (SUM) |
-| S20 | `TOP` | Topseller (GROUP BY & ORDER) |
+| S20 | `TOP` | Topseller (GROUP & ORDER BY) |
 | S21 | `HAV` | Die Ladenhüter (HAVING) |
-| S22 | `EX4` | Die Umsatzanalyse |
+| S22 | `SAL` | Die Umsatzanalyse |
 

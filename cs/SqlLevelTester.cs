@@ -92,22 +92,36 @@ namespace AbiturEliteCode.cs
                     string errorFeedback = "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
 
                     // column name verification
-                    if (isSelect && userResultTable != null && level.ExpectedColumns != null && level.ExpectedColumns.Count > 0)
+                    if (isSelect && userResultTable != null)
                     {
-                        if (userResultTable.Columns.Count != level.ExpectedColumns.Count)
+                        var expectedSchema = level.ExpectedSchema;
+
+                        // determine which source to use
+                        int expectedCount = expectedSchema.Count;
+
+                        if (expectedCount > 0)
                         {
-                            correct = false;
-                            errorFeedback = $"❌ Falsche Spaltenanzahl. Erwartet: {level.ExpectedColumns.Count}, Erhalten: {userResultTable.Columns.Count}";
-                        }
-                        else
-                        {
-                            for (int i = 0; i < level.ExpectedColumns.Count; i++)
+                            if (userResultTable.Columns.Count != expectedCount)
                             {
-                                if (!userResultTable.Columns[i].ColumnName.Equals(level.ExpectedColumns[i], StringComparison.OrdinalIgnoreCase))
+                                correct = false;
+                                errorFeedback = $"❌ Falsche Spaltenanzahl. Erwartet: {expectedCount}, Erhalten: {userResultTable.Columns.Count}";
+                            }
+                            else
+                            {
+                                for (int i = 0; i < expectedCount; i++)
                                 {
-                                    correct = false;
-                                    errorFeedback = $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{level.ExpectedColumns[i]}', Erhalten: '{userResultTable.Columns[i].ColumnName}'";
-                                    break;
+                                    string userColName = userResultTable.Columns[i].ColumnName;
+
+                                    if (expectedSchema != null && expectedSchema.Count > 0)
+                                    {
+                                        var expectedCol = expectedSchema[i];
+                                        if (expectedCol.StrictName && !userColName.Equals(expectedCol.Name, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            correct = false;
+                                            errorFeedback = $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{expectedCol.Name}', Erhalten: '{userColName}'";
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }

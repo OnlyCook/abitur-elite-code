@@ -27,6 +27,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -66,6 +67,7 @@ namespace AbiturEliteCode
         private Button _btnGlobalFk;
 
         private Control? _hoveredSplitter;
+        private Control? _activeDraggingSplitter;
         private bool _isDraggingSplitter = false;
 
         private ScaleTransform ImgScale;
@@ -107,6 +109,7 @@ namespace AbiturEliteCode
         private bool _isSqlMode = false;
         private List<SqlLevel> sqlLevels;
         private SqlLevel currentSqlLevel;
+        private int _consecutiveSqlFails = 0;
 
         private bool _isLoadingDesigner = false;
         private bool _isDesignerMode = false;
@@ -303,19 +306,55 @@ namespace AbiturEliteCode
                 RoutingStrategies.Tunnel
             );
 
-            // remove hover active while dragging
-            this.AddHandler(
-                PointerReleasedEvent,
-                (s, e) =>
+            this.AddHandler(PointerPressedEvent, (s, e) =>
+            {
+                Control current = e.Source as Control;
+                GridSplitter splitter = null;
+
+                // get gridsplitter
+                while (current != null)
                 {
-                    if (!_isDraggingSplitter && _hoveredSplitter != null && !_hoveredSplitter.IsPointerOver)
+                    if (current is GridSplitter gs)
                     {
-                        _hoveredSplitter.Classes.Remove("hover-active");
-                        _hoveredSplitter = null;
+                        splitter = gs;
+                        break;
                     }
-                },
-                RoutingStrategies.Tunnel
-            );
+                    current = current.Parent as Control ?? current.TemplatedParent as Control;
+                }
+
+                if (splitter != null)
+                {
+                    _isDraggingSplitter = true;
+                    _activeDraggingSplitter = splitter;
+
+                    splitter.Classes.Add("dragging");
+                    splitter.Classes.Add("hover-active");
+                }
+            }, RoutingStrategies.Tunnel);
+
+            this.AddHandler(PointerReleasedEvent, (s, e) =>
+            {
+                if (_isDraggingSplitter && _activeDraggingSplitter != null)
+                {
+                    _isDraggingSplitter = false;
+                    _activeDraggingSplitter.Classes.Remove("dragging");
+
+                    // remove hover if mouse isnt focusing
+                    if (!_activeDraggingSplitter.IsPointerOver)
+                    {
+                        _activeDraggingSplitter.Classes.Remove("hover-active");
+                        if (_hoveredSplitter == _activeDraggingSplitter)
+                            _hoveredSplitter = null;
+                    }
+
+                    _activeDraggingSplitter = null;
+                }
+                else if (!_isDraggingSplitter && _hoveredSplitter != null && !_hoveredSplitter.IsPointerOver)
+                {
+                    _hoveredSplitter.Classes.Remove("hover-active");
+                    _hoveredSplitter = null;
+                }
+            }, RoutingStrategies.Tunnel);
 
             UpdateVimUI();
 
@@ -406,7 +445,13 @@ namespace AbiturEliteCode
         {
             if (e.Source != MainTabs) return;
 
-            bool wasQueryEditorFocused = SqlQueryEditor?.IsFocused == true;
+            bool wasQueryEditorFocused = SqlQueryEditor?.IsFocused == true || SqlQueryEditor?.TextArea?.IsFocused == true;
+
+            // immediately drop focus linkage so it doesnt steal back
+            if (wasQueryEditorFocused)
+            {
+                UpdateFocusedColumn(null, null);
+            }
 
             if (_isSqlMode && currentSqlLevel != null)
             {
@@ -576,6 +621,10 @@ namespace AbiturEliteCode
 
             // clear relational model focus tracking when the sql editor is focused manually
             SqlQueryEditor.GotFocus += (s, e) =>
+            {
+                UpdateFocusedColumn(null, null);
+            };
+            SqlQueryEditor.TextArea.GotFocus += (s, e) =>
             {
                 UpdateFocusedColumn(null, null);
             };
@@ -7026,6 +7075,8 @@ namespace AbiturEliteCode
 
             UpdateFocusedColumn(null, null);
 
+            _consecutiveSqlFails = 0;
+
             currentSqlLevel = level;
             UpdateNavigationButtons();
             if (playerData.UserSqlCode.ContainsKey(level.Id))
@@ -7141,6 +7192,7 @@ namespace AbiturEliteCode
 
             if (result.Success)
             {
+                _consecutiveSqlFails = 0;
                 AddSqlOutput("System", result.Feedback, Brushes.LightGreen);
 
                 if (!playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id))
@@ -7179,7 +7231,38 @@ namespace AbiturEliteCode
             }
             else
             {
-                AddSqlOutput("Error", result.Feedback, Brushes.Orange);
+                if (result.Feedback != null && result.Feedback.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
+                {
+                    _consecutiveSqlFails++;
+                }
+                else
+                {
+                    _consecutiveSqlFails = 0;
+                }
+
+                DataTable expectedData = null;
+                if (currentSqlLevel.ExpectedResult != null && currentSqlLevel.ExpectedResult.Count > 0)
+                {
+                    expectedData = new DataTable();
+
+                    if (currentSqlLevel.ExpectedSchema != null && currentSqlLevel.ExpectedSchema.Count > 0)
+                    {
+                        foreach (var col in currentSqlLevel.ExpectedSchema)
+                            expectedData.Columns.Add(col.Name, typeof(string));
+                    }
+                    else
+                    {
+                        for (int i = 0; i < currentSqlLevel.ExpectedResult[0].Length; i++)
+                            expectedData.Columns.Add($"Spalte {i + 1}", typeof(string));
+                    }
+
+                    foreach (var row in currentSqlLevel.ExpectedResult)
+                    {
+                        expectedData.Rows.Add(row);
+                    }
+                }
+
+                AddSqlOutput("Error", result.Feedback, Brushes.Orange, false, expectedData);
             }
         }
 
@@ -7197,7 +7280,7 @@ namespace AbiturEliteCode
             return dt;
         }
 
-        private void AddSqlOutput(string author, string text, IBrush color, bool isCode = false)
+        private void AddSqlOutput(string author, string text, IBrush color, bool isCode = false, DataTable expectedTable = null)
         {
             // remove old output if exceeds soft limit
             if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
@@ -7273,28 +7356,63 @@ namespace AbiturEliteCode
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 0, 0, 5)
                 };
-                container.Children.Add(content);
+
+                // append button with tooltip if applicable
+                if (expectedTable != null && _consecutiveSqlFails >= 3 && text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
+                {
+                    var stack = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 10,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    };
+                    content.Margin = new Thickness(0);
+                    stack.Children.Add(content);
+
+                    var btnExpected = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#3C3C3C"),
+                        Padding = new Thickness(8, 2),
+                        CornerRadius = new CornerRadius(10),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Child = new TextBlock
+                        {
+                            Text = "?",
+                            Foreground = Brushes.White,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    };
+
+                    btnExpected.PointerEntered += (s, e) => btnExpected.Background = SolidColorBrush.Parse("#4A4A4A");
+                    btnExpected.PointerExited += (s, e) => btnExpected.Background = SolidColorBrush.Parse("#3C3C3C");
+
+                    var toolTipBorder = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#141414"),
+                        BorderBrush = SolidColorBrush.Parse("#333333"),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(8),
+                        ClipToBounds = true
+                    };
+                    toolTipBorder.Child = BuildTableGrid(expectedTable, currentSqlLevel.ExpectedSchema?.Select(c => c.Type).ToList());
+                    ToolTip.SetTip(btnExpected, toolTipBorder);
+
+                    stack.Children.Add(btnExpected);
+                    container.Children.Add(stack);
+                }
+                else
+                {
+                    container.Children.Add(content);
+                }
             }
 
             PnlSqlOutput.Children.Add(container);
             SqlOutputScroller.ScrollToEnd();
         }
 
-        private void AddSqlTable(DataTable table)
+        private Grid BuildTableGrid(DataTable table, List<string> manualTypes = null)
         {
-            if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
-
-            var tableContainer = new Border
-            {
-                CornerRadius = new CornerRadius(6),
-                BorderBrush = SolidColorBrush.Parse("#333333"),
-                BorderThickness = new Thickness(1),
-                Background = SolidColorBrush.Parse("#141414"),
-                ClipToBounds = true,
-                Margin = new Thickness(0, 5, 0, 15),
-                HorizontalAlignment = HorizontalAlignment.Stretch
-            };
-
             var grid = new Grid();
 
             // create columns
@@ -7308,8 +7426,32 @@ namespace AbiturEliteCode
             // --- HEADERS ---
             for (int col = 0; col < table.Columns.Count; col++)
             {
-                var colType = table.Columns[col].DataType;
-                string mysqlType = GetMySqlTypeLabel(colType);
+                string mysqlType = "VARCHAR(255)";
+
+                if (manualTypes != null && col < manualTypes.Count)
+                {
+                    mysqlType = manualTypes[col].ToUpper();
+                }
+                else
+                {
+                    var colType = table.Columns[col].DataType;
+                    if (colType == typeof(string) && table.Rows.Count > 0)
+                    {
+                        bool isDouble = false;
+                        bool isInt = true;
+                        foreach (DataRow row in table.Rows)
+                        {
+                            string val = row[col]?.ToString()?.Replace(",", ".");
+                            if (string.IsNullOrEmpty(val)) continue;
+                            if (!int.TryParse(val, out _)) isInt = false;
+                            if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _)) isDouble = true;
+                        }
+
+                        if (isInt && !isDouble) colType = typeof(int);
+                        else if (isDouble) colType = typeof(double);
+                    }
+                    mysqlType = GetMySqlTypeLabel(colType);
+                }
 
                 var headerBorder = new Border
                 {
@@ -7365,7 +7507,7 @@ namespace AbiturEliteCode
                         Background = rowBackground,
                         Padding = new Thickness(12, 8),
                         BorderBrush = SolidColorBrush.Parse("#2A2A2A"),
-                        BorderThickness = new Thickness(0, 0, col == table.Columns.Count - 1 ? 0 : 1, 0) // Vertical separators only
+                        BorderThickness = new Thickness(0, 0, col == table.Columns.Count - 1 ? 0 : 1, 0)
                     };
 
                     var cellText = new SelectableTextBlock
@@ -7377,7 +7519,7 @@ namespace AbiturEliteCode
                     };
 
                     // handle null values visually
-                    if (table.Rows[i][col] == DBNull.Value)
+                    if (table.Rows[i][col] == DBNull.Value || table.Rows[i][col]?.ToString() == "NULL")
                     {
                         cellText.Text = "NULL";
                         cellText.Foreground = Brushes.Gray;
@@ -7392,7 +7534,25 @@ namespace AbiturEliteCode
                 }
             }
 
-            tableContainer.Child = grid;
+            return grid;
+        }
+
+        private void AddSqlTable(DataTable table)
+        {
+            if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
+
+            var tableContainer = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                BorderBrush = SolidColorBrush.Parse("#333333"),
+                BorderThickness = new Thickness(1),
+                Background = SolidColorBrush.Parse("#141414"),
+                ClipToBounds = true,
+                Margin = new Thickness(0, 5, 0, 15),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
+            tableContainer.Child = BuildTableGrid(table);
             PnlSqlOutput.Children.Add(tableContainer);
             SqlOutputScroller.ScrollToEnd();
         }
@@ -7416,47 +7576,20 @@ namespace AbiturEliteCode
             return "TEXT"; // fallback
         }
 
-        private void GridSplitter_PointerPressed(object? sender, PointerPressedEventArgs e)
-        {
-            if (sender is Control splitter)
-            {
-                // activate immediately when clicking/dragging
-                _isDraggingSplitter = true;
-                splitter.Classes.Add("hover-active");
-            }
-        }
-
-        private void GridSplitter_PointerReleased(object? sender, PointerReleasedEventArgs e)
-        {
-            if (sender is Control splitter)
-            {
-                _isDraggingSplitter = false;
-
-                if (!splitter.IsPointerOver)
-                {
-                    splitter.Classes.Remove("hover-active");
-                    if (_hoveredSplitter == splitter) _hoveredSplitter = null;
-                }
-            }
-        }
-
         private async void GridSplitter_PointerEntered(object? sender, PointerEventArgs e)
         {
             if (sender is Control splitter)
             {
                 _hoveredSplitter = splitter;
 
-                // immediately active while starting to drag
-                if (e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
-                {
-                    splitter.Classes.Add("hover-active");
+                // dont do nothing while dragging
+                if (_isDraggingSplitter)
                     return;
-                }
 
                 // delay to prevent regular mouse movement triggering
                 await Task.Delay(150);
 
-                if (splitter.IsPointerOver)
+                if (splitter.IsPointerOver && !_isDraggingSplitter)
                     splitter.Classes.Add("hover-active");
             }
         }
@@ -7465,8 +7598,8 @@ namespace AbiturEliteCode
         {
             if (sender is Control splitter)
             {
-                // keep hover state while dragging
-                if (e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
+                // freeze hover state while dragging
+                if (_isDraggingSplitter && _activeDraggingSplitter == splitter)
                     return;
 
                 splitter.Classes.Remove("hover-active");

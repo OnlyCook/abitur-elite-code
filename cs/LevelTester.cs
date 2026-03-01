@@ -1013,6 +1013,10 @@ namespace AbiturEliteCode.cs
             if (fReaderSerial == null) throw new Exception("Feld 'serial' fehlt in RFIDReader.");
             if (fReaderSerial.GetValue(reader) == null) throw new Exception("Das Serial-Objekt wurde im Konstruktor nicht gespeichert.");
 
+            PropertyInfo pIsOpen = tSerial.GetProperty("IsOpen");
+            bool isOpen = (bool)pIsOpen.GetValue(serialMock);
+            if (!isOpen) throw new Exception("Die serielle Schnittstelle wurde nicht geöffnet. Gemäß Abitur-Vorgabe müssen Sie im Konstruktor 'serial.Open()' aufrufen.");
+
             // test IsCardAvailable
             MethodInfo mAvail = tReader.GetMethod("IsCardAvailable") ?? tReader.GetMethod("isCardAvailable");
             if (mAvail == null) throw new Exception("Methode IsCardAvailable() fehlt.");
@@ -1069,6 +1073,9 @@ namespace AbiturEliteCode.cs
             strippedSource = Regex.Replace(strippedSource, @"/\*.*?\*/", "", RegexOptions.Singleline);
             string cleanSourceExact = strippedSource.Replace(" ", "").Replace("\r", "").Replace("\n", "");
             string cleanSourceLower = cleanSourceExact.ToLower();
+
+            if (!cleanSourceLower.Contains("serial.open();"))
+                throw new Exception("Die serielle Schnittstelle muss im Konstruktor des Controllers explizit mit 'serial.Open();' geöffnet werden (Abitur-Standard).");
 
             if (!cleanSourceExact.Contains("this.id=id;"))
                 throw new Exception("Konstruktor Rover: Sie müssen die ID exakt mit 'this.id = id;' zuweisen.");
@@ -1638,7 +1645,7 @@ namespace AbiturEliteCode.cs
 
             // inject commands
             MethodInfo mSetInputs = tSocket.GetMethod("SetTestInputs");
-            string[] commands = new string[] { "PING", "LOGIN", "UNKNOWN", "QUIT" };
+            string[] commands = new string[] { "PING", "INFO", "LOGIN", "UNKNOWN", "QUIT" }; // INFO hinzugefügt
             mSetInputs.Invoke(mockSocket, new object[] { commands });
 
             // execute Run() with timeout
@@ -1655,14 +1662,18 @@ namespace AbiturEliteCode.cs
             FieldInfo fOutputs = tSocket.GetField("Outputs");
             List<string> outputs = (List<string>)fOutputs.GetValue(mockSocket);
 
-            if (outputs.Count < 2)
+            if (outputs.Count < 3)
                 throw new Exception("Der ServerThread hat nicht ausreichend auf die Befehle geantwortet.");
 
             string pongResp = outputs[0].Trim();
-            string tokenResp = outputs[1].Trim();
+            string infoResp = outputs[1].Trim();
+            string tokenResp = outputs[2].Trim();
 
             if (pongResp != "+PONG")
                 throw new Exception($"Erwartete Antwort '+PONG' auf Befehl 'PING', aber erhalten: '{pongResp}'.");
+
+            if (infoResp != "+IP 127.0.0.1")
+                throw new Exception($"Auf 'INFO' muss der Server mit der korrekten IP antworten. Erhalten: '{infoResp}'. Haben Sie clientSocket.GetRemoteHostIP() genutzt?");
 
             if (!tokenResp.StartsWith("+TOKEN "))
                 throw new Exception($"Auf 'LOGIN' muss der Server mit '+TOKEN [Zufallszahl]' antworten. Erhalten: '{tokenResp}'.");

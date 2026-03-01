@@ -687,6 +687,7 @@ namespace AbiturEliteCode
 
         // sql schema context
         private Dictionary<string, List<string>> _sqlSchema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, string> _sqlAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // c# keywords to ignore
         public static readonly HashSet<string> CsharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -743,8 +744,22 @@ namespace AbiturEliteCode
             // sql mode fallback
             if (_keywords == SqlKeywords)
             {
-                var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
                 _allLocals.Clear();
+                _sqlAliases.Clear();
+
+                // extract table aliases
+                var aliasMatches = Regex.Matches(text, @"(?i)\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+AS)?\s+([a-zA-Z_][a-zA-Z0-9_]*)\b");
+                foreach (Match m in aliasMatches)
+                {
+                    string table = m.Groups[1].Value;
+                    string alias = m.Groups[2].Value;
+                    if (!SqlKeywords.Contains(alias) && !SqlKeywords.Contains(table))
+                    {
+                        _sqlAliases[alias] = table;
+                    }
+                }
+
+                var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
                 foreach (Match match in matches)
                 {
                     string token = match.Value;
@@ -933,9 +948,15 @@ namespace AbiturEliteCode
 
                 if (hasDot && !string.IsNullOrEmpty(caller))
                 {
-                    if (_sqlSchema.ContainsKey(caller))
+                    string actualTable = caller;
+                    if (_sqlAliases.ContainsKey(caller))
                     {
-                        foreach (var col in _sqlSchema[caller]) possibleMatches.Add(col);
+                        actualTable = _sqlAliases[caller];
+                    }
+
+                    if (_sqlSchema.ContainsKey(actualTable))
+                    {
+                        foreach (var col in _sqlSchema[actualTable]) possibleMatches.Add(col);
                     }
                 }
                 else if (expectTable)
@@ -947,12 +968,20 @@ namespace AbiturEliteCode
                     foreach (var cols in _sqlSchema.Values)
                         foreach (var col in cols) possibleMatches.Add(col);
 
-                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table); // table names might still be typed
+                    foreach (var table in _sqlSchema.Keys)
+                    {
+                        if (!_sqlAliases.ContainsValue(table)) possibleMatches.Add(table);
+                    }
+                    foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
                     foreach (var t in _allLocals) possibleMatches.Add(t);
                 }
                 else
                 {
-                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table);
+                    foreach (var table in _sqlSchema.Keys)
+                    {
+                        if (!_sqlAliases.ContainsValue(table)) possibleMatches.Add(table);
+                    }
+                    foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
                     foreach (var cols in _sqlSchema.Values)
                         foreach (var col in cols) possibleMatches.Add(col);
                     foreach (var t in _allLocals) possibleMatches.Add(t);

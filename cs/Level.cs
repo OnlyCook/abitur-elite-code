@@ -81,7 +81,7 @@ namespace AbiturEliteCode.cs
 
         public static string ServerSocket = "@startuml\nclass ServerSocket {\n  + ServerSocket(port : int)\n  + accept() : Socket\n  + close()\n}\n@enduml";
 
-        public static string Socket = "@startuml\nclass Socket {\n  + Socket(host : String, port : int)\n  + readLine() : String\n  + write(s : String)\n  + close()\n}\n@enduml";
+        public static string Socket = "@startuml\nclass Socket {\n  - remoteHostIP : String\n  - remotePort : int\n  + Socket(host : String, port : int)\n  + getRemoteHostIP() : String\n  + getRemotePort() : int\n  + readLine() : String\n  + write(s : String)\n  + close()\n}\n@enduml";
 
         public static string Thread = ""; // not needed as implemented into the main class diagram in the abitur exams
 
@@ -115,9 +115,10 @@ namespace AbiturEliteCode.cs
                     using System.Collections.Generic;
                     public class Serial {
                         private Queue<int> _readBuffer = new Queue<int>();
+                        public bool IsOpen { get; private set; } = false;
                         public Serial(string p, int b, int d, int s, int par) {}
-                        public bool Open() { return true; }
-                        public void Close() {}
+                        public bool Open() { IsOpen = true; return true; }
+                        public void Close() { IsOpen = false; }
                         
                         // Mock Aufstellung zum Testen
                         public void SetTestBytes(int[] bytes) {
@@ -125,6 +126,7 @@ namespace AbiturEliteCode.cs
                         }
                         
                         public int Read() {
+                            if (!IsOpen) throw new System.Exception(""Schnittstelle ist nicht geöffnet!"");
                             if (_readBuffer.Count > 0) return _readBuffer.Dequeue();
                             return -1;
                         }
@@ -153,8 +155,14 @@ namespace AbiturEliteCode.cs
                         private Queue<string> _inputs = new Queue<string>();
                         public List<string> Outputs = new List<string>();
                         
+                        private string remoteHostIP = ""127.0.0.1"";
+                        private int remotePort = 54321;
+                        
                         public Socket() {}
                         public Socket(string host, int port) {}
+                        
+                        public string GetRemoteHostIP() { return remoteHostIP; }
+                        public int GetRemotePort() { return remotePort; }
                         
                         public void SetTestInputs(string[] inputs) {
                             foreach(var i in inputs) _inputs.Enqueue(i);
@@ -859,6 +867,7 @@ END.",
                     Title = "RFID-Scanner (Serielle Schnittstelle)",
                     Description = "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. In diesem ersten Teil implementieren Sie nur das Auslesen der Hardware auf unterster Ebene.\n\n" +
                                   "Aufgabe: Implementieren Sie die Klasse [RFIDReader].\n" +
+                                  "• Der Konstruktor empfängt das Serial-Objekt. Wichtig: Im Abitur muss die serielle Schnittstelle vor der Nutzung zwingend geöffnet werden.\n" +
                                   "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl, die nicht 0 ist) an der Schnittstelle bereitstehen (nutzen Sie [serial.DataAvailable()]).\n" +
                                   "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle und validiert das Protokoll.\n\n" +
                                   "Protokoll-Spezifikation:\n" +
@@ -929,7 +938,7 @@ END.",
                                   "Aufgabe 2: Implementieren Sie [Controller].\n" +
                                   "• Der Konstruktor initialisiert [Serial] mit dem übergebenen [port] und den nötigen Werten (siehe Material), öffnet den Port und erstellt den [RFIDReader].\n" +
                                   "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> String 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK (0x06) vom [FunkModul] warten -> [rover.Unlock()] aufrufen.",
-                    StarterCode = "public class Rover\n{\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}\n\n// Den RFIDReader haben Sie bereits im letzten Level erfolgreich implementiert!\npublic class RFIDReader\n{\n    private Serial serial;\n    \n    public RFIDReader(Serial s)\n    {\n        serial = s;\n    }\n    \n    public bool IsCardAvailable()\n    {\n        return serial.DataAvailable() > 0;\n    }\n    \n    public string ReadCard()\n    {\n        if (serial.Read() != 0x02) return \"\";\n        \n        char[] data = new char[6];\n        int xor = 0;\n        for (int i = 0; i < 6; i++)\n        {\n            data[i] = (char)serial.Read();\n            xor ^= data[i];\n        }\n        \n        if (serial.Read() != xor) return \"\";\n        \n        if (serial.Read() != 0x03) return \"\";\n        \n        return new string(data);\n    }\n}",
+                    StarterCode = "public class Rover\n{\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}\n\n// Den RFIDReader haben Sie bereits im letzten Level erfolgreich implementiert!\npublic class RFIDReader\n{\n    private Serial serial;\n    \n    public RFIDReader(Serial s)\n    {\n        serial = s;\n        serial.Open();\n    }\n    \n    public bool IsCardAvailable()\n    {\n        return serial.DataAvailable() > 0;\n    }\n    \n    public string ReadCard()\n    {\n        if (serial.Read() != 0x02) return \"\";\n        \n        char[] data = new char[6];\n        int xor = 0;\n        for (int i = 0; i < 6; i++)\n        {\n            data[i] = (char)serial.Read();\n            xor ^= data[i];\n        }\n        \n        if (serial.Read() != xor) return \"\";\n        \n        if (serial.Read() != 0x03) return \"\";\n        \n        return new string(data);\n    }\n}",
                     MaterialDocs = "Verwenden Sie zur Initialisierung der seriellen Schnittstelle folgende Parameter:\n" +
                                    "{|Baud=9600, DataBits=8, StopBits=1, Parity=0|}\n" +
                                    "start-hint: Autowert\n" +
@@ -1152,6 +1161,7 @@ END.",
                                   "3. Implementieren Sie die Methode [Run()] in [ServerThread]. Diese liest in einer Schleife Kommandos vom Socket.\n\n" +
                                   "Protokoll für [Run()] in [ServerThread]:\n" +
                                   "• Bei Kommando \"PING\" antwortet der Server mit \"+PONG\\n\".\n" +
+                                  "• Bei Kommando \"INFO\" antwortet der Server mit der IP-Adresse des Clients: \"+IP \" + clientSocketHostIP + \"\\n\".\n" +
                                   "• Bei Kommando \"LOGIN\" wird ein zufälliger Session-Token (0 bis 9999) generiert (Nutzen Sie die Klasse [Random]). Der Server antwortet mit \"+TOKEN \" + token + \"\\n\".\n" +
                                   "• Bei \"QUIT\" wird die Schleife beendet und der Socket geschlossen.",
                     StarterCode = "// Implementieren Sie alle Klassen selbständig",
@@ -1170,7 +1180,7 @@ END.",
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int, hub : SmartHomeHub)\n  + runServer()\n}\nclass ServerThread {\n  + ServerThread(cs : Socket, hub : SmartHomeHub)\n  + run()\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SmartHomeHub {\n  + SmartHomeHub()\n}\nSmartHomeServer x-down-> \"1\" ServerSocket : -serverSocket\nSmartHomeServer ..> ServerThread : <<creates>>\nServerThread -up-|> Thread\nServerThread x--> \"1\" Socket : -clientSocket\nSmartHomeServer x--> \"1\" SmartHomeHub : -hub\nServerThread x--> \"1\" SmartHomeHub : -hub\n@enduml"
+                        "allowmixing\n@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int, hub : SmartHomeHub)\n  + runServer()\n}\nclass ServerThread {\n  + ServerThread(cs : Socket, hub : SmartHomeHub)\n  + run()\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SmartHomeHub {\n  + SmartHomeHub()\n}\nclass Socket {\n  - remoteHostIP : String\n  - remotePort : int\n  + getRemoteHostIP() : String\n  + getRemotePort() : int\n}\ncloud Netzwerk\nSmartHomeServer x-down-> \"1\" ServerSocket : -serverSocket\nSmartHomeServer ..> ServerThread : <<creates>>\nServerThread -up-|> Thread\nServerThread x--> \"1\" Socket : -clientSocket\nSocket -right- Netzwerk : \" verbindet >\"\nSmartHomeServer x--> \"1\" SmartHomeHub : -hub\nServerThread x--> \"1\" SmartHomeHub : -hub\n@enduml"
                     },
                     NoUMLAutoScale = true,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "Random" },
@@ -1205,7 +1215,7 @@ END.",
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass SicherheitsServer {\n  - port : int\n  + SicherheitsServer(port : int, z : SicherheitsZentrale)\n  + runServer()\n}\nclass SicherheitsThread {\n  + SicherheitsThread(cs : Socket, z : SicherheitsZentrale)\n  + run()\n  - vergleicheZugangsdaten(user : String, pin : String) : boolean\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SicherheitsZentrale {\n  + SicherheitsZentrale()\n}\nclass BenutzerVerwaltung {\n  - adminUser : String\n  - adminPin : String\n}\nclass Alarmanlage {\n  - aktiv : boolean\n}\nclass ProtokollLog {\n  - eintraege : List<String>\n}\nSicherheitsServer x--> \"1\" ServerSocket : -serverSocket\nSicherheitsServer x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsServer ..> SicherheitsThread : <<creates>>\nSicherheitsThread -up-|> Thread\nSicherheitsThread x--> \"1\" Socket : -clientSocket\nSicherheitsThread x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsZentrale x--> \"1\" BenutzerVerwaltung : -verwaltung\nSicherheitsZentrale x--> \"1\" Alarmanlage : -alarmanlage\nSicherheitsZentrale x--> \"1\" ProtokollLog : -log\n@enduml",
+                        "allowmixing\n@startuml\nclass SicherheitsServer {\n  - port : int\n  + SicherheitsServer(port : int, z : SicherheitsZentrale)\n  + runServer()\n}\nclass SicherheitsThread {\n  + SicherheitsThread(cs : Socket, z : SicherheitsZentrale)\n  + run()\n  - vergleicheZugangsdaten(user : String, pin : String) : boolean\n}\nclass Thread {\n  + start()\n  + run()\n}\nclass SicherheitsZentrale {\n  + SicherheitsZentrale()\n}\nclass BenutzerVerwaltung {\n  - adminUser : String\n  - adminPin : String\n}\nclass Alarmanlage {\n  - aktiv : boolean\n}\nclass ProtokollLog {\n  - eintraege : List<String>\n}\nclass Socket {\n  - remoteHostIP : String\n  - remotePort : int\n  + getRemoteHostIP() : String\n  + getRemotePort() : int\n}\ncloud Netzwerk\nSicherheitsServer x--> \"1\" ServerSocket : -serverSocket\nSicherheitsServer x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsServer ..> SicherheitsThread : <<creates>>\nSicherheitsThread -up-|> Thread\nSicherheitsThread x--> \"1\" Socket : -clientSocket\nSocket -left- Netzwerk\nSicherheitsThread x--> \"1\" SicherheitsZentrale : -zentrale\nSicherheitsZentrale x--> \"1\" BenutzerVerwaltung : -verwaltung\nSicherheitsZentrale x--> \"1\" Alarmanlage : -alarmanlage\nSicherheitsZentrale x--> \"1\" ProtokollLog : -log\n@enduml",
                         "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \": SicherheitsThread\" as T\nparticipant \": Socket\" as CS\nparticipant \": SicherheitsZentrale\" as Z\n\n[o-> T : run()\nactivate T\nT -> CS : readLine()\nactivate CS\nCS --> T : befehl\ndeactivate CS\nopt befehl beginnt mit \"LOGIN;\"\n  T -> T : vergleicheZugangsdaten(user, pin)\n  activate T\n  T -> Z : getVerwaltung()\n  activate Z\n  Z --> T : verwaltung\n  deactivate Z\n  T --> T : true/false\n  deactivate T\n  alt erfolgreich\n    T -> CS : write(\"+OK Willkommen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n    loop befehl != \"QUIT\"\n      T -> CS : readLine()\n      activate CS\n      CS --> T : befehl\n      deactivate CS\n      alt befehl == \"STATUS\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> CS : write(\"+OK ALARM_ON (oder OFF)\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"TOGGLE\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> T : wechsle Status (aktiv)\n        activate T\n        T --> T\n        deactivate T\n        T -> Z : getLog()\n        activate Z\n        Z --> T : log\n        deactivate Z\n        T -> T : füge Eintrag hinzu\n        activate T\n        T --> T\n        deactivate T\n        T -> CS : write(\"+OK Umschaltung erfolgreich\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"QUIT\"\n        T -> CS : write(\"+OK Bye\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      end\n    end\n  else fehlgeschlagen\n    T -> CS : write(\"-ERR Login fehlgeschlagen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n  end\nend\nT -> CS : close()\nactivate CS\nCS --> T\ndeactivate CS\ndeactivate T\n@enduml"
                     },
                     NoUMLAutoScale = true,

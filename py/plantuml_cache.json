@@ -132,7 +132,7 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_ServerSocket.svg"
   },
   "shared_Socket": {
-    "hash": "c3644703060035d80f38d3ff91506516",
+    "hash": "0f2daad8f55111d17b09919a57a8360d",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Socket.svg"
   },
   "lvl_19_1": {
@@ -164,7 +164,7 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-1.svg"
   },
   "lvl_22_1": {
-    "hash": "62f9ec43becd7ee2514f619b528ffc24",
+    "hash": "30d38e53db58c37d31196618500e211c",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl22-1.svg"
   },
   "lvl_22_2": {
@@ -176,7 +176,7 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-2.svg"
   },
   "lvl_23_1": {
-    "hash": "117c2aa49a65a840c0daad254072acad",
+    "hash": "1b3f5d0906902bb892b1d04aa9e46d27",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-1.svg"
   },
   "lvl_23_2": {
@@ -202,5 +202,9 @@
   "sql_lvl_22_1": {
     "hash": "14e12ebfce46583acebc5d09364656b1",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec4\\lvl22-1.svg"
+  },
+  "shared_SocketAbitur": {
+    "hash": "0f2daad8f55111d17b09919a57a8360d",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_SocketAbitur.svg"
   }
 }

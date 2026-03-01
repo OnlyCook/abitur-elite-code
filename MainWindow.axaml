@@ -12,7 +12,7 @@
         Background="#121212"
         RequestedThemeVariant="Dark">
 
-	<LayoutTransformControl>
+	<LayoutTransformControl Name="RootScaleTransform">
 		<Grid Name="RootGrid" RowDefinitions="60,*">
 
 			<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
@@ -195,8 +195,7 @@
 									</Panel>
 
 									<GridSplitter Name="UmlRelationalSplitter" IsVisible="False" Grid.Row="1" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch" Height="8" Cursor="SizeNorthSouth"
-												  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
-												  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+												  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited">
 										<GridSplitter.Template>
 											<ControlTemplate>
 												<Grid Background="Transparent">
@@ -225,6 +224,19 @@
 												</Setter>
 											</Style>
 											<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+												<Setter Property="Opacity" Value="0"/>
+											</Style>
+
+											<Style Selector="GridSplitter.dragging /template/ Border#HoverLine">
+												<Setter Property="Transitions">
+													<Transitions/>
+												</Setter>
+												<Setter Property="Opacity" Value="1"/>
+											</Style>
+											<Style Selector="GridSplitter.dragging /template/ Border#Handle">
+												<Setter Property="Transitions">
+													<Transitions/>
+												</Setter>
 												<Setter Property="Opacity" Value="0"/>
 											</Style>
 										</GridSplitter.Styles>
@@ -458,8 +470,7 @@
 				</Panel>
 
 				<GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" Width="8" Cursor="SizeWestEast"
-							  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
-							  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+							  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited">
 					<GridSplitter.Template>
 						<ControlTemplate>
 							<Grid Background="Transparent">
@@ -488,6 +499,19 @@
 							</Setter>
 						</Style>
 						<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+							<Setter Property="Opacity" Value="0"/>
+						</Style>
+
+						<Style Selector="GridSplitter.dragging /template/ Border#HoverLine">
+							<Setter Property="Transitions">
+								<Transitions/>
+							</Setter>
+							<Setter Property="Opacity" Value="1"/>
+						</Style>
+						<Style Selector="GridSplitter.dragging /template/ Border#Handle">
+							<Setter Property="Transitions">
+								<Transitions/>
+							</Setter>
 							<Setter Property="Opacity" Value="0"/>
 						</Style>
 					</GridSplitter.Styles>
@@ -543,8 +567,7 @@
 					</Panel>
 
 					<GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows" HorizontalAlignment="Stretch" Height="8" Cursor="SizeNorthSouth"
-								  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited"
-                                  PointerPressed="GridSplitter_PointerPressed" PointerReleased="GridSplitter_PointerReleased">
+								  PointerEntered="GridSplitter_PointerEntered" PointerExited="GridSplitter_PointerExited">
 						<GridSplitter.Template>
 							<ControlTemplate>
 								<Grid Background="Transparent">
@@ -573,6 +596,19 @@
 								</Setter>
 							</Style>
 							<Style Selector="GridSplitter.hover-active /template/ Border#Handle">
+								<Setter Property="Opacity" Value="0"/>
+							</Style>
+
+							<Style Selector="GridSplitter.dragging /template/ Border#HoverLine">
+								<Setter Property="Transitions">
+									<Transitions/>
+								</Setter>
+								<Setter Property="Opacity" Value="1"/>
+							</Style>
+							<Style Selector="GridSplitter.dragging /template/ Border#Handle">
+								<Setter Property="Transitions">
+									<Transitions/>
+								</Setter>
 								<Setter Property="Opacity" Value="0"/>
 							</Style>
 						</GridSplitter.Styles>
