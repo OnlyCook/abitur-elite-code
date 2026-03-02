@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PI Abitur SQL – Themenstatistik (Hessen)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #0d1117;
+    --bg2:         #161b22;
+    --bg3:         #21262d;
+    --border:      #30363d;
+    --border-sub:  #21262d;
+    --text:        #e6edf3;
+    --text-muted:  #8b949e;
+    --text-dim:    #484f58;
+    --link:        #58a6ff;
+    --green:       #3fb950;
+    --yellow:      #d29922;
+    --red:         #f85149;
+    --blue:        #58a6ff;
+    --orange:      #db6d28;
+    --font:        -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; padding: 32px 16px 64px; }
+  .page { max-width: 1012px; margin: 0 auto; }
+  code { font-family: var(--mono); font-size: 12px; background: var(--bg3); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; color: var(--text-muted); }
+
+  .page-header { padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-family: var(--mono); }
+  .breadcrumb a { color: var(--link); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 { font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--text); margin-bottom: 8px; }
+  .page-header p { color: var(--text-muted); font-size: 14px; max-width: 700px; line-height: 1.6; }
+
+  .note { background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; font-size: 13px; color: var(--text-muted); margin-bottom: 32px; line-height: 1.6; }
+  .note strong { color: var(--text); }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+  .stat-badge { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 100px; }
+  .stat-badge .val { font-size: 20px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+  .stat-badge .lbl { font-size: 11px; color: var(--text-muted); }
+
+  .section { margin-bottom: 40px; }
+  h2 { font-size: 16px; font-weight: 600; color: var(--text); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .section-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; margin-top: 4px; }
+
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 16px; }
+  .chart-panel-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-sub); }
+
+  .bar-row { display: grid; grid-template-columns: 168px 1fr 54px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-label { font-family: var(--mono); font-size: 11px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-fill.ta { background: var(--green); }
+  .bar-fill.tb { background: var(--yellow); }
+  .bar-fill.tc { background: var(--orange); }
+  .bar-fill.td { background: var(--red); }
+  .bar-pct { font-family: var(--mono); font-size: 11px; font-weight: 600; text-align: right; white-space: nowrap; }
+
+  .bar-divider { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 12px 0 8px 0; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
+
+  .miss-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .miss-grid { grid-template-columns: 1fr; } }
+  .miss-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .miss-panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg3); }
+  .miss-panel-title.c-red    { border-left: 3px solid var(--red);    color: var(--red); }
+  .miss-panel-title.c-yellow { border-left: 3px solid var(--yellow); color: var(--yellow); }
+  .miss-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border-sub); font-family: var(--mono); font-size: 12px; }
+  .miss-row:last-child { border-bottom: none; }
+  .miss-row:hover { background: var(--bg3); }
+  .miss-topic { color: var(--text-muted); }
+  .miss-val { font-weight: 600; padding: 2px 8px; border-radius: 11px; font-size: 11px; }
+  .v0   { background: rgba(63,185,80,0.12);  color: #3fb950; }
+  .v10  { background: rgba(63,185,80,0.08);  color: #7ee787; }
+  .v20  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v30  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v40  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v50  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v60  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v80  { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .v90  { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .v100 { background: rgba(248,81,73,0.15);  color: #f85149; }
+
+  .table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; overflow: auto; }
+  table.ytable { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.ytable th { background: var(--bg3); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.ytable th:first-child, table.ytable th:nth-child(2) { text-align: left; }
+  table.ytable td { padding: 9px 10px; border-bottom: 1px solid var(--border-sub); text-align: center; vertical-align: middle; }
+  table.ytable tbody tr:last-child td { border-bottom: none; }
+  table.ytable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+  .ytd-year { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text); text-align: left !important; white-space: nowrap; }
+  .ytd-props { text-align: left !important; }
+  .ptags { display: flex; gap: 3px; }
+  .ptag { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; background: var(--bg3); border: 1px solid var(--border); color: var(--text-dim); }
+  .ptag.on { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.4); color: var(--blue); }
+  .dy { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--green); box-shadow:0 0 0 2px rgba(63,185,80,0.2); }
+  .dn { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); }
+  .legend-row { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+
+  table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.dtable th { background: var(--bg3); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.dtable td { padding: 12px 14px; border-bottom: 1px solid var(--border-sub); vertical-align: top; }
+  table.dtable tbody tr:last-child td { border-bottom: none; }
+  table.dtable tbody tr:hover td { background: rgba(88,166,255,0.03); }
+  .dt-topic { font-weight: 600; color: var(--text); margin-bottom: 3px; font-size: 13px; }
+  .dt-sub   { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .pips { display: flex; gap: 3px; margin-bottom: 4px; }
+  .pip { width: 12px; height: 12px; border-radius: 2px; background: var(--bg3); border: 1px solid var(--border); }
+  .p1 { background: #3fb950; border-color: #3fb950; }
+  .p2 { background: #7ee787; border-color: #7ee787; }
+  .p3 { background: #d29922; border-color: #d29922; }
+  .p4 { background: #db6d28; border-color: #db6d28; }
+  .p5 { background: #f85149; border-color: #f85149; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 11px; white-space: nowrap; }
+  .pill-g { background: rgba(63,185,80,0.15);  color: #3fb950; }
+  .pill-y { background: rgba(210,153,34,0.15); color: #d29922; }
+  .pill-o { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .pill-r { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .dt-note { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .dt-note strong { color: var(--text); }
+
+  /* Modellierung section */
+  .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 16px; }
+  .model-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+  .model-card-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .model-card-stats { display: flex; gap: 16px; margin-bottom: 8px; }
+  .model-stat { display: flex; flex-direction: column; gap: 2px; }
+  .model-stat .ms-val { font-family: var(--mono); font-size: 18px; font-weight: 600; line-height: 1; }
+  .model-stat .ms-lbl { font-size: 10px; color: var(--text-dim); }
+  .model-card-note { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note" style="border-left-color: var(--yellow); margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Statistik wurden mithilfe von KI analysiert und ausgewertet. Die Seite selbst wurde größtenteils von KI erstellt. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen überprüfen.
+</div>
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a href="https://github.com/OnlyCook/abitur-elite-code">AbiturEliteCode</a><span>/</span>
+      <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+      SQL Themenanalyse
+    </div>
+    <h1>SQL Themenstatistik — PI Landesabitur Hessen</h1>
+    <p>
+      Auswertung aller offiziellen Prüfungsvorschläge im Fach <strong>Praktische Informatik (SQL)</strong>
+      des hessischen Landesabiturs, Jahrgänge <strong>2016–2025</strong>.
+      Die Datenbasis umfasst <strong>23 Vorschläge</strong> aus 10 Jahrgängen —
+      2021, 2022 und 2023 hatten je 3 Vorschläge (A/B/C), alle anderen Jahrgänge je 2 Vorschläge (A/B).
+    </p>
+  </div>
+
+  <!-- NOTE -->
+  <div class="note">
+    <strong>Berechnungsgrundlage:</strong>
+    Die <em>Gesamtwahrscheinlichkeit</em> bezieht sich auf alle 23 Vorschläge.
+    Die <em>Jahreswahrscheinlichkeit</em> bezieht sich auf die 10 Jahrgänge — ein Jahrgang zählt als „vorhanden", sobald mindestens ein Vorschlag dieses Jahrgangs das Thema behandelt.
+    Die <em>Auslassungswahrscheinlichkeiten</em> unten beantworten zwei verschiedene Fragen bezogen auf die 10 Jahrgänge.
+    <strong>Basisthemen</strong> (SELECT/WHERE, JOIN, Aggregatfunktionen, GROUP BY, ER-Diagramm erweitern) sind in <em>jedem einzelnen Vorschlag</em> enthalten und werden in den Balkendiagrammen nicht gesondert geführt.
+  </div>
+
+  <!-- STAT BADGES -->
+  <div class="stat-row">
+    <div class="stat-badge">
+      <span class="val">10</span>
+      <span class="lbl">Jahrgänge</span>
+    </div>
+    <div class="stat-badge">
+      <span class="val">23</span>
+      <span class="lbl">Vorschläge gesamt</span>
+    </div>
+    <div class="stat-badge">
+      <span class="val">12</span>
+      <span class="lbl">Variable Themen</span>
+    </div>
+    <div class="stat-badge">
+      <span class="val" style="color:var(--green)">5</span>
+      <span class="lbl">Basisthemen immer</span>
+    </div>
+    <div class="stat-badge">
+      <span class="val" style="color:var(--red)">2</span>
+      <span class="lbl">Nur 1× aufgetaucht</span>
+    </div>
+  </div>
+
+  <!-- BAR CHARTS -->
+  <div class="section">
+    <h2>Themenwahrscheinlichkeiten</h2>
+    <div class="section-desc">Variable Themen — SELECT/WHERE, JOIN, Aggregatfunktionen, GROUP BY und ER erweitern sind in 100 % aller Vorschläge enthalten und hier nicht gelistet</div>
+    <div class="chart-grid">
+
+      <div class="chart-panel">
+        <div class="chart-panel-title">Gesamt — alle 23 Vorschläge</div>
+        <div class="bar-row"><div class="bar-label">ER → Relation</div><div class="bar-track"><div class="bar-fill ta" style="width:95.7%"></div></div><div class="bar-pct" style="color:var(--green)">95,7 %</div></div>
+        <div class="bar-row"><div class="bar-label">Datumsfunktionen</div><div class="bar-track"><div class="bar-fill ta" style="width:82.6%"></div></div><div class="bar-pct" style="color:var(--green)">82,6 %</div></div>
+        <div class="bar-row"><div class="bar-label">Unterabfragen</div><div class="bar-track"><div class="bar-fill ta" style="width:78.3%"></div></div><div class="bar-pct" style="color:var(--green)">78,3 %</div></div>
+        <div class="bar-row"><div class="bar-label">ORDER BY / LIMIT</div><div class="bar-track"><div class="bar-fill tb" style="width:69.6%"></div></div><div class="bar-pct" style="color:var(--yellow)">69,6 %</div></div>
+        <div class="bar-row"><div class="bar-label">INSERT INTO</div><div class="bar-track"><div class="bar-fill tb" style="width:65.2%"></div></div><div class="bar-pct" style="color:var(--yellow)">65,2 %</div></div>
+        <div class="bar-row"><div class="bar-label">UPDATE</div><div class="bar-track"><div class="bar-fill tb" style="width:65.2%"></div></div><div class="bar-pct" style="color:var(--yellow)">65,2 %</div></div>
+        <div class="bar-row"><div class="bar-label">HAVING</div><div class="bar-track"><div class="bar-fill tc" style="width:39.1%"></div></div><div class="bar-pct" style="color:var(--orange)">39,1 %</div></div>
+        <div class="bar-row"><div class="bar-label">Normalisierung</div><div class="bar-track"><div class="bar-fill tc" style="width:30.4%"></div></div><div class="bar-pct" style="color:var(--orange)">30,4 %</div></div>
+        <div class="bar-row"><div class="bar-label">DELETE</div><div class="bar-track"><div class="bar-fill td" style="width:21.7%"></div></div><div class="bar-pct" style="color:var(--red)">21,7 %</div></div>
+        <div class="bar-row"><div class="bar-label">LEFT JOIN</div><div class="bar-track"><div class="bar-fill td" style="width:21.7%"></div></div><div class="bar-pct" style="color:var(--red)">21,7 %</div></div>
+        <div class="bar-row"><div class="bar-label">DDL (CREATE/ALTER)</div><div class="bar-track"><div class="bar-fill td" style="width:4.3%"></div></div><div class="bar-pct" style="color:var(--red)">4,3 %</div></div>
+        <div class="bar-row"><div class="bar-label">SET @Variable</div><div class="bar-track"><div class="bar-fill td" style="width:4.3%"></div></div><div class="bar-pct" style="color:var(--red)">4,3 %</div></div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="chart-panel-title">Pro Jahrgang — mind. 1 Vorschlag</div>
+        <div class="bar-row"><div class="bar-label">ER → Relation</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">100 %</div></div>
+        <div class="bar-row"><div class="bar-label">Datumsfunktionen</div><div class="bar-track"><div class="bar-fill ta" style="width:90%"></div></div><div class="bar-pct" style="color:var(--green)">90 %</div></div>
+        <div class="bar-row"><div class="bar-label">Unterabfragen</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">100 %</div></div>
+        <div class="bar-row"><div class="bar-label">ORDER BY / LIMIT</div><div class="bar-track"><div class="bar-fill ta" style="width:90%"></div></div><div class="bar-pct" style="color:var(--green)">90 %</div></div>
+        <div class="bar-row"><div class="bar-label">INSERT INTO</div><div class="bar-track"><div class="bar-fill tb" style="width:70%"></div></div><div class="bar-pct" style="color:var(--yellow)">70 %</div></div>
+        <div class="bar-row"><div class="bar-label">UPDATE</div><div class="bar-track"><div class="bar-fill ta" style="width:90%"></div></div><div class="bar-pct" style="color:var(--green)">90 %</div></div>
+        <div class="bar-row"><div class="bar-label">HAVING</div><div class="bar-track"><div class="bar-fill tb" style="width:70%"></div></div><div class="bar-pct" style="color:var(--yellow)">70 %</div></div>
+        <div class="bar-row"><div class="bar-label">Normalisierung</div><div class="bar-track"><div class="bar-fill tb" style="width:60%"></div></div><div class="bar-pct" style="color:var(--yellow)">60 %</div></div>
+        <div class="bar-row"><div class="bar-label">DELETE</div><div class="bar-track"><div class="bar-fill tc" style="width:40%"></div></div><div class="bar-pct" style="color:var(--orange)">40 %</div></div>
+        <div class="bar-row"><div class="bar-label">LEFT JOIN</div><div class="bar-track"><div class="bar-fill tc" style="width:40%"></div></div><div class="bar-pct" style="color:var(--orange)">40 %</div></div>
+        <div class="bar-row"><div class="bar-label">DDL (CREATE/ALTER)</div><div class="bar-track"><div class="bar-fill td" style="width:10%"></div></div><div class="bar-pct" style="color:var(--red)">10 %</div></div>
+        <div class="bar-row"><div class="bar-label">SET @Variable</div><div class="bar-track"><div class="bar-fill td" style="width:10%"></div></div><div class="bar-pct" style="color:var(--red)">10 %</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MISS PROBABILITIES -->
+  <div class="section">
+    <h2>Auslassungswahrscheinlichkeiten (pro Jahrgang)</h2>
+    <div class="section-desc">Beide Panels zeigen Anteile der 10 Jahrgänge — jeweils aus anderer Perspektive</div>
+    <div class="miss-grid">
+
+      <div class="miss-panel">
+        <div class="miss-panel-title c-red">⚠ Thema in KEINEM Vorschlag des Jahrgangs enthalten</div>
+        <div class="miss-row"><span class="miss-topic">SELECT / WHERE</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">JOIN (INNER)</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Aggregatfunktionen</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">GROUP BY</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ER-Diagramm erweitern</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ER → Relation</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Unterabfragen</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Datumsfunktionen</span><span class="miss-val v10">10 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ORDER BY / LIMIT</span><span class="miss-val v10">10 %</span></div>
+        <div class="miss-row"><span class="miss-topic">UPDATE</span><span class="miss-val v10">10 %</span></div>
+        <div class="miss-row"><span class="miss-topic">HAVING</span><span class="miss-val v30">30 %</span></div>
+        <div class="miss-row"><span class="miss-topic">INSERT INTO</span><span class="miss-val v30">30 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Normalisierung</span><span class="miss-val v40">40 %</span></div>
+        <div class="miss-row"><span class="miss-topic">DELETE</span><span class="miss-val v60">60 %</span></div>
+        <div class="miss-row"><span class="miss-topic">LEFT JOIN</span><span class="miss-val v60">60 %</span></div>
+        <div class="miss-row"><span class="miss-topic">DDL (CREATE/ALTER)</span><span class="miss-val v90">90 %</span></div>
+        <div class="miss-row"><span class="miss-topic">SET @Variable</span><span class="miss-val v90">90 %</span></div>
+      </div>
+
+      <div class="miss-panel">
+        <div class="miss-panel-title c-yellow">⚠ Thema in MIND. 1 Vorschlag des Jahrgangs NICHT enthalten</div>
+        <div class="miss-row"><span class="miss-topic">SELECT / WHERE</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">JOIN (INNER)</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Aggregatfunktionen</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">GROUP BY</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ER-Diagramm erweitern</span><span class="miss-val v0">0 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ER → Relation</span><span class="miss-val v10">10 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Datumsfunktionen</span><span class="miss-val v30">30 %</span></div>
+        <div class="miss-row"><span class="miss-topic">INSERT INTO</span><span class="miss-val v50">50 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Unterabfragen</span><span class="miss-val v50">50 %</span></div>
+        <div class="miss-row"><span class="miss-topic">ORDER BY / LIMIT</span><span class="miss-val v60">60 %</span></div>
+        <div class="miss-row"><span class="miss-topic">UPDATE</span><span class="miss-val v60">60 %</span></div>
+        <div class="miss-row"><span class="miss-topic">HAVING</span><span class="miss-val v90">90 %</span></div>
+        <div class="miss-row"><span class="miss-topic">DELETE</span><span class="miss-val v90">90 %</span></div>
+        <div class="miss-row"><span class="miss-topic">LEFT JOIN</span><span class="miss-val v90">90 %</span></div>
+        <div class="miss-row"><span class="miss-topic">Normalisierung</span><span class="miss-val v100">100 %</span></div>
+        <div class="miss-row"><span class="miss-topic">DDL (CREATE/ALTER)</span><span class="miss-val v100">100 %</span></div>
+        <div class="miss-row"><span class="miss-topic">SET @Variable</span><span class="miss-val v100">100 %</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODELLIERUNG SECTION -->
+  <div class="section">
+    <h2>Datenbankmodellierung</h2>
+    <div class="section-desc">ER-Diagramme und Normalisierung — fester Bestandteil jeder Prüfung mit unterschiedlichen Aufgabentypen</div>
+    <div class="model-grid">
+
+      <div class="model-card">
+        <div class="model-card-title">
+          <span class="pill pill-g">IMMER</span>
+          ER-Diagramm gegeben
+        </div>
+        <div class="model-card-stats">
+          <div class="model-stat"><span class="ms-val" style="color:var(--green)">22/23</span><span class="ms-lbl">Vorschläge</span></div>
+          <div class="model-stat"><span class="ms-val" style="color:var(--green)">10/10</span><span class="ms-lbl">Jahrgänge</span></div>
+        </div>
+        <div class="model-card-note">Das zugehörige <strong>relationale Modell</strong> (Tabellenschema) wird am Anfang des Vorschlags bereitgestellt. Einzige Ausnahme: 2020A, wo nur das ER-Diagramm als Vorlage gegeben war. Schüler müssen das Schema lesen und für SQL-Abfragen nutzen.</div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-card-title">
+          <span class="pill pill-g">IMMER</span>
+          ER-Diagramm erweitern
+        </div>
+        <div class="model-card-stats">
+          <div class="model-stat"><span class="ms-val" style="color:var(--green)">23/23</span><span class="ms-lbl">Vorschläge</span></div>
+          <div class="model-stat"><span class="ms-val" style="color:var(--green)">10/10</span><span class="ms-lbl">Jahrgänge</span></div>
+        </div>
+        <div class="model-card-note">In <strong>jedem</strong> Prüfungsvorschlag wird am Ende ein Erweiterungsauftrag gestellt: neue Entitäten, Beziehungen oder Attribute ins ER-Diagramm einzeichnen und das Relationsschema anpassen. Meist 1–2 neue Tabellen oder ein neues Attribut mit Fremdschlüssel.</div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-card-title">
+          <span class="pill pill-y">GELEGENTLICH</span>
+          Normalisierung
+        </div>
+        <div class="model-card-stats">
+          <div class="model-stat"><span class="ms-val" style="color:var(--yellow)">7/23</span><span class="ms-lbl">Vorschläge</span></div>
+          <div class="model-stat"><span class="ms-val" style="color:var(--yellow)">6/10</span><span class="ms-lbl">Jahrgänge</span></div>
+        </div>
+        <div class="model-card-note">Eine <strong>nicht normalisierte Tabelle</strong> wird gegeben; Schüler überführen sie in ein vollständiges relationales Modell (1NF → 2NF → 3NF). Immer statt der ER-Erweiterung — nie gleichzeitig. Belegt: 2016B, 2017B, 2018B, 2019A, 2020B, 2021B, 2021C.</div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-card-title">
+          <span class="pill pill-r">SEHR SELTEN</span>
+          Spezialisierung (IS-A)
+        </div>
+        <div class="model-card-stats">
+          <div class="model-stat"><span class="ms-val" style="color:var(--red)">1/23</span><span class="ms-lbl">Vorschläge</span></div>
+          <div class="model-stat"><span class="ms-val" style="color:var(--red)">1/10</span><span class="ms-lbl">Jahrgänge</span></div>
+        </div>
+        <div class="model-card-note">Bisher einmalig: <strong>2017B</strong> — drei Varianten der Spezialisierung (Pkw/Transporter) wurden verglichen: (1) alle Attribute in einer Tabelle, (2) separate Tabellen ohne Vaterrelation, (3) Vaterrelation + Unterrelationen. Konzeptuell prüfungsrelevant, praktisch Einzelfall.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- YEAR TABLE -->
+  <div class="section">
+    <h2>Jahresübersicht</h2>
+    <div class="section-desc">Welche Themen kamen in welchem Vorschlag vor (SELECT, JOIN, Aggregat, GROUP BY und ER erweitern sind immer vorhanden und ausgeblendet)</div>
+    <div class="legend-row">
+      <span class="legend-item"><span class="dy"></span> Thema vorhanden</span>
+      <span class="legend-item"><span class="dn"></span> Nicht vorhanden</span>
+      <span style="color:var(--text-dim);font-size:12px;">A / B / C = jeweiliger Vorschlag; Hover über ● für Details</span>
+    </div>
+    <div class="table-wrap">
+      <table class="ytable">
+        <thead>
+          <tr>
+            <th>Jahr</th>
+            <th>Vorschl.</th>
+            <th>Subq.</th>
+            <th>HAV</th>
+            <th>ORD</th>
+            <th>INS</th>
+            <th>UPD</th>
+            <th>DEL</th>
+            <th>LJOIN</th>
+            <th>Datum</th>
+            <th>Norm.</th>
+            <th>DDL/@</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 2025 -->
+          <tr>
+            <td class="ytd-year">2025</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dy" title="A: SET @bestellung = (SELECT bID FROM Bestellung ORDER BY bID DESC LIMIT 1)"></span>
+              <span class="dy" title="B: DELETE FROM Getraenk WHERE gid IN (SELECT gid FROM (SELECT gid, SUM(anzahlGetraenke) ... LIMIT 5) AS x)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn" title="A: kein UPDATE"></span>
+              <span class="dy" title="B: UPDATE Getraenk SET bezeichnung = 'Hessen Cola' WHERE bezeichnung = 'Fratz Cola'"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: DELETE FROM Position/Bestellung_Lager/Mitarbeiter_Bestellung/Bestellung WHERE bID = @bestellung"></span>
+              <span class="dy" title="B: DELETE FROM Getraenk WHERE gid IN (SELECT gid FROM (...) AS x)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: LEFT JOIN Bestellung_Lager USING(lID) + GROUP BY Lager.standort → Bestellanzahl je Lager"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ablaufdatum &lt; NOW(); la.datum BETWEEN '2025-01-01' AND '2025-03-31'"></span>
+              <span class="dy" title="B: IF(geburtsdatum &lt;= NOW() - INTERVAL 18 YEAR, 'Ja', 'Nein')"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: SET @bestellung = (SELECT bID FROM Bestellung ORDER BY bID DESC LIMIT 1)"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2024 -->
+          <tr>
+            <td class="ytd-year">2024</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dy" title="A: cID IN (SELECT cid FROM Wettbewerb w JOIN Teilnahme t USING(wID) WHERE w.bezeichnung = '12. World Choir Games')"></span>
+              <span class="dy" title="B: UPDATE Flugzeug SET sitze = 50 WHERE ... fgid = (SELECT fgid FROM Fluggesellschaft WHERE name = 'DijkstraAir')"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: HAVING Kategorieanzahl > 3"></span>
+              <span class="dy" title="B: HAVING Starts &lt; 50"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY beginn ASC LIMIT 5"></span>
+              <span class="dy" title="B: ORDER BY k.name, k.vorname"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Teilnahme (anzahlPers, ankunft, abfahrt, cID, wID) VALUES (43, '2024-07-01', '2024-07-22', 201, 62)"></span>
+              <span class="dy" title="B: INSERT INTO Kunde (vorname, name, adresse, telefon, email) VALUES (...)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: UPDATE Teilnahme SET anzahlPers = anzahlPers - 1 WHERE tID = 6258"></span>
+              <span class="dy" title="B: UPDATE Flugzeug SET sitze = 50 WHERE modell = 'CRJ700' AND fgid = (...)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: beginn >= NOW() AND beginn &lt;= DATEADD(year, 1, NOW()); WHERE w.beginn > NOW()"></span>
+              <span class="dy" title="B: startZeit BETWEEN '2024-03-01 00:00:00' AND '2024-03-31 23:59:59'"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2023 -->
+          <tr>
+            <td class="ytd-year">2023</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+            <td>
+              <span class="dy" title="A: WHERE bildid NOT IN (SELECT bildid FROM BeitragEnthaeltBild)"></span>
+              <span class="dy" title="B: UPDATE Einsatz SET fahrerNr = 333 WHERE fahrerNr = (SELECT fahrerNr FROM Fahrer WHERE nachname = 'Tischendorf' ...)"></span>
+              <span class="dy" title="C: INSERT INTO Team ... VALUES (false, (SELECT sID FROM Spieler WHERE name LIKE 'Treusch' AND vorname LIKE 'Astrid'), 57)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: HAVING COUNT(N.beitragid) > 10"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY COUNT(N.beitragid) DESC"></span>
+              <span class="dy" title="B: ORDER BY f.nachname, f.vorname; Löhne März 2023"></span>
+              <span class="dy" title="C: ORDER BY Anzahl DESC"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Nutzer VALUES ('Clark', ...); INSERT INTO Beitrag VALUES (42, NOW(), ...); INSERT INTO BeitragEnthaeltBild VALUES (42, 3)"></span>
+              <span class="dy" title="B: INSERT INTO Fahrer VALUES(333, 'Knebel', 'Lennard', 12.0, null); INSERT INTO Einsatz(...) VALUES(...)"></span>
+              <span class="dy" title="C: INSERT INTO Spieler VALUES (57, 'Schmidt', 'Petra', '2001-07-19'); INSERT INTO Team (bewertMod, sNr1, sNr2) VALUES (false, (SELECT...), 57)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: UPDATE Einsatz SET fahrerNr = 333 WHERE fahrerNr = (SELECT ...) AND beginn BETWEEN '2023-05-01%' AND '2023-05-14%'"></span>
+              <span class="dy" title="C: UPDATE Canastaspiel SET kID = 13 WHERE datum > NOW() AND kID = 1; UPDATE Canastaspiel SET kID = NULL WHERE kID = 1"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dy" title="C: DELETE FROM Kartensatz WHERE kID = 1"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: LEFT JOIN Beitrag B ON N.benutzerName = B.autor (Nutzer ohne Beiträge)"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: zeitstempel LIKE '2023-01%'; NOW() in INSERT INTO Nutzer"></span>
+              <span class="dy" title="B: beginn LIKE '2023-03%'; TIMESTAMPDIFF(MINUTE, e.beginn, e.ende)/60 AS 'Anzahl Stunden'"></span>
+              <span class="dy" title="C: datum > NOW() in UPDATE; kID = 1 nach Datum filtern"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2022 -->
+          <tr>
+            <td class="ytd-year">2022</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Position VALUES ((SELECT bestellNr FROM Bestellung WHERE bestellDatum='2022-05-02' AND kNr=7654), 277, 1)"></span>
+              <span class="dn" title="B: keine Unterabfrage"></span>
+              <span class="dy" title="C: INSERT INTO Bike (modell, baujahr, fiD, kBez) VALUES ('...', YEAR(NOW()), (SELECT fiD FROM Fachhändler WHERE name='MyChain' AND ort='Hanau'), 'E-Bike Trekking')"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: HAVING SUM(summe) > 100000"></span>
+              <span class="dy" title="C: HAVING COUNT(k.iD) >= 10"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: ORDER BY buTag DESC LIMIT 10; ORDER BY SUM(summe) DESC"></span>
+              <span class="dy" title="C: ORDER BY Anzahl DESC"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Kunde; INSERT INTO Bestellung; INSERT INTO Position"></span>
+              <span class="dy" title="B: INSERT INTO Darlehen(vertragsNr, datum, summe, laufzeit, turnus, zinssatz, referenzkonto) VALUES(12345, NOW(), ...)"></span>
+              <span class="dy" title="C: INSERT INTO Kategorie VALUES('E-Bike Trekking', true); INSERT INTO Fachhändler; INSERT INTO Bike"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: UPDATE Artikel SET bestand = bestand - 1 WHERE artNr = 277"></span>
+              <span class="dy" title="B: UPDATE Darlehen SET rate = ROUND((summe * ...) / turnus, 2) WHERE vertragsNr = 12345; UPDATE Girokonto g, Darlehen d SET ..."></span>
+              <span class="dy" title="C: UPDATE Komponente SET preis = preis * 1.05 WHERE hersteller = 'MANU'"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: bestellDatum BETWEEN '2022-01-01' AND '2022-03-31'"></span>
+              <span class="dy" title="B: NOW() in INSERT INTO Darlehen"></span>
+              <span class="dy" title="C: baujahr = YEAR(NOW())-1; INSERT ... YEAR(NOW()) für Baujahr"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2021 -->
+          <tr>
+            <td class="ytd-year">2021</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Filiale (..., gf_personalnr) VALUES (3, ..., (SELECT personalnr FROM Geschäftsführer WHERE vorname='Mira' AND nachname='Bellenbaum'))"></span>
+              <span class="dy" title="B: SELECT F.titel FROM Film AS F WHERE F.fid IN (SELECT F.fid FROM Film AS F, Besetzung AS B WHERE F.fid=B.fid AND B.sid=114)"></span>
+              <span class="dy" title="C: UPDATE Standort SET istAnzahlImpfdosen = istAnzahlImpfdosen + 2500 WHERE ortID = (SELECT ortID FROM Standort WHERE bezeichnung='BT223a2' AND kapazitaetImpfdosen - istAnzahlImpfdosen >= 2500 ORDER BY istAnzahlImpfdosen ASC LIMIT 1)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: HAVING COUNT(*) > 3 (Schauspieler mit mehr als 3 Filmen)"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY Anzahl DESC (Fahrer nach Auftragsanzahl)"></span>
+              <span class="dn"></span>
+              <span class="dy" title="C: ORDER BY Anzahl DESC; ORDER BY istAnzahlImpfdosen ASC (in Unterabfrage)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Geschäftsführer (vorname, nachname) VALUES ('Mira', 'Bellenbaum'); INSERT INTO Filiale (filialnr, ..., gf_personalnr) VALUES (3, ..., (SELECT...))"></span>
+              <span class="dy" title="B: INSERT INTO Film (fid, titel, ..., vid, gid) VALUES (4723, 'Logo Movie', ..., (SELECT vid FROM Verleih ...), (SELECT gid FROM Genre ...))"></span>
+              <span class="dy" title="C: INSERT INTO Produzent VALUES(96, 'PharmaCorn', 'BCV6T1Z3', 'Vancouver', 'Kanada'); INSERT INTO Lieferung VALUES(96, 'BT223a2', 2500, '2021-04-26')"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dy" title="C: UPDATE Standort SET istAnzahlImpfdosen = istAnzahlImpfdosen + 2500 WHERE ortID = (SELECT ortID FROM Standort WHERE ...)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: LEFT JOIN Lieferauftrag USING(fahrernr) → Fahrer ohne Aufträge inkludiert"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: TIMEDIFF(ausgeliefert, start); HOUR(TIMEDIFF(...)) >= 1 OR MINUTE(TIMEDIFF(...)) > 45"></span>
+              <span class="dy" title="B: NOW() in INSERT INTO Film"></span>
+              <span class="dy" title="C: termin1 &lt;= NOW() AND (termin2 > NOW() OR termin2 IS NULL); termin2 BETWEEN '2021-1-1' AND '2021-3-31'"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: Normalisierung einer unnormalisierten Tabelle → Bereich, Mitarbeiter, Einsatz, Vertrag, Vertragsart, Zeitarbeitsfirma"></span>
+              <span class="dy" title="C: Normalisierung → Impfling, Impfstoff, Risikofaktor, Impfung, Impfreaktion, Arzt, Fachrichtung"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: CREATE TABLE Geschäftsführer (personalnr INTEGER AUTO_INCREMENT, ...); ALTER TABLE Filiale ADD gf_personalnr INTEGER; ALTER TABLE Filiale ADD FOREIGN KEY (gf_personalnr) REFERENCES Geschäftsführer(personalnr)"></span>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2020 -->
+          <tr>
+            <td class="ytd-year">2020</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dy" title="A: SELECT * FROM Kunde WHERE kundenNr NOT IN (SELECT kundenNr FROM Rechnung WHERE YEAR(rechnungsDatum) = YEAR(NOW()))"></span>
+              <span class="dn" title="B: keine Unterabfrage"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY Gesamtmenge DESC LIMIT 10; ORDER BY (istBestand/sollBestand)*100 ASC"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO Position VALUES(322333, 61123, 1), (322333, 52133, 3)"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: UPDATE Artikel SET istBestand = istBestand - 1 WHERE artikelNr = 61123 (mehrfach)"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: rechnungsDatum LIKE '2020-01-%'; YEAR(rechnungsDatum) = YEAR(NOW()); rechnungsDatum LIKE '2020-02-%'"></span>
+              <span class="dy" title="B: erfassungsdatum LIKE '2020-02-14%'"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: Normalisierung einer unnormalisierten Tabelle → Kategorie, FAQ, Mitarbeiter, Aktualisierung, Datei, Anhang, Stichwort"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2019 -->
+          <tr>
+            <td class="ytd-year">2019</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dn" title="A: keine Unterabfrage"></span>
+              <span class="dy" title="B: SELECT * FROM Kunde WHERE knr NOT IN (SELECT knr FROM rechnung)"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: HAVING COUNT(re.resnr) > 1; HAVING (bishergezahlt &lt; r.betragRechnung OR bishergezahlt IS NULL)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY anzahl DESC LIMIT 1; ORDER BY name, vorname; ORDER BY Minutenanzahl DESC"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: INSERT INTO kunde (kundenNr, name, vorname) VALUES (3876, 'Müller', 'Josef')"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: DELETE FROM rechnung WHERE rechnr = 4743"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: SELECT name, vorname, endDatum FROM kunde k LEFT JOIN vertrag v ON k.kundenNr = v.kundenNr (Kunden ohne Vertrag)"></span>
+              <span class="dy" title="B: LEFT JOIN zahlung z ON r.rechnr = z.rechnr (Rechnungen ohne Zahlung inkludiert)"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: YEAR(datumzeit), YEAR(NOW())-1 für Vorjahresauswertung"></span>
+              <span class="dy" title="B: MONTH(r.datum) = 1 AND YEAR(r.datum) = 2019"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: Normalisierung → Kunde, Bank (bic#), Vertrag, Kurs, Trainer, besucht"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2018 -->
+          <tr>
+            <td class="ytd-year">2018</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dn" title="A: keine Unterabfrage"></span>
+              <span class="dy" title="B: UPDATE Dienstleistung SET mid = (SELECT mid FROM Mitarbeiter WHERE name='Weiss' AND vorname='Tim') WHERE mid=23; SELECT ... WHERE Mitarbeiter.mid NOT IN (SELECT mid FROM Dienstleistung WHERE datum='2018-04-24')"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: HAVING Count(kartonnr)*A.anzahlImKarton &lt; 50"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: ORDER BY W.bestellnr, K.kartonnr"></span>
+              <span class="dy" title="B: ORDER BY datum"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dy" title="A: UPDATE Artikel SET vkpreis = vkpreis * 1.15 WHERE typ = 'Badetuch'"></span>
+              <span class="dy" title="B: UPDATE Dienstleistung SET mid = (SELECT mid FROM Mitarbeiter ...) WHERE mid = 23 AND datum >= NOW()"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: DELETE FROM Befaehigung WHERE mid = 23"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+            <td>
+              <span class="dn" title="A: keine Datumsfunktionen (nur Spaltenwerte wie datum='2018-01-04')"></span>
+              <span class="dy" title="B: datum LIKE '2018-01-%'; datum = '2018-04-24'; datum LIKE '2017-12-%'; datum >= NOW()"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dy" title="B: Normalisierung → Art, Gerätetyp, Gerät (tid#, hersteller#), Hersteller, Verbrauchsmittel, Art_Gerät, Gerät_Verbrauchsmittel"></span>
+            </td>
+            <td>
+              <span class="dn"></span>
+              <span class="dn"></span>
+            </td>
+          </tr>
+
+          <!-- 2017 -->
+          <tr>
+            <td class="ytd-year">2017</td>
+            <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+            <td>
+              <span class="dy" title="A: SELECT ... WHERE m.mid NOT IN (SELECT mid FROM Stelle st WHERE m.mid = st.mid AND ...) (komplex, verschachtelt)"></span>
+            <span class="dy" title="B: INSERT INTO Fahrzeug VALUES ('F-UT 421', ...); vorher Fahrzeugklasse 'Van' insertet (Reihenfolge!)"></span>
+            </td>
+            <td>
+            <span class="dy" title="A: keine HAVING — aber GROUP BY + COUNT im SELECT (anzProjektleitungen)"></span>
+            <span class="dy" title="B: HAVING anzahl >= 4 (Mitglieder die &gt;= 4 Buchungen mit Klasse 'Mittel')"></span>
+            </td>
+            <td>
+            <span class="dy" title="A: ORDER BY name, vorname (mehrfach)"></span>
+            <span class="dy" title="B: ORDER BY name, vorname (DISTINCT-Abfrage)"></span>
+            </td>
+            <td>
+            <span class="dn"></span>
+            <span class="dy" title="B: INSERT INTO Fahrzeugklasse VALUES ('Van', 0.15, 0.25); INSERT INTO Fahrzeug VALUES ('F-UT 421', 'VW', 'Touran', 2016, 120, 'Van')"></span>
+            </td>
+            <td>
+            <span class="dy" title="A: UPDATE Projekt SET beginn='2016-06-01', ende='2017-09-30' WHERE projNr=401"></span>
+            <span class="dn"></span>
+            </td>
+            <td>
+            <span class="dn"></span>
+            <span class="dn"></span>
+            </td>
+            <td>
+            <span class="dn"></span>
+            <span class="dn"></span>
+            </td>
+            <td>
+            <span class="dy" title="A: zu_besetzen_ab < '2017-10-01' AND zu_besetzen_bis > '2017-10-01' etc. (mehrere Datum-Vergleiche)"></span>
+            <span class="dn"></span>
+            </td>
+            <td>
+            <span class="dn"></span>
+            <span class="dy" title="B: Normalisierung Fahrzeug → Fahrzeug(fahrzeugnr, kennzeichen, ..., modellnr#), Fahrzeugmodell(modellnr, ..., herstellernr#, klasse#), Hersteller(herstellernr, hersteller)"></span>
+            </td>
+            <td>
+            <span class="dn"></span>
+            <span class="dn"></span>
+            </td>
+            </tr>
+      <!-- 2016 -->
+      <tr>
+        <td class="ytd-year">2016</td>
+        <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+        <td>
+          <span class="dy" title="A: WHERE Kunde.kundennummer NOT IN ... ; verbrauch_vorjahr > (SELECT AVG(verbrauch_vorjahr) FROM Vertrag)"></span>
+          <span class="dy" title="B: UPDATE unterrichtsstunde SET persNr = (SELECT persNr FROM lehrer WHERE name='Martens' AND vorname='Christina') WHERE ...; SELECT u.* FROM unterrichtsstunde u WHERE fachkuerzel NOT IN (SELECT fachkuerzel FROM darfunterrichten d WHERE u.persNr = d.persNr)"></span>
+        </td>
+        <td>
+          <span class="dy" title="A: GROUP BY Kunde.kundennummer, name, vorname ORDER BY Verbrauch LIMIT 3 — technisch kein HAVING aber SUM mit Aggregation"></span>
+          <span class="dy" title="B: kein HAVING, aber GROUP BY + COUNT"></span>
+        </td>
+        <td>
+          <span class="dy" title="A: ORDER BY Verbrauch LIMIT 3; ORDER BY Kunde.hausnummer"></span>
+          <span class="dy" title="B: ORDER BY u.stundenNr"></span>
+        </td>
+        <td>
+          <span class="dn"></span>
+          <span class="dn"></span>
+        </td>
+        <td>
+          <span class="dy" title="A: UPDATE Vertrag SET verbrauch_vorjahr = (zaehlerstand_neu - zaehlerstand_alt), zaehlerstand_alt = zaehlerstand_neu, zaehlerstand_neu = 9999 WHERE Vertrag.zaehlernummer = 123456"></span>
+          <span class="dy" title="B: UPDATE klasse SET persNr_kl = 101702 WHERE klBezeichnung = '10a' ...; UPDATE unterrichtsstunde SET persNr = (SELECT ...) WHERE fachkuerzel='PHY' ..."></span>
+        </td>
+        <td>
+          <span class="dn"></span>
+          <span class="dn"></span>
+        </td>
+        <td>
+          <span class="dn"></span>
+          <span class="dn"></span>
+        </td>
+        <td>
+          <span class="dy" title="A: zaehlerstand-Vergleiche, YEAR(NOW()) implizit ggf."></span>
+          <span class="dy" title="B: klSchuljahr = '2014/15' (Jahrgangsfilter)"></span>
+        </td>
+        <td>
+          <span class="dn"></span>
+          <span class="dy" title="B: Normalisierung → schueler, klasse, arbeitsgruppe, agUebersicht, lehrer, agLehrer"></span>
+        </td>
+        <td>
+          <span class="dn"></span>
+          <span class="dn"></span>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+  </div>
+  <!-- DETAIL TABLE -->
+  <div class="section">
+    <h2>Themendetails &amp; Schwierigkeit</h2>
+    <div class="section-desc">Erwarteter Anspruch, Klassifikation und typische Aufgabenstellungen je Thema</div>
+<div class="table-wrap">
+  <table class="dtable">
+    <thead>
+      <tr>
+        <th style="width:195px">Thema</th>
+        <th style="width:150px">Schwierigkeit</th>
+        <th style="width:130px">Einschätzung</th>
+        <th>Typische Aufgaben &amp; Jahresbelege</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td><div class="dt-topic">SELECT / WHERE</div><div class="dt-sub">Grundabfrage · Filterung · LIKE · IS NULL · DISTINCT</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Leicht (2/5)</span>
+        </td>
+        <td><span class="pill pill-g">GARANTIERT</span><br><small style="color:var(--text-muted)">23/23 · 10/10 J.</small></td>
+        <td class="dt-note">Basis jedes Vorschlags. Typisch: einfache Filterbedingungen mit <code>WHERE</code>, Mustersuche via <code>LIKE '%..%'</code> oder <code>LIKE '2020-01-%'</code>, Null-Prüfungen mit <code>IS NULL</code>. Mehrere Bedingungen mit <code>AND</code>/<code>OR</code>. <strong>Sonderfälle:</strong> <code>DISTINCT</code> (2017B, 2019B), <code>BETWEEN … AND …</code> (2019B, 2022A, 2024B), <code>LIMIT</code> kombiniert.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">JOIN (INNER)</div><div class="dt-sub">INNER JOIN · implizites JOIN · USING · ON</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-g">GARANTIERT</span><br><small style="color:var(--text-muted)">23/23 · 10/10 J.</small></td>
+        <td class="dt-note">In jedem Vorschlag kommen mehrtabellige Abfragen vor. Oft via <strong>implizites JOIN</strong> (Komma-Notation + WHERE-Verknüpfung), seit 2020 zunehmend explizites <code>JOIN … USING(…)</code> oder <code>JOIN … ON …</code>. Komplexe Verkettungen mit 3–5 Tabellen sind Standard (z.B. 2025A: 5 Tabellen, 2022A: 4 Tabellen).</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">Aggregatfunktionen</div><div class="dt-sub">COUNT · SUM · AVG · MAX · MIN</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-g">GARANTIERT</span><br><small style="color:var(--text-muted)">23/23 · 10/10 J.</small></td>
+        <td class="dt-note">Mindestens eine Aggregationsabfrage pro Vorschlag. <code>COUNT(*)</code> und <code>SUM(…)</code> am häufigsten. Komplex: arithmetische Ausdrücke in SUM wie <code>SUM(preis * anzahl)</code> (2020A, 2022A), oder verschachtelt mit <code>ROUND(…)</code> (2022B). Selten: <code>AVG</code> in Unterabfrage (2016A).</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">GROUP BY</div><div class="dt-sub">Gruppierung · Aggregation je Gruppe</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-g">GARANTIERT</span><br><small style="color:var(--text-muted)">23/23 · 10/10 J.</small></td>
+        <td class="dt-note">Immer in Verbindung mit Aggregatfunktionen. Oft mehrere GROUP BY-Spalten: <code>GROUP BY name, vorname</code> (2017A, 2018B). In allen Vorschlägen ab 2019 vorhanden. Typisch: Gruppierung nach Entitätsspalte + <code>COUNT</code>/<code>SUM</code> als Ergebnis.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">Unterabfragen</div><div class="dt-sub">IN / NOT IN · Skalare Subq. · Korreliert</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel–Schwer (4/5)</span>
+        </td>
+        <td><span class="pill pill-g">FAST IMMER</span><br><small style="color:var(--text-muted)">18/23 · 10/10 J.</small></td>
+        <td class="dt-note"><code>NOT IN (SELECT …)</code> für Ausschlussabfragen (2016B, 2018B, 2019B, 2020A, 2023A). <strong>Skalare Unterabfrage</strong> in WHERE: <code>WHERE xyz = (SELECT …)</code> oft für ID-Lookup in INSERT/UPDATE (2021A, 2021B, 2021C). Komplex: mehrfach verschachtelt (2017A: dreistufig mit Datumsbedingungen), <code>WHERE … IN (SELECT … FROM (SELECT …) AS x)</code> (2025B). Jeder Jahrgang hatte mindestens einen Vorschlag mit Unterabfrage.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">HAVING</div><div class="dt-sub">Aggregatfilter nach GROUP BY</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-y">HÄUFIG</span><br><small style="color:var(--text-muted)">9/23 · 7/10 J.</small></td>
+        <td class="dt-note">Fast immer mit <code>COUNT(*) > n</code> oder <code>SUM(…) > n</code>. Typisch: <code>HAVING COUNT(*) > 3</code> (2021B), <code>HAVING SUM(summe) > 100000</code> (2022B), <code>HAVING Kategorieanzahl > 3</code> (2024A). Häufig als letzter Schwierigkeitsgrad in einer mehrteiligen Abfrage. Nicht in 2016A, 2018B, 2019A, 2020.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">ORDER BY / LIMIT</div><div class="dt-sub">Sortierung · Top-N-Abfragen</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Leicht–Mittel (2/5)</span>
+        </td>
+        <td><span class="pill pill-y">HÄUFIG</span><br><small style="color:var(--text-muted)">16/23 · 9/10 J.</small></td>
+        <td class="dt-note">Fast immer kombiniert: <code>ORDER BY … DESC LIMIT n</code> für Top-N-Ranking (2020A: TOP 10, 2019A: bestes Gerät mit LIMIT 1). Auch reine Sortierung ohne LIMIT (2016B, 2017B, 2018B). <strong>Sonderfall:</strong> <code>ORDER BY</code> innerhalb einer Unterabfrage (2025B DELETE-Subquery, 2021C Standort mit niedrigstem Bestand).</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">INSERT INTO</div><div class="dt-sub">Einfügen · Mehrfach-INSERT · mit Subquery</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-y">HÄUFIG</span><br><small style="color:var(--text-muted)">15/23 · 7/10 J.</small></td>
+        <td class="dt-note">Oft mehrstufige Einfügungen — zuerst Elterntabelle, dann Kind mit Fremdschlüssel. Schlüsselkompetenz: Fremdschlüssel via <strong>skalarer Unterabfrage</strong> ermitteln: <code>INSERT INTO Film VALUES (..., (SELECT vid FROM Verleih WHERE ...), (SELECT gid FROM Genre WHERE ...))</code> (2021B, 2022C). Nicht in 2016, 2018A. In 2025A mehrstufiges DELETE statt INSERT.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">UPDATE</div><div class="dt-sub">Ändern · Berechnungen · mit Subquery</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-y">HÄUFIG</span><br><small style="color:var(--text-muted)">15/23 · 9/10 J.</small></td>
+        <td class="dt-note">Einfach: <code>SET spalte = wert WHERE …</code>. Berechnend: <code>SET preis = preis * 1.15</code>, <code>SET bestand = bestand - 1</code>. Komplex: <code>SET spalte = (SELECT … FROM … WHERE …)</code> für FK-Lookup (2018B, 2021C). Sonderfall: <strong>Multi-Table-UPDATE</strong> — <code>UPDATE tabelle1 t1, tabelle2 t2 SET t1.col = t1.col - t2.col WHERE …</code> (2022B). Fehlt nur in 2019B, 2020B.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">DELETE</div><div class="dt-sub">Löschen · mehrstufig · mit Subquery</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel–Schwer (4/5)</span>
+        </td>
+        <td><span class="pill pill-o">GELEGENTLICH</span><br><small style="color:var(--text-muted)">5/23 · 4/10 J.</small></td>
+        <td class="dt-note">Einfaches DELETE (2019B: DELETE FROM rechnung). Kritisch: <strong>Referenzielle Integrität</strong> — in der richtigen Reihenfolge löschen (Kind → Eltern). In 2025A müssen 4 abhängige Tabellen korrekt reihengefolgt gelöscht werden. Komplex: <code>DELETE … WHERE gid IN (SELECT … FROM (SELECT …) AS x)</code> (2025B — verschachteltes DELETE mit LIMIT). 2023C + 2018B ebenfalls mit Subquery.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">LEFT JOIN</div><div class="dt-sub">Äußerer Join · NULL-Einträge · Vollständige Listen</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-o">GELEGENTLICH</span><br><small style="color:var(--text-muted)">5/23 · 4/10 J.</small></td>
+        <td class="dt-note">Typischer Einsatz: <strong>Vollständige Liste</strong> aller Objekte inkl. solcher ohne Einträge in der anderen Tabelle. Belege: 2019A (<code>LEFT JOIN Vertrag</code> → Kunden ohne Vertrag), 2019B (<code>LEFT JOIN zahlung</code> → unbezahlte Rechnungen), 2021A (<code>LEFT JOIN Lieferauftrag</code> → Fahrer ohne Aufträge), 2023A (<code>LEFT JOIN Beitrag</code> → Nutzer ohne Beitrag), 2025A (<code>LEFT JOIN Bestellung_Lager</code>). Hinweis: Lösungsäquivalenz zu <code>NOT IN</code>-Unterabfrage wird oft vermerkt.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">Datumsfunktionen</div><div class="dt-sub">NOW() · YEAR() · MONTH() · BETWEEN · TIMEDIFF · LIKE-Datum</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-g">FAST IMMER</span><br><small style="color:var(--text-muted)">19/23 · 9/10 J.</small></td>
+        <td class="dt-note">Häufigste Form: <code>spalte LIKE '2020-01-%'</code> (einfachste). Datumsfunktionen: <code>NOW()</code> als aktuelles Datum (Insert-Wert oder Vergleich), <code>YEAR(spalte) = YEAR(NOW())</code> (2020A), <code>MONTH(…)</code> (2019B). Anspruchsvoll: <code>TIMESTAMPDIFF(MINUTE, beginn, ende)</code> (2023B), <code>TIMEDIFF(ausgeliefert, start)</code> (2021A), <code>NOW() - INTERVAL 18 YEAR</code> (2025B). Nur 2018A ohne Datumsfunktionen.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">Normalisierung</div><div class="dt-sub">1NF → 3NF · unnormalisierte Tabelle</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel–Schwer (4/5)</span>
+        </td>
+        <td><span class="pill pill-y">GELEGENTLICH</span><br><small style="color:var(--text-muted)">7/23 · 6/10 J.</small></td>
+        <td class="dt-note">Eine <strong>unnormalisierte Ausgangstabelle</strong> wird gegeben; Aufgabe: normalisiertes relationales Modell entwickeln. Tritt alternativ zur ER-Erweiterung auf — nie gleichzeitig. In 3 Jahren (2021) war je einer der drei Vorschläge (B+C) damit belegt. Abgeprüft: Erkennung transitiver Abhängigkeiten, Aufspaltung in 3NF, korrekte Schlüssel- und Fremdschlüsseldefinition.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">ER-Diagramm → Relation</div><div class="dt-sub">Überführung ER in relationales Modell</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-g">FAST IMMER</span><br><small style="color:var(--text-muted)">22/23 · 10/10 J.</small></td>
+        <td class="dt-note">In beinahe jedem Vorschlag ist das vollständige relationale Schema (Tabellennamen, Spalten, FK#) am Anfang der Aufgabe gegeben und implizit zu verstehen. Einzige Ausnahme: <strong>2020A</strong> (nur ER-Diagramm als Vorlage, kein Schema). Schüler müssen m:n-Beziehungstabellen und FK-Verweise lesen und korrekt in JOINs übersetzen.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">DDL (CREATE / ALTER)</div><div class="dt-sub">CREATE TABLE · ALTER TABLE · ADD FOREIGN KEY</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel–Schwer (4/5)</span>
+        </td>
+        <td><span class="pill pill-r">SEHR SELTEN</span><br><small style="color:var(--text-muted)">1/23 · 1/10 J.</small></td>
+        <td class="dt-note">Bisher einmalig: <strong>2021A</strong> — neue Tabelle <code>Geschäftsführer</code> per <code>CREATE TABLE</code> mit <code>AUTO_INCREMENT</code>, dann <code>ALTER TABLE Filiale ADD gf_personalnr INTEGER</code> und <code>ALTER TABLE Filiale ADD FOREIGN KEY (gf_personalnr) REFERENCES Geschäftsführer(personalnr)</code>. Konzept der Schemaänderung wird selten direkt geprüft, ist aber im Kontext der ER-Erweiterungsaufgabe theoretisch immer relevant.</td>
+      </tr>
+
+      <tr>
+        <td><div class="dt-topic">SET @Variable</div><div class="dt-sub">Benutzerdefinierte Variable · Mehrschritt-DML</div></td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span>
+        </td>
+        <td><span class="pill pill-r">SEHR SELTEN</span><br><small style="color:var(--text-muted)">1/23 · 1/10 J.</small></td>
+        <td class="dt-note">Bisher einmalig: <strong>2025A</strong> — <code>SET @bestellung = (SELECT bID FROM Bestellung ORDER BY bID DESC LIMIT 1)</code>, dann mehrfach <code>WHERE bID = @bestellung</code> in aufeinanderfolgenden DELETEs. Konzept: Zwischenergebnis in Variable speichern, um komplexe Mehrschritt-DML lesbarer zu machen. Der Prüfungshinweis erklärt die Variable-Lösung explizit als gleichwertig zur direkten Unterabfrage-Lösung.</td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+  </div>
+  <footer>
+    Datengrundlage: Offizielle Prüfungsvorschläge des hessischen Landesabiturs im Fach Praktische Informatik (SQL), Jahrgänge 2016–2025 · 23 Vorschläge aus 10 Jahrgängen
+  </footer>
+</div>
+</body>
+</html>
