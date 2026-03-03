@@ -10,10 +10,11 @@ namespace AbiturEliteCode.cs
     // the entity-relation-diagrams should match the ones in the abitur exams, here is how they should be structured:
     // multiplicities are written in the min-max-notation like this for each side: [min,max] (for example: ET1 -(0,n)- REL -(0,m)- ET2; not actually valid just for visualization)
     // primary keys are underlined (<<key>> in the plantuml diagram, relational model: primary key RColumn has 'IsPk = true')
-    // attributes are written in camelCase (for example: "anzahlGetränke"), ids have their "id" in uppercase and without underscores (for example: "kID")
+    // entities (tables) are written in PascalCase (for example: "Supermarkt"); attributes (column names) are written in camelCase (for example: "anzahlGetränke"); ids have their "id" in uppercase and without underscores (for example: "kID")
     // foreign keys are hashtags '#' in the relational model and '_FK' in the actual database as well as in the diagrams
     // up to level 17 we include the foreign keys in the ER-diagrams, but in the later levels we do not (the user must know on their own what has what key)
     // multiplicities in relations are flipped in the abitur exams, thats why we arent using the variant that is commonly used for the chens notation, but the flipped variant (instead of: "A -(1,1)-b-(0,n)- C" we do: "A -(0,n)-b-(1,1)- C")
+
 
     public class RTable
     {
@@ -69,6 +70,7 @@ namespace AbiturEliteCode.cs
             "JON", "IMP", "JOI", "JO3", "JOX",
             "LEF", "NUL", "DIS", "PRB",
             "MAT", "SUM", "TOP", "HAV", "SAL",
+            "DAT", "BTW", "NOW", "DIF", "ADD", "HOT",
             ""
         };
     }
@@ -1146,6 +1148,301 @@ namespace AbiturEliteCode.cs
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "GROUP BY", "HAVING", "INNER JOIN ... ON", "ORDER BY (ASC / DESC)" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+
+                // --- SECTION 5 ---
+                new SqlLevel
+                {
+                    Id = 23,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[22],
+                    NextLevelCode = SqlLevelCodes.CodesList[23],
+                    Title = "Der Check-in (YEAR & MONTH)",
+                    Description = "Willkommen im Hotel-Management-System!\n\n" +
+                                  "**WICHTIG:** Ab sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Zeigen Sie den [Name]n des Gastes und das [Anreise]datum für alle Buchungen an, die im Jahr **2024** stattfinden.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Thomas Müller');" +
+                                  "INSERT INTO Gast VALUES (2, 'Sabine Schmidt');" +
+                                  "INSERT INTO Gast VALUES (3, 'Lisa Meier');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, '2024-05-12', '2024-05-20');" +
+                                  "INSERT INTO Buchung VALUES (102, 2, '2023-12-28', '2024-01-05');" +
+                                  "INSERT INTO Buchung VALUES (103, 3, '2024-08-01', '2024-08-14');" +
+                                  "INSERT INTO Buchung VALUES (104, 1, '2025-02-10', '2025-02-15');",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "anreise", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Thomas Müller", "2024-05-12" },
+                        new[] { "Lisa Meier", "2024-08-01" }
+                    },
+                    MaterialDocs = "start-hint: Datumsfunktionen\n" +
+                                   "Mit der Funktion [YEAR(spalte)] können Sie das Jahr aus einem Datum extrahieren, mit [MONTH(spalte)] den Monat.\n" +
+                                   "Beispiel:\n" +
+                                   "{|WHERE YEAR(Bestelldatum) = 2023|}\n" +
+                                   ":end-hint\n",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl23-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "YEAR()", "MONTH()", "3. Normalform (1:n)" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 24,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[23],
+                    NextLevelCode = SqlLevelCodes.CodesList[24],
+                    Title = "Die Hochsaison (BETWEEN)",
+                    Description = "Wir erwarten in den Sommerferien einen großen Ansturm und müssen das Personal planen.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Geben Sie alle [Name]n der Gäste aus, deren [Anreise]datum im Zeitraum vom **'2024-07-01' bis zum '2024-08-31'** (jeweils einschließlich) liegt.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Familie Richter');" +
+                                  "INSERT INTO Gast VALUES (2, 'Familie Baum');" +
+                                  "INSERT INTO Gast VALUES (3, 'Herr Klee');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, '2024-07-15', '2024-07-29');" +
+                                  "INSERT INTO Buchung VALUES (102, 2, '2024-06-25', '2024-07-05');" + // start before july
+                                  "INSERT INTO Buchung VALUES (103, 3, '2024-08-30', '2024-09-05');",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Familie Richter" },
+                        new[] { "Herr Klee" }
+                    },
+                    MaterialDocs = "start-hint: Zeitraum filtern (BETWEEN)\n" +
+                                   "Statt [Spalte >= Wert1 AND Spalte <= Wert2] zu schreiben, bietet SQL den eleganteren [BETWEEN]-Operator:\n" +
+                                   "Beispiel:\n" +
+                                   "{|WHERE Kaufdatum BETWEEN '2023-01-01' AND '2023-12-31'|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl24-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "BETWEEN" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 25,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[24],
+                    NextLevelCode = SqlLevelCodes.CodesList[25],
+                    Title = "Überfällig (NOW / Datumsvergleich)",
+                    Description = "Das System soll prüfen, ob Gäste vergessen haben auszuchecken.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie die [ID] der Buchung und den [Name]n des Gastes für alle Buchungen, deren [Abreise]datum bereits in der Vergangenheit liegt.\n" +
+                                  "Vergleichen Sie das Datum dazu mit der aktuellen Systemzeit.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Max Mustermann');" +
+                                  "INSERT INTO Gast VALUES (2, 'Anna Nass');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, '2020-01-01', '2020-01-10');" + // expired
+                                  "INSERT INTO Buchung VALUES (102, 2, '2050-05-01', '2050-05-15');", // future
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "101", "Max Mustermann" }
+                    },
+                    MaterialDocs = "start-hint: Die aktuelle Zeit (NOW)\n" +
+                                   "Die Funktion [NOW()] liefert den aktuellen Zeitstempel (Datum und Uhrzeit) des Systems zurück.\n" +
+                                   "Datumsangaben können in SQL ganz normal mit [<] oder [>] verglichen werden, um zu prüfen, ob ein Zeitpunkt bereits verstrichen ist.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl25-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "NOW()" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 26,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[25],
+                    NextLevelCode = SqlLevelCodes.CodesList[26],
+                    Title = "Aufenthaltsdauer (DATEDIFF)",
+                    Description = "Um Rechnungen stellen zu können, müssen wir wissen, wie viele Nächte ein Gast bei uns verbringt.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Geben Sie für jede Buchung die [ID] und die berechnete Aufenthaltsdauer in Tagen aus.\n" +
+                                  "Nennen Sie die berechnete Spalte **'Naechte'**.",
+                    SetupScript = "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Buchung VALUES (101, 1, '2024-01-01', '2024-01-05');" + // 4 nights
+                                  "INSERT INTO Buchung VALUES (102, 2, '2024-02-10', '2024-02-20');" + // 10 nights
+                                  "INSERT INTO Buchung VALUES (103, 3, '2024-03-01', '2024-03-02');",  // 1 night
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "Naechte", Type = "INT", StrictName = true }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "101", "4" },
+                        new[] { "102", "10" },
+                        new[] { "103", "1" }
+                    },
+                    MaterialDocs = "start-hint: Differenz berechnen (DATEDIFF)\n" +
+                                   "Die Funktion [DATEDIFF(Enddatum, Startdatum)] berechnet die Differenz zwischen zwei Daten in Tagen.\n" +
+                                   "Beispiel:\n" +
+                                   "{|SELECT DATEDIFF('2023-12-31', '2023-12-01'); -- Ergibt 30|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl26-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "DATEDIFF()", "Alias (AS)" },
+                    OptionalPrerequisites = new List<string> { "TIMEDIFF()" }
+                },
+                new SqlLevel
+                {
+                    Id = 27,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[26],
+                    NextLevelCode = SqlLevelCodes.CodesList[27],
+                    Title = "Feedback-Mails & Limit (DATE_ADD)",
+                    Description = "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
+                                  "**Neues Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um!\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Das Hotel verschickt genau **7 Tage nach Abreise** eine E-Mail.\n" +
+                                  "Geben Sie die [ID] der Buchung, den [Name]n des Gastes und das berechnete Versanddatum als **'FeedbackDatum'** aus.\n" +
+                                  "Damit das System nicht überlastet wird, sollen nur die **3 spätesten Abreisen** (chronologisch absteigend sortiert nach Abreise) ausgelesen werden.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Zimmer (ID INTEGER PRIMARY KEY, nummer TEXT);" +
+                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, zimmerID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Klaus');" +
+                                  "INSERT INTO Gast VALUES (2, 'Berta');" +
+                                  "INSERT INTO Zimmer VALUES (1, '101');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, 1, '2024-05-01', '2024-05-10');" +
+                                  "INSERT INTO Buchung VALUES (102, 2, 1, '2024-06-01', '2024-06-05');" +
+                                  "INSERT INTO Buchung VALUES (103, 1, 1, '2024-07-01', '2024-07-15');" +
+                                  "INSERT INTO Buchung VALUES (104, 2, 1, '2024-08-01', '2024-08-10');" +
+                                  "INSERT INTO Buchung VALUES (105, 1, 1, '2024-09-01', '2024-09-05');",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "FeedbackDatum", Type = "VARCHAR(255)", StrictName = true }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "105", "Klaus", "2024-09-12" }, // 05.09. + 7
+                        new[] { "104", "Berta", "2024-08-17" }, // 10.08. + 7
+                        new[] { "103", "Klaus", "2024-07-22" } // 15.07. + 7
+                    },
+                    MaterialDocs = "start-hint: Datums-Addition (DATE_ADD)\n" +
+                                   "Mit [DATE_ADD] können Sie einem Datum einen bestimmten Zeitraum hinzufügen:\n" +
+                                   "Beispiel (14 Tage zu einem Kaufdatum addieren):\n" +
+                                   "{|DATE_ADD(Kaufdatum, INTERVAL 14 DAY)|}\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Ergebnisse begrenzen (LIMIT)\n" +
+                                   "Wenn Sie nur die ersten X Ergebnisse einer Abfrage benötigen, fügen Sie am Ende (nach dem [ORDER BY]) den Befehl [LIMIT X] ein.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl27-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    ID <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(1,1)- reserviert\nreserviert -(0,n)- Zimmer\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "DATE_ADD()", "LIMIT", "ORDER BY" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 28,
+                    Section = "Sektion 5: Datumsfunktionen",
+                    SkipCode = SqlLevelCodes.CodesList[27],
+                    NextLevelCode = SqlLevelCodes.CodesList[28],
+                    Title = "Die Hotel-Bilanz",
+                    Description = "Der Boss möchte zum Jahresabschluss die treuesten Kunden belohnen. Diese Mini-Prüfung verlangt alles aus Sektion 4 und 5!\n\n" +
+                                  "Nutzen Sie das Diagramm aus dem vorherigen Level.\n\n" +
+                                  "**Aufgabe:**\n" +
+                                  "Ermitteln Sie die **Top 3 Gäste** (nur den [Name]n), die im Jahr **2024** angereist sind, basierend auf der **Gesamtsumme ihrer gebuchten Nächte** (nennen Sie diese Spalte **'GesamtNaechte'**).\n" +
+                                  "Sortieren Sie die Liste absteigend, sodass der Gast mit den meisten Gesamtnächten auf Platz 1 steht.",
+                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "INSERT INTO Gast VALUES (1, 'Herr Müller');" +
+                                  "INSERT INTO Gast VALUES (2, 'Frau Schmidt');" +
+                                  "INSERT INTO Gast VALUES (3, 'Familie Wagner');" +
+                                  "INSERT INTO Gast VALUES (4, 'Herr Schulz');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, '2024-01-01', '2024-01-11');" + // 10 nights
+                                  "INSERT INTO Buchung VALUES (102, 1, '2024-05-01', '2024-05-06');" + // 5 nights -> müller total: 15
+                                  "INSERT INTO Buchung VALUES (103, 2, '2024-02-01', '2024-02-21');" + // 20 nights -> schmidt total: 20
+                                  "INSERT INTO Buchung VALUES (104, 3, '2024-07-01', '2024-07-08');" + // 7 nights -> wagner total: 7
+                                  "INSERT INTO Buchung VALUES (105, 4, '2023-12-01', '2023-12-31');",  // 30 nights (but 2023! should be ignored)
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "GesamtNaechte", Type = "INT", StrictName = true }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Frau Schmidt", "20" },
+                        new[] { "Herr Müller", "15" },
+                        new[] { "Familie Wagner", "7" }
+                    },
+                    MaterialDocs = "start-tipp: Die perfekte Kombination\n" +
+                                   "Denken Sie an die SQL-Reihenfolge:\n" +
+                                   "1. [SELECT] (Mit einer Aggregationsfunktion wie z.B. SUM(...) AS ...)\n" +
+                                   "2. [FROM] und [JOIN]\n" +
+                                   "3. [WHERE] (Filterung nach dem gewünschten Jahr)\n" +
+                                   "4. [GROUP BY] (Gruppieren nach Gastname)\n" +
+                                   "5. [ORDER BY] (Sortierung der aggregierten Spalte)\n" +
+                                   "6. [LIMIT] (Beschränkung der Ergebnisse)\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec5\\lvl28-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                         "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    ID <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(1,1)- reserviert\nreserviert -(0,n)- Zimmer\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { },
                     OptionalPrerequisites = new List<string> { }
                 }
             };
