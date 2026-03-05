@@ -449,6 +449,16 @@
 	.code-block {
 	  white-space: pre-wrap;
 	}
+
+  .step-box-body span,
+.code-block span {
+  display: inline;
+}
+
+.step-box-body,
+.code-block {
+  white-space: pre;
+}
 </style>
 </head>
 <body>
@@ -691,7 +701,7 @@
 <span class="rel">Teilnahme_Kategorie</span> (<span class="pk">tID#</span>, <span class="pk">kID#</span>, <span class="attr">bewertung</span>)
 
 <span class="comment">-- ABI 2025 A: entnimmt(datum, anzGenutzt, anzAbgelaufen) → M:N zwischen Lager und Artikel</span>
-<span class="rel">Lager_Artikel</span> (<span class="pk">datum</span><span class="attr">, anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+<span class="rel">Lager_Artikel</span> (<span class="pk">datum</span>, <span class="attr">anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
     </div>
 
     <div class="note warn">
@@ -1194,7 +1204,7 @@ entnimmt -(0,m)- Artikel
 <span class="rel">Artikel</span>               (<span class="pk">aID</span>, <span class="attr">bezeichnung, preis</span>)
 <span class="rel">Lager</span>                 (<span class="pk">lID</span>, <span class="attr">standort</span>)
 <span class="rel">Bestellung_Lager</span>      (<span class="pk">bID#</span>, <span class="pk">lID#</span>)
-<span class="rel">Lager_Artikel</span>         (<span class="attr">datum, anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+<span class="rel">Lager_Artikel</span>         (<span class="pk">datum</span>, <span class="attr">anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
         </div>
       </div>
     </div>
