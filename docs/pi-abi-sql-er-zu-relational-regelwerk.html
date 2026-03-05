@@ -590,7 +590,7 @@
     </div>
 
     <div class="card-vis">
-      <span class="ebox">Person</span>
+      <span class="ebox">Kunde</span>
       <span>──</span><span class="card-num">[1,1]</span><span>── bucht ──</span><span class="card-num">[0,n]</span><span>──</span>
       <span class="ebox">Ticket</span>
       <span class="rarrow">→</span>
@@ -691,12 +691,12 @@
 <span class="rel">Teilnahme_Kategorie</span> (<span class="pk">tID#</span>, <span class="pk">kID#</span>, <span class="attr">bewertung</span>)
 
 <span class="comment">-- ABI 2025 A: entnimmt(datum, anzGenutzt, anzAbgelaufen) → M:N zwischen Lager und Artikel</span>
-<span class="rel">Lager_Artikel</span> (<span class="attr">datum, anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+<span class="rel">Lager_Artikel</span> (<span class="pk">datum</span><span class="attr">, anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
     </div>
 
     <div class="note warn">
       <strong>Sonderfall ABI 2025 A (Lager_Artikel):</strong>
-      Hier stehen die Beziehungsattribute <em>vor</em> den Fremdschlüsseln — eine Ausnahme.
+      Hier stehen die Beziehungsattribute <em>vor</em> 2 der Primärschlüssel — eine Ausnahme.
       Im Normalfall stehen die FKs am Ende. Orientiere dich an der offiziellen Musterlösung bzw. an der logischen Bedeutung.
     </div>
   </div>
@@ -947,8 +947,6 @@
     <div class="note" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
       <span>
         <strong>Chen-Notation ER-Diagramm</strong> — Entitäten, Beziehungen und Attribute aus ABI 2025 A.
-        Die Multiplizitäten sind gegenüber dem Abitur-Standard gespiegelt eingetragen
-        (in <code>@startchen</code> steht der Wert beim Knoten und beschreibt dessen eigene Beteiligung).
       </span>
       <button onclick="openPlantUML('er')"
         style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:7px 16px;
@@ -1008,20 +1006,20 @@ relationship entnimmt {
   anzAbgelaufen
 }
 
-Mitarbeiter -(0,m)- beteiligt
-beteiligt -(1,n)- Bestellung
+Mitarbeiter -(1,n)- beteiligt
+beteiligt -(0,m)- Bestellung
 
-Bestellung -(0,n)- fuellt_auf
-fuellt_auf -(0,m)- Lager
+Bestellung -(0,m)- fuellt_auf
+fuellt_auf -(0,n)- Lager
 
-Bestellung -(1,n)- enthaelt
-enthaelt -(1,1)- Position
+Bestellung -(1,1)- enthaelt
+enthaelt -(1,n)- Position
 
-Position -(1,1)- bezieht_sich_auf
-bezieht_sich_auf -(0,n)- Artikel
+Position -(0,n)- bezieht_sich_auf
+bezieht_sich_auf -(1,1)- Artikel
 
-Lager -(0,m)- entnimmt
-entnimmt -(0,n)- Artikel
+Lager -(0,n)- entnimmt
+entnimmt -(0,m)- Artikel
 
 @endchen</textarea>
 
@@ -1152,7 +1150,7 @@ entnimmt -(0,n)- Artikel
       </div>
       <div class="step-box-body">
 <span class="comment">-- Regel 2.1: 1:N → FK der "1"-Seite in die "N"-Seite</span>
-<span class="comment">-- Bestellung (1,1) ist die "1"-Seite → bID# wandert in Position</span>
+<span class="comment">-- Bestellung (1,1) ist die "1"-Seite → bID# wandert in Relation</span>
 <span class="rel">Position</span> (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum,</span> <span class="fk">bID#</span>)
       </div>
     </div>
@@ -1164,7 +1162,7 @@ entnimmt -(0,n)- Artikel
       </div>
       <div class="step-box-body">
 <span class="comment">-- Regel 2.1: 1:N → FK der "1"-Seite (Artikel) in die "N"-Seite (Position)</span>
-<span class="comment">-- Artikel (1,1) ist die "1"-Seite → aID# wandert in Position</span>
+<span class="comment">-- Artikel (1,1) ist die "1"-Seite → aID# wandert in Relation</span>
 <span class="rel">Position</span> (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum,</span> <span class="fk">aID#, bID#</span>)      <span class="comment">← beide FKs jetzt in Position</span>
       </div>
     </div>
