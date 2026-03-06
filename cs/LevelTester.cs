@@ -509,12 +509,12 @@ namespace AbiturEliteCode.cs
 
         private static bool TestLevel9(Assembly assembly, out string feedback)
         {
-            Type tKnoten = assembly.GetType("Knoten");
-            Type tBand = assembly.GetType("Foerderband");
+            Type tKnoten = assembly.GetType("Waggon");
+            Type tBand = assembly.GetType("Gueterzug");
             Type tPaket = assembly.GetType("Paket");
 
-            if (tKnoten == null) throw new Exception("Klasse 'Knoten' fehlt.");
-            if (tBand == null) throw new Exception("Klasse 'Foerderband' fehlt.");
+            if (tKnoten == null) throw new Exception("Klasse 'Waggon' fehlt. Hast du sie richtig benannt?");
+            if (tBand == null) throw new Exception("Klasse 'Gueterzug' fehlt.");
 
             object band = Activator.CreateInstance(tBand);
             MethodInfo mAnh = tBand.GetMethod("Anhaengen");
@@ -526,30 +526,30 @@ namespace AbiturEliteCode.cs
             // add 1
             mAnh.Invoke(band, new object[] { p1 });
 
-            FieldInfo fKopf = tBand.GetField("kopf", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fKopf == null) throw new Exception("Feld 'kopf' in Foerderband fehlt.");
+            FieldInfo fKopf = tBand.GetField("lokomotive", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fKopf == null) throw new Exception("Feld 'lokomotive' in Gueterzug fehlt.");
 
             object kopfNode = fKopf.GetValue(band);
-            if (kopfNode == null) throw new Exception("Kopf ist null nach dem ersten Einfügen.");
+            if (kopfNode == null) throw new Exception("Die Lokomotive ist null nach dem ersten Einfügen. Hast du den 1. Fall vergessen (oder das 'return;' dort)?");
 
             // check content of head
-            FieldInfo fInhalt = tKnoten.GetField("inhalt", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fInhalt == null) throw new Exception("Feld 'inhalt' in Knoten fehlt.");
-            if (fInhalt.GetValue(kopfNode) != p1) throw new Exception("Erster Knoten enthält nicht das korrekte Paket.");
+            FieldInfo fInhalt = tKnoten.GetField("ladung", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fInhalt == null) throw new Exception("Feld 'ladung' in Waggon fehlt.");
+            if (fInhalt.GetValue(kopfNode) != p1) throw new Exception("Erster Waggon enthält nicht das korrekte Paket.");
 
             // add 2
             mAnh.Invoke(band, new object[] { p2 });
 
             // check linking
-            FieldInfo fNachfolger = tKnoten.GetField("nachfolger", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fNachfolger == null) throw new Exception("Feld 'nachfolger' in Knoten fehlt.");
+            FieldInfo fNachfolger = tKnoten.GetField("naechster", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fNachfolger == null) throw new Exception("Feld 'naechster' in Waggon fehlt.");
 
             object secondNode = fNachfolger.GetValue(kopfNode);
-            if (secondNode == null) throw new Exception("Verkettung fehlerhaft. 'nachfolger' vom Kopf ist null.");
+            if (secondNode == null) throw new Exception("Verkettung fehlerhaft. 'naechster' von der Lokomotive ist null. Die while-Schleife hat nicht richtig angehängt.");
 
-            if (fInhalt.GetValue(secondNode) != p2) throw new Exception("Zweiter Knoten enthält falsches Paket.");
+            if (fInhalt.GetValue(secondNode) != p2) throw new Exception("Zweiter Waggon enthält falsches Paket.");
 
-            feedback = "Verkettete Liste funktioniert!";
+            feedback = "Verkettete Liste (Güterzug) funktioniert perfekt! Du hast das Prinzip verstanden.";
             return true;
         }
 

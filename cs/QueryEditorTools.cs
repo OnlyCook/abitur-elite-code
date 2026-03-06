@@ -124,6 +124,11 @@ namespace AbiturEliteCode
 			<Word>LENGTH</Word>
             <Word>CONCAT</Word>
             <Word>NOW</Word>
+			<Word>CONCAT</Word>
+            <Word>NOW</Word>
+            <Word>YEAR</Word>
+            <Word>MONTH</Word>
+            <Word>DAY</Word>
 		</Keywords>
 
 		<Rule color=""Number"">

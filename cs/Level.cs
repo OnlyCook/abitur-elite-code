@@ -523,33 +523,46 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     Section = "Sektion 2: Datenstrukturen & Algorithmen",
                     SkipCode = LevelCodes.CodesList[8],
                     NextLevelCode = LevelCodes.CodesList[9],
-                    Title = "Der Gabelstapler (Verkettete Liste)",
-                    Description = "Das Förderband wird als einfach verkettete Liste modelliert. Jedes Element ist ein [Knoten].\n\n" +
+                    Title = "Der Güterzug (Verkettete Liste)",
+                    Description = "Das Logistik-Zentrum transportiert Pakete nun mit einem Güterzug. Dieser Zug wird im Code als 'einfach verkettete Liste' modelliert.\n\n" +
+                                  "Ein Zug besteht aus einer Lokomotive (der allererste Waggon, in der Informatik 'Head' oder 'Kopf' genannt) und weiteren angehängten Waggons. Jeder Waggon transportiert genau ein [Paket] (als Ladung) und kennt nur seinen direkten [naechster] Waggon.\n\n" +
                                   "Aufgabe:\n" +
-                                  "1. Implementieren Sie die Klasse [Knoten] gemäß Diagramm.\n" +
-                                  "2. Implementieren Sie die Methode [Anhaengen(Paket p)] in der Klasse [Foerderband].\n\n" +
-                                  "Logik für Anhaengen:\n" +
-                                  "Ist das Band leer ([kopf] ist null), wird der neue Knoten zum Kopf.\n" +
-                                  "Sonst müssen Sie bis zum letzten Knoten laufen und den neuen Knoten dort anhängen.",
-                    StarterCode = "public class Foerderband\n{\n    // Implementation\n}\n\npublic class Knoten\n{\n    // Implementation\n}\n",
-                    MaterialDocs = "start-hint: Wie funktionieren Verkettete Listen? (Simpel)\n" +
-                                   "Stell dir eine Schnitzeljagd (Schatzsuche) vor:\n" +
-                                   "• Der [kopf] ist der erste Zettel, den du in die Hand bekommst.\n" +
-                                   "• Jeder Zettel (Knoten) hat einen Inhalt (das Paket) und einen Hinweis, wo der **nächste** Zettel liegt (Referenz [nachfolger]).\n" +
-                                   "• Wenn auf einem Zettel kein Hinweis mehr steht (Referenz ist [null]), bist du am Ende der Kette angekommen.\n\n" +
-                                   "Um hinten etwas anzuhängen, musst du also beim Kopf starten und dich 'hochhangeln', bis du den Knoten findest, dessen [nachfolger] leer ist.\n" +
+                                  "1. Implementieren Sie die Klasse [Waggon] gemäß Diagramm.\n" +
+                                  "2. Implementieren Sie die Methode [Anhaengen(Paket p)] in der Klasse [Gueterzug]. Nutzen Sie dafür die Hilfskommentare im Code.",
+                    StarterCode = "public class Gueterzug\n" +
+                                  "{\n" +
+                                  "    private Waggon lokomotive; // Dies ist der 'Kopf' der verketteten Liste\n\n" +
+                                  "    public void Anhaengen(Paket p)\n" +
+                                  "    {\n" +
+                                  "        // --- 1. FALL: DER ZUG IST NOCH LEER ---\n" +
+                                  "        // Prüfen Sie, ob 'lokomotive' null ist.\n" +
+                                  "        // Wenn ja: Erstellen Sie einen neuen Waggon mit dem Paket 'p'\n" +
+                                  "        // und weisen Sie ihn der Variablen 'lokomotive' zu.\n" +
+                                  "        // WICHTIG: Beenden Sie danach sofort die Methode mit 'return;'\n\n\n" +
+                                  "        // --- 2. FALL: ES GIBT SCHON WAGGONS ---\n" +
+                                  "        // Wir müssen das Ende des Zuges finden, um den neuen anzukuppeln.\n" +
+                                  "        // Starten Sie vorne: Erstellen Sie eine Hilfsvariable:\n" +
+                                  "        // Waggon letzter = lokomotive;\n\n\n" +
+                                  "        // Nutzen Sie eine while-Schleife. Solange der aktuelle Waggon \n" +
+                                  "        // noch einen Nachfolger hat (letzter.GetNaechster() != null), \n" +
+                                  "        // gehen Sie einen Waggon weiter nach hinten:\n" +
+                                  "        // letzter = letzter.GetNaechster();\n\n\n" +
+                                  "        // Nach der Schleife sind Sie am letzten Waggon angekommen.\n" +
+                                  "        // Hängen Sie nun den neuen Waggon an: letzter.SetNaechster(...)\n" +
+                                  "    }\n" +
+                                  "}\n\n" +
+                                  "public class Waggon\n" +
+                                  "{\n" +
+                                  "    // Implementation\n" +
+                                  "}\n",
+                    MaterialDocs = "start-hint: Wie funktionieren Verkettete Listen? (Das Zug-Prinzip)\n" +
+                                   "Stell dir einen echten Zug vor:\n" +
+                                   "• Die [lokomotive] zieht alles. Wenn du ein Paket ganz hinten anhängen willst, fängst du vorne bei der Lokomotive an und gehst Waggon für Waggon nach hinten, bis du am Ende bist.\n" +
+                                   "• In C# bedeutet 'Waggon für Waggon nach hinten gehen': [letzter = letzter.GetNaechster();]\n" +
+                                   "• Wenn [GetNaechster()] leer ([null]) ist, weißt du: Das ist der letzte Waggon! Hier musst du den neuen ankuppeln.\n" +
                                    ":end-hint\n" +
-                                   "start-tipp: Traversierung (Laufen)\n" +
-                                   "Traversierung in Java:\n" +
-                                   "{|Knoten aktuell = kopf;\n" +
-                                   "while(aktuell.getNachfolger() != null) {\n" +
-                                   "   aktuell = aktuell.getNachfolger();\n" +
-                                   "}|}\n" +
-                                   "Nach der Schleife ist [aktuell] das letzte Element.\n" +
-                                   ":end-hint\n" +
-                                   "start-tipp: Sonderfall leere Liste\n" +
-                                   "Wenn kein Kopf existiert, setzen Sie den Kopf auf den neuen Knoten.\n" +
-                                   "**Wichtig**: Schreiben Sie direkt danach ein [return;]. Damit wird die Methode sofort beendet, denn wenn es keinen Kopf gab ist der neue Kopf gleichzeitig das Ende der verketteten Liste und das Ziel der Methode ist erfüllt.\n" +
+                                   "start-tipp: Der Sonderfall 'Leerer Zug'\n" +
+                                   "Vergiss das [return;] nicht, wenn du den allerersten Waggon (die Lokomotive) erstellst. Wenn du die Methode dort nicht beendest, läuft der Code weiter und verursacht Fehler, weil du versuchst, an einen Waggon noch etwas anzuhängen, was du gerade erst erstellt hast.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -557,7 +570,7 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Knoten {\n  + Knoten(p : Paket)\n  + getNachfolger() : Knoten\n  + setNachfolger(k : Knoten)\n}\nclass Foerderband {\n  + anhaengen(p : Paket)\n}\nFoerderband x--> \"0..1\" Knoten : -kopf\nKnoten x--> \"0..1\" Knoten : -nachfolger\nKnoten x--> \"1\" Paket : -inhalt\n@enduml"
+                        "@startuml\nclass Waggon {\n  + Waggon(p : Paket)\n  + getNaechster() : Waggon\n  + setNaechster(w : Waggon)\n}\nclass Gueterzug {\n  + anhaengen(p : Paket)\n}\nGueterzug x--> \"0..1\" Waggon : -lokomotive\nWaggon x--> \"0..1\" Waggon : -naechster\nWaggon x--> \"1\" Paket : -ladung\n@enduml"
                     },
                     AuxiliaryIds = new List<string> { "Paket" },
                     Prerequisites = new List<string>
@@ -1205,6 +1218,7 @@ END.",
                                   "• [Run()]: Setzen Sie das Sequenzdiagramm exakt um.\n\n" +
                                   "Hinweise:\n" +
                                   "• Die Klassen [SicherheitsZentrale], [BenutzerVerwaltung], [Alarmanlage] und [ProtokollLog] sind bereits im System implementiert. Sie müssen lediglich über deren Methoden und Getter/Setter auf sie zugreifen.\n" +
+                                  "• Der Client sendet Login-Anfragen in beispielweise folgendem Format: [\"LOGIN;admin;admin123\"].\n" +
                                   "• Denken Sie daran: Auf alle Attribute kann über die entsprechenden standardmäßigen Get-/Set-Methoden zugegriffen werden, auch wenn diese im Diagramm nicht explizit modelliert sind.",
                     StarterCode = "public class SicherheitsServer\n{\n    // Implementation\n}\n\npublic class SicherheitsThread : Thread\n{\n    // Implementation\n}",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\nEine hohe Selbständigkeit wird hier erwartet. Achten Sie auf das, was Ihnen hier zuvor gegeben wurde.\n",

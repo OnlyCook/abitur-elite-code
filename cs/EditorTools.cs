@@ -674,7 +674,9 @@ namespace AbiturEliteCode
     {
         private List<string> _currentSuggestions = new List<string>();
         private int _suggestionIndex = 0;
-        private string _currentSuggestionSuffix = null;
+
+        public int CurrentWordLength { get; private set; }
+        public string CurrentSuggestionFull => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
 
         private HashSet<string> _keywords;
 
@@ -710,7 +712,7 @@ namespace AbiturEliteCode
             "EXISTS", "CREATE", "TABLE", "DROP", "ALTER", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT",
             "AUTO_INCREMENT", "ASC", "DESC", "USING", "INT", "INTEGER", "VARCHAR", "TEXT", "CHAR", "DATE",
             "DATETIME", "TIMESTAMP", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN", "COUNT", "SUM", "AVG", "MIN",
-            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW"
+            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW", "YEAR", "MONTH", "DAY"
         };
 
         public AutocompleteService(HashSet<string> keywords)
@@ -719,7 +721,22 @@ namespace AbiturEliteCode
         }
 
         public bool HasSuggestion => _currentSuggestions.Count > 0;
-        public string CurrentSuggestionSuffix => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
+        public string CurrentSuggestionSuffix
+        {
+            get
+            {
+                if (!HasSuggestion) return null;
+
+                if (_keywords == SqlKeywords)
+                {
+                    return CurrentWordLength <= _currentSuggestions[_suggestionIndex].Length
+                        ? _currentSuggestions[_suggestionIndex].Substring(CurrentWordLength)
+                        : null;
+                }
+
+                return _currentSuggestions[_suggestionIndex];
+            }
+        }
 
         public void CycleNext()
         {
@@ -881,7 +898,6 @@ namespace AbiturEliteCode
         {
             _currentSuggestions.Clear();
             _suggestionIndex = 0;
-            _currentSuggestionSuffix = null;
 
             if (caretOffset == 0 || caretOffset > text.Length) return;
 
@@ -907,6 +923,7 @@ namespace AbiturEliteCode
 
             int length = caretOffset - start;
             string currentWord = length > 0 ? text.Substring(start, length) : "";
+            CurrentWordLength = length;
 
             // check if there is a dot before the word (caller)
             int beforeWord = start - 1;
@@ -992,8 +1009,24 @@ namespace AbiturEliteCode
                 // c# contextual completion
                 if (hasDot && !string.IsNullOrEmpty(caller))
                 {
+                    if (caller == "this")
+                    {
+                        var tree = CSharpSyntaxTree.ParseText(text);
+                        var root = tree.GetRoot();
+                        var nodeAtCaret = root.FindToken(start).Parent;
+                        var parentClass = nodeAtCaret?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+                        if (parentClass != null)
+                        {
+                            string cName = parentClass.Identifier.Text;
+                            if (_instanceMembers.ContainsKey(cName))
+                            {
+                                foreach (var m in _instanceMembers[cName]) possibleMatches.Add(m);
+                            }
+                        }
+                    }
                     // static members of a class
-                    if (_allClasses.Contains(caller) && _staticMembers.ContainsKey(caller))
+                    else if (_allClasses.Contains(caller) && _staticMembers.ContainsKey(caller))
                     {
                         foreach (var m in _staticMembers[caller]) possibleMatches.Add(m);
                     }
@@ -1033,15 +1066,15 @@ namespace AbiturEliteCode
                 {
                     _currentSuggestions = possibleMatches
                         .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
-                        .Select(t => t.Substring(currentWord.Length))
                         .Distinct()
                         .OrderBy(t => t)
                         .ToList();
                 }
                 else
                 {
+                    // c# mode: case-insensitive matching, but extract only the remaining suffix
                     _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord) && t.Length > currentWord.Length)
+                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
                         .Select(t => t.Substring(currentWord.Length))
                         .Distinct()
                         .OrderBy(t => t)
@@ -1049,9 +1082,26 @@ namespace AbiturEliteCode
                 }
             }
 
-            if (_currentSuggestions.Count > 0)
+            if (possibleMatches.Count > 0 && currentWord.Length > 0)
             {
-                _currentSuggestionSuffix = _currentSuggestions[0];
+                if (_keywords == SqlKeywords)
+                {
+                    _currentSuggestions = possibleMatches
+                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
+                        .Distinct()
+                        .OrderBy(t => t)
+                        .ToList();
+                }
+                else
+                {
+                    // c# -> case insensitive matching, also extract only the remaining suffix
+                    _currentSuggestions = possibleMatches
+                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
+                        .Select(t => t.Substring(currentWord.Length))
+                        .Distinct()
+                        .OrderBy(t => t)
+                        .ToList();
+                }
             }
         }
 
@@ -1106,7 +1156,7 @@ namespace AbiturEliteCode
         {
             _currentSuggestions.Clear();
             _suggestionIndex = 0;
-            _currentSuggestionSuffix = null;
+            CurrentWordLength = 0;
         }
 
         public void SetSqlSchema(Dictionary<string, List<string>> schema)
@@ -1145,8 +1195,13 @@ namespace AbiturEliteCode
         {
             if (_service.HasSuggestion && offset == _editor.CaretOffset)
             {
-                // returns a custom element that renders the ghost text
-                return new GhostTextElement(_service.CurrentSuggestionSuffix, _editor);
+                string suffix = _service.CurrentSuggestionSuffix;
+
+                if (!string.IsNullOrEmpty(suffix))
+                {
+                    // returns a custom element that renders the ghost text
+                    return new GhostTextElement(suffix, _editor);
+                }
             }
             return null;
         }
@@ -1158,9 +1213,9 @@ namespace AbiturEliteCode
         private readonly TextEditor _editor;
 
         // base(visualLength, documentLength)
-        public GhostTextElement(string text, TextEditor editor) : base(text.Length, 0)
+        public GhostTextElement(string text, TextEditor editor) : base((text ?? string.Empty).Length, 0)
         {
-            _text = text;
+            _text = text ?? string.Empty;
             _editor = editor;
         }
 
@@ -1456,6 +1511,7 @@ namespace AbiturEliteCode
 
         protected override void ColorizeLine(DocumentLine line)
         {
+            if (!AppSettings.IsSyntaxHighlightingEnabled) return;
             if (KnownClasses.Count == 0) return;
 
             string text = CurrentContext.Document.GetText(line);

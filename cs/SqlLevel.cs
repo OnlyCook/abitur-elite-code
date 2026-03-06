@@ -188,9 +188,9 @@ namespace AbiturEliteCode.cs
                                   "Wählen Sie [Titel] und [Erscheinungsjahr] aller Bücher von 'Kafka' aus der Tabelle [Buch].\n" +
                                   "Sortieren Sie das Ergebnis **aufsteigend** nach dem Titel.",
                     SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Erscheinungsjahr INTEGER);" +
-                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Das Schloss', 'Kafka', 1926);" +
+                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Die Verwandlung', 'Kafka', 1915);" +
                                   "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Faust', 'Goethe', 1808);" +
-                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Die Verwandlung', 'Kafka', 1915);",
+                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Das Schloss', 'Kafka', 1926);",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
@@ -313,14 +313,15 @@ namespace AbiturEliteCode.cs
                     SkipCode = SqlLevelCodes.CodesList[5],
                     NextLevelCode = SqlLevelCodes.CodesList[6],
                     Title = "Daten Ändern (UPDATE)",
-                    Description = "Der Schüler 'Max' (ID 1) ist in die Klasse 13 versetzt worden.\n\n" +
+                    Description = "Der Schüler 'Max' mit der ID 1 ist in die Klasse 13 versetzt worden.\n\n" +
                                   "Aufgabe:\n" +
                                   "Aktualisieren Sie den Eintrag von Max in der Tabelle [Schueler], sodass seine Klasse nun 13 ist.\n" +
-                                  "Achten Sie unbedingt auf die [WHERE]-Klausel!",
+                                  "Achten Sie unbedingt auf die [WHERE]-Klausel und nutzen Sie die ID, um nicht versehentlich andere Schüler zu ändern!",
                     SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', 12); " +
-                                  "INSERT INTO Schueler VALUES (2, 'Lisa', 11);",
-                    VerificationQuery = "SELECT * FROM Schueler WHERE ID = 1",
+                                  "INSERT INTO Schueler VALUES (2, 'Lisa', 11);" +
+                                  "INSERT INTO Schueler VALUES (3, 'Max', 12);",
+                    VerificationQuery = "SELECT * FROM Schueler",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
                         new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
@@ -329,11 +330,13 @@ namespace AbiturEliteCode.cs
                     },
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "1", "Max", "13" }
+                        new[] { "1", "Max", "13" },
+                        new[] { "2", "Lisa", "11" },
+                        new[] { "3", "Max", "12" }
                     },
                     MaterialDocs = "start-hint: UPDATE Syntax\n" +
                                    "{|UPDATE Tabelle SET Spalte = NeuerWert WHERE Bedingung;|}\n" +
-                                   "Ohne [WHERE] würden **alle** Schüler in Klasse 13 versetzt werden.\n" +
+                                   "Nutzen Sie am besten immer den Primärschlüssel (ID) in der WHERE-Klausel, da Namen oder Klassen mehrfach vorkommen können.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
@@ -391,7 +394,7 @@ namespace AbiturEliteCode.cs
                     Title = "Klausurphase",
                     Description = "Dies ist eine komplexe Abfrage zum Abschluss der Grundlagen.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie [Schueler] und [Notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** (also < 5) sind.\n" +
+                                  "Ermitteln Sie [Schueler] und [Notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** sind.\n" +
                                   "Sortieren Sie das Ergebnis absteigend nach den Notenpunkten.",
                     SetupScript = "CREATE TABLE Klausur (ID INTEGER PRIMARY KEY, Schueler TEXT, Fach TEXT, Notenpunkte INTEGER);" +
                                   "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Max', 'Mathe', 12);" +

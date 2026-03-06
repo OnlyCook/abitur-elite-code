@@ -688,10 +688,13 @@ namespace AbiturEliteCode
             // tab => confirm autocompletion
             if (AppSettings.IsSqlAutocompleteEnabled && e.Key == Key.Tab && _sqlAutocompleteService.HasSuggestion)
             {
-                string suffix = _sqlAutocompleteService.CurrentSuggestionSuffix;
-                if (!string.IsNullOrEmpty(suffix))
+                string fullText = _sqlAutocompleteService.CurrentSuggestionFull;
+                int wordLen = _sqlAutocompleteService.CurrentWordLength;
+                if (!string.IsNullOrEmpty(fullText))
                 {
-                    SqlQueryEditor.Document.Insert(SqlQueryEditor.CaretOffset, suffix);
+                    int offset = SqlQueryEditor.CaretOffset;
+                    SqlQueryEditor.Document.Replace(offset - wordLen, wordLen, fullText);
+                    SqlQueryEditor.CaretOffset = offset - wordLen + fullText.Length;
                     _sqlAutocompleteService.ClearSuggestion();
                     e.Handled = true;
                     return;
@@ -1101,10 +1104,12 @@ namespace AbiturEliteCode
             {
                 if (!AppSettings.IsVimEnabled || _vimMode == VimMode.Insert)
                 {
-                    string suffix = _csharpAutocompleteService.CurrentSuggestionSuffix;
-                    if (!string.IsNullOrEmpty(suffix))
+                    string suffixText = _csharpAutocompleteService.CurrentSuggestionSuffix;
+                    if (!string.IsNullOrEmpty(suffixText))
                     {
-                        CodeEditor.Document.Insert(CodeEditor.CaretOffset, suffix);
+                        int offset = CodeEditor.CaretOffset;
+                        CodeEditor.Document.Insert(offset, suffixText);
+                        CodeEditor.CaretOffset = offset + suffixText.Length;
                         _csharpAutocompleteService.ClearSuggestion();
                         e.Handled = true;
                         return;
@@ -3217,6 +3222,15 @@ namespace AbiturEliteCode
 
         private async void BtnReset_Click(object sender, RoutedEventArgs e)
         {
+            if (_isSqlMode)
+            {
+                // using document replace so that the action is added to the undo stack (instead of being fully cleared)
+                SqlQueryEditor.Document.Replace(0, SqlQueryEditor.Document.TextLength, "");
+                AddSqlOutput("System", "> Query Editor geleert.", Brushes.LightGray);
+                SqlQueryEditor.Focus();
+                return;
+            }
+
             var dialog = new Window
             {
                 Title = "Code zurücksetzen?",
@@ -3344,7 +3358,7 @@ namespace AbiturEliteCode
                 if (oldSqlPanel != null) oldSqlPanel.IsVisible = false;
 
                 BtnSave.IsVisible = true;
-                BtnReset.IsVisible = false;
+                BtnReset.IsVisible = true;
 
                 ApplySqlSyntaxHighlighting();
 
