@@ -712,7 +712,8 @@ namespace AbiturEliteCode
             "EXISTS", "CREATE", "TABLE", "DROP", "ALTER", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT",
             "AUTO_INCREMENT", "ASC", "DESC", "USING", "INT", "INTEGER", "VARCHAR", "TEXT", "CHAR", "DATE",
             "DATETIME", "TIMESTAMP", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN", "COUNT", "SUM", "AVG", "MIN",
-            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW", "YEAR", "MONTH", "DAY"
+            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW", "YEAR", "MONTH", "DAY", "DATE_ADD", "DATEDIFF",
+            "INTERVAL"
         };
 
         public AutocompleteService(HashSet<string> keywords)
@@ -963,6 +964,8 @@ namespace AbiturEliteCode
                 bool expectTable = lastWordUpper == "FROM" || lastWordUpper == "JOIN" || lastWordUpper == "INTO" || lastWordUpper == "UPDATE";
                 bool expectColumn = lastWordUpper == "SELECT" || lastWordUpper == "WHERE" || lastWordUpper == "ON" || lastWordUpper == "SET" || lastWordUpper == "BY" || lastWordUpper == "HAVING" || lastWordUpper == "AND" || lastWordUpper == "OR";
 
+                bool isAliased(string tableName) => _sqlAliases.Values.Any(v => string.Equals(v, tableName, StringComparison.OrdinalIgnoreCase));
+
                 if (hasDot && !string.IsNullOrEmpty(caller))
                 {
                     string actualTable = caller;
@@ -987,21 +990,27 @@ namespace AbiturEliteCode
 
                     foreach (var table in _sqlSchema.Keys)
                     {
-                        if (!_sqlAliases.ContainsValue(table)) possibleMatches.Add(table);
+                        if (!isAliased(table)) possibleMatches.Add(table);
                     }
                     foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
-                    foreach (var t in _allLocals) possibleMatches.Add(t);
+                    foreach (var t in _allLocals)
+                    {
+                        if (!isAliased(t)) possibleMatches.Add(t);
+                    }
                 }
                 else
                 {
                     foreach (var table in _sqlSchema.Keys)
                     {
-                        if (!_sqlAliases.ContainsValue(table)) possibleMatches.Add(table);
+                        if (!isAliased(table)) possibleMatches.Add(table);
                     }
                     foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
                     foreach (var cols in _sqlSchema.Values)
                         foreach (var col in cols) possibleMatches.Add(col);
-                    foreach (var t in _allLocals) possibleMatches.Add(t);
+                    foreach (var t in _allLocals)
+                    {
+                        if (!isAliased(t)) possibleMatches.Add(t);
+                    }
                 }
             }
             else
@@ -1072,31 +1081,9 @@ namespace AbiturEliteCode
                 }
                 else
                 {
-                    // c# mode: case-insensitive matching, but extract only the remaining suffix
+                    // c# mode: case-sensitive matching and extract only the remaining suffix
                     _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
-                        .Select(t => t.Substring(currentWord.Length))
-                        .Distinct()
-                        .OrderBy(t => t)
-                        .ToList();
-                }
-            }
-
-            if (possibleMatches.Count > 0 && currentWord.Length > 0)
-            {
-                if (_keywords == SqlKeywords)
-                {
-                    _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
-                        .Distinct()
-                        .OrderBy(t => t)
-                        .ToList();
-                }
-                else
-                {
-                    // c# -> case insensitive matching, also extract only the remaining suffix
-                    _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
+                        .Where(t => t.StartsWith(currentWord, StringComparison.Ordinal) && t.Length > currentWord.Length)
                         .Select(t => t.Substring(currentWord.Length))
                         .Distinct()
                         .OrderBy(t => t)

@@ -19,7 +19,7 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 6 | `LOG` | Das Warenlager (Suche) |
 | 7 | `INV` | Die Inventur (Filtern) |
 | 8 | `SRT` | Die Sortiermaschine (Bubble Sort) |
-| 9 | `LNK` | Der Gabelstapler (Verkettete Liste) |
+| 9 | `LNK` | Der Güterzug (Verkettete Liste) |
 | 10 | `EXP` | Die Express-Lieferung |
 
 ## Sektion 3: Beziehungen & Navigation
@@ -95,4 +95,15 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S20 | `TOP` | Topseller (GROUP & ORDER BY) |
 | S21 | `HAV` | Die Ladenhüter (HAVING) |
 | S22 | `SAL` | Die Umsatzanalyse |
+
+## Sektion 5: Datumsfunktionen
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| S23 | `DAT` | Der Check-in (YEAR & MONTH) |
+| S24 | `BTW` | Die Hochsaison (BETWEEN) |
+| S25 | `NOW` | Überfällig (NOW / Datumsvergleich) |
+| S26 | `DIF` | Aufenthaltsdauer (DATEDIFF) |
+| S27 | `ADD` | Feedback-Mails & Limit (DATE_ADD) |
+| S28 | `HOT` | Die Hotel-Bilanz |
 

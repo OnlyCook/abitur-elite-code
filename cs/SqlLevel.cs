@@ -10,7 +10,7 @@ namespace AbiturEliteCode.cs
     // the entity-relation-diagrams should match the ones in the abitur exams, here is how they should be structured:
     // multiplicities are written in the min-max-notation like this for each side: [min,max] (for example: ET1 -(0,n)- REL -(0,m)- ET2; not actually valid just for visualization)
     // primary keys are underlined (<<key>> in the plantuml diagram, relational model: primary key RColumn has 'IsPk = true')
-    // entities (tables) are written in PascalCase (for example: "Supermarkt"); attributes (column names) are written in camelCase (for example: "anzahlGetränke"); ids have their "id" in uppercase and without underscores (for example: "kID")
+    // entities (tables) are written in PascalCase (for example: "Supermarkt"); attributes (column names) are written in camelCase (for example: "anzahlGetränke"); ids have their "id" in lowercase and without underscores (for example: "kid" or "klasseid")
     // foreign keys are hashtags '#' in the relational model and '_FK' in the actual database as well as in the diagrams
     // up to level 17 we include the foreign keys in the ER-diagrams, but in the later levels we do not (the user must know on their own what has what key)
     // multiplicities in relations are flipped in the abitur exams, thats why we arent using the variant that is commonly used for the chens notation, but the flipped variant (instead of: "A -(1,1)-b-(0,n)- C" we do: "A -(0,n)-b-(1,1)- C")
@@ -24,7 +24,7 @@ namespace AbiturEliteCode.cs
 
     public class RColumn
     {
-        public string Name { get; set; } = "ID";
+        public string Name { get; set; } = "id";
         public bool IsPk { get; set; }
         public bool IsFk { get; set; }
     }
@@ -101,16 +101,16 @@ namespace AbiturEliteCode.cs
                     Title = "Projektion (SELECT)",
                     Description = "In der Datenbank der Schulbibliothek existiert eine Tabelle [Buch].\n\n" +
                                   "Aufgabe:\n" +
-                                  "Wählen Sie nur den [Titel] und den [Preis] aller Bücher aus.",
-                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Preis REAL, ISBN TEXT);" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Faust', 'Goethe', 9.99, '978-3');" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
+                                  "Wählen Sie nur den [titel] und den [preis] aller Bücher aus.",
+                    SetupScript = "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, Autor TEXT, preis REAL, isbn TEXT);" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Faust', 'Goethe', 9.99, '978-3');" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Preis", Type = "DOUBLE", StrictName = false }
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "preis", Type = "DOUBLE", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -124,7 +124,7 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autor" }, new RColumn { Name = "preis" }, new RColumn { Name = "isbn" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -141,18 +141,18 @@ namespace AbiturEliteCode.cs
                     Description = "Die Bibliotheksleitung sucht nach günstigen Büchern für den Ausverkauf.\n\n" +
                                   "Aufgabe:\n" +
                                   "Ermitteln Sie alle Spalten ([*]) aller Bücher der Tabelle [Buch], deren Preis **kleiner als 9.00** Euro ist.",
-                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Preis REAL, ISBN TEXT);" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Faust', 'Goethe', 9.99, '978-3');" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
-                                  "INSERT INTO Buch (Titel, Autor, Preis, ISBN) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
+                    SetupScript = "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autor TEXT, Preis REAL, isbn TEXT);" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Faust', 'Goethe', 9.99, '978-3');" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Die Verwandlung', 'Kafka', 5.50, '978-4');" +
+                                  "INSERT INTO Buch (titel, autor, preis, isbn) VALUES ('Der Prozess', 'Kafka', 8.90, '978-5');",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Autor", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Preis", Type = "DOUBLE", StrictName = false },
-                        new SqlExpectedColumn { Name = "ISBN", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "autor", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "preis", Type = "DOUBLE", StrictName = false },
+                        new SqlExpectedColumn { Name = "isbn", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -169,7 +169,7 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Preis" }, new RColumn { Name = "ISBN" } } }
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autor" }, new RColumn { Name = "preis" }, new RColumn { Name = "isbn" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -185,17 +185,17 @@ namespace AbiturEliteCode.cs
                     Title = "Sortierung (ORDER BY)",
                     Description = "Wir suchen alle Bücher eines bestimmten Autors, sortiert nach dem Titel.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Wählen Sie [Titel] und [Erscheinungsjahr] aller Bücher von 'Kafka' aus der Tabelle [Buch].\n" +
+                                  "Wählen Sie [titel] und [erscheinungsjahr] aller Bücher von 'Kafka' aus der Tabelle [Buch].\n" +
                                   "Sortieren Sie das Ergebnis **aufsteigend** nach dem Titel.",
-                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Erscheinungsjahr INTEGER);" +
-                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Die Verwandlung', 'Kafka', 1915);" +
-                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Faust', 'Goethe', 1808);" +
-                                  "INSERT INTO Buch (Titel, Autor, Erscheinungsjahr) VALUES ('Das Schloss', 'Kafka', 1926);",
+                    SetupScript = "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autor TEXT, erscheinungsjahr INTEGER);" +
+                                  "INSERT INTO Buch (titel, autor, erscheinungsjahr) VALUES ('Die Verwandlung', 'Kafka', 1915);" +
+                                  "INSERT INTO Buch (titel, autor, erscheinungsjahr) VALUES ('Faust', 'Goethe', 1808);" +
+                                  "INSERT INTO Buch (titel, autor, erscheinungsjahr) VALUES ('Das Schloss', 'Kafka', 1926);",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Erscheinungsjahr", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "erscheinungsjahr", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -212,7 +212,7 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Erscheinungsjahr" } } }
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autor" }, new RColumn { Name = "erscheinungsjahr" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -228,19 +228,19 @@ namespace AbiturEliteCode.cs
                     Title = "Gruppierung (GROUP BY)",
                     Description = "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie für jedes [Genre] den **Durchschnittspreis** als 'Durchschnitt'.\n" +
+                                  "Ermitteln Sie für jedes [genre] den **Durchschnittspreis** als 'Durchschnitt'.\n" +
                                   "Das Ergebnis soll das Genre und den berechneten Durchschnittspreis enthalten.",
-                    SetupScript = "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, Autor TEXT, Genre TEXT, Preis REAL);" +
-                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Faust', 'Goethe', 'Drama', 10.0);" +
-                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Iphigenie', 'Goethe', 'Drama', 12.0);" +
-                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Es', 'King', 'Horror', 15.0);" +
-                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Shining', 'King', 'Horror', 13.0);" +
-                                  "INSERT INTO Buch (Titel, Autor, Genre, Preis) VALUES ('Der Marsianer', 'Weir', 'SciFi', 20.0);",
+                    SetupScript = "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autor TEXT, genre TEXT, preis REAL);" +
+                                  "INSERT INTO Buch (titel, autor, genre, preis) VALUES ('Faust', 'Goethe', 'Drama', 10.0);" +
+                                  "INSERT INTO Buch (titel, autor, genre, preis) VALUES ('Iphigenie', 'Goethe', 'Drama', 12.0);" +
+                                  "INSERT INTO Buch (titel, autor, genre, preis) VALUES ('Es', 'King', 'Horror', 15.0);" +
+                                  "INSERT INTO Buch (titel, autor, genre, preis) VALUES ('Shining', 'King', 'Horror', 13.0);" +
+                                  "INSERT INTO Buch (titel, autor, genre, preis) VALUES ('Der Marsianer', 'Weir', 'SciFi', 20.0);",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Genre", Type = "VARCHAR(255)", StrictName = true },
-                        new SqlExpectedColumn { Name = "Durchschnitt", Type = "DOUBLE", StrictName = true }
+                        new SqlExpectedColumn { Name = "genre", Type = "VARCHAR(255)", StrictName = true },
+                        new SqlExpectedColumn { Name = "durchschnitt", Type = "DOUBLE", StrictName = true }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -249,17 +249,17 @@ namespace AbiturEliteCode.cs
                         new[] { "SciFi", "20" }
                     },
                     MaterialDocs = "start-hint: GROUP BY Syntax\n" +
-                                   "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte (hier Genre) ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n" +
-                                   "{|SELECT Spalte1, AVG(Spalte2)\nFROM Tabelle\nGROUP BY Spalte1;|}\n" +
+                                   "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n" +
+                                   "{|SELECT spalte1, AVG(spalte2)\nFROM Tabelle\nGROUP BY spalte1;|}\n" +
                                    ":end-hint\n" +
                                    "start-hint: Spaltenbenennung\n" +
                                    "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Schlüsselwort:\n" +
-                                   "{|SELECT AVG(Spalte) AS EigenerName\nFROM Tabelle;|}" +
+                                   "{|SELECT AVG(spalte) AS EigenerName\nFROM Tabelle;|}" +
                                    "Dies wird häufig zusammen mit Aggregatfunktionen genutzt.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "Autor" }, new RColumn { Name = "Genre" }, new RColumn { Name = "Preis" } } }
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autor" }, new RColumn { Name = "genre" }, new RColumn { Name = "preis" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -276,14 +276,14 @@ namespace AbiturEliteCode.cs
                     Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
                                   "Aufgabe:\n" +
                                   "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
-                    SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
+                    SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', 11);",
-                    VerificationQuery = "SELECT * FROM Schueler WHERE ID = 10",
+                    VerificationQuery = "SELECT * FROM Schueler WHERE id = 10",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "klasse", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -291,15 +291,15 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: INSERT Syntax\n" +
                                    "Variante 1 (Alle Spalten):\n" +
-                                   "{|INSERT INTO Tabelle VALUES (Wert1, Wert2, ...);|}\n" +
+                                   "{|INSERT INTO Tabelle VALUES (wert1, wert2, ...);|}\n" +
                                    "Variante 2 (Spezifische Spalten):\n" +
-                                   "{|INSERT INTO Tabelle (SpalteA, SpalteB) VALUES (WertA, WertB);|}\n" +
+                                   "{|INSERT INTO Tabelle (spalteA, spalteB) VALUES (wertA, wertB);|}\n" +
                                    "Variante 3 (MySQL SET-Syntax):\n" +
-                                   "{|INSERT INTO Tabelle SET SpalteA = WertA, SpalteB = WertB;|}\n" +
+                                   "{|INSERT INTO Tabelle SET spalteA = wertA, spalteB = wertB;|}\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "name" }, new RColumn { Name = "klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -316,17 +316,17 @@ namespace AbiturEliteCode.cs
                     Description = "Der Schüler 'Max' mit der ID 1 ist in die Klasse 13 versetzt worden.\n\n" +
                                   "Aufgabe:\n" +
                                   "Aktualisieren Sie den Eintrag von Max in der Tabelle [Schueler], sodass seine Klasse nun 13 ist.\n" +
-                                  "Achten Sie unbedingt auf die [WHERE]-Klausel und nutzen Sie die ID, um nicht versehentlich andere Schüler zu ändern!",
-                    SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
+                                  "Achten Sie unbedingt auf die [WHERE]-Klausel, da sonst alle Schüler betroffen werden!",
+                    SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', 12); " +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', 11);" +
                                   "INSERT INTO Schueler VALUES (3, 'Max', 12);",
                     VerificationQuery = "SELECT * FROM Schueler",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "klasse", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -335,12 +335,12 @@ namespace AbiturEliteCode.cs
                         new[] { "3", "Max", "12" }
                     },
                     MaterialDocs = "start-hint: UPDATE Syntax\n" +
-                                   "{|UPDATE Tabelle SET Spalte = NeuerWert WHERE Bedingung;|}\n" +
-                                   "Nutzen Sie am besten immer den Primärschlüssel (ID) in der WHERE-Klausel, da Namen oder Klassen mehrfach vorkommen können.\n" +
+                                   "{|UPDATE Tabelle SET spalte = neuerWert WHERE Bedingung;|}\n" +
+                                   "Nutzen Sie am besten immer den Primärschlüssel ([id]) in der WHERE-Klausel, da Namen oder Klassen mehrfach vorkommen können.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "name" }, new RColumn { Name = "klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -357,16 +357,16 @@ namespace AbiturEliteCode.cs
                     Description = "Alle Schüler der Klasse 13 haben die Schule verlassen (Abitur bestanden).\n\n" +
                                   "Aufgabe:\n" +
                                   "Löschen Sie alle Einträge aus der Tabelle [Schueler], bei denen die Klasse 13 ist.",
-                    SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse INTEGER);" +
+                    SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
                                   "INSERT INTO Schueler VALUES (1, 'AbiAbsolvent', 13); " +
                                   "INSERT INTO Schueler VALUES (2, 'BleibtHier', 12); " +
                                   "INSERT INTO Schueler VALUES (3, 'AuchWeg', 13);",
                     VerificationQuery = "SELECT * FROM Schueler",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Klasse", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "klasse", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -378,7 +378,7 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } }
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "name" }, new RColumn { Name = "klasse" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -394,19 +394,19 @@ namespace AbiturEliteCode.cs
                     Title = "Klausurphase",
                     Description = "Dies ist eine komplexe Abfrage zum Abschluss der Grundlagen.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Ermitteln Sie [Schueler] und [Notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** sind.\n" +
+                                  "Ermitteln Sie [schueler] und [notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** sind.\n" +
                                   "Sortieren Sie das Ergebnis absteigend nach den Notenpunkten.",
-                    SetupScript = "CREATE TABLE Klausur (ID INTEGER PRIMARY KEY, Schueler TEXT, Fach TEXT, Notenpunkte INTEGER);" +
-                                  "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Max', 'Mathe', 12);" +
-                                  "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Lisa', 'Informatik', 14);" +
-                                  "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Tom', 'Informatik', 3);" +
-                                  "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Sarah', 'Informatik', 4);" +
-                                  "INSERT INTO Klausur (Schueler, Fach, Notenpunkte) VALUES ('Jan', 'Deutsch', 2);",
+                    SetupScript = "CREATE TABLE Klausur (id INTEGER PRIMARY KEY, schueler TEXT, fach TEXT, notenpunkte INTEGER);" +
+                                  "INSERT INTO Klausur (schueler, fach, notenpunkte) VALUES ('Max', 'Mathe', 12);" +
+                                  "INSERT INTO Klausur (schueler, fach, notenpunkte) VALUES ('Lisa', 'Informatik', 14);" +
+                                  "INSERT INTO Klausur (schueler, fach, notenpunkte) VALUES ('Tom', 'Informatik', 3);" +
+                                  "INSERT INTO Klausur (schueler, fach, notenpunkte) VALUES ('Sarah', 'Informatik', 4);" +
+                                  "INSERT INTO Klausur (schueler, fach, notenpunkte) VALUES ('Jan', 'Deutsch', 2);",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Schueler", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Notenpunkte", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "schueler", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "notenpunkte", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -421,7 +421,7 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Klausur", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Schueler" }, new RColumn { Name = "Fach" }, new RColumn { Name = "Notenpunkte" } } }
+                        new RTable { Name = "Klausur", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "schueler" }, new RColumn { Name = "fach" }, new RColumn { Name = "notenpunkte" } } }
                     },
                     DiagramPaths = new List<string>(),
                     AuxiliaryIds = new List<string>(),
@@ -440,9 +440,9 @@ namespace AbiturEliteCode.cs
                     Description = "Wir befinden uns in der Datenbank einer Schulbibliothek. Um Redundanzen zu vermeiden, wurden Bücher und Autoren in zwei getrennte Tabellen aufgeteilt (Normalisierung).\n\n" +
                                   "Das Buch 'Faust' speichert nicht mehr den Namen 'Goethe', sondern referenziert diesen über eine ID (Fremdschlüssel).\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Ermitteln Sie die [ID] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [Autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
-                    SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
+                                  "Ermitteln Sie die [id] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
+                    SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
+                                  "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                                   "INSERT INTO Autor VALUES (101, 'Johann Wolfgang von', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (102, 'Friedrich', 'Schiller');" +
                                   "INSERT INTO Buch VALUES (1, 'Faust', 101);" +
@@ -450,20 +450,20 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
                         new[] { "101" }
                     },
                     MaterialDocs = "start-hint: Primärschlüssel\n" +
-                                   "Jeder Datensatz in der Tabelle [Autor] ist durch die [ID] eindeutig identifizierbar.\n" +
+                                   "Jeder Datensatz in der Tabelle [autor] ist durch die [id] eindeutig identifizierbar.\n" +
                                    "In der Tabelle [Buch] wird diese ID genutzt, um auf den Autor zu verweisen.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "vorname" }, new RColumn { Name = "nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autorid", IsFk = true } } }
                     },
                     DiagramPaths = new List<string>
                     {
@@ -471,7 +471,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Vorname\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Autor {\n    id <<key>>\n    vorname\n    nachname\n}\nentity Buch {\n    id <<key>>\n    titel\n    autorid_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "Primärschlüssel (PRIMARY KEY)", "Fremdschlüssel (FOREIGN KEY)" },
                     OptionalPrerequisites = new List<string> { }
@@ -485,11 +485,11 @@ namespace AbiturEliteCode.cs
                     Title = "Die erste Verbindung (Implicit Join)",
                     Description = "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Geben Sie eine Liste aller [Titel] und der zugehörigen [Nachname]n der Autoren aus.\n" +
-                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.AutorID]) mit dem Primärschlüssel ([Autor.ID]) gleichsetzen.\n\n" +
+                                  "Geben Sie eine Liste aller [titel] und der zugehörigen [nachname]n der Autoren aus.\n" +
+                                  "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.autorid]) mit dem Primärschlüssel ([Autor.id]) gleichsetzen.\n\n" +
                                   "**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptiert, wird stattdessen standardmäßig [_FK] genutzt.",
-                    SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
+                    SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
+                                  "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
@@ -498,8 +498,8 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Nachname", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "nachname", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -509,13 +509,13 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: Kartesisches Produkt\n" +
                                    "Wenn Sie nur [FROM Buch, Autor] schreiben, wird jedes Buch mit jedem Autor kombiniert.\n" +
-                                   "Erst durch [WHERE Buch.AutorID = Autor.ID] filtern Sie die korrekten Paare heraus.\n" +
+                                   "Erst durch [WHERE Buch.autorid = Autor.id] filtern Sie die korrekten Paare heraus.\n" +
                                    "Testen Sie dies gerne aus, um den Unterschied visuell zu erkennen.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "norname" }, new RColumn { Name = "nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autorid", IsFk = true } } }
                     },
                     DiagramPaths = new List<string>
                     {
@@ -523,7 +523,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Autor {\n    id <<key>>\n    nachname\n}\nentity Buch {\n    id <<key>>\n    titel\n    autorid_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "Implicit Join" },
                     OptionalPrerequisites = new List<string> { }
@@ -538,8 +538,8 @@ namespace AbiturEliteCode.cs
                     Description = "Der SQL-Standard sieht für Verknüpfungen den [JOIN]-Operator vor. Dieser trennt die Verknüpfungslogik sauber von der Filterlogik.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Erstellen Sie exakt dieselbe Liste wie im vorherigen Level ([Titel], [Nachname]), nutzen Sie diesmal jedoch den **INNER JOIN**.",
-                    SetupScript = "CREATE TABLE Autor (ID INTEGER PRIMARY KEY, Vorname TEXT, Nachname TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT, AutorID_FK INTEGER);" +
+                    SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
+                                  "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                                   "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
                                   "INSERT INTO Autor VALUES (2, 'Franz', 'Kafka');" +
                                   "INSERT INTO Buch VALUES (10, 'Faust', 1);" +
@@ -548,8 +548,8 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Nachname", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "nachname", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -562,8 +562,8 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Vorname" }, new RColumn { Name = "Nachname" } } },
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" }, new RColumn { Name = "AutorID", IsFk = true } } }
+                        new RTable { Name = "Autor", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "vorname" }, new RColumn { Name = "nachname" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" }, new RColumn { Name = "autorid", IsFk = true } } }
                     },
                     DiagramPaths = new List<string>
                     {
@@ -571,7 +571,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Autor {\n    ID <<key>>\n    Nachname\n}\nentity Buch {\n    ID <<key>>\n    Titel\n    AutorID_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Autor {\n    id <<key>>\n    nachname\n}\nentity Buch {\n    id <<key>>\n    titel\n    autorid_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "JOINs verstehen", "INNER JOIN ... ON" },
                     OptionalPrerequisites = new List<string> { }
@@ -586,10 +586,10 @@ namespace AbiturEliteCode.cs
                     Description = "Die Datenbank wurde erweitert. Schüler können nun Bücher ausleihen. Da ein Schüler viele Bücher leiht und ein Buch (über die Zeit) von vielen Schülern geliehen wird, existiert eine Relationstabelle.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie, welcher Schüler welches Buch ausgeliehen hat.\n" +
-                                  "Geben Sie den [Name]n des Schülers und den [Titel] des Buches aus.",
-                    SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT);" +
-                                  "CREATE TABLE Ausleihe (SchuelerID_FK INTEGER, BuchID_FK INTEGER, Datum TEXT);" +
+                                  "Geben Sie den [name]n des Schülers und den [titel] des Buches aus.",
+                    SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse TEXT);" +
+                                  "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT);" +
+                                  "CREATE TABLE Ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', '10b');" +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', '12a');" +
                                   "INSERT INTO Buch VALUES (100, 'Faust');" +
@@ -600,8 +600,8 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -617,14 +617,14 @@ namespace AbiturEliteCode.cs
                                    ":end-hint\n" +
                                    "start-tipp: Schreibfaul? (Aliase)\n" +
                                    "Statt immer den vollen Tabellennamen zu tippen, können Sie Kürzel definieren:\n" +
-                                   "{|FROM Schueler s JOIN Ausleihe a ON s.ID = a.SchuelerID_FK|}" +
-                                   "Danach können Sie [s.Name] statt [Schueler.Name] schreiben.\n" +
+                                   "{|FROM Schueler s JOIN Ausleihe a ON ...|}" +
+                                   "Danach können Sie [s.name] statt [Schueler.name] schreiben.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
-                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Name" }, new RColumn { Name = "Klasse" } } },
-                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true }, new RColumn { Name = "Titel" } } },
-                        new RTable { Name = "Ausleihe", Columns = new List<RColumn> { new RColumn { Name = "SchuelerID", IsFk = true }, new RColumn { Name = "BuchID", IsFk = true }, new RColumn { Name = "Datum" } } }
+                        new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "name" }, new RColumn { Name = "klasse" } } },
+                        new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" } } },
+                        new RTable { Name = "Ausleihe", Columns = new List<RColumn> { new RColumn { Name = "schuelerid", IsFk = true }, new RColumn { Name = "buchid", IsFk = true }, new RColumn { Name = "datum" } } }
                     },
                     DiagramPaths = new List<string>
                     {
@@ -632,7 +632,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,m)- Ausleihe\nAusleihe -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship Ausleihe {\n    schulerid_FK\n    buchid_FK\n    datum\n}\nSchueler -(0,m)- Ausleihe\nAusleihe -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "Ausführungsreihenfolge von SQL-Klauseln" },
                     OptionalPrerequisites = new List<string> { "Aliase (AS)" }
@@ -648,10 +648,10 @@ namespace AbiturEliteCode.cs
                                   "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus konvertieren.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Nutzen Sie das gegebene ER-Diagramm.\n" +
-                                  "Geben Sie [Name] und [Titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
-                    SetupScript = "CREATE TABLE Schueler (ID INTEGER PRIMARY KEY, Name TEXT, Klasse TEXT);" +
-                                  "CREATE TABLE Buch (ID INTEGER PRIMARY KEY, Titel TEXT);" +
-                                  "CREATE TABLE Ausleihe (SchuelerID_FK INTEGER, BuchID_FK INTEGER, Datum TEXT);" +
+                                  "Geben Sie [name] und [titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
+                    SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse TEXT);" +
+                                  "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT);" +
+                                  "CREATE TABLE Ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', '10b');" +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', '12a');" +
                                   "INSERT INTO Schueler VALUES (3, 'Tom', '10b');" +
@@ -663,8 +663,8 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "Titel", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -681,7 +681,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    ID <<key>>\n    Name\n    Klasse\n}\nentity Buch {\n    ID <<key>>\n    Titel\n}\nrelationship Ausleihe {\n    SchulerID_FK\n    BuchID_FK\n    Datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n    klasse\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship Ausleihe {\n    schulerid_FK\n    buchid_FK\n    datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "ER-Diagramm lesen (Chen-Notation)", "Relationales Schema aus ER-Diagramm ableiten" },
                     OptionalPrerequisites = new List<string> { }
@@ -701,8 +701,8 @@ namespace AbiturEliteCode.cs
                                   "Erstellen Sie eine Liste aller VIPs und ihrer Tischnummern.\n" +
                                   "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL]).\n\n" +
                                   "Tipp: Probieren Sie ruhig auch einmal 'INNER JOIN' statt 'LEFT JOIN', um zu sehen, wie die VIPs ohne Tisch verschwinden.",
-                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
-                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, TischNr INTEGER);" +
+                    SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Reservierung (vipid_FK INTEGER, tischNr INTEGER);" +
                                   "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
                                   "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
                                   "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
@@ -711,8 +711,8 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "TischNr", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "tischNr", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -732,7 +732,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
+                        "@startchen\nentity Vip {\n    id <<key>>\n    name\n}\nentity Reservierung {\n    vipid_FK <<key>>\n    tischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
                     },
                     Prerequisites = new List<string> { "LEFT JOIN", "NULL-Werte" },
                     OptionalPrerequisites = new List<string> { }
@@ -748,10 +748,10 @@ namespace AbiturEliteCode.cs
                                   "Dies ist eine der häufigsten Abitur-Aufgabenstellungen: 'Finden Sie Datensätze, die keine Entsprechung haben'.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Nutzen Sie erneut den [LEFT JOIN] aus der vorherigen Aufgabe.\n" +
-                                  "Erweitern Sie die Abfrage um eine [WHERE]-Klausel, die nur die VIPs filtert, bei denen die [TischNr] leer ([NULL]) ist.\n" +
-                                  "Geben Sie nur den [Name]n aus.",
-                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
-                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, TischNr INTEGER);" +
+                                  "Erweitern Sie die Abfrage um eine [WHERE]-Klausel, die nur die VIPs filtert, bei denen die [tischNr] leer ([NULL]) ist.\n" +
+                                  "Geben Sie nur den [name]n aus.",
+                    SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Reservierung (vipid_FK INTEGER, tischNr INTEGER);" +
                                   "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
                                   "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
                                   "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
@@ -760,7 +760,7 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -769,7 +769,7 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: Auf NULL prüfen\n" +
                                    "In SQL kann man nicht [= NULL] schreiben.\n" +
                                    "Man muss den Operator [IS NULL] verwenden:\n" +
-                                   "{|WHERE Spalte IS NULL|}\n" +
+                                   "{|WHERE spalte IS NULL|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -777,7 +777,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
+                        "@startchen\nentity Vip {\n    id <<key>>\n    name\n}\nentity Reservierung {\n    vipid_FK <<key>>\n    tischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
                     },
                     Prerequisites = new List<string> { "IS NULL / IS NOT NULL" },
                     OptionalPrerequisites = new List<string> { }
@@ -792,10 +792,10 @@ namespace AbiturEliteCode.cs
                     Description = "Für eine gezielte Marketingkampagne benötigen wir eine Liste aller Städte, aus denen unsere VIP-Gäste anreisen.\n\n" +
                                   "In der Tabelle [Gast] kommen Städte mehrfach vor (z.B. kommen viele Gäste aus Berlin). Zudem gibt es nun eine Tabelle [Ticket], die angibt, welchen Bereich ein Gast gebucht hat.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Ermitteln Sie eine Liste der Städte ([Stadt]) aus der Tabelle [Gast], aber **nur** von Gästen, die ein Ticket für den Bereich 'VIP' haben.\n" +
+                                  "Ermitteln Sie eine Liste der Städte aus der Tabelle [Gast], aber **nur** von Gästen, die ein Ticket für den Bereich 'VIP' haben.\n" +
                                   "Jede Stadt darf dabei **nur einmal** in der Ergebnisliste auftauchen.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, Name TEXT, Stadt TEXT);" +
-                                  "CREATE TABLE Ticket (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, Bereich TEXT);" +
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT, stadt TEXT);" +
+                                  "CREATE TABLE Ticket (id INTEGER PRIMARY KEY, gastid_FK INTEGER, bereich TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Müller', 'Berlin');" +
                                   "INSERT INTO Gast VALUES (2, 'Schmidt', 'München');" +
                                   "INSERT INTO Gast VALUES (3, 'Schneider', 'Berlin');" +
@@ -809,7 +809,7 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Stadt", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "stadt", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -818,7 +818,7 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: Duplikate entfernen\n" +
                                    "Nutzen Sie das Schlüsselwort [DISTINCT] direkt nach dem [SELECT]:\n" +
-                                   "{|SELECT DISTINCT Spalte FROM Tabelle|}\n" +
+                                   "{|SELECT DISTINCT spalte FROM Tabelle|}\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Kombination\n" +
                                    "Sie müssen zuerst die beiden Tabellen verknüpfen ([JOIN]) und nach dem Bereich filtern ([WHERE]), bevor Sie die Städte ohne Duplikate ausgeben.\n" +
@@ -829,7 +829,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    Name\n    Stadt\n}\nentity Ticket {\n    ID <<key>>\n    GastID_FK\n    Bereich\n}\nrelationship bucht {\n}\nGast -(1,1)- bucht\nbucht -(0,n)- Ticket\n@endchen"
+                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n    stadt\n}\nentity Ticket {\n    id <<key>>\n    gastid_FK\n    bereich\n}\nrelationship bucht {\n}\nGast -(1,1)- bucht\nbucht -(0,n)- Ticket\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "DISTINCT" },
@@ -846,13 +846,13 @@ namespace AbiturEliteCode.cs
                                   "Das Event-Team ist in Panik: Einige VIPs hängen 'in der Luft' und könnten unzufrieden sein. Wir brauchen eine Liste dieser Personen.\n\n" +
                                   "**Regeln:**\n" +
                                   "1. Ein VIP gilt als Problem-Gast, wenn er **noch gar keine Reservierung** getätigt hat.\n" +
-                                  "2. Ein VIP gilt ebenfalls als Problem-Gast, wenn er eine Reservierung für den **'Hauptbereich'** hat, aber dort **noch keine Tischnummer zugewiesen** wurde (TischNr ist leer/[NULL]).\n" +
+                                  "2. Ein VIP gilt ebenfalls als Problem-Gast, wenn er eine Reservierung für den **'Hauptbereich'** hat, aber dort **noch keine Tischnummer zugewiesen** wurde ([tischNr] ist leer/[NULL]).\n" +
                                   "3. VIPs, denen in anderen Bereichen (z. B. 'VIP-Lounge') noch kein Tisch zugewiesen wurde, sind für diese Liste irrelevant.\n" +
                                   "4. Jeder Name darf **nur einmal** auf der Liste stehen.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Geben Sie die [Name]n dieser Problem-VIPs aus.",
-                    SetupScript = "CREATE TABLE Vip (ID INTEGER PRIMARY KEY, Name TEXT);" +
-                                  "CREATE TABLE Reservierung (VIP_ID_FK INTEGER, Bereich TEXT, TischNr INTEGER);" +
+                    SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Reservierung (vipid_FK INTEGER, bereich TEXT, tischNr INTEGER);" +
                                   "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
                                   "INSERT INTO Vip VALUES (2, 'Elon Musk');" +
                                   "INSERT INTO Vip VALUES (3, 'Beyoncé');" +
@@ -868,7 +868,7 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "Name", Type = "VARCHAR(255)", StrictName = false }
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -878,8 +878,8 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-tipp: Strategie\n" +
                                    "1. Starten Sie mit der [Vip]-Tabelle und nutzen Sie einen [LEFT JOIN] zur Reservierung. Ein normaler JOIN würde VIPs ohne Reservierung verwerfen!\n" +
                                    "2. Im [WHERE]-Teil müssen Sie zwei Fälle mit [OR] kombinieren:\n" +
-                                   "   - Fall A: [Bereich] ist 'Hauptbereich' UND [TischNr] ist NULL.\n" +
-                                   "   - Fall B: Der VIP hat gar keine Reservierung (die FK-Spalte der rechten Tabelle ist NULL).\n" +
+                                   "   - Fall A: [bereich] ist 'Hauptbereich' UND [tischNr] ist NULL.\n" +
+                                   "   - Fall B: Der VIP hat gar keine Reservierung (die FK-Spalte der rechten Tabelle ist [NULL]).\n" +
                                    "3. Nutzen Sie Klammern für die UND/ODER Logik und [DISTINCT] gegen Duplikate.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
@@ -888,7 +888,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Vip {\n    ID <<key>>\n    Name\n}\nentity Reservierung {\n    VIP_ID_FK <<key>>\n    Bereich\n    TischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,n)- Reservierung\n@endchen"
+                        "@startchen\nentity Vip {\n    id <<key>>\n    name\n}\nentity Reservierung {\n    vipid_FK <<key>>\n    bereich\n    tischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,n)- Reservierung\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "Logische Operatoren (AND, OR, NOT)" },
@@ -908,8 +908,8 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Berechnen Sie für jede Position den Gesamtpreis (Preis multipliziert mit der Menge). \n" +
                                   "Geben Sie die [bezeichnung] des Produkts und den berechneten Wert unter dem Alias 'Gesamt' aus.",
-                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
-                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                    SetupScript = "CREATE TABLE Produkt (id INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
+                                  "CREATE TABLE Position (id INTEGER PRIMARY KEY, produktid_FK INTEGER, menge INTEGER);" +
                                   "INSERT INTO Produkt VALUES (1, 'T-Shirt', 19.99);" +
                                   "INSERT INTO Produkt VALUES (2, 'Hose', 49.90);" +
                                   "INSERT INTO Produkt VALUES (3, 'Socken', 5.50);" +
@@ -938,7 +938,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Produkt {\n    ID <<key>>\n    bezeichnung\n    preis\n}\nentity Position {\n    ID <<key>>\n    produktID_FK\n    menge\n}\nrelationship enthaelt {\n}\nProdukt -(1,1)- enthaelt\nenthaelt -(0,n)- Position\n@endchen"
+                        "@startchen\nentity Produkt {\n    id <<key>>\n    bezeichnung\n    preis\n}\nentity Position {\n    id <<key>>\n    produktid_FK\n    menge\n}\nrelationship enthaelt {\n}\nProdukt -(1,1)- enthaelt\nenthaelt -(0,n)- Position\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "Arithmetische Ausdrücke" },
@@ -956,8 +956,8 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie den gesamten Umsatz (Summe aus Preis * Menge) für alle Bestellungen, die am '2024-02-28' getätigt wurden.\n" +
                                   "Geben Sie das Ergebnis als 'Tagesumsatz' aus.",
-                    SetupScript = "CREATE TABLE Bestellung (ID INTEGER PRIMARY KEY, datum TEXT);" +
-                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, bestellungID_FK INTEGER, preis REAL, menge INTEGER);" +
+                    SetupScript = "CREATE TABLE Bestellung (id INTEGER PRIMARY KEY, datum TEXT);" +
+                                  "CREATE TABLE Position (id INTEGER PRIMARY KEY, bestellungid_FK INTEGER, preis REAL, menge INTEGER);" +
                                   "INSERT INTO Bestellung VALUES (1, '2024-02-28');" +
                                   "INSERT INTO Bestellung VALUES (2, '2024-02-27');" +
                                   "INSERT INTO Position VALUES (101, 1, 10.0, 2);" +
@@ -990,7 +990,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Bestellung {\n    ID <<key>>\n    datum\n}\nentity Position {\n    ID <<key>>\n    preis\n    menge\n}\nrelationship umfasst {\n}\nBestellung -(1,1)- umfasst\numfasst -(1,n)- Position\n@endchen"
+                        "@startchen\nentity Bestellung {\n    id <<key>>\n    datum\n}\nentity Position {\n    id <<key>>\n    preis\n    menge\n}\nrelationship umfasst {\n}\nBestellung -(1,1)- umfasst\numfasst -(1,n)- Position\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "SUM()", "1:1 Beziehungen", "1:n Beziehungen", "n:m Beziehungen" },
@@ -1008,8 +1008,8 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie den [name]n der Produkte und die insgesamt verkaufte Menge (als 'Anzahl').\n" +
                                   "Sortieren Sie die Liste **absteigend** nach der Anzahl, sodass das meistverkaufte Produkt oben steht.",
-                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                    SetupScript = "CREATE TABLE Produkt (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Position (id INTEGER PRIMARY KEY, produktid_FK INTEGER, menge INTEGER);" +
                                   "INSERT INTO Produkt VALUES (1, 'T-Shirt');" +
                                   "INSERT INTO Produkt VALUES (2, 'Hose');" +
                                   "INSERT INTO Produkt VALUES (3, 'Schuhe');" +
@@ -1042,7 +1042,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Produkt {\n    ID <<key>>\n    name\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                        "@startchen\nentity Produkt {\n    id <<key>>\n    name\n}\nentity Position {\n    id <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "GROUP BY", "SUM()" },
@@ -1059,8 +1059,8 @@ namespace AbiturEliteCode.cs
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie die [kategorie] und die insgesamt verkaufte Menge als 'Verkauft'.\n" +
                                   "Zeigen Sie **nur** Kategorien an, bei denen die Summe der verkauften Menge **kleiner als 5** ist.",
-                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, kategorie TEXT);" +
-                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                    SetupScript = "CREATE TABLE Produkt (id INTEGER PRIMARY KEY, kategorie TEXT);" +
+                                  "CREATE TABLE Position (id INTEGER PRIMARY KEY, produktid_FK INTEGER, menge INTEGER);" +
                                   "INSERT INTO Produkt VALUES (1, 'Elektronik');" +
                                   "INSERT INTO Produkt VALUES (2, 'Kleidung');" +
                                   "INSERT INTO Produkt VALUES (3, 'Bücher');" +
@@ -1095,7 +1095,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Produkt {\n    ID <<key>>\n    kategorie\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                        "@startchen\nentity Produkt {\n    id <<key>>\n    kategorie\n}\nentity Position {\n    id <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "HAVING" },
@@ -1113,8 +1113,8 @@ namespace AbiturEliteCode.cs
                                   "Zeigen Sie alle Produktkategorien und deren Gesamtumsatz als 'Gesamtumsatz' an.\n" +
                                   "Es sollen jedoch **nur** Kategorien angezeigt werden, deren Gesamtumsatz **über 100 Euro** liegt.\n" +
                                   "Sortieren Sie das Ergebnis **absteigend** nach dem Gesamtumsatz.",
-                    SetupScript = "CREATE TABLE Produkt (ID INTEGER PRIMARY KEY, kategorie TEXT, preis REAL);" +
-                                  "CREATE TABLE Position (ID INTEGER PRIMARY KEY, produktID_FK INTEGER, menge INTEGER);" +
+                    SetupScript = "CREATE TABLE Produkt (id INTEGER PRIMARY KEY, kategorie TEXT, preis REAL);" +
+                                  "CREATE TABLE Position (id INTEGER PRIMARY KEY, produktid_FK INTEGER, menge INTEGER);" +
                                   "INSERT INTO Produkt VALUES (1, 'Elektronik', 250.0);" +
                                   "INSERT INTO Produkt VALUES (2, 'Kleidung', 20.0);" +
                                   "INSERT INTO Produkt VALUES (3, 'Medien', 15.0);" +
@@ -1147,7 +1147,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Produkt {\n    ID <<key>>\n    kategorie\n    preis\n}\nentity Position {\n    ID <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
+                        "@startchen\nentity Produkt {\n    id <<key>>\n    kategorie\n    preis\n}\nentity Position {\n    id <<key>>\n    menge\n}\nrelationship verkauft {\n}\nProdukt -(1,1)- verkauft\nverkauft -(0,n)- Position\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "GROUP BY", "HAVING", "INNER JOIN ... ON", "ORDER BY (ASC / DESC)" },
@@ -1163,11 +1163,12 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[23],
                     Title = "Der Check-in (YEAR & MONTH)",
                     Description = "Willkommen im Hotel-Management-System!\n\n" +
-                                  "**WICHTIG:** Ab sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n\n" +
+                                  "**WICHTIG:** Ab sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n" +
+                                  "Ebenfalls werden die Aufgabenstellungen verständlich anspruchsvoller, da nichts mehr hervorgehoben wird und die Sprache mehr den Abiturstandards entspricht.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Zeigen Sie den [Name]n des Gastes und das [Anreise]datum für alle Buchungen an, die im Jahr **2024** stattfinden.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "Zeigen Sie den Namen des Gastes und das Anreisedatum für alle Buchungen an, die im Jahr 2024 stattfinden.",
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, Gastid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Thomas Müller');" +
                                   "INSERT INTO Gast VALUES (2, 'Sabine Schmidt');" +
                                   "INSERT INTO Gast VALUES (3, 'Lisa Meier');" +
@@ -1197,7 +1198,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "YEAR()", "MONTH()", "3. Normalform (1:n)" },
@@ -1212,9 +1213,9 @@ namespace AbiturEliteCode.cs
                     Title = "Die Hochsaison (BETWEEN)",
                     Description = "Wir erwarten in den Sommerferien einen großen Ansturm und müssen das Personal planen.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Geben Sie alle [Name]n der Gäste aus, deren [Anreise]datum im Zeitraum vom **'2024-07-01' bis zum '2024-08-31'** (jeweils einschließlich) liegt.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, GastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "Geben Sie alle Namen der Gäste aus, deren Anreisedatum im Zeitraum vom '2024-07-01' bis zum '2024-08-31' (jeweils einschließlich) liegt.",
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, gastid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Familie Richter');" +
                                   "INSERT INTO Gast VALUES (2, 'Familie Baum');" +
                                   "INSERT INTO Gast VALUES (3, 'Herr Klee');" +
@@ -1232,9 +1233,9 @@ namespace AbiturEliteCode.cs
                         new[] { "Herr Klee" }
                     },
                     MaterialDocs = "start-hint: Zeitraum filtern (BETWEEN)\n" +
-                                   "Statt [Spalte >= Wert1 AND Spalte <= Wert2] zu schreiben, bietet SQL den eleganteren [BETWEEN]-Operator:\n" +
+                                   "Statt [spalte >= wert1 AND spalte <= wert2] zu schreiben, bietet SQL den eleganteren [BETWEEN]-Operator:\n" +
                                    "Beispiel:\n" +
-                                   "{|WHERE Kaufdatum BETWEEN '2023-01-01' AND '2023-12-31'|}\n" +
+                                   "{|WHERE kaufdatum BETWEEN '2023-01-01' AND '2023-12-31'|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1242,7 +1243,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "BETWEEN" },
@@ -1257,10 +1258,9 @@ namespace AbiturEliteCode.cs
                     Title = "Überfällig (NOW / Datumsvergleich)",
                     Description = "Das System soll prüfen, ob Gäste vergessen haben auszuchecken.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Ermitteln Sie die [ID] der Buchung und den [Name]n des Gastes für alle Buchungen, deren [Abreise]datum bereits in der Vergangenheit liegt.\n" +
-                                  "Vergleichen Sie das Datum dazu mit der aktuellen Systemzeit.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "Ermitteln Sie die Identifikationsnummer der Buchung und den Namen des Gastes für alle Buchungen, deren Abreisedatum bereits in der Vergangenheit liegt.",
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, gastid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Max Mustermann');" +
                                   "INSERT INTO Gast VALUES (2, 'Anna Nass');" +
                                   "INSERT INTO Buchung VALUES (101, 1, '2020-01-01', '2020-01-10');" + // expired
@@ -1268,7 +1268,7 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
                         new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
@@ -1285,7 +1285,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
+                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "NOW()" },
@@ -1300,16 +1300,15 @@ namespace AbiturEliteCode.cs
                     Title = "Aufenthaltsdauer (DATEDIFF)",
                     Description = "Um Rechnungen stellen zu können, müssen wir wissen, wie viele Nächte ein Gast bei uns verbringt.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Geben Sie für jede Buchung die [ID] und die berechnete Aufenthaltsdauer in Tagen aus.\n" +
-                                  "Nennen Sie die berechnete Spalte **'Naechte'**.",
-                    SetupScript = "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "Geben Sie für jede Buchung die Identifikationsnummer und die berechnete Aufenthaltsdauer (als 'Naechte') in Tagen aus.",
+                    SetupScript = "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, gastid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Buchung VALUES (101, 1, '2024-01-01', '2024-01-05');" + // 4 nights
                                   "INSERT INTO Buchung VALUES (102, 2, '2024-02-10', '2024-02-20');" + // 10 nights
                                   "INSERT INTO Buchung VALUES (103, 3, '2024-03-01', '2024-03-02');",  // 1 night
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
                         new SqlExpectedColumn { Name = "Naechte", Type = "INT", StrictName = true }
                     },
                     ExpectedResult = new List<string[]>
@@ -1319,9 +1318,11 @@ namespace AbiturEliteCode.cs
                         new[] { "103", "1" }
                     },
                     MaterialDocs = "start-hint: Differenz berechnen (DATEDIFF)\n" +
-                                   "Die Funktion [DATEDIFF(Enddatum, Startdatum)] berechnet die Differenz zwischen zwei Daten in Tagen.\n" +
+                                   "Die Funktion [DATEDIFF(enddatum, startdatum)] berechnet die Differenz zwischen zwei Daten in Tagen.\n" +
                                    "Beispiel:\n" +
-                                   "{|SELECT DATEDIFF('2023-12-31', '2023-12-01'); -- Ergibt 30|}\n" +
+                                   "{|SELECT DATEDIFF('2023-12-31', '2023-12-01'); -- Ergibt 30|}" +
+                                   "[DATEDIFF] tut folgendes: ['2023-12-31' - '2023-12-01' = 30]\n" +
+                                   "Deshalb ist die Reihenfolge nicht irrelevant!\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1329,7 +1330,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\n@endchen"
+                        "@startchen\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "DATEDIFF()", "Alias (AS)" },
@@ -1343,14 +1344,14 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[27],
                     Title = "Feedback-Mails & Limit (DATE_ADD)",
                     Description = "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
-                                  "**Neues Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um!\n\n" +
+                                  "**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Das Hotel verschickt genau **7 Tage nach Abreise** eine E-Mail.\n" +
-                                  "Geben Sie die [ID] der Buchung, den [Name]n des Gastes und das berechnete Versanddatum als **'FeedbackDatum'** aus.\n" +
-                                  "Damit das System nicht überlastet wird, sollen nur die **3 spätesten Abreisen** (chronologisch absteigend sortiert nach Abreise) ausgelesen werden.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Zimmer (ID INTEGER PRIMARY KEY, nummer TEXT);" +
-                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, zimmerID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                                  "Das Hotel verschickt genau 7 Tage nach Abreise eine E-Mail.\n" +
+                                  "Geben Sie die Identifikationsnummer der Buchung, den Namen des Gastes und das berechnete Versanddatum als 'FeedbackDatum' aus.\n" +
+                                  "Damit das System nicht überlastet wird, sollen nur die 3 spätesten Abreisen (chronologisch absteigend sortiert) ausgelesen werden.",
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Zimmer (id INTEGER PRIMARY KEY, nummer TEXT);" +
+                                  "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, gastid_FK INTEGER, zimmerid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Klaus');" +
                                   "INSERT INTO Gast VALUES (2, 'Berta');" +
                                   "INSERT INTO Zimmer VALUES (1, '101');" +
@@ -1362,7 +1363,7 @@ namespace AbiturEliteCode.cs
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "ID", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "id", Type = "INT", StrictName = false },
                         new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
                         new SqlExpectedColumn { Name = "FeedbackDatum", Type = "VARCHAR(255)", StrictName = true }
                     },
@@ -1375,10 +1376,10 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: Datums-Addition (DATE_ADD)\n" +
                                    "Mit [DATE_ADD] können Sie einem Datum einen bestimmten Zeitraum hinzufügen:\n" +
                                    "Beispiel (14 Tage zu einem Kaufdatum addieren):\n" +
-                                   "{|DATE_ADD(Kaufdatum, INTERVAL 14 DAY)|}\n" +
+                                   "{|DATE_ADD(kaufdatum, INTERVAL 14 DAY)|}\n" +
                                    ":end-hint\n" +
                                    "start-hint: Ergebnisse begrenzen (LIMIT)\n" +
-                                   "Wenn Sie nur die ersten X Ergebnisse einer Abfrage benötigen, fügen Sie am Ende (nach dem [ORDER BY]) den Befehl [LIMIT X] ein.\n" +
+                                   "Wenn Sie nur die ersten X Ergebnisse einer Abfrage benötigen, fügen Sie am Ende den Befehl [LIMIT X] ein.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1386,7 +1387,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    ID <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(1,1)- reserviert\nreserviert -(0,n)- Zimmer\n@endchen"
+                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    id <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(0,n)- reserviert\nreserviert -(1,1)- Zimmer\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "DATE_ADD()", "LIMIT", "ORDER BY" },
@@ -1399,22 +1400,32 @@ namespace AbiturEliteCode.cs
                     SkipCode = SqlLevelCodes.CodesList[27],
                     NextLevelCode = SqlLevelCodes.CodesList[28],
                     Title = "Die Hotel-Bilanz",
-                    Description = "Der Boss möchte zum Jahresabschluss die treuesten Kunden belohnen. Diese Mini-Prüfung verlangt alles aus Sektion 4 und 5!\n\n" +
-                                  "Nutzen Sie das Diagramm aus dem vorherigen Level.\n\n" +
+                    Description = "Der Chef möchte zum Jahresabschluss die treuesten Kunden belohnen. Diese Mini-Prüfung verlangt alles aus Sektion 4 und 5!\n\n" +
                                   "**Aufgabe:**\n" +
-                                  "Ermitteln Sie die **Top 3 Gäste** (nur den [Name]n), die im Jahr **2024** angereist sind, basierend auf der **Gesamtsumme ihrer gebuchten Nächte** (nennen Sie diese Spalte **'GesamtNaechte'**).\n" +
+                                  "Ermitteln Sie die Top 3 Gäste (nur den Namen), die im Jahr 2024 angereist sind und in einem **Premium-Zimmer (Zimmernummern '101' bis '109')** übernachtet haben, basierend auf der Gesamtsumme ihrer gebuchten Nächte (nennen Sie diese Spalte 'GesamtNaechte').\n" +
                                   "Sortieren Sie die Liste absteigend, sodass der Gast mit den meisten Gesamtnächten auf Platz 1 steht.",
-                    SetupScript = "CREATE TABLE Gast (ID INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Buchung (ID INTEGER PRIMARY KEY, gastID_FK INTEGER, anreise TEXT, abreise TEXT);" +
+                    SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Zimmer (id INTEGER PRIMARY KEY, nummer TEXT);" +
+                                  "CREATE TABLE Buchung (id INTEGER PRIMARY KEY, gastid_FK INTEGER, zimmerid_FK INTEGER, anreise TEXT, abreise TEXT);" +
                                   "INSERT INTO Gast VALUES (1, 'Herr Müller');" +
                                   "INSERT INTO Gast VALUES (2, 'Frau Schmidt');" +
                                   "INSERT INTO Gast VALUES (3, 'Familie Wagner');" +
                                   "INSERT INTO Gast VALUES (4, 'Herr Schulz');" +
-                                  "INSERT INTO Buchung VALUES (101, 1, '2024-01-01', '2024-01-11');" + // 10 nights
-                                  "INSERT INTO Buchung VALUES (102, 1, '2024-05-01', '2024-05-06');" + // 5 nights -> müller total: 15
-                                  "INSERT INTO Buchung VALUES (103, 2, '2024-02-01', '2024-02-21');" + // 20 nights -> schmidt total: 20
-                                  "INSERT INTO Buchung VALUES (104, 3, '2024-07-01', '2024-07-08');" + // 7 nights -> wagner total: 7
-                                  "INSERT INTO Buchung VALUES (105, 4, '2023-12-01', '2023-12-31');",  // 30 nights (but 2023! should be ignored)
+                                  "INSERT INTO Gast VALUES (5, 'Frau Klein');" +
+                                  "INSERT INTO Gast VALUES (6, 'Herr Richter');" +
+                                  "INSERT INTO Gast VALUES (7, 'Frau Baum');" +
+                                  "INSERT INTO Zimmer VALUES (1, '101');" +
+                                  "INSERT INTO Zimmer VALUES (2, '105');" +
+                                  "INSERT INTO Zimmer VALUES (3, '109');" +
+                                  "INSERT INTO Zimmer VALUES (4, '202');" +
+                                  "INSERT INTO Buchung VALUES (101, 1, 1, '2024-01-01', '2024-01-11');" + // 10 nights (müller)
+                                  "INSERT INTO Buchung VALUES (102, 1, 2, '2024-05-01', '2024-05-06');" + // 5 nights -> müller total: 15
+                                  "INSERT INTO Buchung VALUES (103, 2, 3, '2024-02-01', '2024-02-21');" + // 20 nights -> schmidt total: 20
+                                  "INSERT INTO Buchung VALUES (104, 3, 4, '2024-07-01', '2024-07-08');" + // 7 nights -> ignored (wrong room)
+                                  "INSERT INTO Buchung VALUES (105, 4, 1, '2023-12-01', '2023-12-31');" + // 30 nights -> ignored (wrong year)
+                                  "INSERT INTO Buchung VALUES (106, 5, 2, '2024-03-01', '2024-03-08');" + // 7 nights -> klein total: 7
+                                  "INSERT INTO Buchung VALUES (107, 6, 1, '2024-04-01', '2024-04-13');" + // 12 nights -> richter total: 12
+                                  "INSERT INTO Buchung VALUES (108, 7, 3, '2024-06-01', '2024-06-10');", // 9 nights -> baum total: 9
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
@@ -1425,16 +1436,16 @@ namespace AbiturEliteCode.cs
                     {
                         new[] { "Frau Schmidt", "20" },
                         new[] { "Herr Müller", "15" },
-                        new[] { "Familie Wagner", "7" }
+                        new[] { "Herr Richter", "12" }
                     },
                     MaterialDocs = "start-tipp: Die perfekte Kombination\n" +
                                    "Denken Sie an die SQL-Reihenfolge:\n" +
-                                   "1. [SELECT] (Mit einer Aggregationsfunktion wie z.B. SUM(...) AS ...)\n" +
+                                   "1. [SELECT] (Mit einer Aggregationsfunktion)\n" +
                                    "2. [FROM] und [JOIN]\n" +
-                                   "3. [WHERE] (Filterung nach dem gewünschten Jahr)\n" +
-                                   "4. [GROUP BY] (Gruppieren nach Gastname)\n" +
-                                   "5. [ORDER BY] (Sortierung der aggregierten Spalte)\n" +
-                                   "6. [LIMIT] (Beschränkung der Ergebnisse)\n" +
+                                   "3. [WHERE] (Filterung)\n" +
+                                   "4. [GROUP BY]\n" +
+                                   "5. [ORDER BY]\n" +
+                                   "6. [LIMIT]\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
@@ -1442,7 +1453,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                         "@startchen\nentity Gast {\n    ID <<key>>\n    name\n}\nentity Buchung {\n    ID <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    ID <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(1,1)- reserviert\nreserviert -(0,n)- Zimmer\n@endchen"
+                         "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    id <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(0,n)- reserviert\nreserviert -(1,1)- Zimmer\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { },

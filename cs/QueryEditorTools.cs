@@ -96,9 +96,10 @@ namespace AbiturEliteCode
             <Word>ASC</Word>
             <Word>DESC</Word>
             <Word>USING</Word>
+			<Word>INTERVAL</Word>
 		</Keywords>
 
-        <Keywords color=""Types"">
+<Keywords color=""Types"">
             <Word>INT</Word>
             <Word>INTEGER</Word>
             <Word>VARCHAR</Word>
@@ -111,25 +112,29 @@ namespace AbiturEliteCode
             <Word>DOUBLE</Word>
             <Word>DECIMAL</Word>
             <Word>BOOLEAN</Word>
-        </Keywords>
-
-		<Keywords color=""Functions"">
-			<Word>COUNT</Word>
-			<Word>SUM</Word>
-			<Word>AVG</Word>
-			<Word>MIN</Word>
-			<Word>MAX</Word>
-			<Word>UPPER</Word>
-			<Word>LOWER</Word>
-			<Word>LENGTH</Word>
-            <Word>CONCAT</Word>
-            <Word>NOW</Word>
-			<Word>CONCAT</Word>
-            <Word>NOW</Word>
             <Word>YEAR</Word>
             <Word>MONTH</Word>
             <Word>DAY</Word>
-		</Keywords>
+        </Keywords>
+
+        <Keywords color=""Functions"">
+            <Word>COUNT</Word>
+            <Word>SUM</Word>
+            <Word>AVG</Word>
+            <Word>MIN</Word>
+            <Word>MAX</Word>
+            <Word>UPPER</Word>
+            <Word>LOWER</Word>
+            <Word>LENGTH</Word>
+            <Word>CONCAT</Word>
+            <Word>NOW</Word>
+            <Word>DATE_ADD</Word>
+            <Word>DATEDIFF</Word>
+        </Keywords>
+
+        <Rule color=""Functions"">
+            \b[a-zA-Z_][a-zA-Z0-9_]*\b(?=\s*\()
+        </Rule>
 
 		<Rule color=""Number"">
 			\b0[xX][0-9a-fA-F]+|(\b\d+(\.[0-9]+)?|\.[0-9]+)([eE][+-]?[0-9]+)?

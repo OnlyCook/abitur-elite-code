@@ -62,6 +62,7 @@ namespace AbiturEliteCode
         private System.Timers.Timer _relationalAutoSaveTimer;
         private List<RTable> _currentRelationalModel = new List<RTable>();
         private RColumn _focusedRColumn;
+        private RTable _focusedRTable;
         private TextBox _focusedRColumnTextBox;
         private Button _btnGlobalPk;
         private Button _btnGlobalFk;
@@ -987,7 +988,7 @@ namespace AbiturEliteCode
             string ctrlKey = isMac ? "Cmd" : "Ctrl";
 
             // update tooltips
-            ToolTip.SetTip(BtnSave, $"Code speichern ({ctrlKey} + S)");
+            ToolTip.SetTip(BtnSave, $"{(_isSqlMode ? "Query" : "Code")} speichern ({ctrlKey} + S)");
 
             if (BtnSettings.Parent is Panel parentPanel)
             {
@@ -1377,11 +1378,15 @@ namespace AbiturEliteCode
                 else
                     playerData.UserSqlCode.Add(currentSqlLevel.Id, codeToSave);
 
-                string modelJson = JsonSerializer.Serialize(_currentRelationalModel);
-                if (playerData.UserSqlModels.ContainsKey(currentSqlLevel.Id))
-                    playerData.UserSqlModels[currentSqlLevel.Id] = modelJson;
-                else
-                    playerData.UserSqlModels.Add(currentSqlLevel.Id, modelJson);
+                // only save relational model if it is not read only
+                if (!currentSqlLevel.IsRelationalModelReadOnly)
+                {
+                    string modelJson = JsonSerializer.Serialize(_currentRelationalModel);
+                    if (playerData.UserSqlModels.ContainsKey(currentSqlLevel.Id))
+                        playerData.UserSqlModels[currentSqlLevel.Id] = modelJson;
+                    else
+                        playerData.UserSqlModels.Add(currentSqlLevel.Id, modelJson);
+                }
 
                 SaveSystem.Save(playerData);
                 return;
@@ -3359,6 +3364,8 @@ namespace AbiturEliteCode
 
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
+                ToolTip.SetTip(BtnReset, "Query leeren (Undo möglich)");
+                UpdateShortcutsAndTooltips();
 
                 ApplySqlSyntaxHighlighting();
 
@@ -3397,6 +3404,8 @@ namespace AbiturEliteCode
 
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
+                ToolTip.SetTip(BtnReset, "Code zurücksetzen");
+                UpdateShortcutsAndTooltips();
 
                 ApplySyntaxHighlighting();
 
@@ -7117,7 +7126,7 @@ namespace AbiturEliteCode
             PnlUmlRelationalModel.Children.Clear();
 
             _currentRelationalModel.Clear();
-            if (playerData.UserSqlModels.ContainsKey(level.Id))
+            if (!level.IsRelationalModelReadOnly && playerData.UserSqlModels.ContainsKey(level.Id))
             {
                 try
                 {
@@ -7816,7 +7825,12 @@ namespace AbiturEliteCode
                     TriggerRelationalAutoSave();
                 };
 
-                txtTableName.GotFocus += (s, e) => UpdateFocusedColumn(null, null);
+                txtTableName.GotFocus += (s, e) => {
+                    UpdateFocusedColumn(null, null);
+                    _focusedRTable = table;
+                };
+
+                if (_focusedRTable == table) Dispatcher.UIThread.Post(() => txtTableName.Focus());
 
                 rowPanel.Children.Add(txtTableName);
                 rowPanel.Children.Add(new TextBlock { Text = " (", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
@@ -7977,7 +7991,7 @@ namespace AbiturEliteCode
                 ToolTip.SetTip(btnDelTable, "Tabelle löschen");
                 btnDelTable.Click += (s, e) => {
                     _currentRelationalModel.Remove(table);
-                    if (table.Columns.Contains(_focusedRColumn)) UpdateFocusedColumn(null, null);
+                    if (table.Columns.Contains(_focusedRColumn) || _focusedRTable == table) UpdateFocusedColumn(null, null);
                     RenderRelationalModel(targetPanel, false);
                     TriggerRelationalAutoSave();
                 };
@@ -7988,7 +8002,7 @@ namespace AbiturEliteCode
 
             var btnAddTable = new Button { Content = "+ Tabelle", Background = SolidColorBrush.Parse("#2D2D30"), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(4), Cursor = Cursor.Parse("Hand"), Margin = new Thickness(0, 10, 0, 0) };
             btnAddTable.Click += (s, e) => {
-                _currentRelationalModel.Add(new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "ID", IsPk = true } } });
+                _currentRelationalModel.Add(new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } });
                 RenderRelationalModel(targetPanel, false);
                 TriggerRelationalAutoSave();
             };
@@ -8001,6 +8015,7 @@ namespace AbiturEliteCode
         {
             _focusedRColumn = col;
             _focusedRColumnTextBox = tb;
+            _focusedRTable = null;
             UpdateGlobalKeyButtons();
         }
 
