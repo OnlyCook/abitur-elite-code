@@ -50,6 +50,14 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | 22 | `MUL` | Multi-User Hub (Threads) |
 | 23 | `SEC` | Das Sicherheitssystem |
 
+## Sektion 6: Die Generalprobe
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| 24 | `INF` | Flughafen-Infrastruktur (Teil 1) |
+| 25 | `PAK` | Gepäckaufgabe & Hardware (Teil 2) |
+| 26 | `ABR` | Das Abrechnungssystem (Teil 3) |
+
 ---
 
 # SQL Levels

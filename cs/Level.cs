@@ -63,6 +63,7 @@ namespace AbiturEliteCode.cs
             "NAV", "COL", "DAT", "ELT",
             "COM", "CHK", "SER", "SAF", "PRO",
             "NET", "HUB", "MUL", "SEC",
+            "INF", "PAK", "ABR",
             ""
         };
     }
@@ -223,6 +224,92 @@ namespace AbiturEliteCode.cs
                         
                         public List<string> GetEintraege() { return eintraege; }
                         public void SetEintraege(List<string> value) { eintraege = value; }
+                    }",
+                "Gepaeckstueck" => @"
+                    public abstract class Gepaeckstueck {
+                        protected string id;
+                        protected double gewicht;
+                        
+                        public Gepaeckstueck(string id, double gewicht) {
+                            this.id = id;
+                            this.gewicht = gewicht;
+                        }
+                        
+                        public abstract double BerechneZuschlag();
+                        public double GetGewicht() { return gewicht; }
+                    }",
+                "GepaeckSchleuse" => @"
+                    public class GepaeckSchleuse {
+                        private int schleusenNr;
+                        private bool locked = true;
+                        
+                        public GepaeckSchleuse(int nr) { schleusenNr = nr; }
+                        public void Lock() { locked = true; }
+                        public void Unlock() { locked = false; }
+                        public bool IsOpen() { return !locked; }
+                    }",
+                "FlughafenVerwaltungMock" => @"
+                    public class FlughafenVerwaltung {
+                        // Mock für Level 25
+                        public bool CheckBoarding(int passID, double gepaeckGewicht) {
+                            return true;
+                        }
+                    }",
+                "Flug" => @"
+                    using System;
+                    public class Flug {
+                        private string flugNr;
+                        private string ziel;
+                        private DateTime startDatum;
+                        private string gate;
+                        private int maxPassagiere;
+                        private double basisPreis;
+                        
+                        public Flug(string flugNr, string ziel, DateTime startDatum, string gate, int max, double preis) {
+                            this.flugNr = flugNr;
+                            this.ziel = ziel;
+                            this.startDatum = startDatum;
+                            this.gate = gate;
+                            this.maxPassagiere = max;
+                            this.basisPreis = preis;
+                        }
+                        
+                        public DateTime GetStartDatum() { return startDatum; }
+                    }",
+                "Passagier" => @"
+                    using System.Collections.Generic;
+                    public class Passagier {
+                        private static int autowert = 0;
+                        private int passagierID;
+                        private string name;
+                        private string ticketNummer;
+                        private Flug flug;
+                        private List<Gepaeckstueck> gepaeck = new List<Gepaeckstueck>();
+                        
+                        public Passagier(string name, string ticketNummer, Flug f) {
+                            this.passagierID = ++autowert;
+                            this.name = name;
+                            this.ticketNummer = ticketNummer;
+                            this.flug = f;
+                        }
+                        
+                        public int GetPassagierID() { return passagierID; }
+                        public Flug GetFlug() { return flug; }
+                    }",
+                "FlughafenVerwaltungPartial" => @"
+                    using System.Collections.Generic;
+                    // Partial Class Trick für Level 26, damit der Nutzer die Klasse schreiben kann 
+                    // und die vorgegebenen Attribute/Methoden unsichtbar reingeladen werden
+                    public partial class FlughafenVerwaltung {
+                        private List<Passagier> passagiere = new List<Passagier>();
+                        private List<Flug> fluege = new List<Flug>();
+                        
+                        public Passagier SuchePassagier(int passID) {
+                            foreach(var p in passagiere) {
+                                if (p.GetPassagierID() == passID) return p;
+                            }
+                            return null;
+                        }
                     }",
                 _ => ""
             };
@@ -1238,6 +1325,151 @@ END.",
                     {
                         "Inheritance Basics", "Method Overriding", "While Loops", "Booleans", "If-Else statements", "Defining void methods"
                     }
+                },
+
+                // --- SECTION 6 --- (abi levels)
+                new Level
+                {
+                    Id = 24,
+                    Section = "Sektion 6: Die Generalprobe",
+                    SkipCode = LevelCodes.CodesList[23],
+                    NextLevelCode = LevelCodes.CodesList[24],
+                    Title = "Flughafen-Infrastruktur (Teil 1)",
+                    Difficulty = "Abitur",
+                    Description = "1.1 Überführen Sie die Klassen [Flug], [Passagier] und [GepaeckWagen] in Anweisungen einer objektorientierten Programmiersprache.\n\n" +
+                                  "1.2 Implementieren Sie die Methode [Anhaengen(wagen : GepaeckWagen)] der Klasse [GepaeckWagen], welche ein neues Element an das Ende der Liste anfügt.\n",
+                    StarterCode = "",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" + 
+                                   "Hinweise: Die Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec6\\lvl24-1.svg", // class diagram
+                        "img\\sec6\\lvl24-2.svg", // sequence diagram
+                        "img\\sec6\\lvl24-3.svg"  // nassi-shneiderman
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startuml\nclass FlughafenVerwaltung {\n  + FlughafenVerwaltung()\n  + checkBoarding(passID : int, gepaeckGewicht : double) : boolean\n  + verarbeiteGepaeckString(daten : String) : int\n}\n\nabstract class Gepaeckstueck {\n  # id : String\n  # gewicht : double\n  + Gepaeckstueck(id : String, gewicht : double)\n  {abstract} + berechneZuschlag() : double\n}\n\nclass Koffer {\n  - hartschale : boolean\n  + Koffer(id : String, gewicht : double, hartschale : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Sperrgepaeck {\n  - zerbrechlich : boolean\n  + Sperrgepaeck(id : String, gewicht : double, zerbrechlich : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Flug {\n  - flugNr : String\n  - ziel : String\n  - startDatum : LocalDate\n  - gate : String\n  - maxPassagiere : int\n  - basisPreis : double\n  + Flug(flugNr : String, ziel : String, startDatum : LocalDate, gate : String, max : int, preis : double)\n}\n\nclass Passagier {\n  - passagierID : int\n  - name : String\n  - ticketNummer : String\n  - {static} autowert : int = 0\n  + Passagier(name : String, ticketNummer : String, f : Flug)\n}\n\nclass GepaeckWagen {\n  + GepaeckWagen(g : Gepaeckstueck)\n  + anhaengen(wagen : GepaeckWagen)\n}\n\nclass BarcodeScanner {\n  + BarcodeScanner(serial : Serial)\n  + isReady() : boolean\n  + readBarcode() : String\n  - calcChecksum(data : char[]) : char\n}\n\nclass ScannerController {\n  + ScannerController(comPort : String, verwaltung : FlughafenVerwaltung, schleuse : GepaeckSchleuse)\n  + run()\n}\n\nclass GepaeckSchleuse {\n  - schleusenNr : int\n  - locked : boolean\n  + GepaeckSchleuse(nr : int)\n  + lock()\n  + unlock()\n  + isOpen() : boolean\n}\n\nclass Serial\n\nclass Log {\n  - eintrag : String\n  - datum : LocalDate\n}\n\nGepaeckstueck <|-- Koffer\nGepaeckstueck <|-- Sperrgepaeck\n\nFlughafenVerwaltung x--> \"*\" Flug : -fluege\nFlughafenVerwaltung x--> \"*\" Passagier : -passagiere\nFlughafenVerwaltung x--> \"0..1\" GepaeckWagen : -gepaeckKopf\n\nPassagier x--> \"1\" Flug : -flug\nPassagier x--> \"*\" Gepaeckstueck : -gepaeck\n\nGepaeckWagen x--> \"0..1\" GepaeckWagen : -naechsterWagen\nGepaeckWagen x--> \"1\" Gepaeckstueck : -ladung\n\nScannerController x--> \"1\" BarcodeScanner : -scanner\nScannerController x--> \"1\" FlughafenVerwaltung : -verwaltung\nScannerController x--> \"1\" GepaeckSchleuse : -schleuse\n\nBarcodeScanner x--> \"1\" Serial : -serial\n\nFlughafenVerwaltung x-up-> \"*\" Log : -logs\n@enduml",
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\n\nparticipant \": ScannerController\" as C\nparticipant \": BarcodeScanner\" as S\nparticipant \": FlughafenVerwaltung\" as V\nparticipant \": GepaeckSchleuse\" as G\n\n[o-> C : run()\nactivate C\nloop Endlosschleife\n  C -> S : isReady()\n  activate S\n  S --> C : ready\n  deactivate S\n  \n  opt ready == true\n    C -> S : readBarcode()\n    activate S\n    S --> C : barcode\n    deactivate S\n    \n    opt barcode != \"\"\n      C -> C : extrahiere passID und gewicht\n      activate C\n      C --> C\n      deactivate C\n      \n      C -> V : checkBoarding(passID, gewicht)\n      activate V\n      V --> C : result\n      deactivate V\n      \n      alt result == true\n        C -> G : unlock()\n        activate G\n        G --> C\n        deactivate G\n        C -> C : warte 5 Sekunden\n        activate C\n        C --> C\n        deactivate C\n        C -> G : lock()\n        activate G\n        G --> C\n        deactivate G\n      else\n        C -> C : log(\"Abgewiesen\")\n        activate C\n        C --> C\n        deactivate C\n      end\n    end\n  end\nend\ndeactivate C\n@enduml"
+                    },
+                    NassiShneiderSource = @"PROGRAM VerarbeiteGepaeckString;
+
+VAR
+  teile : ARRAY OF STRING;
+  passID : INTEGER;
+  gewicht : DOUBLE;
+  p : Passagier;
+  tageBisAbflug : INTEGER;
+  zuschlag : INTEGER;
+
+BEGIN
+  teile := Split(daten, ';');
+  
+  IF length(teile) = 3 THEN
+  BEGIN
+    IF teile[0] = 'BGG' THEN
+    BEGIN
+      passID := ParseInt(teile[1]);
+      gewicht := ParseDouble(teile[2]);
+      p := suchePassagier(passID);
+      
+      IF p <> NULL THEN
+      BEGIN
+        tageBisAbflug := LocalDate.now().until(p.getFlug().getStartDatum(), DAYS);
+        
+        IF tageBisAbflug > 0 THEN
+        BEGIN
+          IF gewicht > 20.0 THEN
+          BEGIN
+            zuschlag := (gewicht - 20.0) * 15;
+            ergebnis := zuschlag;
+          END
+          ELSE
+          BEGIN
+            ergebnis := 0;
+          END;
+        END
+        ELSE
+        BEGIN
+          ergebnis := -3;
+        END;
+      END
+      ELSE
+      BEGIN
+        ergebnis := -2;
+      END;
+    END
+    ELSE
+    BEGIN
+      ergebnis := -1;
+    END;
+  END
+  ELSE
+  BEGIN
+    ergebnis := -1;
+  END;
+END.",
+                    NoUMLAutoScale = true,
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Gepaeckstueck" },
+                    Prerequisites = new List<string>()
+                },
+                new Level
+                {
+                    Id = 25,
+                    Section = "Sektion 6: Die Generalprobe",
+                    SkipCode = LevelCodes.CodesList[24],
+                    NextLevelCode = LevelCodes.CodesList[25],
+                    Title = "Gepäckaufgabe & Hardware (Teil 2)",
+                    Difficulty = "Abitur",
+                    Description = "1.3 Der Barcode auf den Gepäckstücken wird im Format \"|[passID|]_|[gewicht|]\" eingelesen (z.B. '14_23.5'). Implementieren Sie die Methode [ReadBarcode()] der Klasse [BarcodeScanner] sowie die Klasse selbst unter Berücksichtigung des RS232-Protokolls mit XOR-Prüfsumme.\n\n" +
+                                  "1.4 Implementieren Sie die Klasse [ScannerController] exakt nach den Vorgaben des Sequenzdiagramms.\n\n" +
+                                  "Die Dokumentationen der Klassen Serial und String sind im Material zu finden.\n",
+                    StarterCode = "",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
+                                   "Hinweise: STX entspricht 0x02, ETX entspricht 0x03. Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
+                                   "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
+                                   "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
+                                   "Datenpaket-Aufbau:\n" +
+                                   " - Start-Byte: STX (0x02)\n" +
+                                   " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                                   " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                                   " - End-Byte: ETX (0x03)",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec6\\lvl24-1.svg", // class diagram
+                        "img\\sec6\\lvl24-2.svg", // sequence diagram
+                        "img\\sec6\\lvl24-3.svg" // nassi-shneiderman
+                    },
+                    PlantUMLSources = new List<string>(),
+                    NassiShneiderSource = null,
+                    NoUMLAutoScale = true,
+                    AuxiliaryIds = new List<string> { "Serial", "GepaeckSchleuse", "FlughafenVerwaltungMock" },
+                    Prerequisites = new List<string>()
+                },
+                new Level
+                {
+                    Id = 26,
+                    Section = "Sektion 6: Die Generalprobe",
+                    SkipCode = LevelCodes.CodesList[25],
+                    NextLevelCode = LevelCodes.CodesList[26],
+                    Title = "Das Abrechnungssystem (Teil 3)",
+                    Difficulty = "Abitur",
+                    Description = "1.5 Die Methode [VerarbeiteGepaeckString(daten : String)] der Klasse [FlughafenVerwaltung] wertet eingehende Datensätze aus und berechnet fällige Gepäckzuschläge. Entwickeln Sie die Methode exakt anhand des vorliegenden Struktogramms.\n\n" +
+                                  "Hinweise: Die Hilfsmethode [SuchePassagier(id : int)] ist als bereits implementiert vorauszusetzen und liefert das Passagier-Objekt oder null. Nutzen Sie für Datumsberechnungen die Struktur [DateTime] (als Äquivalent zu LocalDate aus Java). Die Methode gibt einen Integer-Statuscode oder den berechneten Zuschlag (Ganzzahl, Nachkommastellen beim Zuschlag abschneiden) zurück.\n\n" +
+                                  "**Wichtig**: Damit das System die vorausgesetzte Hilfsmethode 'SuchePassagier()' und die Passagier-Liste im Hintergrund einbinden kann, deklarieren Sie Ihre Klasse mit dem Schlüsselwort 'partial': [public partial class FlughafenVerwaltung]. Sie müssen die Liste und die Suchmethode dann nicht selbst definieren.\n",
+                    StarterCode = "",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n",
+                    DiagramPaths = new List<string>
+                    {
+                        "img\\sec6\\lvl24-1.svg", // class diagram
+                        "img\\sec6\\lvl24-2.svg", // sequence diagram
+                        "img\\sec6\\lvl24-3.svg" // nassi-shneiderman
+                    },
+                    PlantUMLSources = new List<string>(),
+                    NassiShneiderSource = null,
+                    NoUMLAutoScale = true,
+                    AuxiliaryIds = new List<string> { "LocalDate", "Passagier", "Flug", "FlughafenVerwaltungPartial", "ListT" },
+                    Prerequisites = new List<string>()
                 }
             };
         }

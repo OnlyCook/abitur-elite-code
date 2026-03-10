@@ -11,6 +11,26 @@
     "hash": "c78d7932c0df869ce1c6413b20838ef6",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_LocalDate.svg"
   },
+  "shared_Serial": {
+    "hash": "b015775edbede295c25f204e369465a9",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Serial.svg"
+  },
+  "shared_FunkModul": {
+    "hash": "063c64affb4eb648cf3a29d5536490a0",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_FunkModul.svg"
+  },
+  "shared_ServerSocket": {
+    "hash": "102a220854f1db849b8b316176a23293",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_ServerSocket.svg"
+  },
+  "shared_Socket": {
+    "hash": "0f2daad8f55111d17b09919a57a8360d",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Socket.svg"
+  },
+  "shared_Random": {
+    "hash": "90c46ad8143dd11612f10ab8ce11b590",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Random.svg"
+  },
   "lvl_1_1": {
     "hash": "087eedf27a93850fc8447ec84d9b4759",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec1\\lvl1-1.svg"
@@ -43,10 +63,6 @@
     "hash": "61202e5561280c0331d7955bd534bb9f",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec2\\lvl8-1.svg"
   },
-  "lvl_9_1": {
-    "hash": "9c73d28feb5271c4de441086aea85148",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec2\\lvl9-1.svg"
-  },
   "lvl_10_1": {
     "hash": "57f6e533b4b1b1d7ef62f85016b45b0c",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec2\\lvl10-1.svg"
@@ -67,22 +83,6 @@
     "hash": "c2721641bbcc1a0f049b407d42fe4d85",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec3\\lvl14-1.svg"
   },
-  "sql_lvl_9_1": {
-    "hash": "1f40ab146d8b90de65973aba6e2566ed",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl9-1.svg"
-  },
-  "sql_lvl_10_1": {
-    "hash": "6141b9b37fe38db1f095a942c76fe8de",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl10-1.svg"
-  },
-  "sql_lvl_11_1": {
-    "hash": "6141b9b37fe38db1f095a942c76fe8de",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl11-1.svg"
-  },
-  "sql_lvl_12_1": {
-    "hash": "fc12adcd9f40cc07d5efaae2f74124bf",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl12-1.svg"
-  },
   "lvl_15_1": {
     "hash": "aabf0839f9113486299686bbdf98ff56",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl15-1.svg"
@@ -99,13 +99,53 @@
     "hash": "e438f5d706435213d415269538df923e",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl18-1.svg"
   },
-  "shared_Serial": {
-    "hash": "b015775edbede295c25f204e369465a9",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Serial.svg"
+  "lvl_19_1": {
+    "hash": "d32430e369b51122b21310cc0dc9c412",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl19-1.svg"
   },
-  "shared_FunkModul": {
-    "hash": "063c64affb4eb648cf3a29d5536490a0",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_FunkModul.svg"
+  "lvl_20_1": {
+    "hash": "66e3d043168c42dcf1569ff74bf764df",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl20-1.svg"
+  },
+  "lvl_20_2": {
+    "hash": "3e7cb19107b2e53b5e7a22998a4ef4a6",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl20-2.svg"
+  },
+  "lvl_21_1": {
+    "hash": "90764b3f874e8e5e67fc10cba54a85c6",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-1.svg"
+  },
+  "lvl_21_2": {
+    "hash": "7f8cca418638205e84a670f23977fb23",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-2.svg"
+  },
+  "lvl_22_1": {
+    "hash": "30d38e53db58c37d31196618500e211c",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl22-1.svg"
+  },
+  "lvl_23_1": {
+    "hash": "1b3f5d0906902bb892b1d04aa9e46d27",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-1.svg"
+  },
+  "lvl_23_2": {
+    "hash": "257e87198016fcad241f184eff2bf978",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-2.svg"
+  },
+  "sql_lvl_9_1": {
+    "hash": "1f40ab146d8b90de65973aba6e2566ed",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl9-1.svg"
+  },
+  "sql_lvl_10_1": {
+    "hash": "6141b9b37fe38db1f095a942c76fe8de",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl10-1.svg"
+  },
+  "sql_lvl_11_1": {
+    "hash": "6141b9b37fe38db1f095a942c76fe8de",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl11-1.svg"
+  },
+  "sql_lvl_12_1": {
+    "hash": "fc12adcd9f40cc07d5efaae2f74124bf",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec2\\lvl12-1.svg"
   },
   "sql_lvl_13_1": {
     "hash": "9446a697e432a9e813cdc8dd6d83583c",
@@ -119,69 +159,9 @@
     "hash": "2e6531498227d40d5675c3d37b5fd84d",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl15-1.svg"
   },
-  "sql_lvl_16_1": {
-    "hash": "d0c87d1b8ee98516f2972fbb107af815",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl16-1.svg"
-  },
   "sql_lvl_17_1": {
     "hash": "3d727d5e63d7be2219dddeaf47d60c5a",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl17-1.svg"
-  },
-  "shared_ServerSocket": {
-    "hash": "102a220854f1db849b8b316176a23293",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_ServerSocket.svg"
-  },
-  "shared_Socket": {
-    "hash": "0f2daad8f55111d17b09919a57a8360d",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Socket.svg"
-  },
-  "lvl_19_1": {
-    "hash": "d32430e369b51122b21310cc0dc9c412",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec4\\lvl19-1.svg"
-  },
-  "lvl_19_2": {
-    "hash": "4492ef7dc423acd70b02e9aa473c73a3",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl19-2.svg"
-  },
-  "lvl_20_1": {
-    "hash": "66e3d043168c42dcf1569ff74bf764df",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl20-1.svg"
-  },
-  "lvl_20_2": {
-    "hash": "3e7cb19107b2e53b5e7a22998a4ef4a6",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl20-2.svg"
-  },
-  "shared_Thread": {
-    "hash": "46e9daa0d17620f4fd165326c4c40d80",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Thread.svg"
-  },
-  "shared_Random": {
-    "hash": "90c46ad8143dd11612f10ab8ce11b590",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_Random.svg"
-  },
-  "lvl_21_1": {
-    "hash": "90764b3f874e8e5e67fc10cba54a85c6",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-1.svg"
-  },
-  "lvl_22_1": {
-    "hash": "30d38e53db58c37d31196618500e211c",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl22-1.svg"
-  },
-  "lvl_22_2": {
-    "hash": "419cb528305205513bde13e62cc7a1fc",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl22-2.svg"
-  },
-  "lvl_21_2": {
-    "hash": "7f8cca418638205e84a670f23977fb23",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl21-2.svg"
-  },
-  "lvl_23_1": {
-    "hash": "1b3f5d0906902bb892b1d04aa9e46d27",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-1.svg"
-  },
-  "lvl_23_2": {
-    "hash": "257e87198016fcad241f184eff2bf978",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec5\\lvl23-2.svg"
   },
   "sql_lvl_18_1": {
     "hash": "9a5f3b2efe070080a44b91ab0240b028",
@@ -202,10 +182,6 @@
   "sql_lvl_22_1": {
     "hash": "a0d275a869857522a340361aae91e440",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec4\\lvl22-1.svg"
-  },
-  "shared_SocketAbitur": {
-    "hash": "0f2daad8f55111d17b09919a57a8360d",
-    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_SocketAbitur.svg"
   },
   "sql_lvl_23_1": {
     "hash": "d0558b59a2e35182e80c93036959ebda",
@@ -230,5 +206,21 @@
   "sql_lvl_28_1": {
     "hash": "d35a600541e1ef3a4b38a03a1d8e1bf1",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec5\\lvl28-1.svg"
+  },
+  "lvl_9_1": {
+    "hash": "9c73d28feb5271c4de441086aea85148",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec2\\lvl9-1.svg"
+  },
+  "sql_lvl_16_1": {
+    "hash": "d0c87d1b8ee98516f2972fbb107af815",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl16-1.svg"
+  },
+  "lvl_24_1": {
+    "hash": "6085e66f92070ca62ddd81b2c16e1b9e",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec6\\lvl24-1.svg"
+  },
+  "lvl_24_2": {
+    "hash": "311318e407943602482ad8bc8bb7d69a",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec6\\lvl24-2.svg"
   }
 }

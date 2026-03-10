@@ -2565,7 +2565,7 @@ namespace AbiturEliteCode
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
 
                     // inject return into Run() method for certain levels to prevent infinite loops during testing
-                    if (!runDesignerTest && levelContext != null && (levelContext.Id == 18 || levelContext.Id == 21))
+                    if (!runDesignerTest && levelContext != null && (levelContext.Id == 18 || levelContext.Id == 21 || levelContext.Id == 25))
                     {
                         var root = syntaxTree.GetRoot(token);
                         var rewriter = new InfiniteLoopBreaker();
@@ -3667,7 +3667,7 @@ namespace AbiturEliteCode
                     {
                         try
                         {
-                            var url = "https://github.com/OnlyCook/abitur-elite-code/blob/main/py/LEVEL_CODES.md";
+                            var url = $"https://github.com/OnlyCook/abitur-elite-code/blob/main/py/LEVEL_CODES.md{(_isSqlMode ? "#sql-levels" : "")}";
                             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
                             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
                             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) Process.Start("open", url);

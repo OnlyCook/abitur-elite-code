@@ -14,7 +14,7 @@ namespace AbiturEliteCode.cs
     // foreign keys are hashtags '#' in the relational model and '_FK' in the actual database as well as in the diagrams
     // up to level 17 we include the foreign keys in the ER-diagrams, but in the later levels we do not (the user must know on their own what has what key)
     // multiplicities in relations are flipped in the abitur exams, thats why we arent using the variant that is commonly used for the chens notation, but the flipped variant (instead of: "A -(1,1)-b-(0,n)- C" we do: "A -(0,n)-b-(1,1)- C")
-
+    // starting from level 23 the user must normalize the ER-diagram themselves; also starting from level 23 the task should give less hints and stop highlighting important aspects, thus making the language used for the task more similar to the abitur exams
 
     public class RTable
     {
@@ -1058,7 +1058,8 @@ namespace AbiturEliteCode.cs
                     Description = "Wir möchten unser Sortiment bereinigen und Kategorien finden, die sich schlecht verkaufen.\n\n" +
                                   "**Aufgabe:**\n" +
                                   "Ermitteln Sie die [kategorie] und die insgesamt verkaufte Menge als 'Verkauft'.\n" +
-                                  "Zeigen Sie **nur** Kategorien an, bei denen die Summe der verkauften Menge **kleiner als 5** ist.",
+                                  "Zeigen Sie **nur** Kategorien an, bei denen die Summe der verkauften Menge **kleiner als 5** ist.\n" +
+                                  "Sortieren Sie die Liste, damit die am schlechtesten verkauften Produkte zuerst gelistet sind.",
                     SetupScript = "CREATE TABLE Produkt (id INTEGER PRIMARY KEY, kategorie TEXT);" +
                                   "CREATE TABLE Position (id INTEGER PRIMARY KEY, produktid_FK INTEGER, menge INTEGER);" +
                                   "INSERT INTO Produkt VALUES (1, 'Elektronik');" +
@@ -1190,7 +1191,7 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: Datumsfunktionen\n" +
                                    "Mit der Funktion [YEAR(spalte)] können Sie das Jahr aus einem Datum extrahieren, mit [MONTH(spalte)] den Monat.\n" +
                                    "Beispiel:\n" +
-                                   "{|WHERE YEAR(Bestelldatum) = 2023|}\n" +
+                                   "{|WHERE YEAR(Bestelldatum) = \"2023\"|}\n" +
                                    ":end-hint\n",
                     DiagramPaths = new List<string>
                     {
