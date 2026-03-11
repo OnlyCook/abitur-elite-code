@@ -1875,22 +1875,43 @@ namespace AbiturEliteCode.cs
             // check flug constructor
             ConstructorInfo ctorFlug = tFlug.GetConstructors().FirstOrDefault(c => c.GetParameters().Length >= 6);
             if (ctorFlug == null)
-                throw new Exception("Der Konstruktor der Klasse Flug entspricht nicht den Vorgaben.");
+                throw new Exception("Initialisierung in Klasse Flug fehlerhaft..");
 
             object flugObj = null;
+            DateTime testDate = DateTime.Now;
             try
             {
-                flugObj = ctorFlug.Invoke(new object[] { "LH123", "BER", DateTime.Now, "A1", 100, 150.0 });
+                flugObj = ctorFlug.Invoke(new object[] { "LH123", "BER", testDate, "A1", 100, 150.0 });
             }
             catch
             {
-                throw new Exception("Die Klasse Flug konnte nicht initialisiert werden. Überprüfen Sie die Datentypen der Parameter.");
+                throw new Exception("Initialisierung der Klasse Flug fehlerhaft.");
             }
+
+            // strict flug attributes check
+            FieldInfo fFlugNr = tFlug.GetField("flugNr", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fZiel = tFlug.GetField("ziel", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fStartDatum = tFlug.GetField("startDatum", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fGate = tFlug.GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fMax = tFlug.GetField("maxPassagiere", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fPreis = tFlug.GetField("basisPreis", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (fFlugNr == null || fZiel == null || fStartDatum == null || fGate == null || fMax == null || fPreis == null)
+                throw new Exception("Initialisierung in Klasse Flug fehlerhaft.");
+
+            if ((string)fFlugNr.GetValue(flugObj) != "LH123" || (string)fZiel.GetValue(flugObj) != "BER" ||
+                (DateTime)fStartDatum.GetValue(flugObj) != testDate || (string)fGate.GetValue(flugObj) != "A1" ||
+                (int)fMax.GetValue(flugObj) != 100 || Math.Abs((double)fPreis.GetValue(flugObj) - 150.0) > 0.01)
+                throw new Exception("Initialisierung in Klasse Flug fehlerhaft.");
+
+            MethodInfo mGetStartDatum = tFlug.GetMethod("GetStartDatum") ?? tFlug.GetMethod("getStartDatum");
+            if (mGetStartDatum == null || (DateTime)mGetStartDatum.Invoke(flugObj, null) != testDate)
+                throw new Exception("Fehler mit Methode 'GetStartDatum()'.");
 
             // check passagier constructor and multiplicity
             ConstructorInfo ctorPassagier = tPassagier.GetConstructor(new[] { typeof(string), typeof(string), tFlug });
             if (ctorPassagier == null)
-                throw new Exception("Der Konstruktor der Klasse Passagier entspricht nicht den Vorgaben bezüglich Parameter oder Multiplizitäten.");
+                throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");
 
             object pass1 = null;
             object pass2 = null;
@@ -1901,31 +1922,44 @@ namespace AbiturEliteCode.cs
             }
             catch
             {
-                throw new Exception("Die Klasse Passagier konnte nicht initialisiert werden.");
+                throw new Exception("Fehler mit Klasse Passagier.");
             }
 
-            // check passagier attributes (autowert, list initialization)
+            // strict passagier attributes check
+            FieldInfo fName = tPassagier.GetField("name", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fTicket = tPassagier.GetField("ticketNummer", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fFlugAttr = tPassagier.GetField("flug", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (fName == null || fTicket == null || fFlugAttr == null)
+                throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");
+
+            if ((string)fName.GetValue(pass1) != "Max Mustermann" || (string)fTicket.GetValue(pass1) != "T123" || fFlugAttr.GetValue(pass1) != flugObj)
+                throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");
+
+            // check passagier internal logic (autowert, list initialization)
             FieldInfo fId = tPassagier.GetField("passagierID", BindingFlags.NonPublic | BindingFlags.Instance);
             FieldInfo fGepaeck = tPassagier.GetField("gepaeck", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (fId == null || fGepaeck == null)
-                throw new Exception("Die Attribute der Klasse Passagier wurden nicht vollständig oder korrekt umgesetzt.");
 
             int id1 = (int)fId.GetValue(pass1);
             int id2 = (int)fId.GetValue(pass2);
             if (id1 < 1 || id2 != id1 + 1)
-                throw new Exception("Die statische ID-Vergabe (autowert) in Passagier funktioniert nicht wie erwartet.");
+                throw new Exception("ID-Vergabe fehlerhaft.");
+
+            MethodInfo mGetPassId = tPassagier.GetMethod("GetPassagierID") ?? tPassagier.GetMethod("getPassagierID");
+            if (mGetPassId == null || (int)mGetPassId.Invoke(pass1, null) != id1)
+                throw new Exception("Fehler mit Methode 'GetPassagierID()'.");
 
             if (fGepaeck.GetValue(pass1) == null)
-                throw new Exception("Die Listen-Assoziation in der Klasse Passagier wurde nicht korrekt initialisiert.");
+                throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");
 
             // check gepaeckwagen (linked list logic)
             ConstructorInfo ctorWagen = tGepaeckWagen.GetConstructors().FirstOrDefault();
             if (ctorWagen == null)
-                throw new Exception("Der Konstruktor der Klasse GepaeckWagen entspricht nicht den Vorgaben.");
+                throw new Exception("Invalider Konstruktor der Klasse GepaeckWagen.");
 
             MethodInfo mAnhaengen = tGepaeckWagen.GetMethod("Anhaengen") ?? tGepaeckWagen.GetMethod("anhaengen");
             if (mAnhaengen == null)
-                throw new Exception("Die Methode anhaengen() in der Klasse GepaeckWagen fehlt.");
+                throw new Exception("Fehler mit Methode 'anhaengen()'.");
 
             // create mock data for abstract dependency
             Type tKoffer = assembly.GetType("Koffer");
@@ -1949,12 +1983,16 @@ namespace AbiturEliteCode.cs
 
             try
             {
-                mAnhaengen.Invoke(wagen1, new object[] { wagen2 });
-                mAnhaengen.Invoke(wagen1, new object[] { wagen3 });
+                // utilizing InvokeWithTimeout to prevent infinite loops from circular references
+                InvokeWithTimeout(mAnhaengen, wagen1, new object[] { wagen2 }, 1000);
+                InvokeWithTimeout(mAnhaengen, wagen1, new object[] { wagen3 }, 1000);
             }
-            catch
+            catch (Exception ex)
             {
-                throw new Exception("Fehler bei der Ausführung der Methode anhaengen().");
+                if (ex.Message.Contains("Zeitüberschreitung") || ex is TimeoutException)
+                    throw new Exception("Laufzeitfehler: Mögliche Endlosschleife. Überprüfen Sie Ihre Abbruchbedingungen und Kontrollstrukturen.");
+
+                throw new Exception($"Fehler bei der Ausführung der Methode anhaengen(): {ex.Message}");
             }
 
             FieldInfo fNaechster = tGepaeckWagen.GetField("naechsterWagen", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1973,6 +2011,9 @@ namespace AbiturEliteCode.cs
 
         private static bool TestLevel25(Assembly assembly, string sourceCode, out string feedback)
         {
+            var originalCulture = System.Threading.Thread.CurrentThread.CurrentCulture;
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
             Type tScanner = assembly.GetType("BarcodeScanner");
             Type tController = assembly.GetType("ScannerController");
             Type tSerial = assembly.GetType("Serial");
@@ -1985,67 +2026,122 @@ namespace AbiturEliteCode.cs
             if (tSerial == null || tVerwaltung == null || tSchleuse == null)
                 throw new Exception("Notwendige Hilfsklassen oder Abhängigkeiten fehlen im System.");
 
-            // 1. check barcodescanner
+            // 1. anti-exploit checks
+            string cleanSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
+            cleanSource = Regex.Replace(cleanSource, @"/\*.*?\*/", "", RegexOptions.Singleline).Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+
+            if (!cleanSource.Contains("serial.open();"))
+                throw new Exception("Fehler mit serieller Schnitstelle.");
+
+            if (!cleanSource.Contains("calcchecksum("))
+                throw new Exception("Fehler in 'Run()' bezüglich der 'CalcChecksum()' Methode.");
+
+            if (!cleanSource.Contains("scanner.isready()"))
+                throw new Exception("Fehler in 'Run()' bezüglich der Bereitschaft.");
+
+            if (!cleanSource.Contains("verwaltung.getlogs().add(newlog(\"abgewiesen\""))
+                throw new Exception("Fehler mit Log-Einträgen in 'Run()'.");
+
+            if (!cleanSource.Contains("newserial(comport,9600,8,1,0)") && !cleanSource.Contains("new(comport,9600,8,1,0)"))
+                throw new Exception("Fehler mit serieller Schnitstelle.");
+
+            // 2. test: barcodescanner and calcchecksum
             ConstructorInfo ctorScanner = tScanner.GetConstructor(new[] { tSerial });
             if (ctorScanner == null)
-                throw new Exception("Der Konstruktor von BarcodeScanner entspricht nicht den Vorgaben.");
+                throw new Exception("Invalider Konstruktor des BarcodeScanners.");
 
             object serialMock = Activator.CreateInstance(tSerial, new object[] { "COM1", 9600, 8, 1, 0 });
             object scannerObj = ctorScanner.Invoke(new object[] { serialMock });
 
-            MethodInfo mRead = tScanner.GetMethod("ReadBarcode") ?? tScanner.GetMethod("readBarcode");
-            if (mRead == null)
-                throw new Exception("Die Methode readBarcode() fehlt.");
+            MethodInfo mCalc = tScanner.GetMethod("CalcChecksum", BindingFlags.NonPublic | BindingFlags.Instance) ?? tScanner.GetMethod("calcChecksum", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (mCalc == null)
+                throw new Exception("Fehler bezüglich der Methode 'CalcChecksum()'.");
+
+            char[] testData = new char[] { '1', '4', '_', '2', '3', '.', '5' };
+            char expectedXor = (char)(testData[0] ^ testData[1] ^ testData[2] ^ testData[3] ^ testData[4] ^ testData[5] ^ testData[6]);
+            char actualXor = (char)mCalc.Invoke(scannerObj, new object[] { testData });
+
+            if (expectedXor != actualXor)
+                throw new Exception("Die Methode 'CalcChecksum' funktioniert nicht wie erwartet.");
+
+            // 3. test: controller dynamic loop test
+            ConstructorInfo ctorController = tController.GetConstructor(new[] { typeof(string), tVerwaltung, tSchleuse });
+            if (ctorController == null)
+                throw new Exception("Invalider Konstruktor des ScannerController.");
+
+            object verwaltungObj = Activator.CreateInstance(tVerwaltung);
+            object schleuseObj = Activator.CreateInstance(tSchleuse, new object[] { 1 });
+            object controllerObj = ctorController.Invoke(new object[] { "COM1", verwaltungObj, schleuseObj });
+
+            FieldInfo fScannerCtrl = tController.GetField("scanner", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fScannerCtrl == null || fScannerCtrl.GetValue(controllerObj) == null)
+                throw new Exception("Invalider Konstruktor des Controllers.");
+
+            object scannerInst = fScannerCtrl.GetValue(controllerObj);
+            FieldInfo fScannerSerial = tScanner.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
+            object serialInst = fScannerSerial.GetValue(scannerInst);
+            MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
 
             // mock payload: <STX>14_23.5<ETX> 
-            int[] payload = new int[] { 49, 52, 95, 50, 51, 46, 53 };
-            int xor = 0;
-            foreach (int b in payload) xor ^= b;
-
             List<int> packet = new List<int> { 0x02 };
-            packet.AddRange(payload);
-            packet.Add(xor);
+            foreach (char c in testData) packet.Add(c);
+            packet.Add(expectedXor);
             packet.Add(0x03);
 
-            MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
-            mSetBytes.Invoke(serialMock, new object[] { packet.ToArray() });
+            MethodInfo mRun = tController.GetMethod("Run") ?? tController.GetMethod("run");
 
-            string barcodeResult;
+            // --- scenario a: accepted passenger ---
+            mSetBytes.Invoke(serialInst, new object[] { packet.ToArray() });
+            PropertyInfo pNextCheck = tVerwaltung.GetProperty("NextCheckResult");
+            pNextCheck.SetValue(verwaltungObj, true); // boarding ok
+
             try
             {
-                barcodeResult = (string)InvokeWithTimeout(mRead, scannerObj, null, 1000);
+                mRun.Invoke(controllerObj, null);
             }
-            catch
+            catch (Exception ex)
             {
-                throw new Exception("Laufzeitfehler oder Zeitüberschreitung in readBarcode().");
+                throw new Exception($"Laufzeitfehler bei gültigem Scan in Run(): {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            if (barcodeResult != "14_23.5")
-                throw new Exception("Das Auslesen des Barcodes nach dem RS232-Protokoll schlug fehl oder die Prüfsummenvalidierung ist inkorrekt.");
+            PropertyInfo pLastPassID = tVerwaltung.GetProperty("LastPassID");
+            PropertyInfo pLastGewicht = tVerwaltung.GetProperty("LastGewicht");
+            int lastPassId = (int)pLastPassID.GetValue(verwaltungObj);
+            double lastGewicht = (double)pLastGewicht.GetValue(verwaltungObj);
 
-            // 2. static check scannercontroller sequence
-            string cleanSource = Regex.Replace(sourceCode, @"//[^\r\n]*", "");
-            cleanSource = Regex.Replace(cleanSource, @"/\*.*?\*/", "", RegexOptions.Singleline).Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
+            if (lastPassId != 14 || Math.Abs(lastGewicht - 23.5) > 0.01)
+                throw new Exception($"CheckBoarding Fehlverhalten. Erwartet: ID 14 und Gewicht 23.5. Erhalten: {lastPassId} und {lastGewicht}");
 
-            if (!cleanSource.Contains("isready()"))
-                throw new Exception("Der Controller prüft nicht, ob der Scanner bereit ist (isReady() fehlt).");
+            PropertyInfo pUnlockCount = tSchleuse.GetProperty("UnlockCount");
+            PropertyInfo pLockCount = tSchleuse.GetProperty("LockCount");
+            if ((int)pUnlockCount.GetValue(schleuseObj) == 0 || (int)pLockCount.GetValue(schleuseObj) == 0)
+                throw new Exception("Fehler mit dem Schließen bzw. Öffnen der Schleuse.");
 
-            if (!cleanSource.Contains("readbarcode()"))
-                throw new Exception("Der Controller ruft readBarcode() nicht wie im Sequenzdiagramm gefordert auf.");
+            // --- scenario b: rejected passenger ---
+            mSetBytes.Invoke(serialInst, new object[] { packet.ToArray() }); // data again in buffer
+            pNextCheck.SetValue(verwaltungObj, false); // boarding fail
 
-            if (!cleanSource.Contains(".split('_')") && !cleanSource.Contains("substring") && !cleanSource.Contains("indexof('_')"))
-                throw new Exception("Die Extraktion der Daten (passID und gewicht) wird im Controller nicht korrekt durchgeführt.");
+            try
+            {
+                mRun.Invoke(controllerObj, null);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Laufzeitfehler bei abgewiesenem Scan in Run(): {ex.InnerException?.Message ?? ex.Message}");
+            }
 
-            if (!cleanSource.Contains("checkboarding("))
-                throw new Exception("Der Methodenaufruf checkBoarding() fehlt oder wurde nicht korrekt platziert.");
+            MethodInfo mGetLogs = tVerwaltung.GetMethod("GetLogs");
+            IList logs = mGetLogs.Invoke(verwaltungObj, null) as IList;
 
-            if (!cleanSource.Contains("schleuse.unlock()") || !cleanSource.Contains("schleuse.lock()"))
-                throw new Exception("Die Steuerung der GepaeckSchleuse entspricht nicht dem Sequenzdiagramm.");
+            if (logs == null || logs.Count == 0)
+                throw new Exception("Bei einem abgewiesenen Passagier wurde kein Log-Eintrag zur Verwaltung hinzugefügt.");
 
-            if (!cleanSource.Contains("while(true)") && !cleanSource.Contains("for(;;)"))
-                throw new Exception("Die Ablaufsteuerung des Controllers muss als Endlosschleife implementiert sein.");
+            object firstLog = logs[0];
+            PropertyInfo pEintrag = firstLog.GetType().GetProperty("Eintrag");
+            if (pEintrag == null || (string)pEintrag.GetValue(firstLog) != "Abgewiesen")
+                throw new Exception($"Der Log-Eintrag hat ein falsches Format.");
 
-            feedback = "Hardware-Schnittstelle und Sequenzablauf wurden erfolgreich und präzise umgesetzt.";
+            feedback = "Hardware-Schnittstelle, Prüfsummen-Berechnung und Sequenzablauf inkl. Logging wurden exakt und einwandfrei umgesetzt.";
             return true;
         }
 

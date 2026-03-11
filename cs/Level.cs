@@ -87,6 +87,8 @@ namespace AbiturEliteCode.cs
         public static string Thread = ""; // not needed as implemented into the main class diagram in the abitur exams
 
         public static string Random = "@startuml\nclass Random {\n  + Random()\n  + nextInt() : int\n  + nextInt(n : int) : int\n}\n@enduml";
+        
+        public static string String = "@startuml\nclass String {\n  + equals(str : String) : boolean\n  + toCharArray() : char[]\n  + substring(beginIndex : int, endIndex : int) : String\n  + substring(beginIndex : int) : String\n  + split(regex : String) : String[]\n  + startsWith(prefix : String) : boolean\n}\n@enduml";
     }
 
     public static class AuxiliaryImplementations
@@ -243,16 +245,40 @@ namespace AbiturEliteCode.cs
                         private int schleusenNr;
                         private bool locked = true;
                         
+                        // Tracking-Properties für den Tester
+                        public int UnlockCount { get; set; } = 0;
+                        public int LockCount { get; set; } = 0;
+                        
                         public GepaeckSchleuse(int nr) { schleusenNr = nr; }
-                        public void Lock() { locked = true; }
-                        public void Unlock() { locked = false; }
+                        public void Lock() { locked = true; LockCount++; }
+                        public void Unlock() { locked = false; UnlockCount++; }
                         public bool IsOpen() { return !locked; }
                     }",
                 "FlughafenVerwaltungMock" => @"
+                    using System.Collections.Generic;
+                    using System;
+
+                    public class Log {
+                        public string Eintrag { get; set; }
+                        public DateTime Datum { get; set; }
+                        public Log(string e, DateTime d) { Eintrag = e; Datum = d; }
+                    }
+
                     public class FlughafenVerwaltung {
+                        // Tracking-Properties für den Tester
+                        public int LastPassID { get; set; } = -1;
+                        public double LastGewicht { get; set; } = -1.0;
+                        public bool NextCheckResult { get; set; } = true;
+                        
+                        private List<Log> logs = new List<Log>();
+                        
+                        public List<Log> GetLogs() { return logs; }
+
                         // Mock für Level 25
                         public bool CheckBoarding(int passID, double gepaeckGewicht) {
-                            return true;
+                            LastPassID = passID;
+                            LastGewicht = gepaeckGewicht;
+                            return NextCheckResult;
                         }
                     }",
                 "Flug" => @"
@@ -337,6 +363,18 @@ Im Abitur (Java) wird oft [LocalDate] verwendet (siehe oben). In C# nutzen wir [
 • Java: [date.isBefore(other)] → C#: [date < other]
 • Java: [LocalDate.now()] → C#: [DateTime.Now]
 • Java: [date.minusMonths(1)] → C#: [date.AddMonths(-1)]
+:end-hint";
+
+            string stringDocsHint =
+@"start-hint: Die Klasse String (Java vs. C#)
+Ein Exemplar der Klasse String repräsentiert Zeichenketten.
+In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String', die Funktionalität ist ähnlich, aber es gibt syntaktische Unterschiede:
+• equals(str: String): boolean -> In C# nutzen wir den Operator [==] oder [.Equals(str)].
+• toCharArray(): char[] -> In C# [.ToCharArray()].
+• substring(beginIndex: int, endIndex: int): String -> In C# [.Substring(startIndex, length)] (Achtung: Der 2. Parameter in C# ist die Länge, nicht der End-Index!).
+• substring(beginIndex: int): String -> In C# [.Substring(startIndex)].
+• split(regex: String): String[] -> In C# [.Split('zeichen')].
+• startsWith(prefix: String): boolean -> In C# [.StartsWith(""text"")].
 :end-hint";
 
             return new List<Level>
@@ -1167,7 +1205,8 @@ END.",
                                   "• Ist es ein anderer Befehl (nicht QUIT), senden Sie \"+ERR unbekannt\\n\".\n" +
                                   "• Schließen Sie den Socket am Ende der Methode.",
                     StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
+                    MaterialDocs = stringDocsHint +
+                                   "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
                                    "start-hint: Getter/Setter Anpassung\n" +
                                    "Ab jetzt werden im UML-Klassendiagramm keine standardmäßigen Get-/Set-Methoden mehr angezeigt, " +
                                    "es wird vorausgesetzt, dass Sie diese selbständig bei Notwendigkeit deklarieren. " +
@@ -1192,7 +1231,7 @@ END.",
                         "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\nCS --> S\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"+ERR unbekannt\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
-                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket" },
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "String" },
                     Prerequisites = new List<string>
                     {
                         "Substring", "StartsWith and EndsWith", "While Loops", "If statements", "Variables", "String concatenation"
@@ -1218,7 +1257,8 @@ END.",
                                   "• Wird das Licht nicht gefunden, senden Sie \"-ERR Licht nicht gefunden\\n\".\n" +
                                   "• Bei \"QUIT\" beendet sich die Schleife und der Socket wird geschlossen.",
                     StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}\n\npublic class Licht\n{\n    // Implementation\n}",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
+                    MaterialDocs = stringDocsHint +
+                                   "Auf alle Attribute kann mittels get-Methoden zugegriffen werden.\n" +
                                    "start-hint: Getter/Setter Anpassung\n" +
                                    "Denken Sie daran: Get-/Set-Methoden werden in den Diagrammen nicht mehr explizit angezeigt. Sie müssen diese bei Bedarf selbst hinzufügen.\n" +
                                    ":end-hint\n" +
@@ -1241,7 +1281,7 @@ END.",
                         "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\nparticipant \"licht: Licht\" as L\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n\n  opt befehl beginnt mit \"TOGGLE_LIGHT;\"\n    alt ASCII-Wert von ID zwischen 'A' und 'Z'\n      S -> S : suche Licht\n      activate S\n      S --> S\n      deactivate S\n      alt Licht gefunden\n        S -> L : toggle()\n        activate L\n        L --> S\n        deactivate L\n        S -> CS : write(\"+OK\\n/\")\n        activate CS\n        CS --> S\n        deactivate CS\n      else\n        S -> CS : write(\"-ERR Licht nicht gefunden\\n/\")\n        activate CS\n        CS --> S\n        deactivate CS\n      end\n    else\n      S -> CS : write(\"-ERR ungültige ID\\n/\")\n      activate CS\n      CS --> S\n      deactivate CS\n    end\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
-                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "ListT" },
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "ListT", "String" },
                     Prerequisites = new List<string>
                     {
                         "Split", "Explicit Conversion (Casting)", "For-Each Loops", "Comparison operators", "If statements"
@@ -1339,8 +1379,16 @@ END.",
                     Description = "1.1 Überführen Sie die Klassen [Flug], [Passagier] und [GepaeckWagen] in Anweisungen einer objektorientierten Programmiersprache.\n\n" +
                                   "1.2 Implementieren Sie die Methode [Anhaengen(wagen : GepaeckWagen)] der Klasse [GepaeckWagen], welche ein neues Element an das Ende der Liste anfügt.\n",
                     StarterCode = "",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" + 
-                                   "Hinweise: Die Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
+                                   "Hinweise:\nDie Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n\n" +
+                                   "Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
+                                   "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
+                                   "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
+                                   "Datenpaket-Aufbau:\n" +
+                                   " - Start-Byte: STX (0x02)\n" +
+                                   " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                                   " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                                   " - End-Byte: ETX (0x03)",
                     DiagramPaths = new List<string>
                     {
                         "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1349,8 +1397,8 @@ END.",
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass FlughafenVerwaltung {\n  + FlughafenVerwaltung()\n  + checkBoarding(passID : int, gepaeckGewicht : double) : boolean\n  + verarbeiteGepaeckString(daten : String) : int\n}\n\nabstract class Gepaeckstueck {\n  # id : String\n  # gewicht : double\n  + Gepaeckstueck(id : String, gewicht : double)\n  {abstract} + berechneZuschlag() : double\n}\n\nclass Koffer {\n  - hartschale : boolean\n  + Koffer(id : String, gewicht : double, hartschale : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Sperrgepaeck {\n  - zerbrechlich : boolean\n  + Sperrgepaeck(id : String, gewicht : double, zerbrechlich : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Flug {\n  - flugNr : String\n  - ziel : String\n  - startDatum : LocalDate\n  - gate : String\n  - maxPassagiere : int\n  - basisPreis : double\n  + Flug(flugNr : String, ziel : String, startDatum : LocalDate, gate : String, max : int, preis : double)\n}\n\nclass Passagier {\n  - passagierID : int\n  - name : String\n  - ticketNummer : String\n  - {static} autowert : int = 0\n  + Passagier(name : String, ticketNummer : String, f : Flug)\n}\n\nclass GepaeckWagen {\n  + GepaeckWagen(g : Gepaeckstueck)\n  + anhaengen(wagen : GepaeckWagen)\n}\n\nclass BarcodeScanner {\n  + BarcodeScanner(serial : Serial)\n  + isReady() : boolean\n  + readBarcode() : String\n  - calcChecksum(data : char[]) : char\n}\n\nclass ScannerController {\n  + ScannerController(comPort : String, verwaltung : FlughafenVerwaltung, schleuse : GepaeckSchleuse)\n  + run()\n}\n\nclass GepaeckSchleuse {\n  - schleusenNr : int\n  - locked : boolean\n  + GepaeckSchleuse(nr : int)\n  + lock()\n  + unlock()\n  + isOpen() : boolean\n}\n\nclass Serial\n\nclass Log {\n  - eintrag : String\n  - datum : LocalDate\n}\n\nGepaeckstueck <|-- Koffer\nGepaeckstueck <|-- Sperrgepaeck\n\nFlughafenVerwaltung x--> \"*\" Flug : -fluege\nFlughafenVerwaltung x--> \"*\" Passagier : -passagiere\nFlughafenVerwaltung x--> \"0..1\" GepaeckWagen : -gepaeckKopf\n\nPassagier x--> \"1\" Flug : -flug\nPassagier x--> \"*\" Gepaeckstueck : -gepaeck\n\nGepaeckWagen x--> \"0..1\" GepaeckWagen : -naechsterWagen\nGepaeckWagen x--> \"1\" Gepaeckstueck : -ladung\n\nScannerController x--> \"1\" BarcodeScanner : -scanner\nScannerController x--> \"1\" FlughafenVerwaltung : -verwaltung\nScannerController x--> \"1\" GepaeckSchleuse : -schleuse\n\nBarcodeScanner x--> \"1\" Serial : -serial\n\nFlughafenVerwaltung x-up-> \"*\" Log : -logs\n@enduml",
-                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\n\nparticipant \": ScannerController\" as C\nparticipant \": BarcodeScanner\" as S\nparticipant \": FlughafenVerwaltung\" as V\nparticipant \": GepaeckSchleuse\" as G\n\n[o-> C : run()\nactivate C\nloop Endlosschleife\n  C -> S : isReady()\n  activate S\n  S --> C : ready\n  deactivate S\n  \n  opt ready == true\n    C -> S : readBarcode()\n    activate S\n    S --> C : barcode\n    deactivate S\n    \n    opt barcode != \"\"\n      C -> C : extrahiere passID und gewicht\n      activate C\n      C --> C\n      deactivate C\n      \n      C -> V : checkBoarding(passID, gewicht)\n      activate V\n      V --> C : result\n      deactivate V\n      \n      alt result == true\n        C -> G : unlock()\n        activate G\n        G --> C\n        deactivate G\n        C -> C : warte 5 Sekunden\n        activate C\n        C --> C\n        deactivate C\n        C -> G : lock()\n        activate G\n        G --> C\n        deactivate G\n      else\n        C -> C : log(\"Abgewiesen\")\n        activate C\n        C --> C\n        deactivate C\n      end\n    end\n  end\nend\ndeactivate C\n@enduml"
+                        "@startuml\nclass FlughafenVerwaltung {\n  + FlughafenVerwaltung()\n  + checkBoarding(passID : int, gepaeckGewicht : double) : boolean\n  + verarbeiteGepaeckString(daten : String) : int\n}\n\nabstract class Gepaeckstueck {\n  # id : String\n  # gewicht : double\n  + Gepaeckstueck(id : String, gewicht : double)\n  {abstract} + berechneZuschlag() : double\n}\n\nclass Koffer {\n  - hartschale : boolean\n  + Koffer(id : String, gewicht : double, hartschale : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Sperrgepaeck {\n  - zerbrechlich : boolean\n  + Sperrgepaeck(id : String, gewicht : double, zerbrechlich : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Flug {\n  - flugNr : String\n  - ziel : String\n  - startDatum : LocalDate\n  - gate : String\n  - maxPassagiere : int\n  - basisPreis : double\n  + Flug(flugNr : String, ziel : String, startDatum : LocalDate, gate : String, max : int, preis : double)\n}\n\nclass Passagier {\n  - passagierID : int\n  - name : String\n  - ticketNummer : String\n  - {static} autowert : int = 0\n  + Passagier(name : String, ticketNummer : String, f : Flug)\n}\n\nclass GepaeckWagen {\n  + GepaeckWagen(g : Gepaeckstueck)\n  + anhaengen(wagen : GepaeckWagen)\n}\n\nclass BarcodeScanner {\n  + BarcodeScanner(serial : Serial)\n  + isReady() : boolean\n  + readBarcode() : String\n  - calcChecksum(data : char[]) : char\n}\n\nclass ScannerController {\n  + ScannerController(comPort : String, verwaltung : FlughafenVerwaltung, schleuse : GepaeckSchleuse)\n  + run()\n}\n\nclass GepaeckSchleuse {\n  - schleusenNr : int\n  - locked : boolean\n  + GepaeckSchleuse(nr : int)\n  + lock()\n  + unlock()\n  + isOpen() : boolean\n}\n\nclass Serial\n\nclass Log {\n  - eintrag : String\n  - datum : LocalDate\n  + Log(eintrag : String, datum : LocalDate)\n}\n\nGepaeckstueck <|-- Koffer\nGepaeckstueck <|-- Sperrgepaeck\n\nFlughafenVerwaltung x--> \"*\" Flug : -fluege\nFlughafenVerwaltung x--> \"*\" Passagier : -passagiere\nFlughafenVerwaltung x--> \"0..1\" GepaeckWagen : -gepaeckKopf\n\nPassagier x--> \"1\" Flug : -flug\nPassagier x--> \"*\" Gepaeckstueck : -gepaeck\n\nGepaeckWagen x--> \"0..1\" GepaeckWagen : -naechsterWagen\nGepaeckWagen x--> \"1\" Gepaeckstueck : -ladung\n\nScannerController x--> \"1\" BarcodeScanner : -scanner\nScannerController x--> \"1\" FlughafenVerwaltung : -verwaltung\nScannerController x--> \"1\" GepaeckSchleuse : -schleuse\n\nBarcodeScanner x--> \"1\" Serial : -serial\n\nFlughafenVerwaltung x-up-> \"*\" Log : -logs\n@enduml",
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\n\nparticipant \": ScannerController\" as C\nparticipant \": BarcodeScanner\" as S\nparticipant \": FlughafenVerwaltung\" as V\nparticipant \": GepaeckSchleuse\" as G\n\n[o-> C : run()\nactivate C\nloop Endlosschleife\n  C -> S : isReady()\n  activate S\n  S --> C : ready\n  deactivate S\n  \n  opt ready == true\n    C -> S : readBarcode()\n    activate S\n    S --> C : barcode\n    deactivate S\n    \n    opt barcode != \"\"\n      C -> C : extrahiere passID und gewicht\n      activate C\n      C --> C\n      deactivate C\n      \n      C -> V : checkBoarding(passID, gewicht)\n      activate V\n      V --> C : result\n      deactivate V\n      \n      alt result == true\n        C -> G : unlock()\n        activate G\n        G --> C\n        deactivate G\n        C -> C : warte 5 Sekunden\n        activate C\n        C --> C\n        deactivate C\n        C -> G : lock()\n        activate G\n        G --> C\n        deactivate G\n      else\n        C -> V : getLogs()\n        activate V\n        V --> C : logListe\n        deactivate V\n        C -> C : füge neuen Log zu logListe mit \"Abgewiesen\" und jetzigem Zeitpunkt hinzu \n        activate C\n        C --> C\n        deactivate C\n      end\n    end\n  end\nend\ndeactivate C\n@enduml"
                     },
                     NassiShneiderSource = @"PROGRAM VerarbeiteGepaeckString;
 
@@ -1410,7 +1458,7 @@ BEGIN
   END;
 END.",
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Gepaeckstueck" },
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Serial", "String", "Gepaeckstueck" },
                     Prerequisites = new List<string>()
                 },
                 new Level
@@ -1422,11 +1470,13 @@ END.",
                     Title = "Gepäckaufgabe & Hardware (Teil 2)",
                     Difficulty = "Abitur",
                     Description = "1.3 Der Barcode auf den Gepäckstücken wird im Format \"|[passID|]_|[gewicht|]\" eingelesen (z.B. '14_23.5'). Implementieren Sie die Methode [ReadBarcode()] der Klasse [BarcodeScanner] sowie die Klasse selbst unter Berücksichtigung des RS232-Protokolls mit XOR-Prüfsumme.\n\n" +
+                                  "Um den Code modular zu halten, lagern Sie die Logik zur Bestimmung der Prüfsumme in die private Hilfsmethode [CalcChecksum(char|[|] data)] aus. Diese Methode iteriert über das übergebene Array, verknüpft diese via XOR und gibt das resultierende Zeichen zurück, wo es dann für den finalen Abgleich genutzt wird.\n\n" +
                                   "1.4 Implementieren Sie die Klasse [ScannerController] exakt nach den Vorgaben des Sequenzdiagramms.\n\n" +
                                   "Die Dokumentationen der Klassen Serial und String sind im Material zu finden.\n",
                     StarterCode = "",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n" +
-                                   "Hinweise: STX entspricht 0x02, ETX entspricht 0x03. Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
+                                   "Hinweise:\nDie Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n\n" +
+                                   "Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
                                    "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                    "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                    "Datenpaket-Aufbau:\n" +
@@ -1443,7 +1493,7 @@ END.",
                     PlantUMLSources = new List<string>(),
                     NassiShneiderSource = null,
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "Serial", "GepaeckSchleuse", "FlughafenVerwaltungMock" },
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Serial", "String", "GepaeckSchleuse", "FlughafenVerwaltungMock" },
                     Prerequisites = new List<string>()
                 },
                 new Level
@@ -1458,7 +1508,16 @@ END.",
                                   "Hinweise: Die Hilfsmethode [SuchePassagier(id : int)] ist als bereits implementiert vorauszusetzen und liefert das Passagier-Objekt oder null. Nutzen Sie für Datumsberechnungen die Struktur [DateTime] (als Äquivalent zu LocalDate aus Java). Die Methode gibt einen Integer-Statuscode oder den berechneten Zuschlag (Ganzzahl, Nachkommastellen beim Zuschlag abschneiden) zurück.\n\n" +
                                   "**Wichtig**: Damit das System die vorausgesetzte Hilfsmethode 'SuchePassagier()' und die Passagier-Liste im Hintergrund einbinden kann, deklarieren Sie Ihre Klasse mit dem Schlüsselwort 'partial': [public partial class FlughafenVerwaltung]. Sie müssen die Liste und die Suchmethode dann nicht selbst definieren.\n",
                     StarterCode = "",
-                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n",
+                    MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
+                                   "Hinweise:\nDie Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n\n" +
+                                   "Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
+                                   "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
+                                   "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
+                                   "Datenpaket-Aufbau:\n" +
+                                   " - Start-Byte: STX (0x02)\n" +
+                                   " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                                   " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                                   " - End-Byte: ETX (0x03)",
                     DiagramPaths = new List<string>
                     {
                         "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1468,7 +1527,7 @@ END.",
                     PlantUMLSources = new List<string>(),
                     NassiShneiderSource = null,
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "LocalDate", "Passagier", "Flug", "FlughafenVerwaltungPartial", "ListT" },
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Serial", "String", "Passagier", "Flug", "FlughafenVerwaltungPartial" },
                     Prerequisites = new List<string>()
                 }
             };

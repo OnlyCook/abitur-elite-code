@@ -216,11 +216,15 @@
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\imgsql\\sec3\\lvl16-1.svg"
   },
   "lvl_24_1": {
-    "hash": "6085e66f92070ca62ddd81b2c16e1b9e",
+    "hash": "cf4417c05852c03f73fe254cada841e3",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec6\\lvl24-1.svg"
   },
   "lvl_24_2": {
-    "hash": "311318e407943602482ad8bc8bb7d69a",
+    "hash": "a73547a8e8d9ed0a5ec58649113f7520",
     "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\sec6\\lvl24-2.svg"
+  },
+  "shared_String": {
+    "hash": "fffa30027e81389a250336897dd336cd",
+    "path": "F:\\PERSONAL DATA\\coding projects\\AbiturEliteCode\\AbiturEliteCode\\assets\\img\\aux_String.svg"
   }
 }
