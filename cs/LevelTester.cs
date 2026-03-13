@@ -732,7 +732,16 @@ namespace AbiturEliteCode.cs
             if (tSchueler == null || tFehltag == null) throw new Exception("Klassenstruktur unvollständig (Schueler oder Fehltag fehlt).");
 
             ConstructorInfo ctorFehltag = tFehltag.GetConstructor(new[] { typeof(DateTime), typeof(bool) });
-            if (ctorFehltag == null) throw new Exception("Konstruktor Fehltag(DateTime, bool) fehlt.");
+            bool usesLocalDate = false;
+            Type tLocalDate = assembly.GetType("LocalDate");
+
+            if (ctorFehltag == null && tLocalDate != null)
+            {
+                ctorFehltag = tFehltag.GetConstructor(new[] { tLocalDate, typeof(bool) });
+                if (ctorFehltag != null) usesLocalDate = true;
+            }
+
+            if (ctorFehltag == null) throw new Exception("Konstruktor Fehltag(DateTime, bool) oder Fehltag(LocalDate, bool) fehlt.");
 
             MethodInfo mAdd = tSchueler.GetMethod("AddFehltag");
             if (mAdd == null) throw new Exception("Methode AddFehltag fehlt in Klasse Schueler.");
@@ -744,7 +753,17 @@ namespace AbiturEliteCode.cs
 
             void AddDay(int daysAgo, bool exc)
             {
-                object ft = ctorFehltag.Invoke(new object[] { DateTime.Now.AddDays(-daysAgo), exc });
+                object dateObj;
+                if (usesLocalDate)
+                {
+                    object nowObj = tLocalDate.GetMethod("Now").Invoke(null, null);
+                    dateObj = tLocalDate.GetMethod("PlusDays").Invoke(nowObj, new object[] { (long)-daysAgo });
+                }
+                else
+                {
+                    dateObj = DateTime.Now.AddDays(-daysAgo);
+                }
+                object ft = ctorFehltag.Invoke(new object[] { dateObj, exc });
                 mAdd.Invoke(s, new object[] { ft });
             }
 
@@ -916,8 +935,10 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Fehler beim Verarbeiten von 'SC;ROCK': {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            DateTime actualScan = (DateTime)fLetzterScan.GetValue(zentrum);
-            if (actualScan == default(DateTime)) throw new Exception($"Das Kommando 'SC;ROCK' hat 'letzterScan' nicht aktualisiert. Stellen Sie sicher, dass Sie den Rückgabewert der Scan-Methode speichern.");
+            // check both possible date implementations
+            object actualScan = fLetzterScan.GetValue(zentrum);
+            if (actualScan == null || (actualScan is DateTime dtScan && dtScan == default(DateTime)))
+                throw new Exception($"Das Kommando 'SC;ROCK' hat 'letzterScan' nicht aktualisiert. Stellen Sie sicher, dass Sie den Rückgabewert der Scan-Methode speichern.");
 
             feedback = "Protokoll korrekt geparst! Switch-Anweisung, Array-Konvertierung und Datum wurden richtig verarbeitet.";
             return true;
@@ -1879,9 +1900,22 @@ namespace AbiturEliteCode.cs
 
             object flugObj = null;
             DateTime testDate = DateTime.Now;
+            object testDateObj = testDate;
+
+            // check if user implemented LocalDate instead of DateTime
+            ParameterInfo[] flugParams = ctorFlug.GetParameters();
+            if (flugParams.Length >= 6 && flugParams[2].ParameterType.Name == "LocalDate")
+            {
+                Type tLocalDate = assembly.GetType("LocalDate");
+                if (tLocalDate != null)
+                {
+                    testDateObj = tLocalDate.GetMethod("Now").Invoke(null, null);
+                }
+            }
+
             try
             {
-                flugObj = ctorFlug.Invoke(new object[] { "LH123", "BER", testDate, "A1", 100, 150.0 });
+                flugObj = ctorFlug.Invoke(new object[] { "LH123", "BER", testDateObj, "A1", 100, 150.0 });
             }
             catch
             {
@@ -1899,13 +1933,17 @@ namespace AbiturEliteCode.cs
             if (fFlugNr == null || fZiel == null || fStartDatum == null || fGate == null || fMax == null || fPreis == null)
                 throw new Exception("Initialisierung in Klasse Flug fehlerhaft.");
 
+            object actualDate = fStartDatum.GetValue(flugObj);
+            bool isDateValid = actualDate != null && (actualDate.Equals(testDate) || actualDate.Equals(testDateObj));
+
             if ((string)fFlugNr.GetValue(flugObj) != "LH123" || (string)fZiel.GetValue(flugObj) != "BER" ||
-                (DateTime)fStartDatum.GetValue(flugObj) != testDate || (string)fGate.GetValue(flugObj) != "A1" ||
+                !isDateValid || (string)fGate.GetValue(flugObj) != "A1" ||
                 (int)fMax.GetValue(flugObj) != 100 || Math.Abs((double)fPreis.GetValue(flugObj) - 150.0) > 0.01)
                 throw new Exception("Initialisierung in Klasse Flug fehlerhaft.");
 
             MethodInfo mGetStartDatum = tFlug.GetMethod("GetStartDatum") ?? tFlug.GetMethod("getStartDatum");
-            if (mGetStartDatum == null || (DateTime)mGetStartDatum.Invoke(flugObj, null) != testDate)
+            object returnedDate = mGetStartDatum?.Invoke(flugObj, null);
+            if (mGetStartDatum == null || returnedDate == null || (!returnedDate.Equals(testDate) && !returnedDate.Equals(testDateObj)))
                 throw new Exception("Fehler mit Methode 'GetStartDatum()'.");
 
             // check passagier constructor and multiplicity
@@ -2147,6 +2185,9 @@ namespace AbiturEliteCode.cs
 
         private static bool TestLevel26(Assembly assembly, string sourceCode, out string feedback)
         {
+            var originalCulture = System.Threading.Thread.CurrentThread.CurrentCulture;
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
             Type tVerwaltung = assembly.GetType("FlughafenVerwaltung");
             Type tPassagier = assembly.GetType("Passagier");
             Type tFlug = assembly.GetType("Flug");
@@ -2162,8 +2203,25 @@ namespace AbiturEliteCode.cs
 
             // setup internal lists dynamically for testing the logic tree
             ConstructorInfo ctorFlug = tFlug.GetConstructors().FirstOrDefault(c => c.GetParameters().Length >= 6);
-            object flugObjFuture = ctorFlug.Invoke(new object[] { "FL1", "NYC", DateTime.Now.AddDays(5), "G1", 100, 200.0 });
-            object flugObjPast = ctorFlug.Invoke(new object[] { "FL2", "LON", DateTime.Now.AddDays(-1), "G2", 100, 100.0 });
+            object dateFuture = DateTime.Now.AddDays(5);
+            object datePast = DateTime.Now.AddDays(-1);
+
+            // check if user implemented LocalDate instead of DateTime
+            ParameterInfo[] flugParams = ctorFlug.GetParameters();
+            if (flugParams.Length >= 6 && flugParams[2].ParameterType.Name == "LocalDate")
+            {
+                Type tLocalDate = assembly.GetType("LocalDate");
+                if (tLocalDate != null)
+                {
+                    object nowObj = tLocalDate.GetMethod("Now").Invoke(null, null);
+                    MethodInfo mPlusDays = tLocalDate.GetMethod("PlusDays");
+                    dateFuture = mPlusDays.Invoke(nowObj, new object[] { 5L });
+                    datePast = mPlusDays.Invoke(nowObj, new object[] { -1L });
+                }
+            }
+
+            object flugObjFuture = ctorFlug.Invoke(new object[] { "FL1", "NYC", dateFuture, "G1", 100, 200.0 });
+            object flugObjPast = ctorFlug.Invoke(new object[] { "FL2", "LON", datePast, "G2", 100, 100.0 });
 
             ConstructorInfo ctorPassagier = tPassagier.GetConstructor(new[] { typeof(string), typeof(string), tFlug });
             object passFuture = ctorPassagier.Invoke(new object[] { "Test 1", "T1", flugObjFuture });

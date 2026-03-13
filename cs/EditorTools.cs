@@ -1449,6 +1449,7 @@ namespace AbiturEliteCode
              <Word>Array</Word>
              <Word>DateTime</Word>
              <Word>Int32</Word>
+             <Word>Double</Word>
         </Keywords>
 		<Rule color=""MethodCall"">
 			\b

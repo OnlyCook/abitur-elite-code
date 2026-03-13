@@ -1901,9 +1901,17 @@ namespace AbiturEliteCode
                 else
                 {
                     header = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n";
+                    if (currentLevel != null && currentLevel.Id == 26)
+                    {
+                        header += "public partial class FlughafenVerwaltung {\n";
+                    }
                 }
 
                 string fullCode = header + code + (isValidationMode ? "\n}" : "");
+                if (!isValidationMode && currentLevel != null && currentLevel.Id == 26)
+                {
+                    fullCode += "\n}";
+                }
 
                 var userTree = CSharpSyntaxTree.ParseText(fullCode);
                 var trees = new List<SyntaxTree> { userTree };
@@ -1912,7 +1920,7 @@ namespace AbiturEliteCode
                 {
                     foreach (var auxId in currentLevel.AuxiliaryIds)
                     {
-                        string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                        string auxCode = AuxiliaryImplementations.GetCode(auxId, code);
                         if (!string.IsNullOrEmpty(auxCode))
                         {
                             trees.Add(CSharpSyntaxTree.ParseText(auxCode));
@@ -2545,6 +2553,12 @@ namespace AbiturEliteCode
                 pendingSnapshot = JsonSerializer.Deserialize<LevelDraft>(json);
             }
 
+            int headerLineCount = 4;
+            if (!runDesignerTest && levelContext != null && levelContext.Id == 26)
+            {
+                headerLineCount = 5;
+            }
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
@@ -2560,7 +2574,17 @@ namespace AbiturEliteCode
                     });
                     Console.SetOut(customWriter);
 
-                    string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + codeText;
+                    string header = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n";
+                    if (!runDesignerTest && levelContext != null && levelContext.Id == 26)
+                    {
+                        header += "public partial class FlughafenVerwaltung {\n";
+                    }
+
+                    string fullCode = header + codeText;
+                    if (!runDesignerTest && levelContext != null && levelContext.Id == 26)
+                    {
+                        fullCode += "\n}";
+                    }
 
                     var syntaxTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: token);
 
@@ -2579,7 +2603,7 @@ namespace AbiturEliteCode
                     {
                         foreach (var auxId in levelContext.AuxiliaryIds)
                         {
-                            string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                            string auxCode = AuxiliaryImplementations.GetCode(auxId, codeText);
                             if (!string.IsNullOrEmpty(auxCode))
                             {
                                 trees.Add(CSharpSyntaxTree.ParseText(auxCode, cancellationToken: token));
@@ -2717,7 +2741,7 @@ namespace AbiturEliteCode
                         foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
                         {
                             var lineSpan = diag.Location.GetLineSpan();
-                            int userLine = lineSpan.StartLinePosition.Line - 3;
+                            int userLine = lineSpan.StartLinePosition.Line - (headerLineCount - 1);
                             if (userLine < 0) userLine = 0;
                             AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
                         }
@@ -5645,7 +5669,7 @@ namespace AbiturEliteCode
             {
                 foreach (var auxId in currentLevel.AuxiliaryIds)
                 {
-                    string auxCode = AuxiliaryImplementations.GetCode(auxId);
+                    string auxCode = AuxiliaryImplementations.GetCode(auxId, CodeEditor.Text);
                     if (!string.IsNullOrEmpty(auxCode))
                     {
                         ExtractTypesFromCode(auxCode, classes);

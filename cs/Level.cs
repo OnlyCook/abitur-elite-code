@@ -74,7 +74,7 @@ namespace AbiturEliteCode.cs
 
         public static string Paket = "@startuml\nclass Paket {\n  - gewicht : double\n  - zielort : String\n  + Paket(ziel : String, gew : double)\n  + getGewicht() : double\n  + getZielort() : String\n}\n@enduml";
 
-        public static string LocalDate = "@startuml\nclass LocalDate {\n  + {static} now() : LocalDate\n  + isAfter(other : LocalDate) : boolean\n  + isBefore(other : LocalDate) : boolean\n  + minusMonths(months : long) : LocalDate\n  + plusDays(days : long) : LocalDate\n}\n@enduml";
+        public static string LocalDate = "@startuml\nclass LocalDate {\n  + {static} now() : LocalDate\n  + isAfter(other : LocalDate) : boolean\n  + isBefore(other : LocalDate) : boolean\n  + minusMonths(months : long) : LocalDate\n  + plusDays(days : long) : LocalDate\n  + until(endExclusive : LocalDate, unit : Object) : int\n  + toString() : String\n}\n@enduml";
 
         public static string Serial = "@startuml\nclass Serial {\n  + Serial(port : String, baud : int, db : int, sb : int, p : int)\n  + open() : boolean\n  + close()\n  + read() : int\n  + write(val : int)\n  + dataAvailable() : int\n}\n@enduml";
 
@@ -93,7 +93,7 @@ namespace AbiturEliteCode.cs
 
     public static class AuxiliaryImplementations
     {
-        public static string GetCode(string auxId)
+        public static string GetCode(string auxId, string userCode = "")
         {
             return auxId switch
             {
@@ -113,7 +113,57 @@ namespace AbiturEliteCode.cs
                         public string GetZielort() { return zielort; }
                     }",
                 "LocalDate" => @"
-                    // DateTime soll stattdessen genutzt werden",
+                    using System;
+
+                    public class LocalDate
+                    {
+                        private DateTime date;
+
+                        private LocalDate(DateTime date)
+                        {
+                            this.date = date.Date;
+                        }
+
+                        public static LocalDate Now()
+                        {
+                            return new LocalDate(DateTime.Now);
+                        }
+
+                        public bool IsAfter(LocalDate other)
+                        {
+                            return this.date > other.date;
+                        }
+
+                        public bool IsBefore(LocalDate other)
+                        {
+                            return this.date < other.date;
+                        }
+
+                        public LocalDate MinusMonths(long months)
+                        {
+                            return new LocalDate(this.date.AddMonths(-(int)months));
+                        }
+
+                        public LocalDate PlusDays(long days)
+                        {
+                            return new LocalDate(this.date.AddDays(days));
+                        }
+
+                        public int Until(DateTime other, object unit = null)
+                        {
+                            return (int)(other.Date - this.date).TotalDays;
+                        }
+
+                        public int Until(LocalDate other, object unit = null)
+                        {
+                            return (int)(other.date - this.date).TotalDays;
+                        }
+
+                        public override string ToString()
+                        {
+                            return date.ToString(""yyyy-MM-dd"");
+                        }
+                    }",
                 "Serial" => @"
                     using System.Collections.Generic;
                     public class Serial {
@@ -260,8 +310,10 @@ namespace AbiturEliteCode.cs
 
                     public class Log {
                         public string Eintrag { get; set; }
-                        public DateTime Datum { get; set; }
+                        public object Datum { get; set; }
+                        
                         public Log(string e, DateTime d) { Eintrag = e; Datum = d; }
+                        public Log(string e, LocalDate d) { Eintrag = e; Datum = d; }
                     }
 
                     public class FlughafenVerwaltung {
@@ -281,7 +333,27 @@ namespace AbiturEliteCode.cs
                             return NextCheckResult;
                         }
                     }",
-                "Flug" => @"
+                "Flug" => userCode.Contains("LocalDate") ? @"
+                    using System;
+                    public class Flug {
+                        private string flugNr;
+                        private string ziel;
+                        private LocalDate startDatum;
+                        private string gate;
+                        private int maxPassagiere;
+                        private double basisPreis;
+                        
+                        public Flug(string flugNr, string ziel, LocalDate startDatum, string gate, int max, double preis) {
+                            this.flugNr = flugNr;
+                            this.ziel = ziel;
+                            this.startDatum = startDatum;
+                            this.gate = gate;
+                            this.maxPassagiere = max;
+                            this.basisPreis = preis;
+                        }
+
+                        public LocalDate GetStartDatum() { return startDatum; }
+                    }" : @"
                     using System;
                     public class Flug {
                         private string flugNr;
@@ -299,7 +371,7 @@ namespace AbiturEliteCode.cs
                             this.maxPassagiere = max;
                             this.basisPreis = preis;
                         }
-                        
+
                         public DateTime GetStartDatum() { return startDatum; }
                     }",
                 "Passagier" => @"
@@ -329,13 +401,6 @@ namespace AbiturEliteCode.cs
                     public partial class FlughafenVerwaltung {
                         private List<Passagier> passagiere = new List<Passagier>();
                         private List<Flug> fluege = new List<Flug>();
-                        
-                        public Passagier SuchePassagier(int passID) {
-                            foreach(var p in passagiere) {
-                                if (p.GetPassagierID() == passID) return p;
-                            }
-                            return null;
-                        }
                     }",
                 _ => ""
             };
@@ -1397,7 +1462,7 @@ END.",
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass FlughafenVerwaltung {\n  + FlughafenVerwaltung()\n  + checkBoarding(passID : int, gepaeckGewicht : double) : boolean\n  + verarbeiteGepaeckString(daten : String) : int\n}\n\nabstract class Gepaeckstueck {\n  # id : String\n  # gewicht : double\n  + Gepaeckstueck(id : String, gewicht : double)\n  {abstract} + berechneZuschlag() : double\n}\n\nclass Koffer {\n  - hartschale : boolean\n  + Koffer(id : String, gewicht : double, hartschale : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Sperrgepaeck {\n  - zerbrechlich : boolean\n  + Sperrgepaeck(id : String, gewicht : double, zerbrechlich : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Flug {\n  - flugNr : String\n  - ziel : String\n  - startDatum : LocalDate\n  - gate : String\n  - maxPassagiere : int\n  - basisPreis : double\n  + Flug(flugNr : String, ziel : String, startDatum : LocalDate, gate : String, max : int, preis : double)\n}\n\nclass Passagier {\n  - passagierID : int\n  - name : String\n  - ticketNummer : String\n  - {static} autowert : int = 0\n  + Passagier(name : String, ticketNummer : String, f : Flug)\n}\n\nclass GepaeckWagen {\n  + GepaeckWagen(g : Gepaeckstueck)\n  + anhaengen(wagen : GepaeckWagen)\n}\n\nclass BarcodeScanner {\n  + BarcodeScanner(serial : Serial)\n  + isReady() : boolean\n  + readBarcode() : String\n  - calcChecksum(data : char[]) : char\n}\n\nclass ScannerController {\n  + ScannerController(comPort : String, verwaltung : FlughafenVerwaltung, schleuse : GepaeckSchleuse)\n  + run()\n}\n\nclass GepaeckSchleuse {\n  - schleusenNr : int\n  - locked : boolean\n  + GepaeckSchleuse(nr : int)\n  + lock()\n  + unlock()\n  + isOpen() : boolean\n}\n\nclass Serial\n\nclass Log {\n  - eintrag : String\n  - datum : LocalDate\n  + Log(eintrag : String, datum : LocalDate)\n}\n\nGepaeckstueck <|-- Koffer\nGepaeckstueck <|-- Sperrgepaeck\n\nFlughafenVerwaltung x--> \"*\" Flug : -fluege\nFlughafenVerwaltung x--> \"*\" Passagier : -passagiere\nFlughafenVerwaltung x--> \"0..1\" GepaeckWagen : -gepaeckKopf\n\nPassagier x--> \"1\" Flug : -flug\nPassagier x--> \"*\" Gepaeckstueck : -gepaeck\n\nGepaeckWagen x--> \"0..1\" GepaeckWagen : -naechsterWagen\nGepaeckWagen x--> \"1\" Gepaeckstueck : -ladung\n\nScannerController x--> \"1\" BarcodeScanner : -scanner\nScannerController x--> \"1\" FlughafenVerwaltung : -verwaltung\nScannerController x--> \"1\" GepaeckSchleuse : -schleuse\n\nBarcodeScanner x--> \"1\" Serial : -serial\n\nFlughafenVerwaltung x-up-> \"*\" Log : -logs\n@enduml",
+                        "@startuml\nclass FlughafenVerwaltung {\n  + FlughafenVerwaltung()\n  + checkBoarding(passID : int, gepaeckGewicht : double) : boolean\n  + verarbeiteGepaeckString(daten : String) : int\n  + suchePassagier(id : int) : Passagier\n}\n\nabstract class Gepaeckstueck {\n  # id : String\n  # gewicht : double\n  + Gepaeckstueck(id : String, gewicht : double)\n  {abstract} + berechneZuschlag() : double\n}\n\nclass Koffer {\n  - hartschale : boolean\n  + Koffer(id : String, gewicht : double, hartschale : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Sperrgepaeck {\n  - zerbrechlich : boolean\n  + Sperrgepaeck(id : String, gewicht : double, zerbrechlich : boolean)\n  + berechneZuschlag() : double\n}\n\nclass Flug {\n  - flugNr : String\n  - ziel : String\n  - startDatum : LocalDate\n  - gate : String\n  - maxPassagiere : int\n  - basisPreis : double\n  + Flug(flugNr : String, ziel : String, startDatum : LocalDate, gate : String, max : int, preis : double)\n}\n\nclass Passagier {\n  - passagierID : int\n  - name : String\n  - ticketNummer : String\n  - {static} autowert : int = 0\n  + Passagier(name : String, ticketNummer : String, f : Flug)\n}\n\nclass GepaeckWagen {\n  + GepaeckWagen(g : Gepaeckstueck)\n  + anhaengen(wagen : GepaeckWagen)\n}\n\nclass BarcodeScanner {\n  + BarcodeScanner(serial : Serial)\n  + isReady() : boolean\n  + readBarcode() : String\n  - calcChecksum(data : char[]) : char\n}\n\nclass ScannerController {\n  + ScannerController(comPort : String, verwaltung : FlughafenVerwaltung, schleuse : GepaeckSchleuse)\n  + run()\n}\n\nclass GepaeckSchleuse {\n  - schleusenNr : int\n  - locked : boolean\n  + GepaeckSchleuse(nr : int)\n  + lock()\n  + unlock()\n  + isOpen() : boolean\n}\n\nclass Serial\n\nclass Log {\n  - eintrag : String\n  - datum : LocalDate\n  + Log(eintrag : String, datum : LocalDate)\n}\n\nGepaeckstueck <|-- Koffer\nGepaeckstueck <|-- Sperrgepaeck\n\nFlughafenVerwaltung x--> \"*\" Flug : -fluege\nFlughafenVerwaltung x--> \"*\" Passagier : -passagiere\nFlughafenVerwaltung x--> \"0..1\" GepaeckWagen : -gepaeckKopf\n\nPassagier x--> \"1\" Flug : -flug\nPassagier x--> \"*\" Gepaeckstueck : -gepaeck\n\nGepaeckWagen x--> \"0..1\" GepaeckWagen : -naechsterWagen\nGepaeckWagen x--> \"1\" Gepaeckstueck : -ladung\n\nScannerController x--> \"1\" BarcodeScanner : -scanner\nScannerController x--> \"1\" FlughafenVerwaltung : -verwaltung\nScannerController x--> \"1\" GepaeckSchleuse : -schleuse\n\nBarcodeScanner x--> \"1\" Serial : -serial\n\nFlughafenVerwaltung x-up-> \"*\" Log : -logs\n@enduml",
                         "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\n\nparticipant \": ScannerController\" as C\nparticipant \": BarcodeScanner\" as S\nparticipant \": FlughafenVerwaltung\" as V\nparticipant \": GepaeckSchleuse\" as G\n\n[o-> C : run()\nactivate C\nloop Endlosschleife\n  C -> S : isReady()\n  activate S\n  S --> C : ready\n  deactivate S\n  \n  opt ready == true\n    C -> S : readBarcode()\n    activate S\n    S --> C : barcode\n    deactivate S\n    \n    opt barcode != \"\"\n      C -> C : extrahiere passID und gewicht\n      activate C\n      C --> C\n      deactivate C\n      \n      C -> V : checkBoarding(passID, gewicht)\n      activate V\n      V --> C : result\n      deactivate V\n      \n      alt result == true\n        C -> G : unlock()\n        activate G\n        G --> C\n        deactivate G\n        C -> C : warte 5 Sekunden\n        activate C\n        C --> C\n        deactivate C\n        C -> G : lock()\n        activate G\n        G --> C\n        deactivate G\n      else\n        C -> V : getLogs()\n        activate V\n        V --> C : logListe\n        deactivate V\n        C -> C : füge neuen Log zu logListe mit \"Abgewiesen\" und jetzigem Zeitpunkt hinzu \n        activate C\n        C --> C\n        deactivate C\n      end\n    end\n  end\nend\ndeactivate C\n@enduml"
                     },
                     NassiShneiderSource = @"PROGRAM VerarbeiteGepaeckString;
@@ -1505,9 +1570,9 @@ END.",
                     Title = "Das Abrechnungssystem (Teil 3)",
                     Difficulty = "Abitur",
                     Description = "1.5 Die Methode [VerarbeiteGepaeckString(daten : String)] der Klasse [FlughafenVerwaltung] wertet eingehende Datensätze aus und berechnet fällige Gepäckzuschläge. Entwickeln Sie die Methode exakt anhand des vorliegenden Struktogramms.\n\n" +
-                                  "Hinweise: Die Hilfsmethode [SuchePassagier(id : int)] ist als bereits implementiert vorauszusetzen und liefert das Passagier-Objekt oder null. Nutzen Sie für Datumsberechnungen die Struktur [DateTime] (als Äquivalent zu LocalDate aus Java). Die Methode gibt einen Integer-Statuscode oder den berechneten Zuschlag (Ganzzahl, Nachkommastellen beim Zuschlag abschneiden) zurück.\n\n" +
-                                  "**Wichtig**: Damit das System die vorausgesetzte Hilfsmethode 'SuchePassagier()' und die Passagier-Liste im Hintergrund einbinden kann, deklarieren Sie Ihre Klasse mit dem Schlüsselwort 'partial': [public partial class FlughafenVerwaltung]. Sie müssen die Liste und die Suchmethode dann nicht selbst definieren.\n",
-                    StarterCode = "",
+                                  "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und muss ebenfalls implementiert werden.\n\n" +
+                                  "**Wichtig**: Sie befinden sich in diesem Level bereits innerhalb der Klasse [FlughafenVerwaltung]. Sie müssen die Klasse nicht selbst definieren.\n",
+                    StarterCode = "public int VerarbeiteGepaeckString(string daten)\n{\n    return 0;\n}",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
                                    "Hinweise:\nDie Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n\n" +
                                    "Die Extraktion im Controller erfolgt am Unterstrich ('_'). Für die Modellierung der Wartezeit aus dem Sequenzdiagramm können Sie beispielsweise [System.Threading.Thread.Sleep(n);] oder eine leere Schleife nutzen, sofern die Logik dem Sequenzdiagramm entspricht.\n\n" +
@@ -1527,7 +1592,7 @@ END.",
                     PlantUMLSources = new List<string>(),
                     NassiShneiderSource = null,
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Serial", "String", "Passagier", "Flug", "FlughafenVerwaltungPartial" },
+                    AuxiliaryIds = new List<string> { "ListT", "LocalDate", "Serial", "String", "Passagier", "Flug", "FlughafenVerwaltungPartial", "Gepaeckstueck" },
                     Prerequisites = new List<string>()
                 }
             };
