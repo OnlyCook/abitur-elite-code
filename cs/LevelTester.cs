@@ -1433,8 +1433,8 @@ namespace AbiturEliteCode.cs
                 throw new Exception($"Das ACK-Protokoll ist inkorrekt. Erhalten: \"{ack.Trim()}\", Erwartet: \"{expectedAck.Trim()}\"");
             }
 
-            if (!err.Contains("+ERR unbekannt"))
-                throw new Exception("Unbekannte Befehle (außer QUIT) müssen mit '+ERR unbekannt\\n' beantwortet werden.");
+            if (!err.Contains("-ERR unbekannt"))
+                throw new Exception("Unbekannte Befehle (außer QUIT) müssen mit '-ERR unbekannt\\n' beantwortet werden.");
 
             feedback = "Hervorragend! Sie haben die Port-Initialisierung korrekt umgesetzt und die Befehlsverarbeitung erfolgreich in einer Schleife mit Fallunterscheidung implementiert.";
             return true;

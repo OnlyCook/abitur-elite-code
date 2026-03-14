@@ -112,10 +112,11 @@ namespace AbiturEliteCode
             <Word>DOUBLE</Word>
             <Word>DECIMAL</Word>
             <Word>BOOLEAN</Word>
-            <Word>YEAR</Word>
-            <Word>MONTH</Word>
-            <Word>DAY</Word>
         </Keywords>
+
+        <Rule color=""Types"">
+            \b(YEAR|MONTH|DAY)\b(?!\s*\()
+        </Rule>
 
         <Keywords color=""Functions"">
             <Word>COUNT</Word>

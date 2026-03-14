@@ -1994,10 +1994,11 @@ namespace AbiturEliteCode
 
         private void Diagram_PointerWheelChanged(object sender, PointerWheelEventArgs e)
         {
-            if (ImgScale == null || ImgTranslate == null)
+            if (ImgScale == null || ImgTranslate == null || sender is not Control panel)
                 return;
 
             double zoomSpeed = 0.1;
+            double oldScale = _currentScale;
 
             ImgDiagram.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
 
@@ -2008,6 +2009,16 @@ namespace AbiturEliteCode
 
             if (_currentScale < 0.1) _currentScale = 0.1;
             if (_currentScale > 5.0) _currentScale = 5.0;
+
+            var pointerPos = e.GetCurrentPoint(panel).Position;
+
+            double imgCenterX = panel.Bounds.Width / 2 + ImgTranslate.X;
+            double imgCenterY = panel.Bounds.Height / 2 + ImgTranslate.Y;
+
+            double scaleFactor = _currentScale / oldScale;
+
+            ImgTranslate.X -= (pointerPos.X - imgCenterX) * (scaleFactor - 1);
+            ImgTranslate.Y -= (pointerPos.Y - imgCenterY) * (scaleFactor - 1);
 
             ImgScale.ScaleX = _currentScale;
             ImgScale.ScaleY = _currentScale;
@@ -2275,9 +2286,11 @@ namespace AbiturEliteCode
 
                         string capturedTitle = currentHintTitle;
 
+                        var btnText = new TextBlock { Text = "▶ " + capturedTitle, VerticalAlignment = VerticalAlignment.Center };
+
                         var btn = new Button
                         {
-                            Content = "▶ " + capturedTitle,
+                            Content = btnText,
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                             Background = SolidColorBrush.Parse("#3C3C41"),
                             Foreground = Brushes.White,
@@ -2289,7 +2302,7 @@ namespace AbiturEliteCode
                         {
                             bool isExpanded = contentPanel.IsVisible;
                             contentPanel.IsVisible = !isExpanded;
-                            btn.Content = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
+                            btnText.Text = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
                         };
 
                         stack.Children.Add(btn);
@@ -7431,8 +7444,14 @@ namespace AbiturEliteCode
                         }
                     };
 
-                    btnExpected.PointerEntered += (s, e) => btnExpected.Background = SolidColorBrush.Parse("#4A4A4A");
-                    btnExpected.PointerExited += (s, e) => btnExpected.Background = SolidColorBrush.Parse("#3C3C3C");
+                    btnExpected.PointerEntered += (s, e) => {
+                        btnExpected.Background = SolidColorBrush.Parse("#4A4A4A");
+                        ToolTip.SetIsOpen(btnExpected, true); // force open immediately
+                    };
+                    btnExpected.PointerExited += (s, e) => {
+                        btnExpected.Background = SolidColorBrush.Parse("#3C3C3C");
+                        ToolTip.SetIsOpen(btnExpected, false); // force close immediately
+                    };
 
                     var toolTipBorder = new Border
                     {
@@ -7443,7 +7462,9 @@ namespace AbiturEliteCode
                         ClipToBounds = true
                     };
                     toolTipBorder.Child = BuildTableGrid(expectedTable, currentSqlLevel.ExpectedSchema?.Select(c => c.Type).ToList());
+
                     ToolTip.SetTip(btnExpected, toolTipBorder);
+                    ToolTip.SetShowDelay(btnExpected, 0);
 
                     stack.Children.Add(btnExpected);
                     container.Children.Add(stack);
@@ -7862,15 +7883,35 @@ namespace AbiturEliteCode
                 // add/delete column button
                 var btnAddCol = new Button
                 {
-                    Content = "+",
+                    Content = LoadIcon("assets/icons/ic_plus.svg", 16),
                     Background = Brushes.Transparent,
-                    Foreground = BrushTextTitle,
-                    FontWeight = FontWeight.Bold,
-                    FontSize = 16,
-                    Padding = new Thickness(4, 0),
+                    Padding = new Thickness(4),
                     Margin = new Thickness(2, 0, 0, 0),
                     Cursor = Cursor.Parse("Hand"),
-                    VerticalContentAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
+
+                btnAddCol.Click += (s, e) => {
+                    if (ToolTip.GetTip(btnAddCol)?.ToString() == "Spalte löschen")
+                    {
+                        if (table.Columns.Count > 0)
+                        {
+                            var lastCol = table.Columns.Last();
+                            if (_focusedRColumn == lastCol) UpdateFocusedColumn(null, null);
+                            table.Columns.Remove(lastCol);
+                            RenderRelationalModel(targetPanel, false);
+                            TriggerRelationalAutoSave();
+                        }
+                    }
+                    else
+                    {
+                        var newCol = new RColumn { Name = "Neu" };
+                        table.Columns.Add(newCol);
+                        UpdateFocusedColumn(newCol, null);
+                        RenderRelationalModel(targetPanel, false);
+                        TriggerRelationalAutoSave();
+                    }
                 };
                 ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
 
@@ -7960,14 +8001,12 @@ namespace AbiturEliteCode
                         {
                             if (string.IsNullOrEmpty(col.Name))
                             {
-                                btnAddCol.Content = "×";
-                                btnAddCol.Foreground = SolidColorBrush.Parse("#B43232");
+                                btnAddCol.Content = LoadIcon("assets/icons/ic_cross.svg", 16);
                                 ToolTip.SetTip(btnAddCol, "Spalte löschen");
                             }
                             else
                             {
-                                btnAddCol.Content = "+";
-                                btnAddCol.Foreground = BrushTextTitle;
+                                btnAddCol.Content = LoadIcon("assets/icons/ic_plus.svg", 16);
                                 ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
                             }
                         }
@@ -7975,8 +8014,7 @@ namespace AbiturEliteCode
 
                     if (i == table.Columns.Count - 1 && string.IsNullOrEmpty(col.Name))
                     {
-                        btnAddCol.Content = "×";
-                        btnAddCol.Foreground = SolidColorBrush.Parse("#B43232");
+                        btnAddCol.Content = LoadIcon("assets/icons/ic_cross.svg", 16);
                         ToolTip.SetTip(btnAddCol, "Spalte löschen");
                     }
 
@@ -8003,14 +8041,12 @@ namespace AbiturEliteCode
 
                 var btnDelTable = new Button
                 {
-                    Content = "×",
+                    Content = LoadIcon("assets/icons/ic_cross.svg", 16),
                     Background = Brushes.Transparent,
-                    Foreground = SolidColorBrush.Parse("#B43232"),
-                    FontSize = 16,
-                    Padding = new Thickness(6, 0),
+                    Padding = new Thickness(4),
                     Margin = new Thickness(10, 0, 0, 0),
                     Cursor = Cursor.Parse("Hand"),
-                    VerticalContentAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center
                 };
                 ToolTip.SetTip(btnDelTable, "Tabelle löschen");
                 btnDelTable.Click += (s, e) => {

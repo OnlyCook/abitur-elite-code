@@ -1267,7 +1267,7 @@ END.",
                                   "• Er sendet eine Begrüßung (inklusive Zeilenumbruch [\\n]).\n" +
                                   "• Er liest Befehle des Clients in einer Schleife (loop), solange der Befehl nicht \"QUIT\" lautet.\n" +
                                   "• Beginnt der Befehl mit \"HELLO:\", extrahieren Sie die ID (alles nach dem Doppelpunkt) mit [Substring] und senden ein \"+ACK \" + id + \"\\n\".\n" +
-                                  "• Ist es ein anderer Befehl (nicht QUIT), senden Sie \"+ERR unbekannt\\n\".\n" +
+                                  "• Ist es ein anderer Befehl (nicht QUIT), senden Sie \"-ERR unbekannt\\n\".\n" +
                                   "• Schließen Sie den Socket am Ende der Methode.",
                     StarterCode = "public class SmartHomeServer\n{\n    // Implementation\n}",
                     MaterialDocs = stringDocsHint +
@@ -1293,7 +1293,7 @@ END.",
                     PlantUMLSources = new List<string>
                     {
                         "@startuml\nclass SmartHomeServer {\n  - port : int\n  + SmartHomeServer(port : int)\n  + startServer()\n}\nSmartHomeServer x--> \"1\" ServerSocket : -server\n@enduml",
-                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\nCS --> S\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"+ERR unbekannt\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
+                        "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \"hub: SmartHomeServer\" as S\nparticipant \"server: ServerSocket\" as SS\nparticipant \"clientSocket: Socket\" as CS\n\n[o-> S : startServer()\nactivate S\nS -> SS : accept()\nactivate SS\nSS --> S : clientSocket\ndeactivate SS\nS -> CS : write(\"+OK Smart Home Hub\\n/\")\nactivate CS\nCS --> S\ndeactivate CS\nloop befehl != \"QUIT\"\n  S -> CS : readLine()\n  activate CS\n  CS --> S : befehl\n  deactivate CS\n  alt befehl beginnt mit \"HELLO:\"\n    S -> CS : write(\"+ACK \" + id + \"\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  else befehl != \"QUIT\"\n    S -> CS : write(\"-ERR unbekannt\\n/\")\n    activate CS\n    CS --> S\n    deactivate CS\n  end\nend\nS -> CS : close()\nactivate CS\nCS --> S\ndeactivate CS\ndeactivate S\n@enduml"
                     },
                     NoUMLAutoScale = false,
                     AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "String" },
@@ -1570,7 +1570,7 @@ END.",
                     Title = "Das Abrechnungssystem (Teil 3)",
                     Difficulty = "Abitur",
                     Description = "1.5 Die Methode [VerarbeiteGepaeckString(daten : String)] der Klasse [FlughafenVerwaltung] wertet eingehende Datensätze aus und berechnet fällige Gepäckzuschläge. Entwickeln Sie die Methode exakt anhand des vorliegenden Struktogramms.\n\n" +
-                                  "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und muss ebenfalls implementiert werden.\n\n" +
+                                  "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und soll ebenfalls implementiert werden.\n\n" +
                                   "**Wichtig**: Sie befinden sich in diesem Level bereits innerhalb der Klasse [FlughafenVerwaltung]. Sie müssen die Klasse nicht selbst definieren.\n",
                     StarterCode = "public int VerarbeiteGepaeckString(string daten)\n{\n    return 0;\n}",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
