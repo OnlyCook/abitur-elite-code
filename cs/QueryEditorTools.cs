@@ -134,7 +134,7 @@ namespace AbiturEliteCode
         </Keywords>
 
         <Rule color=""Functions"">
-            \b[a-zA-Z_][a-zA-Z0-9_]*\b(?=\s*\()
+            \b(?&lt;!\b(INTO|UPDATE|TABLE)\s+)[a-zA-Z_][a-zA-Z0-9_]*\b(?=\s*\()
         </Rule>
 
 		<Rule color=""Number"">

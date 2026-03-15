@@ -71,6 +71,7 @@ namespace AbiturEliteCode.cs
             "LEF", "NUL", "DIS", "PRB",
             "MAT", "SUM", "TOP", "HAV", "SAL",
             "DAT", "BTW", "NOW", "DIF", "ADD", "HOT",
+            "SIN", "SNO", "SIS", "ABO",
             ""
         };
     }
@@ -335,7 +336,7 @@ namespace AbiturEliteCode.cs
                         new[] { "3", "Max", "12" }
                     },
                     MaterialDocs = "start-hint: UPDATE Syntax\n" +
-                                   "{|UPDATE Tabelle SET spalte = neuerWert WHERE Bedingung;|}\n" +
+                                   "{|UPDATE Tabelle SET spalte = neuerWert WHERE Bedingung;|}" +
                                    "Nutzen Sie am besten immer den Primärschlüssel ([id]) in der WHERE-Klausel, da Namen oder Klassen mehrfach vorkommen können.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
@@ -373,7 +374,7 @@ namespace AbiturEliteCode.cs
                         new[] { "2", "BleibtHier", "12" }
                     },
                     MaterialDocs = "start-hint: DELETE Syntax\n" +
-                                   "{|DELETE FROM Tabelle WHERE Bedingung;|}\n" +
+                                   "{|DELETE FROM Tabelle WHERE Bedingung;|}" +
                                    "Vorsicht: [DELETE FROM Tabelle] (ohne Where) löscht den gesamten Inhalt!\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
@@ -589,14 +590,14 @@ namespace AbiturEliteCode.cs
                                   "Geben Sie den [name]n des Schülers und den [titel] des Buches aus.",
                     SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse TEXT);" +
                                   "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT);" +
-                                  "CREATE TABLE Ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
+                                  "CREATE TABLE ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', '10b');" +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', '12a');" +
                                   "INSERT INTO Buch VALUES (100, 'Faust');" +
                                   "INSERT INTO Buch VALUES (101, 'Nathan der Weise');" +
-                                  "INSERT INTO Ausleihe VALUES (1, 100, '2023-01-01');" +
-                                  "INSERT INTO Ausleihe VALUES (2, 101, '2023-01-05');" +
-                                  "INSERT INTO Ausleihe VALUES (2, 100, '2023-02-01');",
+                                  "INSERT INTO ausleihe VALUES (1, 100, '2023-01-01');" +
+                                  "INSERT INTO ausleihe VALUES (2, 101, '2023-01-05');" +
+                                  "INSERT INTO ausleihe VALUES (2, 100, '2023-02-01');",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
@@ -612,19 +613,19 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "start-hint: Kette von Joins\n" +
                                    "Sie müssen von Tabelle A nach B und von B nach C springen:\n" +
                                    "{|FROM Schueler\n" +
-                                   "JOIN Ausleihe ON ...\n" +
+                                   "JOIN ausleihe ON ...\n" +
                                    "JOIN Buch ON ...|}\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Schreibfaul? (Aliase)\n" +
                                    "Statt immer den vollen Tabellennamen zu tippen, können Sie Kürzel definieren:\n" +
-                                   "{|FROM Schueler s JOIN Ausleihe a ON ...|}" +
+                                   "{|FROM Schueler s JOIN ausleihe a ON ...|}" +
                                    "Danach können Sie [s.name] statt [Schueler.name] schreiben.\n" +
                                    ":end-hint",
                     IsRelationalModelReadOnly = true,
                     InitialRelationalModel = new List<RTable> {
                         new RTable { Name = "Schueler", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "name" }, new RColumn { Name = "klasse" } } },
                         new RTable { Name = "Buch", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true }, new RColumn { Name = "titel" } } },
-                        new RTable { Name = "Ausleihe", Columns = new List<RColumn> { new RColumn { Name = "schuelerid", IsFk = true }, new RColumn { Name = "buchid", IsFk = true }, new RColumn { Name = "datum" } } }
+                        new RTable { Name = "ausleihe", Columns = new List<RColumn> { new RColumn { Name = "schuelerid", IsFk = true, IsPk = true }, new RColumn { Name = "buchid", IsFk = true, IsPk = true }, new RColumn { Name = "datum" } } }
                     },
                     DiagramPaths = new List<string>
                     {
@@ -632,7 +633,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship Ausleihe {\n    schulerid_FK\n    buchid_FK\n    datum\n}\nSchueler -(0,m)- Ausleihe\nAusleihe -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schulerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,m)- ausleihe\nausleihe -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "Ausführungsreihenfolge von SQL-Klauseln" },
                     OptionalPrerequisites = new List<string> { "Aliase (AS)" }
@@ -651,15 +652,15 @@ namespace AbiturEliteCode.cs
                                   "Geben Sie [name] und [titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
                     SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse TEXT);" +
                                   "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT);" +
-                                  "CREATE TABLE Ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
+                                  "CREATE TABLE ausleihe (schuelerid_FK INTEGER, buchid_FK INTEGER, datum TEXT);" +
                                   "INSERT INTO Schueler VALUES (1, 'Max', '10b');" +
                                   "INSERT INTO Schueler VALUES (2, 'Lisa', '12a');" +
                                   "INSERT INTO Schueler VALUES (3, 'Tom', '10b');" +
                                   "INSERT INTO Buch VALUES (100, 'Faust');" +
                                   "INSERT INTO Buch VALUES (101, 'HTML für Anfänger');" +
-                                  "INSERT INTO Ausleihe VALUES (1, 100, '2023-01-01');" +
-                                  "INSERT INTO Ausleihe VALUES (2, 100, '2023-01-05');" +
-                                  "INSERT INTO Ausleihe VALUES (3, 101, '2023-02-01');",
+                                  "INSERT INTO ausleihe VALUES (1, 100, '2023-01-01');" +
+                                  "INSERT INTO ausleihe VALUES (2, 100, '2023-01-05');" +
+                                  "INSERT INTO ausleihe VALUES (3, 101, '2023-02-01');",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
@@ -681,7 +682,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n    klasse\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship Ausleihe {\n    schulerid_FK\n    buchid_FK\n    datum\n}\nSchueler -(0,n)- Ausleihe\nAusleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n    klasse\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schulerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,n)- ausleihe\nausleihe -(0,m)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "ER-Diagramm lesen (Chen-Notation)", "Relationales Schema aus ER-Diagramm ableiten" },
                     OptionalPrerequisites = new List<string> { }
@@ -1455,6 +1456,201 @@ namespace AbiturEliteCode.cs
                     PlantUMLSources = new List<string>
                     {
                          "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    id <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(0,n)- reserviert\nreserviert -(1,1)- Zimmer\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { },
+                    OptionalPrerequisites = new List<string> { }
+                },
+
+                // --- SECTION 6 ---
+                new SqlLevel
+                {
+                    Id = 29,
+                    Section = "Sektion 6: Subqueries & Komplexes",
+                    SkipCode = SqlLevelCodes.CodesList[28],
+                    NextLevelCode = SqlLevelCodes.CodesList[29],
+                    Title = "Filmabend (Subquery mit IN)",
+                    Description = "Wir analysieren die Datenbank eines Streaming-Dienstes.\n\n" +
+                                  "Formulieren Sie eine SQL-Anweisung, welche die Namen aller Nutzer ausgibt, die in ihrem Verlauf mindestens einen Film angeschaut haben, der dem Genre 'Action' zugeordnet ist.\n\n" +
+                                  "**Wichtig:** Verwenden Sie für die Lösung zwingend eine Unterabfrage mit dem [IN]-Operator, anstatt einen herkömmlichen [JOIN] über alle Tabellen zu bilden.",
+                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
+                                  "INSERT INTO Nutzer VALUES (1, 'Alice');" +
+                                  "INSERT INTO Nutzer VALUES (2, 'Bob');" +
+                                  "INSERT INTO Nutzer VALUES (3, 'Charlie');" +
+                                  "INSERT INTO Film VALUES (10, 'Die Hard', 'Action');" +
+                                  "INSERT INTO Film VALUES (11, 'Titanic', 'Drama');" +
+                                  "INSERT INTO Film VALUES (12, 'Mad Max', 'Action');" +
+                                  "INSERT INTO schaut VALUES (1, 10, '2023-01-01');" +
+                                  "INSERT INTO schaut VALUES (2, 11, '2023-02-01');" +
+                                  "INSERT INTO schaut VALUES (3, 12, '2023-03-01');",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Alice" },
+                        new[] { "Charlie" }
+                    },
+                    MaterialDocs = "start-hint: Subqueries (IN)\n" +
+                                   "Eine Unterabfrage wird innerhalb einer anderen Abfrage ausgeführt. Mit dem [IN]-Operator können Sie prüfen, ob ein Wert in der Ergebnismenge der Unterabfrage enthalten ist:\n" +
+                                   "{|SELECT spalte\nFROM TabelleA\nWHERE fk_id IN\n    (SELECT id\n    FROM TabelleB\n    WHERE bedingung);|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>()
+                    {
+                        "imgsql\\sec6\\lvl29-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "Subqueries", "IN-Operator", "n:m Beziehungen" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 30,
+                    Section = "Sektion 6: Subqueries & Komplexes",
+                    SkipCode = SqlLevelCodes.CodesList[29],
+                    NextLevelCode = SqlLevelCodes.CodesList[30],
+                    Title = "Die Unberührten (Subquery mit NOT IN)",
+                    Description = "Für eine Aufräumaktion auf den Servern sollen Filme identifiziert werden, die von der Nutzerschaft ignoriert werden.\n\n" +
+                                  "Entwickeln Sie einen SQL-Befehl, der die Titel aller Filme ermittelt, die noch nie von einem Nutzer angeschaut wurden (die also nicht im Verlauf auftauchen).\n" +
+                                  "Nutzen Sie hierfür das Ausschlussprinzip mithilfe einer Unterabfrage.",
+                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
+                                  "INSERT INTO Nutzer VALUES (1, 'Alice');" +
+                                  "INSERT INTO Film VALUES (10, 'Die Hard', 'Action');" +
+                                  "INSERT INTO Film VALUES (11, 'Titanic', 'Drama');" +
+                                  "INSERT INTO Film VALUES (12, 'Avatar', 'Sci-Fi');" +
+                                  "INSERT INTO schaut VALUES (1, 10, '2023-01-01');",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "titel", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Titanic" },
+                        new[] { "Avatar" }
+                    },
+                    MaterialDocs = "start-hint: Ausschlussprinzip (NOT IN)\n" +
+                                   "Analog zum [IN]-Operator prüft [NOT IN], ob ein Wert explizit **nicht** in der Menge der Unterabfrage vorkommt.\n" +
+                                   "Dies ist oft effizienter und lesbarer als komplexe [LEFT JOIN]s mit [IS NULL] Abfragen für denselben Zweck.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>()
+                    {
+                        "imgsql\\sec6\\lvl30-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "NOT IN-Operator" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 31,
+                    Section = "Sektion 6: Subqueries & Komplexes",
+                    SkipCode = SqlLevelCodes.CodesList[30],
+                    NextLevelCode = SqlLevelCodes.CodesList[31],
+                    Title = "Intelligentes Einfügen (INSERT mit Subselect)",
+                    Description = "Das System erhält eine Anfrage von der Frontend-Applikation. Ein neuer Eintrag soll in die Watchlist eines spezifischen Nutzers eingefügt werden. Die App übermittelt jedoch nur den Namen des Nutzers, nicht dessen ID.\n\n" +
+                                  "Entwickeln Sie die SQL-Anweisung, um einen neuen Datensatz in die Watchlist einzufügen.\n" +
+                                  "Der betroffene Nutzer trägt den Namen 'Neo'. Der Film, der zur Watchlist hinzugefügt werden soll, besitzt die ID 5.\n" +
+                                  "Ermitteln Sie die benötigte Nutzer-ID dynamisch über eine Unterabfrage innerhalb des [INSERT]-Befehls.",
+                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT);" +
+                                  "CREATE TABLE merkt_vor (nutzerid_FK INTEGER, filmid_FK INTEGER);" +
+                                  "INSERT INTO Nutzer VALUES (1, 'Trinity');" +
+                                  "INSERT INTO Nutzer VALUES (2, 'Neo');" +
+                                  "INSERT INTO Film VALUES (5, 'Matrix 4');",
+                    VerificationQuery = "SELECT n.name, w.filmid_FK FROM merkt_vor w JOIN Nutzer n ON w.nutzerid_FK = n.id WHERE n.name = 'Neo'",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "filmid", Type = "INT", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Neo", "5" }
+                    },
+                    MaterialDocs = "start-hint: INSERT mit dynamischen Werten\n" +
+                                   "Anstatt feste Werte (Literale) in die [VALUES]-Klammer zu schreiben, können Sie an der entsprechenden Position auch einen Subselect in runden Klammern einfügen, sofern dieser exakt einen Wert zurückliefert:\n" +
+                                   "{|INSERT INTO Tabelle (fk_id, wert)\nVALUES ((SELECT ...), 10);|}\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>()
+                    {
+                        "imgsql\\sec6\\lvl31-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n}\nrelationship merkt_vor {\n}\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string> { "INSERT INTO ... VALUES", "Skalare Subqueries" },
+                    OptionalPrerequisites = new List<string> { }
+                },
+                new SqlLevel
+                {
+                    Id = 32,
+                    Section = "Sektion 6: Subqueries & Komplexes",
+                    SkipCode = SqlLevelCodes.CodesList[31],
+                    NextLevelCode = SqlLevelCodes.CodesList[32],
+                    Title = "Die Abo-Analyse",
+                    Description = "Das Management verlangt eine komplexe Datenanalyse zum aktuellen Nutzerverhalten bezüglich bestimmter Filmgenres.\n\n" +
+                                  "Implementieren Sie eine SQL-Anweisung für die Ermittlung der Namen der Nutzer und die Bezeichnung ihres jeweiligen Abonnements unter folgenden Bedingungen:\n" +
+                                  "- Der Nutzer hat im Jahr 2024 mindestens einen Film aus dem Genre 'Sci-Fi' in seinem Verlauf verzeichnet.\n" +
+                                  "- Der Nutzer hat sich den Film mit dem Titel 'Matrix' jedoch nicht auf seiner Watchlist gemerkt.\n\n" +
+                                  "Jeder Nutzer soll in der Ergebnisliste eindeutig, aufgeführt werden. Leiten Sie das Relationenmodell selbstständig aus dem erweiterten ER-Diagramm ab.",
+                    SetupScript = "CREATE TABLE Abo (id INTEGER PRIMARY KEY, bezeichnung TEXT);" +
+                                  "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT, aboid_FK INTEGER);" +
+                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
+                                  "CREATE TABLE merkt_vor (nutzerid_FK INTEGER, filmid_FK INTEGER);" +
+                                  "INSERT INTO Abo VALUES (1, 'Basis');" +
+                                  "INSERT INTO Abo VALUES (2, 'Premium');" +
+                                  "INSERT INTO Nutzer VALUES (1, 'Anna', 2);" +
+                                  "INSERT INTO Nutzer VALUES (2, 'Ben', 1);" +
+                                  "INSERT INTO Nutzer VALUES (3, 'Clara', 2);" +
+                                  "INSERT INTO Nutzer VALUES (4, 'David', 1);" +
+                                  "INSERT INTO Film VALUES (10, 'Dune', 'Sci-Fi');" +
+                                  "INSERT INTO Film VALUES (11, 'Interstellar', 'Sci-Fi');" +
+                                  "INSERT INTO Film VALUES (12, 'Matrix', 'Sci-Fi');" +
+                                  "INSERT INTO Film VALUES (13, 'Joker', 'Drama');" +
+                                  "INSERT INTO schaut VALUES (1, 10, '2024-05-10');" + // anna: sci-Fi in 2024, no matrix -> in
+                                  "INSERT INTO schaut VALUES (2, 11, '2024-06-15');" + // ben: sci-Fi in 2024, has matrix -> out
+                                  "INSERT INTO merkt_vor VALUES (2, 12);" +
+                                  "INSERT INTO schaut VALUES (3, 10, '2023-10-01');" + // clara: sci-Fi in 2023 -> out
+                                  "INSERT INTO schaut VALUES (4, 13, '2024-01-05');",  // david: drama in 2024 -> out
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "bezeichnung", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "Anna", "Premium" }
+                    },
+                    MaterialDocs = "start-tipp: Verschachtelung\n" +
+                                   "Nutzen Sie reguläre [JOIN]s, um die Bedingungen für das Genre und das Jahr (via [YEAR(datum)]) zu verknüpfen.\n" +
+                                   "Die zweite Bedingung lässt sich am elegantesten mit einem [NOT IN] im [WHERE]-Bereich lösen, der auf die Watchlist-Tabelle und den spezifischen Filmtitel abfragt.\n" +
+                                   ":end-hint",
+                    DiagramPaths = new List<string>()
+                    {
+                        "imgsql\\sec6\\lvl32-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Abo {\n    id <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(0,n)- schliesst_ab\nschliesst_ab -(1,1)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { },

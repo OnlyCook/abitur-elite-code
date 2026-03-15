@@ -66,6 +66,7 @@ namespace AbiturEliteCode
         private TextBox _focusedRColumnTextBox;
         private Button _btnGlobalPk;
         private Button _btnGlobalFk;
+        private Image? _relationalValidationIcon;
 
         private Control? _hoveredSplitter;
         private Control? _activeDraggingSplitter;
@@ -7680,8 +7681,136 @@ namespace AbiturEliteCode
         private void TriggerRelationalAutoSave()
         {
             UpdateSqlAutocompleteSchema();
+            UpdateRelationalValidationIcon();
             _relationalAutoSaveTimer.Stop();
             _relationalAutoSaveTimer.Start();
+        }
+
+        private bool CheckRelationalModel(int levelId)
+        {
+            if (levelId < 13 || levelId > 27) return false;
+
+            // normalize strings (ignore case and whitespaces)
+            string Normalize(string s) => s?.Trim().ToLower() ?? "";
+
+            var currentModel = _currentRelationalModel.Select(t => new {
+                Name = Normalize(t.Name),
+                Columns = t.Columns.Select(c => new {
+                    Name = Normalize(c.Name),
+                    c.IsPk,
+                    c.IsFk
+                }).OrderBy(c => c.Name).ToList()
+            }).OrderBy(t => t.Name).ToList();
+
+            var expectedTables = new List<(string Name, (string ColName, bool IsPk, bool IsFk)[] Cols)>();
+
+            switch (levelId)
+            {
+                case 13:
+                    expectedTables.Add(("Schueler", new[] { ("id", true, false), ("name", false, false), ("klasse", false, false) }));
+                    expectedTables.Add(("Buch", new[] { ("id", true, false), ("titel", false, false) }));
+                    expectedTables.Add(("ausleihe", new[] { ("schuelerid", true, true), ("buchid", true, true), ("datum", false, false) }));
+                    break;
+                case 14:
+                case 15:
+                    expectedTables.Add(("Vip", new[] { ("id", true, false), ("name", false, false) }));
+                    expectedTables.Add(("Reservierung", new[] { ("vipid", true, true), ("tischnr", false, false) }));
+                    break;
+                case 16:
+                    expectedTables.Add(("Gast", new[] { ("id", true, false), ("name", false, false), ("stadt", false, false) }));
+                    expectedTables.Add(("Ticket", new[] { ("id", true, false), ("gastid", false, true), ("bereich", false, false) }));
+                    break;
+                case 17:
+                    expectedTables.Add(("Vip", new[] { ("id", true, false), ("name", false, false) }));
+                    expectedTables.Add(("Reservierung", new[] { ("vipid", true, true), ("bereich", false, false), ("tischnr", false, false) }));
+                    break;
+                case 18:
+                    expectedTables.Add(("Produkt", new[] { ("id", true, false), ("bezeichnung", false, false), ("preis", false, false) }));
+                    expectedTables.Add(("Position", new[] { ("id", true, false), ("produktid", false, true), ("menge", false, false) }));
+                    break;
+                case 19:
+                    expectedTables.Add(("Bestellung", new[] { ("id", true, false), ("datum", false, false) }));
+                    expectedTables.Add(("Position", new[] { ("id", true, false), ("preis", false, false), ("menge", false, false), ("bestellungid", false, true) }));
+                    break;
+                case 20:
+                    expectedTables.Add(("Produkt", new[] { ("id", true, false), ("name", false, false) }));
+                    expectedTables.Add(("Position", new[] { ("id", true, false), ("menge", false, false), ("produktid", false, true) }));
+                    break;
+                case 21:
+                    expectedTables.Add(("Produkt", new[] { ("id", true, false), ("kategorie", false, false) }));
+                    expectedTables.Add(("Position", new[] { ("id", true, false), ("menge", false, false), ("produktid", false, true) }));
+                    break;
+                case 22:
+                    expectedTables.Add(("Produkt", new[] { ("id", true, false), ("kategorie", false, false), ("preis", false, false) }));
+                    expectedTables.Add(("Position", new[] { ("id", true, false), ("menge", false, false), ("produktid", false, true) }));
+                    break;
+                case 23:
+                case 24:
+                case 25:
+                    expectedTables.Add(("Gast", new[] { ("id", true, false), ("name", false, false) }));
+                    expectedTables.Add(("Buchung", new[] { ("id", true, false), ("anreise", false, false), ("abreise", false, false), ("gastid", false, true) }));
+                    break;
+                case 26:
+                    expectedTables.Add(("Buchung", new[] { ("id", true, false), ("anreise", false, false), ("abreise", false, false) }));
+                    break;
+                case 27:
+                    expectedTables.Add(("Gast", new[] { ("id", true, false), ("name", false, false) }));
+                    expectedTables.Add(("Buchung", new[] { ("id", true, false), ("anreise", false, false), ("abreise", false, false), ("gastid", false, true), ("zimmerid", false, true) }));
+                    expectedTables.Add(("Zimmer", new[] { ("id", true, false), ("nummer", false, false) }));
+                    break;
+                default:
+                    return false;
+            }
+
+            if (currentModel.Count != expectedTables.Count) return false;
+
+            var expectedModel = expectedTables.Select(t => new {
+                Name = Normalize(t.Name),
+                Columns = t.Cols.Select(c => new {
+                    Name = Normalize(c.ColName),
+                    IsPk = c.IsPk,
+                    IsFk = c.IsFk
+                }).OrderBy(c => c.Name).ToList()
+            }).OrderBy(t => t.Name).ToList();
+
+            for (int i = 0; i < expectedModel.Count; i++)
+            {
+                if (currentModel[i].Name != expectedModel[i].Name) return false;
+                if (currentModel[i].Columns.Count != expectedModel[i].Columns.Count) return false;
+
+                for (int j = 0; j < expectedModel[i].Columns.Count; j++)
+                {
+                    var curCol = currentModel[i].Columns[j];
+                    var expCol = expectedModel[i].Columns[j];
+
+                    if (curCol.Name != expCol.Name || curCol.IsPk != expCol.IsPk || curCol.IsFk != expCol.IsFk)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void UpdateRelationalValidationIcon()
+        {
+            if (_relationalValidationIcon == null || currentSqlLevel == null) return;
+
+            if (currentSqlLevel.Id >= 13 && currentSqlLevel.Id <= 27)
+            {
+                bool isCorrect = CheckRelationalModel(currentSqlLevel.Id);
+                string iconPath = isCorrect ? "assets/icons/ic_correct.svg" : "assets/icons/ic_not_correct.svg";
+
+                var svgImage = new SvgImage();
+                svgImage.Source = SvgSource.Load($"avares://AbiturEliteCode/{iconPath}", null);
+                _relationalValidationIcon.Source = svgImage;
+
+                ToolTip.SetTip(_relationalValidationIcon, isCorrect ? "Korrekt umgesetzt" : "Noch nicht korrekt umgesetzt");
+                _relationalValidationIcon.IsVisible = true;
+            }
+            else
+            {
+                _relationalValidationIcon.IsVisible = false;
+            }
         }
 
         private void RenderRelationalModel(StackPanel targetPanel, bool isReadOnly)
@@ -7694,7 +7823,7 @@ namespace AbiturEliteCode
             var headerGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("*, Auto"),
-                Margin = new Thickness(0, 0, 0, 15)
+                Margin = new Thickness(0, 0, 0, 8)
             };
             var titleStack = new StackPanel
             {
@@ -7711,6 +7840,21 @@ namespace AbiturEliteCode
                 Foreground = BrushTextTitle,
                 VerticalAlignment = VerticalAlignment.Center
             });
+
+            // validation icon
+            if (currentSqlLevel != null && currentSqlLevel.Id >= 13 && currentSqlLevel.Id <= 27)
+            {
+                _relationalValidationIcon = LoadIcon("assets/icons/ic_not_correct.svg", 16);
+                _relationalValidationIcon.Margin = new Thickness(5, 0, 5, 0);
+                _relationalValidationIcon.VerticalAlignment = VerticalAlignment.Center;
+
+                titleStack.Children.Add(_relationalValidationIcon);
+                UpdateRelationalValidationIcon();
+            }
+            else
+            {
+                _relationalValidationIcon = null;
+            }
 
             var btnCopyModel = new Button
             {
@@ -7854,12 +7998,14 @@ namespace AbiturEliteCode
                     FontFamily = new FontFamily(MonospaceFontFamily),
                     FontWeight = FontWeight.Bold,
                     FontSize = 15,
+                    LetterSpacing = 0.5,
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
-                    Padding = new Thickness(0), // hidden initially
+                    Padding = new Thickness(4, 2),
                     MinHeight = 0,
                     MinWidth = 40,
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center
                 };
 
                 // only valid sql characters allowed
@@ -7900,29 +8046,17 @@ namespace AbiturEliteCode
                             var lastCol = table.Columns.Last();
                             if (_focusedRColumn == lastCol) UpdateFocusedColumn(null, null);
                             table.Columns.Remove(lastCol);
-                            RenderRelationalModel(targetPanel, false);
-                            TriggerRelationalAutoSave();
-                        }
-                    }
-                    else
-                    {
-                        var newCol = new RColumn { Name = "Neu" };
-                        table.Columns.Add(newCol);
-                        UpdateFocusedColumn(newCol, null);
-                        RenderRelationalModel(targetPanel, false);
-                        TriggerRelationalAutoSave();
-                    }
-                };
-                ToolTip.SetTip(btnAddCol, "Spalte hinzufügen");
 
-                btnAddCol.Click += (s, e) => {
-                    if (btnAddCol.Content?.ToString() == "×")
-                    {
-                        if (table.Columns.Count > 0)
-                        {
-                            var lastCol = table.Columns.Last();
-                            if (_focusedRColumn == lastCol) UpdateFocusedColumn(null, null);
-                            table.Columns.Remove(lastCol);
+                            // focus previous element
+                            if (table.Columns.Count > 0)
+                            {
+                                UpdateFocusedColumn(table.Columns.Last(), null);
+                            }
+                            else
+                            {
+                                _focusedRTable = table;
+                            }
+
                             RenderRelationalModel(targetPanel, false);
                             TriggerRelationalAutoSave();
                         }
@@ -7954,12 +8088,14 @@ namespace AbiturEliteCode
                         Foreground = BrushTextNormal,
                         FontFamily = new FontFamily(MonospaceFontFamily),
                         FontSize = 15,
+                        LetterSpacing = 0.5,
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
-                        Padding = new Thickness(0),
+                        Padding = new Thickness(4, 2),
                         MinHeight = 0,
                         MinWidth = 20,
-                        VerticalAlignment = VerticalAlignment.Center
+                        VerticalAlignment = VerticalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center,
                     };
 
                     // wrap in border to fake underline
@@ -7972,7 +8108,7 @@ namespace AbiturEliteCode
 
                     txtCol.TextChanged += (s, e) => {
                         string filtered = new string(txtCol.Text?.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray() ?? Array.Empty<char>());
-                        bool fkToggled = false;
+                        bool stateChanged = false;
 
                         // check for '_FK' suffix and strip it
                         if (filtered.EndsWith("_FK", StringComparison.OrdinalIgnoreCase))
@@ -7981,7 +8117,18 @@ namespace AbiturEliteCode
                             if (!col.IsFk)
                             {
                                 col.IsFk = true;
-                                fkToggled = true;
+                                stateChanged = true;
+                            }
+                        }
+
+                        // check for '_PK' suffix and strip it
+                        if (filtered.EndsWith("_PK", StringComparison.OrdinalIgnoreCase))
+                        {
+                            filtered = filtered.Substring(0, filtered.Length - 3);
+                            if (!col.IsPk)
+                            {
+                                col.IsPk = true;
+                                stateChanged = true;
                             }
                         }
 
@@ -7989,8 +8136,8 @@ namespace AbiturEliteCode
                         col.Name = txtCol.Text;
                         TriggerRelationalAutoSave();
 
-                        // re-render if it was newly marked as FK
-                        if (fkToggled)
+                        // render if it was newly marked as fk or pk
+                        if (stateChanged)
                         {
                             RenderRelationalModel(targetPanel, false);
                             return;
@@ -8062,7 +8209,12 @@ namespace AbiturEliteCode
 
             var btnAddTable = new Button { Content = "+ Tabelle", Background = SolidColorBrush.Parse("#2D2D30"), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(4), Cursor = Cursor.Parse("Hand"), Margin = new Thickness(0, 10, 0, 0) };
             btnAddTable.Click += (s, e) => {
-                _currentRelationalModel.Add(new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } });
+                var newTable = new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
+                _currentRelationalModel.Add(newTable);
+
+                // set focus to the newly created table
+                _focusedRTable = newTable;
+
                 RenderRelationalModel(targetPanel, false);
                 TriggerRelationalAutoSave();
             };

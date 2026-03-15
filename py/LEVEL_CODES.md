@@ -115,3 +115,12 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S27 | `ADD` | Feedback-Mails & Limit (DATE_ADD) |
 | S28 | `HOT` | Die Hotel-Bilanz |
 
+## Sektion 6: Subqueries & Komplexes
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| S29 | `SIN` | Filmabend (Subquery mit IN) |
+| S30 | `SNO` | Die Unberührten (Subquery mit NOT IN) |
+| S31 | `SIS` | Intelligentes Einfügen (INSERT mit Subselect) |
+| S32 | `ABO` | Die Abo-Analyse |
+
