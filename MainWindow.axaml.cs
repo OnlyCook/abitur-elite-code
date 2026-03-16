@@ -7301,6 +7301,33 @@ namespace AbiturEliteCode
                     _consecutiveSqlFails = 0;
                 }
 
+                // format error
+                string displayFeedback = result.Feedback ?? "Unbekannter Fehler.";
+                if (Regex.IsMatch(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:", RegexOptions.IgnoreCase))
+                {
+                    // strip unnecessary prefix
+                    displayFeedback = Regex.Replace(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:\s*", "", RegexOptions.IgnoreCase);
+
+                    // attempt to map the error to a line number by locating the problematic token
+                    var match = Regex.Match(displayFeedback, @"(?:column:|table:|near)\s*['""]?([a-zA-Z0-9_]+)['""]?", RegexOptions.IgnoreCase);
+                    if (match.Success && match.Groups.Count > 1)
+                    {
+                        string token = match.Groups[1].Value;
+                        int index = userQuery.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+
+                        if (index != -1)
+                        {
+                            int lineNumber = userQuery.Substring(0, index).Count(c => c == '\n') + 1;
+
+                            // capitalize first letter if it is a letter
+                            if (displayFeedback.Length > 0 && char.IsLetter(displayFeedback[0]))
+                                displayFeedback = char.ToUpper(displayFeedback[0]) + displayFeedback.Substring(1);
+
+                            displayFeedback = $"Zeile {lineNumber}: {displayFeedback}";
+                        }
+                    }
+                }
+
                 DataTable expectedData = null;
                 if (currentSqlLevel.ExpectedResult != null && currentSqlLevel.ExpectedResult.Count > 0)
                 {
@@ -7323,7 +7350,7 @@ namespace AbiturEliteCode
                     }
                 }
 
-                AddSqlOutput("Error", result.Feedback, Brushes.Orange, false, expectedData);
+                AddSqlOutput("Error", displayFeedback, Brushes.Orange, false, expectedData);
             }
         }
 
@@ -8011,7 +8038,11 @@ namespace AbiturEliteCode
                 // only valid sql characters allowed
                 txtTableName.TextChanged += (s, e) => {
                     string filtered = new string(txtTableName.Text?.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray() ?? Array.Empty<char>());
-                    if (txtTableName.Text != filtered) txtTableName.Text = filtered;
+                    if (txtTableName.Text != filtered)
+                    {
+                        txtTableName.Text = filtered;
+                        txtTableName.CaretIndex = txtTableName.Text.Length;
+                    }
                     table.Name = txtTableName.Text;
                     TriggerRelationalAutoSave();
                 };
@@ -8021,7 +8052,31 @@ namespace AbiturEliteCode
                     _focusedRTable = table;
                 };
 
-                if (_focusedRTable == table) Dispatcher.UIThread.Post(() => txtTableName.Focus());
+                // handle shortcut to jump to first column or create one
+                txtTableName.KeyDown += (s, e) => {
+                    if (e.KeySymbol == "(" || (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.D8) || e.Key == Key.OemOpenBrackets)
+                    {
+                        e.Handled = true;
+                        if (table.Columns.Count == 0)
+                        {
+                            var newCol = new RColumn { Name = "Neu" };
+                            table.Columns.Add(newCol);
+                            UpdateFocusedColumn(newCol, null);
+                            RenderRelationalModel(targetPanel, false);
+                            TriggerRelationalAutoSave();
+                        }
+                        else
+                        {
+                            UpdateFocusedColumn(table.Columns.First(), null);
+                            RenderRelationalModel(targetPanel, false);
+                        }
+                    }
+                };
+
+                if (_focusedRTable == table) Dispatcher.UIThread.Post(() => {
+                    txtTableName.Focus();
+                    txtTableName.CaretIndex = txtTableName.Text?.Length ?? 0;
+                });
 
                 rowPanel.Children.Add(txtTableName);
                 rowPanel.Children.Add(new TextBlock { Text = " (", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center, FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15 });
@@ -8132,7 +8187,12 @@ namespace AbiturEliteCode
                             }
                         }
 
-                        if (txtCol.Text != filtered) txtCol.Text = filtered;
+                        if (txtCol.Text != filtered)
+                        {
+                            txtCol.Text = filtered;
+                            txtCol.CaretIndex = txtCol.Text.Length;
+                        }
+
                         col.Name = txtCol.Text;
                         TriggerRelationalAutoSave();
 
@@ -8159,6 +8219,45 @@ namespace AbiturEliteCode
                         }
                     };
 
+                    // handle shortcuts to jump to next column/table or create them
+                    txtCol.KeyDown += (s, e) => {
+                        if (e.KeySymbol == "," || e.Key == Key.OemComma)
+                        {
+                            e.Handled = true;
+                            if (capturedIndex == table.Columns.Count - 1)
+                            {
+                                var newCol = new RColumn { Name = "Neu" };
+                                table.Columns.Add(newCol);
+                                UpdateFocusedColumn(newCol, null);
+                                RenderRelationalModel(targetPanel, false);
+                                TriggerRelationalAutoSave();
+                            }
+                            else
+                            {
+                                UpdateFocusedColumn(table.Columns[capturedIndex + 1], null);
+                                RenderRelationalModel(targetPanel, false);
+                            }
+                        }
+                        else if (e.KeySymbol == ")" || (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.D9) || e.Key == Key.OemCloseBrackets)
+                        {
+                            e.Handled = true;
+                            int tableIndex = _currentRelationalModel.IndexOf(table);
+                            if (tableIndex == _currentRelationalModel.Count - 1)
+                            {
+                                var newTable = new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
+                                _currentRelationalModel.Add(newTable);
+                                _focusedRTable = newTable;
+                                RenderRelationalModel(targetPanel, false);
+                                TriggerRelationalAutoSave();
+                            }
+                            else
+                            {
+                                _focusedRTable = _currentRelationalModel[tableIndex + 1];
+                                RenderRelationalModel(targetPanel, false);
+                            }
+                        }
+                    };
+
                     if (i == table.Columns.Count - 1 && string.IsNullOrEmpty(col.Name))
                     {
                         btnAddCol.Content = LoadIcon("assets/icons/ic_cross.svg", 16);
@@ -8166,7 +8265,10 @@ namespace AbiturEliteCode
                     }
 
                     txtCol.GotFocus += (s, e) => UpdateFocusedColumn(col, txtCol);
-                    if (_focusedRColumn == col) Dispatcher.UIThread.Post(() => txtCol.Focus());
+                    if (_focusedRColumn == col) Dispatcher.UIThread.Post(() => {
+                        txtCol.Focus();
+                        txtCol.CaretIndex = txtCol.Text?.Length ?? 0;
+                    });
 
                     colStack.Children.Add(pkUnderlineBorder);
 

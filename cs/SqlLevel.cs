@@ -1650,7 +1650,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Abo {\n    id <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(0,n)- schliesst_ab\nschliesst_ab -(1,1)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
+                        "@startchen\nentity Abo {\n    id <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(1,1)- schliesst_ab\nschliesst_ab -(0,n)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { },

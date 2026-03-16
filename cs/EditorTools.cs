@@ -766,7 +766,7 @@ namespace AbiturEliteCode
                 _sqlAliases.Clear();
 
                 // extract table aliases
-                var aliasMatches = Regex.Matches(text, @"(?i)\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+AS)?\s+([a-zA-Z_][a-zA-Z0-9_]*)\b");
+                var aliasMatches = Regex.Matches(text, @"(?i)(?:\b(?:FROM|JOIN)\b|,)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+AS)?\s+([a-zA-Z_][a-zA-Z0-9_]*)\b");
                 foreach (Match m in aliasMatches)
                 {
                     string table = m.Groups[1].Value;
