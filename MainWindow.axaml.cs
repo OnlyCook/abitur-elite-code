@@ -490,9 +490,13 @@ namespace AbiturEliteCode
         {
             if (_sqlAutocompleteService == null) return;
             var schema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            // check if current level is an abitur level (>= 33)
+            bool isAbiturLevel = currentSqlLevel != null && currentSqlLevel.Id >= 33;
+
             foreach (var t in _currentRelationalModel)
             {
-                schema[t.Name] = t.Columns.Select(c => c.IsFk ? c.Name + "_FK" : c.Name).ToList();
+                schema[t.Name] = t.Columns.Select(c => (c.IsFk && !isAbiturLevel) ? c.Name + "_FK" : c.Name).ToList();
             }
             _sqlAutocompleteService.SetSqlSchema(schema);
         }
@@ -8059,7 +8063,7 @@ namespace AbiturEliteCode
                         e.Handled = true;
                         if (table.Columns.Count == 0)
                         {
-                            var newCol = new RColumn { Name = "Neu" };
+                            var newCol = new RColumn { Name = "" };
                             table.Columns.Add(newCol);
                             UpdateFocusedColumn(newCol, null);
                             RenderRelationalModel(targetPanel, false);

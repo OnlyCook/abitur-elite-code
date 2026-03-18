@@ -18,7 +18,7 @@ namespace AbiturEliteCode.cs
 
     public class RTable
     {
-        public string Name { get; set; } = "Neu";
+        public string Name { get; set; } = "";
         public List<RColumn> Columns { get; set; } = new List<RColumn>();
     }
 
@@ -72,6 +72,7 @@ namespace AbiturEliteCode.cs
             "MAT", "SUM", "TOP", "HAV", "SAL",
             "DAT", "BTW", "NOW", "DIF", "ADD", "HOT",
             "SIN", "SNO", "SIS", "ABO",
+            "LAD", "COS", "CAN",
             ""
         };
     }
@@ -1655,6 +1656,165 @@ namespace AbiturEliteCode.cs
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { },
                     OptionalPrerequisites = new List<string> { }
+                },
+
+                // --- SECTION 7 ---
+                new SqlLevel
+                {
+                    Id = 33,
+                    Section = "Sektion 7: Die Abschlussprüfung",
+                    SkipCode = SqlLevelCodes.CodesList[32],
+                    NextLevelCode = SqlLevelCodes.CodesList[33],
+                    Title = "Die Ladenhüter der Medizin (Teil 1)",
+                    Difficulty = "Abitur",
+                    Description = "Ein Entity-Relationship-Modell (ERM) der Krankenhaus-Logistik ist im Material dargestellt.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Einige Artikel im Sortiment werden scheinbar nicht benötigt. Entwickeln Sie eine SQL-Anweisung, die die Artikelnummern und Bezeichnungen aller Artikel ermittelt, welche bisher noch in keiner einzigen Bestellung beinhaltet waren. Die Liste ist alphabetisch nach der Bezeichnung zu sortieren.",
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                                  "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
+                                  "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
+                                  "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
+                                  "CREATE TABLE beinhaltet (bid INTEGER, artid INTEGER, menge INTEGER, PRIMARY KEY (bid, artid));" +
+                                  "INSERT INTO Mitarbeiter VALUES (1, 'Müller', 'Hans'), (2, 'Schmidt', 'Anna'), (3, 'Meier', 'Lukas');" +
+                                  "INSERT INTO Lager VALUES (1, 'Hauptlager'), (2, 'Notaufnahme'), (3, 'Station A');" +
+                                  "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50), (105, 'Pflaster', 2.50), (106, 'MRT-Gerät', 850000.00), (107, 'Stethoskop', 45.00);" +
+                                  "INSERT INTO Bestellung VALUES (1001, '2024-10-01', 1, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1001, 101, 50), (1001, 102, 20);" +
+                                  "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 2);" +
+                                  "INSERT INTO beinhaltet VALUES (1002, 103, 1), (1002, 104, 10);" +
+                                  "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 1, 3);" +
+                                  "INSERT INTO beinhaltet VALUES (1003, 101, 10), (1003, 105, 100);" +
+                                  "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 3, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1004, 106, 1), (1004, 103, 2);" +
+                                  "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1005, 104, 5);",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "artid", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "bezeichnung", Type = "VARCHAR(255)", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "107", "Stethoskop" }
+                    },
+                    MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
+                                   "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                                   "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec7\\lvl33-1.svg"
+                    },
+                    PlantUMLSources = new List<string>
+                    {
+                        "@startchen\nentity Mitarbeiter {\n    mid <<key>>\n    name\n    vorname\n}\nentity Bestellung {\n    bid <<key>>\n    datum\n}\nentity Lager {\n    lid <<key>>\n    standort\n}\nentity Artikel {\n    artid <<key>>\n    bezeichnung\n    preis\n}\nrelationship gibt_auf {\n}\nrelationship geliefert_an {\n}\nrelationship beinhaltet {\n    menge\n}\nMitarbeiter -(1,1)- gibt_auf\ngibt_auf -(0,n)- Bestellung\nLager -(1,1)- geliefert_an\ngeliefert_an -(0,n)- Bestellung\nBestellung -(0,n)- beinhaltet\nbeinhaltet -(0,m)- Artikel\n@endchen"
+                    },
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string>(),
+                    OptionalPrerequisites = new List<string>()
+                },
+                new SqlLevel
+                {
+                    Id = 34,
+                    Section = "Sektion 7: Die Abschlussprüfung",
+                    SkipCode = SqlLevelCodes.CodesList[33],
+                    NextLevelCode = SqlLevelCodes.CodesList[34],
+                    Title = "Die Kostenkontrolle (Teil 2)",
+                    Difficulty = "Abitur",
+                    Description = "Das Controlling des Krankenhauses führt eine Kostenanalyse der getätigten Bestellungen durch.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Entwickeln Sie einen SQL-Befehl, der für jede Bestellung die Bestellnummer, das Datum sowie den berechneten Gesamtwert der Bestellung (als Gesamtwert) ausgibt. Es sollen dabei ausschließlich Bestellungen berücksichtigt werden, deren Gesamtwert 10.000 Euro übersteigt. Die Ausgabe ist absteigend nach dem Gesamtwert zu sortieren.",
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                                  "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
+                                  "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
+                                  "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
+                                  "CREATE TABLE beinhaltet (bid INTEGER, artid INTEGER, menge INTEGER, PRIMARY KEY (bid, artid));" +
+                                  "INSERT INTO Mitarbeiter VALUES (1, 'Müller', 'Hans'), (2, 'Schmidt', 'Anna'), (3, 'Meier', 'Lukas');" +
+                                  "INSERT INTO Lager VALUES (1, 'Hauptlager'), (2, 'Notaufnahme'), (3, 'Station A');" +
+                                  "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50), (105, 'Pflaster', 2.50), (106, 'MRT-Gerät', 850000.00), (107, 'Stethoskop', 45.00);" +
+                                  "INSERT INTO Bestellung VALUES (1001, '2024-10-01', 1, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1001, 101, 50), (1001, 102, 20);" +
+                                  "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 2);" +
+                                  "INSERT INTO beinhaltet VALUES (1002, 103, 1), (1002, 104, 10);" +
+                                  "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 1, 3);" +
+                                  "INSERT INTO beinhaltet VALUES (1003, 101, 10), (1003, 105, 100);" +
+                                  "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 3, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1004, 106, 1), (1004, 103, 2);" +
+                                  "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1005, 104, 5);",
+                    VerificationQuery = "",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "bid", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "datum", Type = "VARCHAR(255)", StrictName = false },
+                        new SqlExpectedColumn { Name = "Gesamtwert", Type = "DOUBLE", StrictName = true }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "1004", "2024-10-15", "875000" },
+                        new[] { "1002", "2024-10-05", "12685" }
+                    },
+                    MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
+                                   "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                                   "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec7\\lvl33-1.svg"
+                    },
+                    PlantUMLSources = new List<string>(),
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string>(),
+                    OptionalPrerequisites = new List<string>()
+                },
+                new SqlLevel
+                {
+                    Id = 35,
+                    Section = "Sektion 7: Die Abschlussprüfung",
+                    SkipCode = SqlLevelCodes.CodesList[34],
+                    NextLevelCode = SqlLevelCodes.CodesList[35],
+                    Title = "Stornierung (Teil 3)",
+                    Difficulty = "Abitur",
+                    Description = "Die letzte getätigte Bestellung im System wurde fälschlicherweise durch einen Mitarbeiter ausgelöst und muss vollständig aus der Datenbank entfernt werden.\n\n" +
+                                  "Aufgabe:\n" +
+                                  "Entwickeln Sie die SQL-Befehle, um die neueste Bestellung sowie alle dazugehörigen Bestellpositionen zu löschen.",
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                                  "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
+                                  "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
+                                  "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
+                                  "CREATE TABLE beinhaltet (bid INTEGER, artid INTEGER, menge INTEGER, PRIMARY KEY (bid, artid));" +
+                                  "INSERT INTO Mitarbeiter VALUES (1, 'Müller', 'Hans'), (2, 'Schmidt', 'Anna'), (3, 'Meier', 'Lukas');" +
+                                  "INSERT INTO Lager VALUES (1, 'Hauptlager'), (2, 'Notaufnahme'), (3, 'Station A');" +
+                                  "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50), (105, 'Pflaster', 2.50), (106, 'MRT-Gerät', 850000.00), (107, 'Stethoskop', 45.00);" +
+                                  "INSERT INTO Bestellung VALUES (1001, '2024-10-01', 1, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1001, 101, 50), (1001, 102, 20);" +
+                                  "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 2);" +
+                                  "INSERT INTO beinhaltet VALUES (1002, 103, 1), (1002, 104, 10);" +
+                                  "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 1, 3);" +
+                                  "INSERT INTO beinhaltet VALUES (1003, 101, 10), (1003, 105, 100);" +
+                                  "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 3, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1004, 106, 1), (1004, 103, 2);" +
+                                  "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 1);" +
+                                  "INSERT INTO beinhaltet VALUES (1005, 104, 5);",
+                    VerificationQuery = "SELECT bid FROM Bestellung ORDER BY bid DESC LIMIT 1;",
+                    ExpectedSchema = new List<SqlExpectedColumn>
+                    {
+                        new SqlExpectedColumn { Name = "bid", Type = "INT", StrictName = false }
+                    },
+                    ExpectedResult = new List<string[]>
+                    {
+                        new[] { "1004" }
+                    },
+                    MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
+                                   "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                                   "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    DiagramPaths = new List<string>
+                    {
+                        "imgsql\\sec7\\lvl33-1.svg"
+                    },
+                    PlantUMLSources = new List<string>(),
+                    AuxiliaryIds = new List<string>(),
+                    Prerequisites = new List<string>(),
+                    OptionalPrerequisites = new List<string>()
                 }
             };
         }

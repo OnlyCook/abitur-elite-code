@@ -124,3 +124,11 @@ Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um 
 | S31 | `SIS` | Intelligentes Einfügen (INSERT mit Subselect) |
 | S32 | `ABO` | Die Abo-Analyse |
 
+## Sektion 7: Die Abschlussprüfung
+
+| Level | Code | Titel |
+| :--- | :---: | :--- |
+| S33 | `LAD` | Die Ladenhüter der Medizin |
+| S34 | `COS` | Die Kostenkontrolle |
+| S35 | `CAN` | Stornierung |
+

@@ -32,7 +32,8 @@ namespace AbiturEliteCode.cs
                         setupCmd.ExecuteNonQuery();
                     }
 
-                    string processedQuery = ConvertMysqlToSqlite(userQuery);
+                    // pass the connection to converter
+                    string processedQuery = ConvertMysqlToSqlite(connection, userQuery);
 
                     DataTable userResultTable = null;
                     bool isSelect = processedQuery.Trim().ToUpper().StartsWith("SELECT");
@@ -180,22 +181,44 @@ namespace AbiturEliteCode.cs
             }
         }
 
-        private static string ConvertMysqlToSqlite(string query)
+        private static string ConvertMysqlToSqlite(SqliteConnection conn, string query)
         {
             string q = query;
 
-            // finds "SET @name = value;" or "SET @name := value;"
+            // find "SET @name = value;" or "SET @name := value;"
             var varMatches = Regex.Matches(q, @"SET\s+@(\w+)\s*(?::=|=)\s*([^;]+);", RegexOptions.IgnoreCase);
             foreach (Match m in varMatches)
             {
                 string varName = m.Groups[1].Value;
                 string varValue = m.Groups[2].Value.Trim();
 
-                // remove the SET statement from the query
+                // evaluate subquery if present
+                if (varValue.StartsWith("(") && varValue.EndsWith(")"))
+                {
+                    string subQuery = varValue.Substring(1, varValue.Length - 2).Trim();
+                    if (subQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = subQuery;
+                            var result = cmd.ExecuteScalar();
+
+                            if (result == null || result == DBNull.Value)
+                                varValue = "NULL";
+                            else if (result is string s)
+                                varValue = $"'{s.Replace("'", "''")}'"; // escape string
+                            else if (result is IFormattable formattable)
+                                varValue = formattable.ToString(null, CultureInfo.InvariantCulture);
+                            else
+                                varValue = result.ToString();
+                        }
+                    }
+                }
+
+                // remove the 'SET' statement from the query
                 q = q.Replace(m.Value, "");
 
                 // replace all occurrences of @varName with the actual value
-                // \b ensures we don't replace @year in @years
                 q = Regex.Replace(q, "@" + varName + @"\b", varValue);
             }
 

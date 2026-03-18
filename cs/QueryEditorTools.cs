@@ -30,22 +30,16 @@ namespace AbiturEliteCode
 			<End>\*/</End>
 		</Span>
 		<Span color=""String"">
-			<Begin>'</Begin>
-			<End>'</End>
-            <RuleSet>
-				<Span begin=""\\"" end="".""/>
-			</RuleSet>
-		</Span>
-        <Span color=""String"">
 			<Begin>""</Begin>
 			<End>""</End>
             <RuleSet>
 				<Span begin=""\\"" end="".""/>
 			</RuleSet>
 		</Span>
-        <Span color=""Variables"">
-            <Begin>@</Begin>
-        </Span>
+        
+        <Rule color=""Variables"">
+            @[a-zA-Z_][a-zA-Z0-9_]*
+        </Rule>
 
 		<Keywords color=""Keywords"">
 			<Word>SELECT</Word>
