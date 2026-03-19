@@ -61,6 +61,8 @@ namespace AbiturEliteCode.cs
 
         public List<string> Prerequisites { get; set; } = new List<string>();
         public List<string> OptionalPrerequisites { get; set; } = new List<string>();
+
+        public bool IsRelationalModelSectionShared { get; set; } = false;
     }
 
     public static class SqlLevelCodes
@@ -1472,11 +1474,12 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[29],
                     Title = "Filmabend (Subquery mit IN)",
                     Description = "Wir analysieren die Datenbank eines Streaming-Dienstes.\n\n" +
+                                  "**Hinweis zur Namenskonvention:** Ab dieser Sektion passen wir die Benennung der Primär- und Fremdschlüssel an die realen Abiturprüfungen an. Primärschlüssel heißen nicht mehr pauschal 'id', sondern tragen ein Kürzel der Entität (z.B. 'nid' für Nutzer, 'fid' für Film). Fremdschlüssel haben kein '_FK'-Suffix mehr, sondern heißen exakt so wie der Primärschlüssel der referenzierten Tabelle.\n\n" +
                                   "Formulieren Sie eine SQL-Anweisung, welche die Namen aller Nutzer ausgibt, die in ihrem Verlauf mindestens einen Film angeschaut haben, der dem Genre 'Action' zugeordnet ist.\n\n" +
                                   "**Wichtig:** Verwenden Sie für die Lösung zwingend eine Unterabfrage mit dem [IN]-Operator, anstatt einen herkömmlichen [JOIN] über alle Tabellen zu bilden.",
-                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
-                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
+                    SetupScript = "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (fid INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nid INTEGER, fid INTEGER, datum TEXT);" +
                                   "INSERT INTO Nutzer VALUES (1, 'Alice');" +
                                   "INSERT INTO Nutzer VALUES (2, 'Bob');" +
                                   "INSERT INTO Nutzer VALUES (3, 'Charlie');" +
@@ -1498,7 +1501,11 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: Subqueries (IN)\n" +
                                    "Eine Unterabfrage wird innerhalb einer anderen Abfrage ausgeführt. Mit dem [IN]-Operator können Sie prüfen, ob ein Wert in der Ergebnismenge der Unterabfrage enthalten ist:\n" +
-                                   "{|SELECT spalte\nFROM TabelleA\nWHERE fk_id IN\n    (SELECT id\n    FROM TabelleB\n    WHERE bedingung);|}\n" +
+                                   "{|SELECT ...\nWHERE fk IN\n    (SELECT ...);|}\n" +
+                                   ":end-hint\n" +
+                                   "start-hint: Joins vereinfachen (USING)\n" +
+                                   "Da Primär- und Fremdschlüssel nun exakt denselben Namen tragen (z.B. 'fid'), können Sie anstelle von [ON a.fid = b.fid] die kürzere [USING]-Syntax verwenden:\n" +
+                                   "{|JOIN Tabelle b USING (fid)|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>()
                     {
@@ -1506,10 +1513,10 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
+                        "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "Subqueries", "IN-Operator", "n:m Beziehungen" },
+                    Prerequisites = new List<string> { "Subqueries", "IN-Operator", "n:m Beziehungen", "USING" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1522,9 +1529,9 @@ namespace AbiturEliteCode.cs
                     Description = "Für eine Aufräumaktion auf den Servern sollen Filme identifiziert werden, die von der Nutzerschaft ignoriert werden.\n\n" +
                                   "Entwickeln Sie einen SQL-Befehl, der die Titel aller Filme ermittelt, die noch nie von einem Nutzer angeschaut wurden (die also nicht im Verlauf auftauchen).\n" +
                                   "Nutzen Sie hierfür das Ausschlussprinzip mithilfe einer Unterabfrage.",
-                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
-                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
+                    SetupScript = "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (fid INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nid INTEGER, fid INTEGER, datum TEXT);" +
                                   "INSERT INTO Nutzer VALUES (1, 'Alice');" +
                                   "INSERT INTO Film VALUES (10, 'Die Hard', 'Action');" +
                                   "INSERT INTO Film VALUES (11, 'Titanic', 'Drama');" +
@@ -1550,7 +1557,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
+                        "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "NOT IN-Operator" },
@@ -1567,17 +1574,17 @@ namespace AbiturEliteCode.cs
                                   "Entwickeln Sie die SQL-Anweisung, um einen neuen Datensatz in die Watchlist einzufügen.\n" +
                                   "Der betroffene Nutzer trägt den Namen 'Neo'. Der Film, der zur Watchlist hinzugefügt werden soll, besitzt die ID 5.\n" +
                                   "Ermitteln Sie die benötigte Nutzer-ID dynamisch über eine Unterabfrage innerhalb des [INSERT]-Befehls.",
-                    SetupScript = "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT);" +
-                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT);" +
-                                  "CREATE TABLE merkt_vor (nutzerid_FK INTEGER, filmid_FK INTEGER);" +
+                    SetupScript = "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT);" +
+                                  "CREATE TABLE Film (fid INTEGER PRIMARY KEY, titel TEXT);" +
+                                  "CREATE TABLE merkt_vor (nid INTEGER, fid INTEGER);" +
                                   "INSERT INTO Nutzer VALUES (1, 'Trinity');" +
                                   "INSERT INTO Nutzer VALUES (2, 'Neo');" +
                                   "INSERT INTO Film VALUES (5, 'Matrix 4');",
-                    VerificationQuery = "SELECT n.name, w.filmid_FK FROM merkt_vor w JOIN Nutzer n ON w.nutzerid_FK = n.id WHERE n.name = 'Neo'",
+                    VerificationQuery = "SELECT n.name, w.fid FROM merkt_vor w JOIN Nutzer n USING (nid) WHERE n.name = 'Neo'",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
                         new SqlExpectedColumn { Name = "name", Type = "VARCHAR(255)", StrictName = false },
-                        new SqlExpectedColumn { Name = "filmid", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "fid", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
@@ -1585,7 +1592,7 @@ namespace AbiturEliteCode.cs
                     },
                     MaterialDocs = "start-hint: INSERT mit dynamischen Werten\n" +
                                    "Anstatt feste Werte (Literale) in die [VALUES]-Klammer zu schreiben, können Sie an der entsprechenden Position auch einen Subselect in runden Klammern einfügen, sofern dieser exakt einen Wert zurückliefert:\n" +
-                                   "{|INSERT INTO Tabelle (fk_id, wert)\nVALUES ((SELECT ...), 10);|}\n" +
+                                   "{|INSERT INTO Tabelle (id, wert)\nVALUES ((SELECT ...), 10);|}\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>()
                     {
@@ -1593,7 +1600,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n}\nrelationship merkt_vor {\n}\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
+                        "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n}\nrelationship merkt_vor {\n}\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "INSERT INTO ... VALUES", "Skalare Subqueries" },
@@ -1610,12 +1617,12 @@ namespace AbiturEliteCode.cs
                                   "Implementieren Sie eine SQL-Anweisung für die Ermittlung der Namen der Nutzer und die Bezeichnung ihres jeweiligen Abonnements unter folgenden Bedingungen:\n" +
                                   "- Der Nutzer hat im Jahr 2024 mindestens einen Film aus dem Genre 'Sci-Fi' in seinem Verlauf verzeichnet.\n" +
                                   "- Der Nutzer hat sich den Film mit dem Titel 'Matrix' jedoch nicht auf seiner Watchlist gemerkt.\n\n" +
-                                  "Jeder Nutzer soll in der Ergebnisliste eindeutig, aufgeführt werden. Leiten Sie das Relationenmodell selbstständig aus dem erweiterten ER-Diagramm ab.",
-                    SetupScript = "CREATE TABLE Abo (id INTEGER PRIMARY KEY, bezeichnung TEXT);" +
-                                  "CREATE TABLE Nutzer (id INTEGER PRIMARY KEY, name TEXT, aboid_FK INTEGER);" +
-                                  "CREATE TABLE Film (id INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
-                                  "CREATE TABLE schaut (nutzerid_FK INTEGER, filmid_FK INTEGER, datum TEXT);" +
-                                  "CREATE TABLE merkt_vor (nutzerid_FK INTEGER, filmid_FK INTEGER);" +
+                                  "Jeder Nutzer soll in der Ergebnisliste eindeutig aufgeführt werden. Leiten Sie das Relationenmodell selbstständig aus dem erweiterten ER-Diagramm ab.",
+                    SetupScript = "CREATE TABLE Abo (aboid INTEGER PRIMARY KEY, bezeichnung TEXT);" +
+                                  "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT, aboid INTEGER);" +
+                                  "CREATE TABLE Film (fid INTEGER PRIMARY KEY, titel TEXT, genre TEXT);" +
+                                  "CREATE TABLE schaut (nid INTEGER, fid INTEGER, datum TEXT);" +
+                                  "CREATE TABLE merkt_vor (nid INTEGER, fid INTEGER);" +
                                   "INSERT INTO Abo VALUES (1, 'Basis');" +
                                   "INSERT INTO Abo VALUES (2, 'Premium');" +
                                   "INSERT INTO Nutzer VALUES (1, 'Anna', 2);" +
@@ -1626,11 +1633,11 @@ namespace AbiturEliteCode.cs
                                   "INSERT INTO Film VALUES (11, 'Interstellar', 'Sci-Fi');" +
                                   "INSERT INTO Film VALUES (12, 'Matrix', 'Sci-Fi');" +
                                   "INSERT INTO Film VALUES (13, 'Joker', 'Drama');" +
-                                  "INSERT INTO schaut VALUES (1, 10, '2024-05-10');" + // anna: sci-Fi in 2024, no matrix -> in
-                                  "INSERT INTO schaut VALUES (2, 11, '2024-06-15');" + // ben: sci-Fi in 2024, has matrix -> out
+                                  "INSERT INTO schaut VALUES (1, 10, '2024-05-10');" +
+                                  "INSERT INTO schaut VALUES (2, 11, '2024-06-15');" +
                                   "INSERT INTO merkt_vor VALUES (2, 12);" +
-                                  "INSERT INTO schaut VALUES (3, 10, '2023-10-01');" + // clara: sci-Fi in 2023 -> out
-                                  "INSERT INTO schaut VALUES (4, 13, '2024-01-05');",  // david: drama in 2024 -> out
+                                  "INSERT INTO schaut VALUES (3, 10, '2023-10-01');" +
+                                  "INSERT INTO schaut VALUES (4, 13, '2024-01-05');",
                     VerificationQuery = "",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
@@ -1642,7 +1649,7 @@ namespace AbiturEliteCode.cs
                         new[] { "Anna", "Premium" }
                     },
                     MaterialDocs = "start-tipp: Verschachtelung\n" +
-                                   "Nutzen Sie reguläre [JOIN]s, um die Bedingungen für das Genre und das Jahr (via [YEAR(datum)]) zu verknüpfen.\n" +
+                                   "Nutzen Sie reguläre [JOIN]s (gerne mit [USING]), um die Bedingungen für das Genre und das Jahr (via [YEAR(datum)]) zu verknüpfen.\n" +
                                    "Die zweite Bedingung lässt sich am elegantesten mit einem [NOT IN] im [WHERE]-Bereich lösen, der auf die Watchlist-Tabelle und den spezifischen Filmtitel abfragt.\n" +
                                    ":end-hint",
                     DiagramPaths = new List<string>()
@@ -1651,7 +1658,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Abo {\n    id <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    id <<key>>\n    name\n}\nentity Film {\n    id <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(1,1)- schliesst_ab\nschliesst_ab -(0,n)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
+                        "@startchen\nentity Abo {\n    aboid <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(1,1)- schliesst_ab\nschliesst_ab -(0,n)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { },
@@ -1670,7 +1677,7 @@ namespace AbiturEliteCode.cs
                     Description = "Ein Entity-Relationship-Modell (ERM) der Krankenhaus-Logistik ist im Material dargestellt.\n\n" +
                                   "Aufgabe:\n" +
                                   "Einige Artikel im Sortiment werden scheinbar nicht benötigt. Entwickeln Sie eine SQL-Anweisung, die die Artikelnummern und Bezeichnungen aller Artikel ermittelt, welche bisher noch in keiner einzigen Bestellung beinhaltet waren. Die Liste ist alphabetisch nach der Bezeichnung zu sortieren.",
-                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
                                   "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
@@ -1701,13 +1708,14 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
                                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
                                    "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    IsRelationalModelSectionShared = true,
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec7\\lvl33-1.svg"
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Mitarbeiter {\n    mid <<key>>\n    name\n    vorname\n}\nentity Bestellung {\n    bid <<key>>\n    datum\n}\nentity Lager {\n    lid <<key>>\n    standort\n}\nentity Artikel {\n    artid <<key>>\n    bezeichnung\n    preis\n}\nrelationship gibt_auf {\n}\nrelationship geliefert_an {\n}\nrelationship beinhaltet {\n    menge\n}\nMitarbeiter -(1,1)- gibt_auf\ngibt_auf -(0,n)- Bestellung\nLager -(1,1)- geliefert_an\ngeliefert_an -(0,n)- Bestellung\nBestellung -(0,n)- beinhaltet\nbeinhaltet -(0,m)- Artikel\n@endchen"
+                        "@startchen\nentity Mitarbeiter {\n    mid <<key>>\n    name\n}\nentity Bestellung {\n    bid <<key>>\n    datum\n}\nentity Lager {\n    lid <<key>>\n    standort\n}\nentity Artikel {\n    artid <<key>>\n    bezeichnung\n    preis\n}\nrelationship gibt_auf {\n}\nrelationship geliefert_an {\n}\nrelationship beinhaltet {\n    menge\n}\nMitarbeiter -(1,1)- gibt_auf\ngibt_auf -(0,n)- Bestellung\nLager -(1,1)- geliefert_an\ngeliefert_an -(0,n)- Bestellung\nBestellung -(0,n)- beinhaltet\nbeinhaltet -(0,m)- Artikel\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string>(),
@@ -1724,7 +1732,7 @@ namespace AbiturEliteCode.cs
                     Description = "Das Controlling des Krankenhauses führt eine Kostenanalyse der getätigten Bestellungen durch.\n\n" +
                                   "Aufgabe:\n" +
                                   "Entwickeln Sie einen SQL-Befehl, der für jede Bestellung die Bestellnummer, das Datum sowie den berechneten Gesamtwert der Bestellung (als Gesamtwert) ausgibt. Es sollen dabei ausschließlich Bestellungen berücksichtigt werden, deren Gesamtwert 10.000 Euro übersteigt. Die Ausgabe ist absteigend nach dem Gesamtwert zu sortieren.",
-                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
                                   "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
@@ -1757,6 +1765,7 @@ namespace AbiturEliteCode.cs
                     MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
                                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
                                    "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    IsRelationalModelSectionShared = true,
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec7\\lvl33-1.svg"
@@ -1774,39 +1783,47 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[35],
                     Title = "Stornierung (Teil 3)",
                     Difficulty = "Abitur",
-                    Description = "Die letzte getätigte Bestellung im System wurde fälschlicherweise durch einen Mitarbeiter ausgelöst und muss vollständig aus der Datenbank entfernt werden.\n\n" +
+                    Description = "Die zuletzt erfasste Bestellung der Mitarbeiterin 'Schmidt' für den Standort 'Notaufnahme' muss aufgrund eines Systemfehlers vollständig aus der Datenbank entfernt werden.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Entwickeln Sie die SQL-Befehle, um die neueste Bestellung sowie alle dazugehörigen Bestellpositionen zu löschen.",
-                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, name TEXT, vorname TEXT);" +
+                                  "Entwickeln Sie die SQL-Befehle, um diese Bestellung in allen betroffenen Tabellen zu löschen.",
+                    SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
                                   "CREATE TABLE Bestellung (bid INTEGER PRIMARY KEY, datum TEXT, mid INTEGER, lid INTEGER);" +
                                   "CREATE TABLE beinhaltet (bid INTEGER, artid INTEGER, menge INTEGER, PRIMARY KEY (bid, artid));" +
                                   "INSERT INTO Mitarbeiter VALUES (1, 'Müller', 'Hans'), (2, 'Schmidt', 'Anna'), (3, 'Meier', 'Lukas');" +
                                   "INSERT INTO Lager VALUES (1, 'Hauptlager'), (2, 'Notaufnahme'), (3, 'Station A');" +
-                                  "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50), (105, 'Pflaster', 2.50), (106, 'MRT-Gerät', 850000.00), (107, 'Stethoskop', 45.00);" +
+                                  "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50);" +
                                   "INSERT INTO Bestellung VALUES (1001, '2024-10-01', 1, 1);" +
-                                  "INSERT INTO beinhaltet VALUES (1001, 101, 50), (1001, 102, 20);" +
-                                  "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 2);" +
-                                  "INSERT INTO beinhaltet VALUES (1002, 103, 1), (1002, 104, 10);" +
-                                  "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 1, 3);" +
-                                  "INSERT INTO beinhaltet VALUES (1003, 101, 10), (1003, 105, 100);" +
-                                  "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 3, 1);" +
-                                  "INSERT INTO beinhaltet VALUES (1004, 106, 1), (1004, 103, 2);" +
-                                  "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 1);" +
-                                  "INSERT INTO beinhaltet VALUES (1005, 104, 5);",
-                    VerificationQuery = "SELECT bid FROM Bestellung ORDER BY bid DESC LIMIT 1;",
+                                  "INSERT INTO beinhaltet VALUES (1001, 101, 50);" +
+                                  "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 1);" + // Schmidt, aber Hauptlager
+                                  "INSERT INTO beinhaltet VALUES (1002, 102, 20);" +
+                                  "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 3, 2);" + // Notaufnahme, aber Meier
+                                  "INSERT INTO beinhaltet VALUES (1003, 103, 1);" +
+                                  "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 2, 2);" + // Schmidt, Notaufnahme, aber aelteres Datum
+                                  "INSERT INTO beinhaltet VALUES (1004, 104, 10);" +
+                                  "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 2);" + // Schmidt, Notaufnahme, neuestes Datum (ZIEL)
+                                  "INSERT INTO beinhaltet VALUES (1005, 101, 5);" +
+                                  "INSERT INTO Bestellung VALUES (1006, '2024-10-25', 1, 3);" + // Anderes Lager, neueres Datum
+                                  "INSERT INTO beinhaltet VALUES (1006, 102, 15);",
+                    VerificationQuery = "SELECT bid, artid FROM Bestellung JOIN beinhaltet USING (bid) ORDER BY bid ASC, artid ASC",
                     ExpectedSchema = new List<SqlExpectedColumn>
                     {
-                        new SqlExpectedColumn { Name = "bid", Type = "INT", StrictName = false }
+                        new SqlExpectedColumn { Name = "bid", Type = "INT", StrictName = false },
+                        new SqlExpectedColumn { Name = "artid", Type = "INT", StrictName = false }
                     },
                     ExpectedResult = new List<string[]>
                     {
-                        new[] { "1004" }
+                        new[] { "1001", "101" },
+                        new[] { "1002", "102" },
+                        new[] { "1003", "103" },
+                        new[] { "1004", "104" },
+                        new[] { "1006", "102" }
                     },
                     MaterialDocs = "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
                                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
                                    "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
+                    IsRelationalModelSectionShared = true,
                     DiagramPaths = new List<string>
                     {
                         "imgsql\\sec7\\lvl33-1.svg"

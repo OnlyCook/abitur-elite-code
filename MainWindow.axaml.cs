@@ -27,7 +27,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -491,8 +490,8 @@ namespace AbiturEliteCode
             if (_sqlAutocompleteService == null) return;
             var schema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-            // check if current level is an abitur level (>= 33)
-            bool isAbiturLevel = currentSqlLevel != null && currentSqlLevel.Id >= 33;
+            // check if current level is an abitur similar level (>= 29)
+            bool isAbiturLevel = currentSqlLevel != null && currentSqlLevel.Id >= 29;
 
             foreach (var t in _currentRelationalModel)
             {
@@ -1387,10 +1386,26 @@ namespace AbiturEliteCode
                 if (!currentSqlLevel.IsRelationalModelReadOnly)
                 {
                     string modelJson = JsonSerializer.Serialize(_currentRelationalModel);
-                    if (playerData.UserSqlModels.ContainsKey(currentSqlLevel.Id))
-                        playerData.UserSqlModels[currentSqlLevel.Id] = modelJson;
+
+                    // sync model across the whole section if set
+                    if (currentSqlLevel.IsRelationalModelSectionShared && sqlLevels != null)
+                    {
+                        var levelsInSection = sqlLevels.Where(l => l.Section == currentSqlLevel.Section);
+                        foreach (var lvl in levelsInSection)
+                        {
+                            if (playerData.UserSqlModels.ContainsKey(lvl.Id))
+                                playerData.UserSqlModels[lvl.Id] = modelJson;
+                            else
+                                playerData.UserSqlModels.Add(lvl.Id, modelJson);
+                        }
+                    }
                     else
-                        playerData.UserSqlModels.Add(currentSqlLevel.Id, modelJson);
+                    {
+                        if (playerData.UserSqlModels.ContainsKey(currentSqlLevel.Id))
+                            playerData.UserSqlModels[currentSqlLevel.Id] = modelJson;
+                        else
+                            playerData.UserSqlModels.Add(currentSqlLevel.Id, modelJson);
+                    }
                 }
 
                 SaveSystem.Save(playerData);
@@ -3703,8 +3718,7 @@ namespace AbiturEliteCode
                         Padding = new Thickness(8),
                         CornerRadius = new CornerRadius(4)
                     };
-                    // placeholder for "Level Codes & Lösungen" after adding sample solutions later
-                    ToolTip.SetTip(btnLevelGuide, "Level Codes");
+                    ToolTip.SetTip(btnLevelGuide, "Level Codes & Lösungen");
                     btnLevelGuide.Click += (_, __) =>
                     {
                         try
@@ -4514,7 +4528,7 @@ namespace AbiturEliteCode
             {
                 try
                 {
-                    var url = "https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE";
+                    var url = "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_AI_LEVEL_CREATION_GUIDE";
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) Process.Start("open", url);
@@ -6331,7 +6345,7 @@ namespace AbiturEliteCode
         {
             try
             {
-                string url = "https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE";
+                string url = "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE";
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
@@ -8122,7 +8136,7 @@ namespace AbiturEliteCode
                     }
                     else
                     {
-                        var newCol = new RColumn { Name = "Neu" };
+                        var newCol = new RColumn { Name = "" };
                         table.Columns.Add(newCol);
                         UpdateFocusedColumn(newCol, null);
                         RenderRelationalModel(targetPanel, false);
@@ -8228,9 +8242,14 @@ namespace AbiturEliteCode
                         if (e.KeySymbol == "," || e.Key == Key.OemComma)
                         {
                             e.Handled = true;
+
+                            // skip if current column textbox is empty
+                            if (table.Columns[capturedIndex] != null && table.Columns[capturedIndex].Name.Length == 0)
+                                return;
+
                             if (capturedIndex == table.Columns.Count - 1)
                             {
-                                var newCol = new RColumn { Name = "Neu" };
+                                var newCol = new RColumn { Name = "" };
                                 table.Columns.Add(newCol);
                                 UpdateFocusedColumn(newCol, null);
                                 RenderRelationalModel(targetPanel, false);
@@ -8248,7 +8267,7 @@ namespace AbiturEliteCode
                             int tableIndex = _currentRelationalModel.IndexOf(table);
                             if (tableIndex == _currentRelationalModel.Count - 1)
                             {
-                                var newTable = new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
+                                var newTable = new RTable { Name = "", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
                                 _currentRelationalModel.Add(newTable);
                                 _focusedRTable = newTable;
                                 RenderRelationalModel(targetPanel, false);
@@ -8315,7 +8334,7 @@ namespace AbiturEliteCode
 
             var btnAddTable = new Button { Content = "+ Tabelle", Background = SolidColorBrush.Parse("#2D2D30"), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(4), Cursor = Cursor.Parse("Hand"), Margin = new Thickness(0, 10, 0, 0) };
             btnAddTable.Click += (s, e) => {
-                var newTable = new RTable { Name = "Neu", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
+                var newTable = new RTable { Name = "", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
                 _currentRelationalModel.Add(newTable);
 
                 // set focus to the newly created table

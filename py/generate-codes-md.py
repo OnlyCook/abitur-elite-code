@@ -43,6 +43,15 @@ def parse_levels(file_path, list_regex, block_regex, usage_regex):
             
     return grouped_data
 
+def make_solution_link(level_type: str, level_id: str) -> str:
+    """
+    Builds a markdown link to the GitHub wiki solution page.
+    level_type: "CS" or "SQL"
+    level_id:   the raw numeric ID from the source file
+    """
+    url = f"https://github.com/OnlyCook/abitur-elite-code/wiki/{level_type}_LEVEL_{level_id}_SOLUTION"
+    return f"[➤ {('S' if level_type == 'SQL' else '')}{level_id}]({url})"
+
 def extract_level_data():
     # Setup paths
     script_dir = Path(__file__).parent
@@ -51,10 +60,6 @@ def extract_level_data():
     output_md_path = script_dir / "LEVEL_CODES.md"
 
     # 1. Process C# Levels
-    # Regex Explanation:
-    # list: Matches CodesList = { ... };
-    # block: Matches new Level { ... }
-    # usage: Matches LevelCodes.CodesList[x]
     csharp_data = parse_levels(
         level_cs_path,
         r'CodesList\s*=\s*\{([^}]+)\};',
@@ -63,10 +68,6 @@ def extract_level_data():
     )
 
     # 2. Process SQL Levels
-    # Regex Explanation:
-    # list: Matches CodesList = { ... }; (Same pattern, different file)
-    # block: Matches new SqlLevel { ... }
-    # usage: Matches SqlLevelCodes.CodesList[x]
     sql_data = parse_levels(
         sql_level_cs_path,
         r'CodesList\s*=\s*\{([^}]+)\};',
@@ -76,29 +77,31 @@ def extract_level_data():
 
     # 3. Generate Formatted Markdown
     md_content = "# Abitur Elite Code - Level Übersicht\n\n"
-    md_content += "Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n\n"
+    md_content += "Hier findest du alle Skip-Codes. Gebe diese im Level-Auswählen-Fenster ein, um direkt zu einem Level zu springen.\n"
+    md_content += "Die Links zu den Lösungen aller Levels und ihrer Erklärungen findest du hier ebenfalls.\n\n"
 
-    # Helper to write sections to MD string
-    def append_sections(data_dict, level_prefix=""):
+    def append_sections(data_dict, level_type: str, level_prefix: str = "") -> str:
+        """Write sections to MD string, including a solution link column."""
         text = ""
         for section_name, levels in data_dict.items():
             text += f"## {section_name}\n\n"
-            text += "| Level | Code | Titel |\n"
-            text += "| :--- | :---: | :--- |\n"
+            text += "| Level | Code | Titel | Lösung |\n"
+            text += "| :--- | :---: | :--- | :---: |\n"
             for lvl in levels:
                 level_id = f"{level_prefix}{lvl['id']}" if level_prefix else lvl['id']
-                text += f"| {level_id} | `{lvl['code']}` | {lvl['title']} |\n"
+                solution_link = make_solution_link(level_type, lvl['id'])
+                text += f"| {level_id} | `{lvl['code']}` | {lvl['title']} | {solution_link} |\n"
             text += "\n"
         return text
 
     # Add C# Sections
-    md_content += append_sections(csharp_data)
+    md_content += append_sections(csharp_data, level_type="CS")
 
     # Add SQL Sections (if any found)
     if sql_data:
         md_content += "---\n\n"
         md_content += "# SQL Levels\n\n"
-        md_content += append_sections(sql_data, level_prefix="S")
+        md_content += append_sections(sql_data, level_type="SQL", level_prefix="S")
 
     # 4. Write to file
     with open(output_md_path, "w", encoding="utf-8") as f:

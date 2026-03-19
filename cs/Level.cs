@@ -1570,8 +1570,7 @@ END.",
                     Title = "Das Abrechnungssystem (Teil 3)",
                     Difficulty = "Abitur",
                     Description = "1.5 Die Methode [VerarbeiteGepaeckString(daten : String)] der Klasse [FlughafenVerwaltung] wertet eingehende Datensätze aus und berechnet fällige Gepäckzuschläge. Entwickeln Sie die Methode exakt anhand des vorliegenden Struktogramms.\n\n" +
-                                  "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und soll ebenfalls implementiert werden.\n\n" +
-                                  "**Wichtig**: Sie befinden sich in diesem Level bereits innerhalb der Klasse [FlughafenVerwaltung]. Sie müssen die Klasse nicht selbst definieren.\n",
+                                  "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und soll ebenfalls implementiert werden.",
                     StarterCode = "public int VerarbeiteGepaeckString(string daten)\n{\n    return 0;\n}",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +
                                    "Hinweise:\nDie Passagier-ID soll automatisch generiert werden, beginnend bei 1. Ein Passagier ist zwingend an einen Flug gebunden.\n\n" +
