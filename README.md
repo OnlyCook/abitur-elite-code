@@ -31,6 +31,6 @@ https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 Eine Übersicht aller Level-Codes sowie der Lösungen zu den jeweiligen Leveln findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).
 
 ## Level Designer
-Mit dem integrierten Level Designer kannst du eigene C#-Levels erstellen, die andere Nutzer lösen können. Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/LEVEL_DESIGNER_GUIDE).
+Mit dem integrierten Level Designer kannst du eigene C#-Levels erstellen, die andere Nutzer lösen können. Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE).
 
-Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/AI_LEVEL_CREATION_GUIDE) weiter.
+Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/CS_AI_LEVEL_CREATION_GUIDE) weiter.
