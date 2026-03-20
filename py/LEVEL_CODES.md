@@ -131,5 +131,5 @@ Die Links zu den Lösungen aller Levels und ihrer Erklärungen findest du hier e
 | :--- | :---: | :--- | :---: |
 | S33 | `LAD` | Die Ladenhüter der Medizin (Teil 1) | [➤ S33](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_33_SOLUTION) |
 | S34 | `COS` | Die Kostenkontrolle (Teil 2) | [➤ S34](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_34_SOLUTION) |
-| S35 | `CAN` | Die Personalprüfung (Teil 3) | [➤ S35](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_35_SOLUTION) |
+| S35 | `CAN` | Stornierung (Teil 3) | [➤ S35](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_35_SOLUTION) |
 

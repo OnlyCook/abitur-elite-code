@@ -1441,7 +1441,8 @@ END.",
                     NextLevelCode = LevelCodes.CodesList[24],
                     Title = "Flughafen-Infrastruktur (Teil 1)",
                     Difficulty = "Abitur",
-                    Description = "1.1 Überführen Sie die Klassen [Flug], [Passagier] und [GepaeckWagen] in Anweisungen einer objektorientierten Programmiersprache.\n\n" +
+                    Description = "Der Flughafen Frankfurt-Nord modernisiert seine Gepäckabfertigungsanlage. Im Rahmen dieses Projekts soll eine objektorientierte Software entwickelt werden, die sowohl die Verwaltung von Passagieren und Flügen als auch die hardwarenahe Steuerung einer automatisierten Gepäckschleuse übernimmt. Die Gepäckstücke werden dabei über einen Barcode-Scanner mit serieller Schnittstelle erfasst und anschließend softwareseitig verarbeitet. Ein erstes UML-Klassendiagramm sowie ein Sequenz- und ein Struktogramm sind den Materialien zu entnehmen.\n\n" +
+                                  "1.1 Überführen Sie die Klassen [Flug], [Passagier] und [GepaeckWagen] in Anweisungen einer objektorientierten Programmiersprache.\n\n" +
                                   "1.2 Implementieren Sie die Methode [Anhaengen(wagen : GepaeckWagen)] der Klasse [GepaeckWagen], welche ein neues Element an das Ende der Liste anfügt.\n",
                     StarterCode = "",
                     MaterialDocs = "Auf alle Attribute kann mittels get-/set-Methoden zugegriffen werden.\n\n" +

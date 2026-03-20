@@ -571,12 +571,9 @@ namespace AbiturEliteCode.cs
                     },
                     DiagramPaths = new List<string>
                     {
-                        "imgsql\\sec2\\lvl11-1.svg"
+                        "imgsql\\sec2\\lvl10-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                        "@startchen\nentity Autor {\n    id <<key>>\n    nachname\n}\nentity Buch {\n    id <<key>>\n    titel\n    autorid_FK\n}\nrelationship verfasst {\n}\nAutor -(1,1)- verfasst\nverfasst -(0,n)- Buch\n@endchen"
-                    },
+                    PlantUMLSources = new List<string> { }, // shared
                     Prerequisites = new List<string> { "JOINs verstehen", "INNER JOIN ... ON" },
                     OptionalPrerequisites = new List<string> { }
                 },
@@ -777,12 +774,9 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "imgsql\\sec3\\lvl15-1.svg"
+                        "imgsql\\sec3\\lvl14-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                        "@startchen\nentity Vip {\n    id <<key>>\n    name\n}\nentity Reservierung {\n    vipid_FK <<key>>\n    tischNr\n}\nrelationship bucht {\n}\nVip -(1,1)- bucht\nbucht -(0,1)- Reservierung\n@endchen"
-                    },
+                    PlantUMLSources = new List<string> { }, // shared
                     Prerequisites = new List<string> { "IS NULL / IS NOT NULL" },
                     OptionalPrerequisites = new List<string> { }
                 },
@@ -1206,7 +1200,7 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "YEAR()", "MONTH()", "3. Normalform (1:n)" },
+                    Prerequisites = new List<string> { "YEAR()", "MONTH()", "Normalisierung (3NF)" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1244,12 +1238,9 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "imgsql\\sec5\\lvl24-1.svg"
+                        "imgsql\\sec5\\lvl23-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
-                    },
+                     PlantUMLSources = new List<string> { }, // shared
                     AuxiliaryIds = new List<string>(),
                     Prerequisites = new List<string> { "BETWEEN" },
                     OptionalPrerequisites = new List<string> { }
@@ -1286,14 +1277,11 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "imgsql\\sec5\\lvl25-1.svg"
+                        "imgsql\\sec5\\lvl23-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                        "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nrelationship taetigt {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\n@endchen"
-                    },
+                    PlantUMLSources = new List<string> { }, // shared
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "NOW()" },
+                    Prerequisites = new List<string> { "NOW()", "Datumsvergleiche" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1338,7 +1326,7 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "DATEDIFF()", "Alias (AS)" },
+                    Prerequisites = new List<string> { "DATEDIFF()", "Aliase (AS)" },
                     OptionalPrerequisites = new List<string> { "TIMEDIFF()" }
                 },
                 new SqlLevel
@@ -1395,7 +1383,7 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    id <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(0,n)- reserviert\nreserviert -(1,1)- Zimmer\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "DATE_ADD()", "LIMIT", "ORDER BY" },
+                    Prerequisites = new List<string> { "DATE_ADD()", "LIMIT", "ORDER BY (ASC / DESC)" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1454,14 +1442,11 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     DiagramPaths = new List<string>
                     {
-                        "imgsql\\sec5\\lvl28-1.svg"
+                        "imgsql\\sec5\\lvl27-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                         "@startchen\nentity Gast {\n    id <<key>>\n    name\n}\nentity Buchung {\n    id <<key>>\n    anreise\n    abreise\n}\nentity Zimmer {\n    id <<key>>\n    nummer\n}\nrelationship taetigt {\n}\nrelationship reserviert {\n}\nGast -(1,1)- taetigt\ntaetigt -(0,n)- Buchung\nBuchung -(0,n)- reserviert\nreserviert -(1,1)- Zimmer\n@endchen"
-                    },
+                    PlantUMLSources = new List<string> { }, // shared
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { },
+                    Prerequisites = new List<string> { "DATEDIFF()", "YEAR()", "BETWEEN" },
                     OptionalPrerequisites = new List<string> { }
                 },
 
@@ -1516,7 +1501,7 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "Subqueries", "IN-Operator", "n:m Beziehungen", "USING" },
+                    Prerequisites = new List<string> { "Subquery im WHERE mit IN", "IN / NOT IN", "n:m Beziehungen" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1553,14 +1538,11 @@ namespace AbiturEliteCode.cs
                                    ":end-hint",
                     DiagramPaths = new List<string>()
                     {
-                        "imgsql\\sec6\\lvl30-1.svg"
+                        "imgsql\\sec6\\lvl29-1.svg"
                     },
-                    PlantUMLSources = new List<string>
-                    {
-                        "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schaut {\n    datum\n}\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\n@endchen"
-                    },
+                    PlantUMLSources = new List<string> { }, // shared
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "NOT IN-Operator" },
+                    Prerequisites = new List<string> { "Subquery im WHERE mit NOT IN", "IN / NOT IN" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1603,7 +1585,7 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n}\nrelationship merkt_vor {\n}\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { "INSERT INTO ... VALUES", "Skalare Subqueries" },
+                    Prerequisites = new List<string> { "INSERT INTO ... VALUES", "Scalar Subquery (einzelner Wert)" },
                     OptionalPrerequisites = new List<string> { }
                 },
                 new SqlLevel
@@ -1661,11 +1643,11 @@ namespace AbiturEliteCode.cs
                         "@startchen\nentity Abo {\n    aboid <<key>>\n    bezeichnung\n}\nentity Nutzer {\n    nid <<key>>\n    name\n}\nentity Film {\n    fid <<key>>\n    titel\n    genre\n}\nrelationship schliesst_ab {\n}\nrelationship schaut {\n    datum\n}\nrelationship merkt_vor {\n}\nAbo -(1,1)- schliesst_ab\nschliesst_ab -(0,n)- Nutzer\nNutzer -(0,n)- schaut\nschaut -(0,m)- Film\nNutzer -(0,n)- merkt_vor\nmerkt_vor -(0,m)- Film\n@endchen"
                     },
                     AuxiliaryIds = new List<string>(),
-                    Prerequisites = new List<string> { },
+                    Prerequisites = new List<string> { }, // none, so user cant reveal hints to themselves
                     OptionalPrerequisites = new List<string> { }
                 },
 
-                // --- SECTION 7 ---
+                // --- SECTION 7 --- (abi levels)
                 new SqlLevel
                 {
                     Id = 33,
@@ -1674,9 +1656,14 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[33],
                     Title = "Die Ladenhüter der Medizin (Teil 1)",
                     Difficulty = "Abitur",
-                    Description = "Ein Entity-Relationship-Modell (ERM) der Krankenhaus-Logistik ist im Material dargestellt.\n\n" +
-                                  "Aufgabe:\n" +
-                                  "Einige Artikel im Sortiment werden scheinbar nicht benötigt. Entwickeln Sie eine SQL-Anweisung, die die Artikelnummern und Bezeichnungen aller Artikel ermittelt, welche bisher noch in keiner einzigen Bestellung beinhaltet waren. Die Liste ist alphabetisch nach der Bezeichnung zu sortieren.",
+                    Description = "Zur Verwaltung der Logistik eines Krankenhauses wurde eine Datenbank entwickelt. " +
+                                  "In ihr werden Bestellungen von medizinischen Artikeln durch Mitarbeiterinnen und Mitarbeiter " +
+                                  "(im Folgenden Mitarbeiter genannt) erfasst sowie die zugehörigen Lagerstandorte und Artikelbestände verwaltet. " +
+                                  "Ein Entity-Relationship-Modell (ERM) der Datenbank ist im Material dargestellt.\n\n" +
+                                  "2.1 Die Lagerverantwortlichen vermuten, dass einige Artikel im Sortiment dauerhaft ungenutzt bleiben. " +
+                                  "Entwickeln Sie eine SQL-Anweisung, die die Artikelnummern und Bezeichnungen aller Artikel ermittelt, " +
+                                  "die bisher in keiner Bestellung enthalten waren. " +
+                                  "Die Ausgabe ist alphabetisch nach der Bezeichnung zu sortieren.",
                     SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
@@ -1729,9 +1716,11 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[34],
                     Title = "Die Kostenkontrolle (Teil 2)",
                     Difficulty = "Abitur",
-                    Description = "Das Controlling des Krankenhauses führt eine Kostenanalyse der getätigten Bestellungen durch.\n\n" +
-                                  "Aufgabe:\n" +
-                                  "Entwickeln Sie einen SQL-Befehl, der für jede Bestellung die Bestellnummer, das Datum sowie den berechneten Gesamtwert der Bestellung (als Gesamtwert) ausgibt. Es sollen dabei ausschließlich Bestellungen berücksichtigt werden, deren Gesamtwert 10.000 Euro übersteigt. Die Ausgabe ist absteigend nach dem Gesamtwert zu sortieren.",
+                    Description = "2.2 Das Controlling des Krankenhauses führt eine Kostenanalyse der getätigten Bestellungen durch. " +
+                                  "Entwickeln Sie einen SQL-Befehl, der für jede Bestellung die Bestellnummer sowie das Datum ausgibt und " +
+                                  "zusätzlich den berechneten Gesamtwert der Bestellung als Gesamtwert ermittelt. " +
+                                  "Es sollen ausschließlich Bestellungen berücksichtigt werden, deren Gesamtwert 10.000 Euro übersteigt. " +
+                                  "Die Ausgabe ist absteigend nach dem Gesamtwert zu sortieren.",
                     SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
@@ -1783,9 +1772,10 @@ namespace AbiturEliteCode.cs
                     NextLevelCode = SqlLevelCodes.CodesList[35],
                     Title = "Stornierung (Teil 3)",
                     Difficulty = "Abitur",
-                    Description = "Die zuletzt erfasste Bestellung der Mitarbeiterin 'Schmidt' für den Standort 'Notaufnahme' muss aufgrund eines Systemfehlers vollständig aus der Datenbank entfernt werden.\n\n" +
-                                  "Aufgabe:\n" +
-                                  "Entwickeln Sie die SQL-Befehle, um diese Bestellung in allen betroffenen Tabellen zu löschen.",
+                    Description = "2.3 Aufgrund eines Systemfehlers wurde die zuletzt erfasste Bestellung der Mitarbeiterin Schmidt " +
+                                  "für den Standort Notaufnahme irrtümlich in die Datenbank eingetragen und muss vollständig entfernt werden.\n\n" +
+                                  "Entwickeln Sie die SQL-Anweisungen, um diese Bestellung unter Bewahrung der referentiellen Integrität " +
+                                  "aus allen betroffenen Tabellen zu löschen.",
                     SetupScript = "CREATE TABLE Mitarbeiter (mid INTEGER PRIMARY KEY, nachname TEXT, vorname TEXT);" +
                                   "CREATE TABLE Lager (lid INTEGER PRIMARY KEY, standort TEXT);" +
                                   "CREATE TABLE Artikel (artid INTEGER PRIMARY KEY, bezeichnung TEXT, preis REAL);" +
