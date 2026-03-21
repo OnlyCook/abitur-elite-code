@@ -181,7 +181,7 @@ namespace AbiturEliteCode.cs
             }
         }
 
-        private static string ConvertMysqlToSqlite(SqliteConnection conn, string query)
+        public static string ConvertMysqlToSqlite(SqliteConnection conn, string query)
         {
             string q = query;
 

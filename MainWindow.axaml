@@ -354,7 +354,7 @@
 											</StackPanel>
 
 											<StackPanel Spacing="5" ZIndex="10">
-												<TextBlock Text="Voraussetzungen / Grundlagen (Suche auf Englisch)" Foreground="Gray"/>
+												<TextBlock Name="TxtPrereqTitle" Text="Voraussetzungen / Grundlagen (Suche auf Englisch)" Foreground="Gray"/>
 
 												<Grid>
 													<TextBox Name="TxtDesignPrereqInput" Watermark="z.B. If statements..."
@@ -380,7 +380,7 @@
 
 											<Separator Background="#333" Margin="0,15"/>
 
-											<StackPanel Spacing="5">
+											<StackPanel Name="PnlDesignStarter" Spacing="5">
 												<Grid ColumnDefinitions="*, Auto">
 													<TextBlock Text="Starter Code" Foreground="Gray" VerticalAlignment="Center"/>
 													<Button Grid.Column="1" Name="BtnEditStarter" Width="30" Height="30"
@@ -394,7 +394,7 @@
 														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>
 
-											<StackPanel Spacing="5">
+											<StackPanel Name="PnlDesignTesting" Spacing="5">
 												<Grid ColumnDefinitions="*, Auto">
 													<TextBlock Text="Musterlösung / Test-Code (Wird nicht exportiert)" Foreground="Gray" VerticalAlignment="Center"/>
 													<Button Grid.Column="1" Name="BtnEditTesting" Width="30" Height="30"
@@ -408,25 +408,60 @@
 														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>
 
-											<StackPanel Spacing="5">
+											<StackPanel Name="PnlDesignValidation" Spacing="5">
 												<Grid ColumnDefinitions="*, Auto, Auto">
 													<TextBlock Text="Validierungs-Code (Roslyn Test Logik)" Foreground="Gray" VerticalAlignment="Center"/>
-
 													<Button Grid.Column="1" Name="BtnResetValidation" Width="30" Height="30"
 															Background="Transparent" Click="BtnResetValidation_Click"
-															Margin="0,0,5,0"
-															ToolTip.Tip="Validierung zurücksetzen">
+															Margin="0,0,5,0" ToolTip.Tip="Validierung zurücksetzen">
 														<svg:Svg Path="/assets/icons/ic_restart.svg" Width="16" Height="16"/>
 													</Button>
-
 													<Button Grid.Column="2" Name="BtnEditValidation" Width="30" Height="30"
 															Background="Transparent" Click="BtnEditValidation_Click"
 															ToolTip.Tip="Im Editor bearbeiten">
 														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
 													</Button>
 												</Grid>
-
 												<TextBox Name="TxtDesignValidation" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Name="PnlDesignSqlSetup" Spacing="5" IsVisible="False">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Setup Script (CREATE TABLE / INSERT)" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditSqlSetup" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditSqlSetup_Click" ToolTip.Tip="Im Editor bearbeiten">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignSqlSetup" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Name="PnlDesignSqlExpected" Spacing="5" IsVisible="False">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Musterlösung / Erwartete Abfrage (SELECT / UPDATE / ...)" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditSqlExpected" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditSqlExpected_Click" ToolTip.Tip="Im Editor testen">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignSqlExpected" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
+											</StackPanel>
+
+											<StackPanel Name="PnlDesignSqlVerify" Spacing="5" IsVisible="False">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Verifizierungs-Abfrage (Nur für DML wie UPDATE/INSERT/DELETE nötig)" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditSqlVerify" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditSqlVerify_Click" ToolTip.Tip="Im Editor bearbeiten">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignSqlVerify" AcceptsReturn="True" TextWrapping="Wrap" Height="100"
 														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
 														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>

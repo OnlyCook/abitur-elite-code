@@ -32,8 +32,14 @@ public class PlayerData
 }
 public class CustomPlayerData
 {
+    // c#
     public HashSet<string> CompletedCustomLevels { get; set; } = new HashSet<string>();
     public Dictionary<string, string> UserCode { get; set; } = new Dictionary<string, string>();
+    
+    // sql
+    public HashSet<string> CompletedCustomSqlLevels { get; set; } = new HashSet<string>();
+    public Dictionary<string, string> UserSqlCode { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> UserSqlModels { get; set; } = new Dictionary<string, string>();
 }
 
 public static class SaveSystem
@@ -224,13 +230,24 @@ public static class SaveSystem
         string directory = Path.GetDirectoryName(path);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
+        // c# data
         string completed = string.Join("|", data.CompletedCustomLevels);
-
         var codeEntries = data.UserCode.Select(k =>
             $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
         string codes = string.Join(";", codeEntries);
 
-        File.WriteAllText(path, $"{completed}§{codes}");
+        // new: sql data
+        string sqlCompleted = string.Join("|", data.CompletedCustomSqlLevels);
+        var sqlCodeEntries = data.UserSqlCode.Select(k =>
+            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+        string sqlCodes = string.Join(";", sqlCodeEntries);
+
+        var sqlModelEntries = data.UserSqlModels.Select(k =>
+            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+        string sqlModels = string.Join(";", sqlModelEntries);
+
+        // append sql sections with '§'
+        File.WriteAllText(path, $"{completed}§{codes}§{sqlCompleted}§{sqlCodes}§{sqlModels}");
     }
 
     public static CustomPlayerData LoadCustom()
@@ -247,14 +264,14 @@ public static class SaveSystem
             {
                 string[] sections = content.Split('§');
 
-                // load completed levels
+                // load completed c# levels
                 if (sections.Length > 0 && !string.IsNullOrEmpty(sections[0]))
                 {
                     var names = sections[0].Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var name in names) data.CompletedCustomLevels.Add(name);
                 }
 
-                // load user code
+                // load user code c#
                 if (sections.Length > 1 && !string.IsNullOrEmpty(sections[1]))
                 {
                     var entries = sections[1].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -266,6 +283,45 @@ public static class SaveSystem
                             string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
                             string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
                             if (!data.UserCode.ContainsKey(key)) data.UserCode.Add(key, code);
+                        }
+                    }
+                }
+
+                // load completed sql levels
+                if (sections.Length > 2 && !string.IsNullOrEmpty(sections[2]))
+                {
+                    var names = sections[2].Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var name in names) data.CompletedCustomSqlLevels.Add(name);
+                }
+
+                // load user code sql
+                if (sections.Length > 3 && !string.IsNullOrEmpty(sections[3]))
+                {
+                    var entries = sections[3].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var entry in entries)
+                    {
+                        var parts = entry.Split(':');
+                        if (parts.Length == 2)
+                        {
+                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            if (!data.UserSqlCode.ContainsKey(key)) data.UserSqlCode.Add(key, code);
+                        }
+                    }
+                }
+
+                // load user models sql
+                if (sections.Length > 4 && !string.IsNullOrEmpty(sections[4]))
+                {
+                    var entries = sections[4].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var entry in entries)
+                    {
+                        var parts = entry.Split(':');
+                        if (parts.Length == 2)
+                        {
+                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string modelJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            if (!data.UserSqlModels.ContainsKey(key)) data.UserSqlModels.Add(key, modelJson);
                         }
                     }
                 }

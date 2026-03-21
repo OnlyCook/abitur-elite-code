@@ -587,9 +587,9 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     StarterCode = "public class Gehege\n{\n    private List<Tier> bewohner;\n    \n    // Implementation hier\n}\n\npublic class Tier\n{\n    private int alter;\n    \n    public Tier(int alter)\n    {\n        this.alter = alter;\n    }\n    \n    public int GetAlter()\n    {\n        return alter;\n    }\n}\n",
                     MaterialDocs = listDocsHints + "\n\n" +
                                    "start-tipp: Strategie für die Suche\n" +
-                                   "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = null;].\n" +
+                                   "1. Erstellen Sie vor der Schleife eine Variable [Tier aeltestes = bewohner|[0|];].\n" +
                                    "2. Iterieren Sie durch alle Tiere ([foreach]).\n" +
-                                   "3. Prüfen Sie: Ist [aeltestes] noch null? ODER ist das aktuelle Tier älter als [aeltestes]?\n" +
+                                   "3. Prüfen Sie: Ist das aktuelle Tier älter als [aeltestes]?\n" +
                                    "4. Wenn ja: Setzen Sie [aeltestes] auf das aktuelle Tier.\n" +
                                    "5. Geben Sie am Ende [aeltestes] zurück.\n" +
                                    ":end-hint",
