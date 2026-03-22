@@ -480,6 +480,12 @@ namespace AbiturEliteCode
                 Dispatcher.UIThread.Post(() => SqlQueryEditor.Focus());
             }
 
+            // live preview update on tab switch
+            if (_isDesignerMode && (MainTabs.SelectedIndex == 0 || MainTabs.SelectedIndex == 2))
+            {
+                UpdateDesignerPreview();
+            }
+
             if (_isKeyboardTabSwitch)
             {
                 _isKeyboardTabSwitch = false;
@@ -690,7 +696,7 @@ namespace AbiturEliteCode
             // f5 => run
             if (e.Key == Key.F5)
             {
-                BtnRun_Click(this, new RoutedEventArgs());
+                BtnRun_Click(this, null);
                 e.Handled = true;
                 return;
             }
@@ -698,7 +704,7 @@ namespace AbiturEliteCode
             // ctrl + enter => run
             if (e.Key == Key.Enter && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
-                BtnRun_Click(this, new RoutedEventArgs());
+                BtnRun_Click(this, null);
                 e.Handled = true;
                 return;
             }
@@ -1102,7 +1108,7 @@ namespace AbiturEliteCode
                     // only allow if currently editing test code
                     if (_activeDesignerSource == DesignerSource.TestingCode)
                     {
-                        BtnRun_Click(this, new RoutedEventArgs());
+                        BtnRun_Click(this, null);
                     }
                     else
                     {
@@ -1112,7 +1118,7 @@ namespace AbiturEliteCode
                     return;
                 }
 
-                BtnRun_Click(this, new RoutedEventArgs());
+                BtnRun_Click(this, null);
                 e.Handled = true;
                 return;
             }
@@ -1669,7 +1675,7 @@ namespace AbiturEliteCode
             }
 
             GenerateMaterials(level, _isCustomLevelMode ? _currentCustomSvgs : null);
-            
+
             TxtConsole.Inlines?.Clear();
 
             if (!_isCustomLevelMode)
@@ -6242,22 +6248,36 @@ namespace AbiturEliteCode
                 TxtDesignSqlVerify.Text = ActiveEditor.Text;
         }
 
-        private void OnDesignerInputChanged(object? sender, EventArgs e)
+        private void OnDesignerInputChanged(object sender, EventArgs e)
         {
-            if (!_isDesignerMode || _isLoadingDesigner) return;
+            if (_isLoadingDesigner) return;
 
-            BtnDesignerExport.IsEnabled = false;
-            _verifiedDraftState = null;
-            TxtDesignerStatus.Text = "Änderungen (Test erforderlich)";
-
-            UpdateDesignerPreview();
-
-            _designerAutoSaveTimer.Stop();
-
-            if (ChkDesignerAutoSave.IsChecked == true)
+            if (_isSqlMode)
             {
-                _designerAutoSaveTimer.Start();
+                // sql specific fields
+                _currentSqlDraft.Name = TxtDesignName.Text ?? "Neues SQL Level";
+                _currentSqlDraft.Author = TxtDesignAuthor.Text ?? "Unbekannt";
+                _currentSqlDraft.Description = TxtDesignDesc.Text ?? "";
+                _currentSqlDraft.Materials = TxtDesignMaterials.Text ?? "";
+                _currentSqlDraft.SetupScript = TxtDesignSqlSetup.Text ?? "";
+                _currentSqlDraft.ExpectedQuery = TxtDesignSqlExpected.Text ?? "";
+                _currentSqlDraft.VerificationQuery = TxtDesignSqlVerify.Text ?? "";
             }
+            else
+            {
+                // c# specific fields
+                _currentDraft.Name = TxtDesignName.Text ?? "Neues Level";
+                _currentDraft.Author = TxtDesignAuthor.Text ?? "Unbekannt";
+                _currentDraft.Description = TxtDesignDesc.Text ?? "";
+                _currentDraft.Materials = TxtDesignMaterials.Text ?? "";
+                _currentDraft.StarterCode = TxtDesignStarter.Text ?? "";
+                _currentDraft.TestCode = TxtDesignTesting.Text ?? "";
+                _currentDraft.ValidationCode = TxtDesignValidation.Text ?? "";
+            }
+
+            // trigger autosave
+            _designerAutoSaveTimer.Stop();
+            _designerAutoSaveTimer.Start();
         }
 
         private void ToggleDesignerMode(bool enable, string draftPath = "")
@@ -6283,105 +6303,81 @@ namespace AbiturEliteCode
             BtnReset.IsVisible = !enable;
             BtnRun.IsVisible = !enable;
 
+            PnlDesignStarter.IsVisible = !_isSqlMode;
+            PnlDesignTesting.IsVisible = !_isSqlMode;
+            PnlDesignValidation.IsVisible = !_isSqlMode;
+            PnlDesignSqlSetup.IsVisible = _isSqlMode;
+            PnlDesignSqlExpected.IsVisible = _isSqlMode;
+            PnlDesignSqlVerify.IsVisible = _isSqlMode;
+
             if (enable)
             {
                 _isLoadingDesigner = true;
-                _currentDraftPath = draftPath;
+
+                _originalSyntaxSetting = _isSqlMode ? AppSettings.IsSqlSyntaxHighlightingEnabled : AppSettings.IsSyntaxHighlightingEnabled;
 
                 if (_isSqlMode)
                 {
-                    _originalSyntaxSetting = AppSettings.IsSqlSyntaxHighlightingEnabled;
                     AppSettings.IsSqlSyntaxHighlightingEnabled = true;
                     ApplySqlSyntaxHighlighting();
-
-                    _currentSqlDraft = SqlLevelDesigner.LoadDraft(draftPath);
-                    _lastSavedDraftJson = JsonSerializer.Serialize(_currentSqlDraft);
-
-                    TxtDesignName.Text = _currentSqlDraft.Name;
-                    TxtDesignAuthor.Text = _currentSqlDraft.Author;
-                    TxtDesignDesc.Text = _currentSqlDraft.Description;
-                    TxtDesignMaterials.Text = _currentSqlDraft.Materials ?? "";
-
-                    TxtDesignSqlSetup.Text = _currentSqlDraft.SetupScript ?? "";
-                    TxtDesignSqlExpected.Text = _currentSqlDraft.ExpectedQuery ?? "";
-                    TxtDesignSqlVerify.Text = _currentSqlDraft.VerificationQuery ?? "";
-                    TxtDesignPlantUml.Text = _currentSqlDraft.PlantUmlSource ?? "";
-
-                    ImgDiagram.Source = string.IsNullOrEmpty(_currentSqlDraft.PlantUmlSvgContent) ? null : LoadSvgFromString(_currentSqlDraft.PlantUmlSvgContent);
-                    if (ImgScale != null) { ImgScale.ScaleX = 1.0; ImgScale.ScaleY = 1.0; }
-
-                    PnlDesignStarter.IsVisible = false;
-                    PnlDesignTesting.IsVisible = false;
-                    PnlDesignValidation.IsVisible = false;
-                    PnlDesignSqlSetup.IsVisible = true;
-                    PnlDesignSqlExpected.IsVisible = true;
-                    PnlDesignSqlVerify.IsVisible = true;
-
-                    _activeDiagramIndex = 0;
-                    UpdateDesignerDiagramTabs();
-                    RenderDesignerPrereqList();
-                    UpdateDesignerPreview();
-
-                    TxtDesignerStatus.Text = "Bereit";
-                    BtnDesignerExport.IsEnabled = false;
-                    _verifiedSqlDraftState = null;
-
-                    SqlQueryEditor.Text = "";
-                    AddSqlOutput("System", $"\n> SQL Level Designer geladen: '{Path.GetFileName(draftPath)}'", Brushes.LightGreen);
-                    AddSqlOutput("System", "\n> Wähle 'Im Editor bearbeiten' bei einem Code-Feld.", Brushes.LightGray);
                 }
                 else
                 {
-                    _originalSyntaxSetting = AppSettings.IsSyntaxHighlightingEnabled;
-                    _originalErrorSetting = AppSettings.IsErrorHighlightingEnabled;
                     AppSettings.IsSyntaxHighlightingEnabled = true;
-                    AppSettings.IsErrorHighlightingEnabled = true;
                     ApplySyntaxHighlighting();
+                }
 
-                    _currentDraft = LevelDesigner.LoadDraft(draftPath);
-                    _lastSavedDraftJson = JsonSerializer.Serialize(_currentDraft);
+                _currentDraftPath = draftPath;
+                if (!string.IsNullOrEmpty(draftPath))
+                {
+                    if (_isSqlMode)
+                        _currentSqlDraft = SqlLevelDesigner.LoadDraft(draftPath);
+                    else
+                        _currentDraft = LevelDesigner.LoadDraft(draftPath);
+                }
 
+                if (_isSqlMode)
+                {
+                    // populate sql data
+                    TxtDesignName.Text = _currentSqlDraft.Name;
+                    TxtDesignAuthor.Text = _currentSqlDraft.Author;
+                    TxtDesignDesc.Text = _currentSqlDraft.Description;
+                    TxtDesignMaterials.Text = _currentSqlDraft.Materials;
+                    TxtDesignSqlSetup.Text = _currentSqlDraft.SetupScript;
+                    TxtDesignSqlExpected.Text = _currentSqlDraft.ExpectedQuery;
+                    TxtDesignSqlVerify.Text = _currentSqlDraft.VerificationQuery;
+
+                    TxtPrereqTitle.Text = "Vorraussetzungen / Grundlagen";
+                    TxtDesignPrereqInput.Watermark = "z.B. SELECT...";
+
+                    // explicitly clear relational model for sql drafts so it stays empty in designer
+                    _currentRelationalModel.Clear();
+                    if (PnlTaskRelationalModel != null) PnlTaskRelationalModel.Children.Clear();
+                    if (PnlUmlRelationalModel != null) PnlUmlRelationalModel.Children.Clear();
+                }
+                else
+                {
+                    // populate c# data
                     TxtDesignName.Text = _currentDraft.Name;
                     TxtDesignAuthor.Text = _currentDraft.Author;
                     TxtDesignDesc.Text = _currentDraft.Description;
-                    TxtDesignMaterials.Text = _currentDraft.Materials ?? "";
-                    TxtDesignStarter.Text = !string.IsNullOrEmpty(_currentDraft.StarterCode) ? _currentDraft.StarterCode : "";
+                    TxtDesignMaterials.Text = _currentDraft.Materials;
+                    TxtDesignStarter.Text = _currentDraft.StarterCode;
+                    TxtDesignTesting.Text = _currentDraft.TestCode;
+                    TxtDesignValidation.Text = _currentDraft.ValidationCode;
 
-                    string defaultVal = "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
-                    TxtDesignValidation.Text = !string.IsNullOrEmpty(_currentDraft.ValidationCode) ? _currentDraft.ValidationCode : defaultVal;
-                    TxtDesignTesting.Text = !string.IsNullOrEmpty(_currentDraft.TestCode) ? _currentDraft.TestCode : "";
-                    TxtDesignPlantUml.Text = _currentDraft.PlantUmlSources.Count > 0 ? _currentDraft.PlantUmlSources[0] : "";
-
-                    ImgDiagram.Source = null;
-                    if (ImgScale != null) { ImgScale.ScaleX = 0.5; ImgScale.ScaleY = 0.5; }
-                    if (_currentDraft.PlantUmlSvgContents.Count > 0 && !string.IsNullOrEmpty(_currentDraft.PlantUmlSvgContents[0]))
-                    {
-                        ImgDiagram.Source = LoadSvgFromString(_currentDraft.PlantUmlSvgContents[0]);
-                    }
-
-                    PnlDesignStarter.IsVisible = true;
-                    PnlDesignTesting.IsVisible = true;
-                    PnlDesignValidation.IsVisible = true;
-                    PnlDesignSqlSetup.IsVisible = false;
-                    PnlDesignSqlExpected.IsVisible = false;
-                    PnlDesignSqlVerify.IsVisible = false;
-
-                    _activeDiagramIndex = 0;
-                    UpdateDesignerDiagramTabs();
-                    LoadDiagramContentToUI();
-                    RenderDesignerPrereqList();
-                    UpdateDesignerPreview();
-
-                    TxtDesignerStatus.Text = "Bereit";
-                    BtnDesignerExport.IsEnabled = false;
-                    _verifiedDraftState = null;
-
-                    CodeEditor.Text = "";
-                    AddToConsole($"\n> Level Designer geladen: '{Path.GetFileName(draftPath)}'", Brushes.LightGreen);
-                    AddToConsole("\n> Wähle 'Im Editor bearbeiten' bei einem Code-Feld.", Brushes.LightGray);
+                    // restore c# prerequisites ui text
+                    TxtPrereqTitle.Text = "Voraussetzungen / Grundlagen (Suche auf Englisch)";
+                    TxtDesignPrereqInput.Watermark = "z.B. If statements...";
                 }
 
-                MainTabs.SelectedItem = TabDesigner;
+                LoadDiagramContentToUI();
+                RenderDesignerPrereqList();
+
+                // update designer diagrams tabs and preview immediately on entry
+                UpdateDesignerDiagramTabs();
+                UpdateDesignerPreview();
+
                 _isLoadingDesigner = false;
             }
             else
@@ -6778,7 +6774,7 @@ namespace AbiturEliteCode
 
         private async Task SaveDesignerDraft()
         {
-            if (!_isDesignerMode) return;
+            if (!_isDesignerMode || string.IsNullOrEmpty(_currentDraftPath)) return;
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -6859,20 +6855,26 @@ namespace AbiturEliteCode
             PnlTask.Children.Clear();
             PnlMaterials.Children.Clear();
 
+            string draftName = _isSqlMode ? _currentSqlDraft.Name : _currentDraft.Name;
+            string draftAuthor = _isSqlMode ? _currentSqlDraft.Author : _currentDraft.Author;
+            string draftDesc = _isSqlMode ? _currentSqlDraft.Description : _currentDraft.Description;
+            string draftMaterials = _isSqlMode ? _currentSqlDraft.Materials : _currentDraft.Materials;
+            List<string> draftPrereqs = _isSqlMode ? _currentSqlDraft.Prerequisites : _currentDraft.Prerequisites;
+
             PnlTask.Children.Add(new SelectableTextBlock
             {
-                Text = _currentDraft.Name,
+                Text = draftName,
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = BrushTextNormal,
                 Margin = new Thickness(0)
             });
 
-            if (!string.IsNullOrWhiteSpace(_currentDraft.Author))
+            if (!string.IsNullOrWhiteSpace(draftAuthor))
             {
                 PnlTask.Children.Add(new SelectableTextBlock
                 {
-                    Text = $"von {_currentDraft.Author}",
+                    Text = $"von {draftAuthor}",
                     FontSize = 14,
                     Foreground = Brushes.Gray,
                     Margin = new Thickness(0, 0, 0, 20)
@@ -6883,30 +6885,65 @@ namespace AbiturEliteCode
                 if (PnlTask.Children.Last() is Control last) last.Margin = new Thickness(0, 0, 0, 20);
             }
 
-            RenderRichText(PnlTask, _currentDraft.Description);
+            RenderRichText(PnlTask, draftDesc);
 
-            var draftSvgs = _currentDraft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList();
+            List<string> draftSvgs = new List<string>();
+            if (!_isSqlMode)
+            {
+                draftSvgs = _currentDraft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList();
+            }
 
             var dummyLevel = new Level
             {
-                MaterialDocs = _currentDraft.Materials,
-                Prerequisites = _currentDraft.Prerequisites
+                MaterialDocs = draftMaterials,
+                Prerequisites = draftPrereqs
             };
 
             GenerateMaterials(dummyLevel, draftSvgs);
+
+            // update diagram preview if sql mode or main diagram active
+            if (_isSqlMode)
+            {
+                if (!string.IsNullOrEmpty(_currentSqlDraft.PlantUmlSvgContent))
+                {
+                    ImgDiagram.Source = LoadSvgFromString(_currentSqlDraft.PlantUmlSvgContent);
+                    TxtNoDiagram.IsVisible = false;
+                }
+                else
+                {
+                    ImgDiagram.Source = null;
+                    TxtNoDiagram.IsVisible = true;
+                }
+            }
+            else
+            {
+                if (_currentDraft.PlantUmlSvgContents != null && _currentDraft.PlantUmlSvgContents.Count > 0 && !string.IsNullOrEmpty(_currentDraft.PlantUmlSvgContents[0]))
+                {
+                    ImgDiagram.Source = LoadSvgFromString(_currentDraft.PlantUmlSvgContents[0]);
+                    TxtNoDiagram.IsVisible = false;
+                }
+                else
+                {
+                    ImgDiagram.Source = null;
+                    TxtNoDiagram.IsVisible = true;
+                }
+            }
         }
 
         private void AddDesignerPrerequisite(string topic)
         {
-            if (_currentDraft.Prerequisites.Count >= MaxPrerequisites)
+            var prereqs = _isSqlMode ? _currentSqlDraft.Prerequisites : _currentDraft.Prerequisites;
+
+            if (prereqs.Count >= MaxPrerequisites)
             {
-                AddToConsole($"\n> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).", Brushes.Orange);
+                if (_isSqlMode) AddSqlOutput("System", $"> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).", Brushes.Orange);
+                else AddToConsole($"\n> Limit erreicht (Max {MaxPrerequisites} Voraussetzungen).", Brushes.Orange);
                 return;
             }
 
-            if (!_currentDraft.Prerequisites.Contains(topic))
+            if (!prereqs.Contains(topic))
             {
-                _currentDraft.Prerequisites.Add(topic);
+                prereqs.Add(topic);
                 RenderDesignerPrereqList();
                 OnDesignerInputChanged(this, EventArgs.Empty);
             }
@@ -6914,9 +6951,11 @@ namespace AbiturEliteCode
 
         private void RemoveDesignerPrerequisite(string topic)
         {
-            if (_currentDraft.Prerequisites.Contains(topic))
+            var prereqs = _isSqlMode ? _currentSqlDraft.Prerequisites : _currentDraft.Prerequisites;
+
+            if (prereqs.Contains(topic))
             {
-                _currentDraft.Prerequisites.Remove(topic);
+                prereqs.Remove(topic);
                 RenderDesignerPrereqList();
                 OnDesignerInputChanged(this, EventArgs.Empty);
             }
@@ -6925,8 +6964,9 @@ namespace AbiturEliteCode
         private void RenderDesignerPrereqList()
         {
             PnlDesignPrereqsList.Children.Clear();
+            var prereqs = _isSqlMode ? _currentSqlDraft.Prerequisites : _currentDraft.Prerequisites;
 
-            foreach (var item in _currentDraft.Prerequisites)
+            foreach (var item in prereqs)
             {
                 var container = new Border
                 {
@@ -7057,10 +7097,18 @@ namespace AbiturEliteCode
 
             if (string.IsNullOrWhiteSpace(rawCode))
             {
-                if (_activeDiagramIndex == 0 && _currentDraft.PlantUmlSources.Count > 0)
+                if (_isSqlMode)
                 {
-                    _currentDraft.PlantUmlSources[0] = "";
-                    if (_currentDraft.PlantUmlSvgContents.Count > 0) _currentDraft.PlantUmlSvgContents[0] = "";
+                    _currentSqlDraft.PlantUmlSource = "";
+                    _currentSqlDraft.PlantUmlSvgContent = "";
+                }
+                else
+                {
+                    if (_activeDiagramIndex == 0 && _currentDraft.PlantUmlSources.Count > 0)
+                    {
+                        _currentDraft.PlantUmlSources[0] = "";
+                        if (_currentDraft.PlantUmlSvgContents.Count > 0) _currentDraft.PlantUmlSvgContents[0] = "";
+                    }
                 }
 
                 ImgDiagram.Source = null;
@@ -7069,37 +7117,50 @@ namespace AbiturEliteCode
 
             string preparedCode = PreparePlantUmlSource(rawCode);
 
-            AddToConsole("\n> Sende Anfrage an PlantUML Server...", Brushes.LightGray);
+            if (_isSqlMode) AddSqlOutput("System", "> Sende Anfrage an PlantUML Server...", Brushes.LightGray);
+            else AddToConsole("\n> Sende Anfrage an PlantUML Server...", Brushes.LightGray);
 
             try
             {
                 string svgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(preparedCode);
 
-                if (_activeDiagramIndex == 0)
+                if (_isSqlMode)
                 {
-                    if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
-                    if (_currentDraft.PlantUmlSvgContents.Count == 0) _currentDraft.PlantUmlSvgContents.Add("");
-
-                    _currentDraft.PlantUmlSources[0] = rawCode;
-                    _currentDraft.PlantUmlSvgContents[0] = svgContent;
-
+                    _currentSqlDraft.PlantUmlSource = rawCode;
+                    _currentSqlDraft.PlantUmlSvgContent = svgContent;
                     ImgDiagram.Source = LoadSvgFromString(svgContent);
                 }
                 else
                 {
-                    var d = _currentDraft.MaterialDiagrams[_activeDiagramIndex - 1];
-                    d.PlantUmlSource = rawCode;
-                    d.PlantUmlSvgContent = svgContent;
+                    if (_activeDiagramIndex == 0)
+                    {
+                        if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
+                        if (_currentDraft.PlantUmlSvgContents.Count == 0) _currentDraft.PlantUmlSvgContents.Add("");
 
-                    UpdateDesignerPreview();
+                        _currentDraft.PlantUmlSources[0] = rawCode;
+                        _currentDraft.PlantUmlSvgContents[0] = svgContent;
+
+                        ImgDiagram.Source = LoadSvgFromString(svgContent);
+                    }
+                    else
+                    {
+                        var d = _currentDraft.MaterialDiagrams[_activeDiagramIndex - 1];
+                        d.PlantUmlSource = rawCode;
+                        d.PlantUmlSvgContent = svgContent;
+
+                        UpdateDesignerPreview();
+                    }
                 }
 
-                AddToConsole("\n> Diagramm erfolgreich aktualisiert.", Brushes.LightGreen);
+                if (_isSqlMode) AddSqlOutput("System", "> Diagramm erfolgreich aktualisiert.", Brushes.LightGreen);
+                else AddToConsole("\n> Diagramm erfolgreich aktualisiert.", Brushes.LightGreen);
+
                 return true;
             }
             catch (Exception ex)
             {
-                AddToConsole($"\n> Fehler bei Diagramm-Erstellung: {ex.Message}", Brushes.Orange);
+                if (_isSqlMode) AddSqlOutput("Error", $"> Fehler bei Diagramm-Erstellung: {ex.Message}", Brushes.Orange);
+                else AddToConsole($"\n> Fehler bei Diagramm-Erstellung: {ex.Message}", Brushes.Orange);
                 return false;
             }
         }
@@ -7188,17 +7249,24 @@ namespace AbiturEliteCode
         {
             string content = TxtDesignPlantUml.Text ?? "";
 
-            if (_activeDiagramIndex == 0)
+            if (_isSqlMode)
             {
-                if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
-                _currentDraft.PlantUmlSources[0] = content;
+                _currentSqlDraft.PlantUmlSource = content;
             }
             else
             {
-                int listIndex = _activeDiagramIndex - 1;
-                if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                if (_activeDiagramIndex == 0)
                 {
-                    _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource = content;
+                    if (_currentDraft.PlantUmlSources.Count == 0) _currentDraft.PlantUmlSources.Add("");
+                    _currentDraft.PlantUmlSources[0] = content;
+                }
+                else
+                {
+                    int listIndex = _activeDiagramIndex - 1;
+                    if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                    {
+                        _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource = content;
+                    }
                 }
             }
         }
@@ -7206,17 +7274,24 @@ namespace AbiturEliteCode
         private void LoadDiagramContentToUI()
         {
             string content = "";
-            if (_activeDiagramIndex == 0)
+            if (_isSqlMode)
             {
-                if (_currentDraft.PlantUmlSources.Count > 0)
-                    content = _currentDraft.PlantUmlSources[0];
+                content = _currentSqlDraft.PlantUmlSource;
             }
             else
             {
-                int listIndex = _activeDiagramIndex - 1;
-                if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                if (_activeDiagramIndex == 0)
                 {
-                    content = _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource;
+                    if (_currentDraft.PlantUmlSources.Count > 0)
+                        content = _currentDraft.PlantUmlSources[0];
+                }
+                else
+                {
+                    int listIndex = _activeDiagramIndex - 1;
+                    if (listIndex >= 0 && listIndex < _currentDraft.MaterialDiagrams.Count)
+                    {
+                        content = _currentDraft.MaterialDiagrams[listIndex].PlantUmlSource;
+                    }
                 }
             }
 
