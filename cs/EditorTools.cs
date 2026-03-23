@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
@@ -1608,6 +1609,100 @@ namespace AbiturEliteCode
                         });
                     }
                 }
+            }
+        }
+    }
+
+    public class SpaceTabIndicatorRenderer : IBackgroundRenderer
+    {
+        private readonly TextEditor _editor;
+        private readonly Pen _indicatorPen;
+
+        public SpaceTabIndicatorRenderer(TextEditor editor)
+        {
+            _editor = editor;
+            _indicatorPen = new Pen(new SolidColorBrush(Color.Parse("#30FFFFFF")), 1.5);
+        }
+
+        public KnownLayer Layer => KnownLayer.Background;
+
+        public void Draw(TextView textView, DrawingContext drawingContext)
+        {
+            var doc = _editor.Document;
+            if (doc == null) return;
+
+            foreach (var line in textView.VisualLines)
+            {
+                string text = doc.GetText(line.FirstDocumentLine);
+                int offset = 0;
+                while (offset <= text.Length - 4)
+                {
+                    if (text.Substring(offset, 4) == "    ")
+                    {
+                        var segment = new TextSegment { StartOffset = line.FirstDocumentLine.Offset + offset, Length = 4 };
+                        var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment);
+                        foreach (var rect in rects)
+                        {
+                            double midY = rect.Y + rect.Height / 2;
+                            double tipX = rect.X + 3; // space 0
+
+                            // draw arrow
+                            drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY - 2), new Point(tipX + 3, midY));
+                            drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY + 2), new Point(tipX + 3, midY));
+                        }
+                        offset += 4;
+                    }
+                    else
+                    {
+                        offset++;
+                    }
+                }
+            }
+        }
+    }
+
+    public class SelectionHighlightRenderer : IBackgroundRenderer
+    {
+        private readonly TextEditor _editor;
+        private readonly SolidColorBrush _highlightBrush;
+        private string _currentSelection = "";
+
+        public SelectionHighlightRenderer(TextEditor editor)
+        {
+            _editor = editor;
+            _highlightBrush = new SolidColorBrush(Color.Parse("#35FFFFFF"));
+
+            _editor.TextArea.SelectionChanged += (s, e) =>
+            {
+                string newSelection = _editor.TextArea.Selection.GetText();
+                if (string.IsNullOrWhiteSpace(newSelection))
+                    newSelection = "";
+
+                if (_currentSelection != newSelection)
+                {
+                    _currentSelection = newSelection;
+                    _editor.TextArea.TextView.InvalidateLayer(Layer);
+                }
+            };
+        }
+
+        public KnownLayer Layer => KnownLayer.Selection;
+
+        public void Draw(TextView textView, DrawingContext drawingContext)
+        {
+            if (string.IsNullOrEmpty(_currentSelection) || _editor.Document == null) return;
+
+            string docText = _editor.Document.Text;
+            int index = 0;
+
+            while ((index = docText.IndexOf(_currentSelection, index, StringComparison.Ordinal)) != -1)
+            {
+                var segment = new TextSegment { StartOffset = index, Length = _currentSelection.Length };
+                foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
+                {
+                    drawingContext.DrawRectangle(_highlightBrush, null, rect);
+                }
+                index += _currentSelection.Length;
             }
         }
     }

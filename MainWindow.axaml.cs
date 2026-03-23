@@ -590,7 +590,7 @@ namespace AbiturEliteCode
             SqlQueryEditor.Options.ShowSpaces = false;
             SqlQueryEditor.Options.EnableHyperlinks = false;
             SqlQueryEditor.Options.EnableEmailHyperlinks = false;
-            SqlQueryEditor.Options.HighlightCurrentLine = false;
+            SqlQueryEditor.Options.HighlightCurrentLine = true;
 
             SqlQueryEditor.FontFamily = new FontFamily(MonospaceFontFamily);
             SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
@@ -607,6 +607,12 @@ namespace AbiturEliteCode
             _sqlAutocompleteService = new AutocompleteService(AutocompleteService.SqlKeywords);
             _sqlAutocompleteGenerator = new AutocompleteGhostGenerator(SqlQueryEditor, _sqlAutocompleteService);
             SqlQueryEditor.TextArea.TextView.ElementGenerators.Add(_sqlAutocompleteGenerator);
+
+            var sqlSpaceTabRenderer = new SpaceTabIndicatorRenderer(SqlQueryEditor);
+            SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(sqlSpaceTabRenderer);
+
+            var sqlSelectionHighlightRenderer = new SelectionHighlightRenderer(SqlQueryEditor);
+            SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(sqlSelectionHighlightRenderer);
 
             SqlQueryEditor.TextChanged += (s, e) =>
             {
@@ -652,6 +658,15 @@ namespace AbiturEliteCode
             {
                 UpdateFocusedColumn(null, null);
             };
+
+            // fix 1 pixel vertical misalignment
+            foreach (var margin in SqlQueryEditor.TextArea.LeftMargins)
+            {
+                if (margin is LineNumberMargin lineMargin)
+                {
+                    lineMargin.Margin = new Thickness(0, 1, 0, 0);
+                }
+            }
         }
 
         private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
@@ -883,7 +898,7 @@ namespace AbiturEliteCode
             CodeEditor.Options.ShowTabs = false;
             CodeEditor.Options.EnableHyperlinks = false;
             CodeEditor.Options.EnableEmailHyperlinks = false;
-            CodeEditor.Options.HighlightCurrentLine = false;
+            CodeEditor.Options.HighlightCurrentLine = true;
 
             CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
             CodeEditor.FontSize = AppSettings.EditorFontSize;
@@ -910,6 +925,9 @@ namespace AbiturEliteCode
 
             _ghostCharTransformer = new GhostCharacterTransformer(CodeEditor);
             CodeEditor.TextArea.TextView.LineTransformers.Add(_ghostCharTransformer);
+
+            var csSelectionHighlightRenderer = new SelectionHighlightRenderer(CodeEditor);
+            CodeEditor.TextArea.TextView.BackgroundRenderers.Add(csSelectionHighlightRenderer);
 
             _csharpAutocompleteService = new AutocompleteService(AutocompleteService.CsharpKeywords);
             _csharpAutocompleteGenerator = new AutocompleteGhostGenerator(CodeEditor, _csharpAutocompleteService);
@@ -5278,7 +5296,7 @@ namespace AbiturEliteCode
                     await ShowWarningDialog(
                        "Error-Hervorhebung",
                        "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
-                   );
+                    );
                 }
 
                 AppSettings.IsErrorHighlightingEnabled = chkError.IsChecked ?? false;
@@ -5307,8 +5325,8 @@ namespace AbiturEliteCode
                 {
                     await ShowWarningDialog(
                       "Error-Erklärungen",
-                      "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung (nur Compiler-Output). Nutze dies nur, wenn du absolut nicht weiterkommst."
-                  );
+                      "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung. Nutze dies nur, wenn du absolut nicht weiterkommst."
+                    );
                 }
                 AppSettings.IsErrorExplanationEnabled = chkErrorExplain.IsChecked ?? false;
                 CheckChanges();
