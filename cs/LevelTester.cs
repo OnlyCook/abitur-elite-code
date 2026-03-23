@@ -101,24 +101,16 @@ namespace AbiturEliteCode.cs
             object obj = Activator.CreateInstance(t);
 
             MethodInfo mSet = t.GetMethod("SetAlter");
-            MethodInfo mGet = t.GetMethod("GetAlter");
+            if (mSet == null) mSet = t.GetMethod("setAlter");
 
-            if (mSet == null)
-            {
-                if (t.GetMethod("setAlter") != null)
-                    throw new Exception("Du hast 'setAlter' (Java-Stil) verwendet. In C# nutzen wir PascalCase: 'SetAlter'.");
-                throw new Exception("Methode SetAlter fehlt. Erstelle: public void SetAlter(int neuesAlter)");
-            }
-            if (mGet == null)
-            {
-                if (t.GetMethod("getAlter") != null)
-                    throw new Exception("Du hast 'getAlter' (Java-Stil) verwendet. In C# nutzen wir PascalCase: 'GetAlter'.");
-                throw new Exception("Methode GetAlter fehlt. Erstelle: public int GetAlter()");
-            }
-            FieldInfo fAlter = t.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo mGet = t.GetMethod("GetAlter");
+            if (mGet == null) mGet = t.GetMethod("getAlter");
 
             if (mSet == null) throw new Exception("Methode SetAlter fehlt. Erstelle: public void SetAlter(int neuesAlter)");
             if (mGet == null) throw new Exception("Methode GetAlter fehlt. Erstelle: public int GetAlter()");
+
+            FieldInfo fAlter = t.GetField("alter", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fAlter == null) throw new Exception("Feld 'alter' fehlt oder ist nicht private.");
 
             // initial value check
             fAlter.SetValue(obj, 10);
@@ -170,13 +162,9 @@ namespace AbiturEliteCode.cs
             if (actualLaenge != 50) throw new Exception("Der Konstruktor von Loewe setzt 'laenge' nicht. Füge im Konstruktor von Loewe hinzu: this.laenge = laenge;");
 
             MethodInfo mB = tLoewe.GetMethod("Bruellen");
+            if (mB == null) mB = tLoewe.GetMethod("bruellen");
 
-            if (mB == null)
-            {
-                if (tLoewe.GetMethod("bruellen") != null)
-                    throw new Exception("Du hast 'bruellen' (Java-Stil) verwendet. In C# schreiben wir Methoden groß: 'Bruellen' (in den nächsten Levels wird dieser Fehler nicht erneut explizit erwähnt).");
-                throw new Exception("Methode Bruellen fehlt. Erstelle: public string Bruellen()");
-            }
+            if (mB == null) throw new Exception("Methode Bruellen fehlt. Erstelle: public string Bruellen()");
 
             string sound = (string)mB.Invoke(leo, null);
             if (string.IsNullOrEmpty(sound)) throw new Exception("Bruellen gibt nichts zurück. Die Methode sollte einen nicht-leeren String zurückgeben.");
@@ -214,7 +202,10 @@ namespace AbiturEliteCode.cs
 
             // find methods
             MethodInfo mAdd = tG.GetMethod("Hinzufuegen");
+            if (mAdd == null) mAdd = tG.GetMethod("hinzufuegen");
+
             MethodInfo mCount = tG.GetMethod("AnzahlTiere");
+            if (mCount == null) mCount = tG.GetMethod("anzahlTiere");
 
             if (mAdd == null) throw new Exception("Methode 'Hinzufuegen' nicht gefunden.");
             if (mCount == null) throw new Exception("Methode 'AnzahlTiere' nicht gefunden.");
@@ -330,8 +321,9 @@ namespace AbiturEliteCode.cs
             listAdd.Invoke(listInstance, new object[] { t3 });
 
             MethodInfo mAlgo = tG.GetMethod("ErmittleAeltestes");
-            if (mAlgo == null) throw new Exception("Methode 'ErmittleAeltestes' fehlt.");
+            if (mAlgo == null) mAlgo = tG.GetMethod("ermittleAeltestes");
 
+            if (mAlgo == null) throw new Exception("Methode 'ErmittleAeltestes' fehlt.");
             if (mAlgo.ReturnType != tT) throw new Exception("Rückgabetyp muss 'Tier' sein.");
 
             object result = mAlgo.Invoke(g, null);
@@ -339,6 +331,8 @@ namespace AbiturEliteCode.cs
             if (result == null) throw new Exception("Methode 'ErmittleAeltestes' hat 'null' zurückgegeben.");
 
             MethodInfo mGetAlter = tT.GetMethod("GetAlter");
+            if (mGetAlter == null) mGetAlter = tT.GetMethod("getAlter");
+
             if (mGetAlter == null) throw new Exception("Methode 'GetAlter()' fehlt.");
 
             int resultAge = (int)mGetAlter.Invoke(result, null);
@@ -381,13 +375,13 @@ namespace AbiturEliteCode.cs
             Type tLager = assembly.GetType("Lager");
             if (tLager == null) throw new Exception("Klasse 'Lager' nicht gefunden.");
 
-            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen");
+            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen") ?? tLager.GetMethod("hinzufuegen");
             if (mAdd == null) throw new Exception("Methode 'Hinzufuegen' fehlt in der Klasse Lager.");
 
-            MethodInfo mErmittle = tLager.GetMethod("ErmittleLeichtestes");
+            MethodInfo mErmittle = tLager.GetMethod("ErmittleLeichtestes") ?? tLager.GetMethod("ermittleLeichtestes");
             if (mErmittle == null)
             {
-                if (tLager.GetMethod("ErmittleSchwerstes") != null)
+                if (tLager.GetMethod("ErmittleSchwerstes") != null || tLager.GetMethod("ermittleSchwerstes") != null)
                     throw new Exception("Achtung: Die Aufgabe wurde geändert! Wir suchen nun das *leichteste* Paket. Bitte benennen Sie die Methode 'ErmittleLeichtestes'.");
 
                 throw new Exception("Methode 'ErmittleLeichtestes' fehlt in der Klasse Lager.");
@@ -416,7 +410,7 @@ namespace AbiturEliteCode.cs
 
             if (result == null) throw new Exception("ErmittleLeichtestes() liefert 'null', obwohl Pakete im Lager sind.");
 
-            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht") ?? tPaket.GetMethod("getGewicht");
             if (mGetW == null) throw new Exception("Methode 'GetGewicht()' fehlt in Klasse Paket.");
 
             double resWeight = (double)mGetW.Invoke(result, null);
@@ -436,8 +430,9 @@ namespace AbiturEliteCode.cs
             if (tLager == null || tPaket == null) throw new Exception("Klasse Lager oder Paket fehlt.");
 
             object lager = Activator.CreateInstance(tLager);
-            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen");
-            MethodInfo mFilter = tLager.GetMethod("FilterePakete");
+
+            MethodInfo mAdd = tLager.GetMethod("Hinzufuegen") ?? tLager.GetMethod("hinzufuegen");
+            MethodInfo mFilter = tLager.GetMethod("FilterePakete") ?? tLager.GetMethod("filterePakete");
 
             if (mAdd == null) throw new Exception("Methode Hinzufuegen fehlt.");
             if (mFilter == null) throw new Exception("Methode FilterePakete fehlt.");
@@ -483,32 +478,26 @@ namespace AbiturEliteCode.cs
             list.Add(SafeCreatePaket(tPaket, "A", 100.0));
             list.Add(SafeCreatePaket(tPaket, "B", 10.0));
             list.Add(SafeCreatePaket(tPaket, "C", 50.0));
-
             fPakete.SetValue(lager, list);
 
-            MethodInfo mSort = tLager.GetMethod("Sortiere");
-            if (mSort == null) throw new Exception("Methode 'Sortiere' fehlt.");
+            MethodInfo mSort = tLager.GetMethod("SortiereNachGewicht") ?? tLager.GetMethod("sortiereNachGewicht");
+            if (mSort == null) throw new Exception("Methode SortiereNachGewicht fehlt.");
 
-            try
-            {
-                mSort.Invoke(lager, null);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Fehler beim Ausführen von Sortiere(): " + (ex.InnerException?.Message ?? ex.Message));
-            }
+            mSort.Invoke(lager, null);
 
-            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
-            double w1 = (double)mGetW.Invoke(list[0], null);
-            double w2 = (double)mGetW.Invoke(list[1], null);
-            double w3 = (double)mGetW.Invoke(list[2], null);
+            IList sortedList = (IList)fPakete.GetValue(lager);
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht") ?? tPaket.GetMethod("getGewicht");
+
+            double w1 = (double)mGetW.Invoke(sortedList[0], null);
+            double w2 = (double)mGetW.Invoke(sortedList[1], null);
+            double w3 = (double)mGetW.Invoke(sortedList[2], null);
 
             if (w1 <= w2 && w2 <= w3)
             {
-                feedback = "Bubble Sort korrekt implementiert! Die Liste ist aufsteigend sortiert.";
+                feedback = "Bubble Sort erfolgreich implementiert! Die Pakete sind aufsteigend sortiert.";
                 return true;
             }
-            throw new Exception($"Sortierung fehlerhaft. Reihenfolge: {w1}, {w2}, {w3}.");
+            throw new Exception($"Sortierung inkorrekt. Reihenfolge: {w1}, {w2}, {w3}. Erwartet: 10, 50, 100.");
         }
 
         private static bool TestLevel9(Assembly assembly, out string feedback)
@@ -521,7 +510,7 @@ namespace AbiturEliteCode.cs
             if (tBand == null) throw new Exception("Klasse 'Gueterzug' fehlt.");
 
             object band = Activator.CreateInstance(tBand);
-            MethodInfo mAnh = tBand.GetMethod("Anhaengen");
+            MethodInfo mAnh = tBand.GetMethod("Anhaengen") ?? tBand.GetMethod("anhaengen");
             if (mAnh == null) throw new Exception("Methode 'Anhaengen' fehlt.");
 
             object p1 = SafeCreatePaket(tPaket, "A", 10.0);
@@ -576,7 +565,7 @@ namespace AbiturEliteCode.cs
             list.Add(SafeCreatePaket(tPaket, "Berlin", 5.0));
             list.Add(SafeCreatePaket(tPaket, "Berlin", 50.0)); // 3rd
 
-            MethodInfo mTop3 = tLogistik.GetMethod("GetTop3Schwere");
+            MethodInfo mTop3 = tLogistik.GetMethod("GetTop3Schwere") ?? tLogistik.GetMethod("getTop3Schwere");
             if (mTop3 == null) throw new Exception("Methode GetTop3Schwere fehlt.");
 
             object resObj = mTop3.Invoke(zentrum, new object[] { "Berlin" });
@@ -585,7 +574,7 @@ namespace AbiturEliteCode.cs
             if (resList == null) throw new Exception("Keine Liste zurückgegeben.");
             if (resList.Count != 3) throw new Exception($"Liste sollte genau 3 Elemente enthalten, hat aber {resList.Count}.");
 
-            MethodInfo mGetW = tPaket.GetMethod("GetGewicht");
+            MethodInfo mGetW = tPaket.GetMethod("GetGewicht") ?? tPaket.GetMethod("getGewicht");
             double w1 = (double)mGetW.Invoke(resList[0], null);
             double w2 = (double)mGetW.Invoke(resList[1], null);
             double w3 = (double)mGetW.Invoke(resList[2], null);
@@ -623,11 +612,11 @@ namespace AbiturEliteCode.cs
             if (fListe == null) throw new Exception("Feld 'schuelerListe' fehlt in Klasse 'Klasse' oder ist nicht private.");
             if (fListe.GetValue(klasseObj) == null) throw new Exception("Die Liste 'schuelerListe' ist null. Sie muss im Konstruktor mit 'new List<Schueler>()' initialisiert werden.");
 
-            MethodInfo mAdd = tKlasse.GetMethod("AddSchueler");
+            MethodInfo mAdd = tKlasse.GetMethod("AddSchueler") ?? tKlasse.GetMethod("addSchueler");
             if (mAdd == null) mAdd = tKlasse.GetMethod("addSchueler");
             if (mAdd == null) throw new Exception("Methode 'AddSchueler' fehlt.");
 
-            MethodInfo mSchnitt = tKlasse.GetMethod("BerechneSchnittBestanden");
+            MethodInfo mSchnitt = tKlasse.GetMethod("BerechneSchnittBestanden") ?? tKlasse.GetMethod("berechneSchnittBestanden");
             if (mSchnitt == null) throw new Exception("Methode 'BerechneSchnittBestanden' fehlt.");
 
             object CreateSchueler(int n) => ctorSchueler.Invoke(new object[] { n });
@@ -683,9 +672,9 @@ namespace AbiturEliteCode.cs
             object l2 = Activator.CreateInstance(tLehrer);
 
             // setup methods
-            MethodInfo mAddLehrer = tSchule.GetMethod("AddLehrer");
-            MethodInfo mFind = tSchule.GetMethod("FindeVielBeschaeftigte");
-            MethodInfo mAddKlasse = tLehrer.GetMethod("AddKlasse");
+            MethodInfo mAddLehrer = tSchule.GetMethod("AddLehrer") ?? tSchule.GetMethod("addLehrer");
+            MethodInfo mFind = tSchule.GetMethod("FindeVielBeschaeftigte") ?? tSchule.GetMethod("findeVielBeschaeftigte");
+            MethodInfo mAddKlasse = tLehrer.GetMethod("AddKlasse") ?? tLehrer.GetMethod("addKlasse");
 
             if (mAddLehrer == null) throw new Exception("Methode AddLehrer in Schule fehlt.");
             if (mFind == null) throw new Exception("Methode FindeVielBeschaeftigte in Schule fehlt.");
@@ -743,10 +732,10 @@ namespace AbiturEliteCode.cs
 
             if (ctorFehltag == null) throw new Exception("Konstruktor Fehltag(DateTime, bool) oder Fehltag(LocalDate, bool) fehlt.");
 
-            MethodInfo mAdd = tSchueler.GetMethod("AddFehltag");
+            MethodInfo mAdd = tSchueler.GetMethod("AddFehltag") ?? tSchueler.GetMethod("addFehltag");
             if (mAdd == null) throw new Exception("Methode AddFehltag fehlt in Klasse Schueler.");
 
-            MethodInfo mCheck = tSchueler.GetMethod("HatKritischGefehlt");
+            MethodInfo mCheck = tSchueler.GetMethod("HatKritischGefehlt") ?? tSchueler.GetMethod("hatKritischGefehlt");
             if (mCheck == null) throw new Exception("Methode HatKritischGefehlt fehlt.");
 
             object s = Activator.CreateInstance(tSchueler);
@@ -799,7 +788,7 @@ namespace AbiturEliteCode.cs
             // methods setup
             MethodInfo mAddKlasse = tSchule.GetMethod("AddKlasse") ?? tSchule.GetMethod("addKlasse");
             MethodInfo mAddSchueler = tKlasse.GetMethod("AddSchueler") ?? tKlasse.GetMethod("addSchueler");
-            MethodInfo mWarn = tSchule.GetMethod("ErstelleWarnungen");
+            MethodInfo mWarn = tSchule.GetMethod("ErstelleWarnungen") ?? tSchule.GetMethod("erstelleWarnungen");
 
             if (mAddKlasse == null) throw new Exception("AddKlasse fehlt.");
             if (mAddSchueler == null) throw new Exception("AddSchueler fehlt.");
@@ -876,7 +865,7 @@ namespace AbiturEliteCode.cs
             object rover = fRover.GetValue(zentrum);
             if (rover == null) throw new Exception("Der Rover wurde im Konstruktor von Kontrollzentrum nicht initialisiert.");
 
-            MethodInfo mVerarbeite = tZentrum.GetMethod("VerarbeiteKommando");
+            MethodInfo mVerarbeite = tZentrum.GetMethod("VerarbeiteKommando") ?? tZentrum.GetMethod("verarbeiteKommando");
             if (mVerarbeite == null) throw new Exception("Methode 'VerarbeiteKommando' im Kontrollzentrum fehlt.");
 
             // methods in rover
@@ -1055,7 +1044,7 @@ namespace AbiturEliteCode.cs
             bool isAvail = (bool)mAvail.Invoke(reader, null);
             if (!isAvail) throw new Exception("IsCardAvailable() gibt false zurück, obwohl Daten im Serial-Buffer liegen. Nutzen Sie serial.DataAvailable() > 0.");
 
-            MethodInfo mReadSerial = tSerial.GetMethod("Read");
+            MethodInfo mReadSerial = tSerial.GetMethod("Read") ?? tSerial.GetMethod("read");
             mReadSerial.Invoke(serialMock, null);
 
             // test ReadCard
@@ -1647,12 +1636,13 @@ namespace AbiturEliteCode.cs
             ConstructorInfo ctorThread = tThread.GetConstructor(new[] { tSocket, tHub });
             if (ctorThread == null) throw new Exception("Konstruktor ServerThread(Socket cs, SmartHomeHub hub) fehlt.");
 
-            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance);
-            if (mRun == null || mRun.GetBaseDefinition().DeclaringType == mRun.DeclaringType)
-                throw new Exception("Sie müssen die Methode 'Run()' mit dem Schlüsselwort 'override' überschreiben.");
+            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly) ?? tThread.GetMethod("run", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-            if (mRun.DeclaringType == tThreadBase)
+            if (mRun == null)
                 throw new Exception("Sie müssen die Methode 'Run()' überschreiben (verwenden Sie 'public override void Run()').");
+
+            if (mRun.GetBaseDefinition().DeclaringType == mRun.DeclaringType)
+                throw new Exception("Sie müssen die Methode 'Run()' mit dem Schlüsselwort 'override' überschreiben.");
 
             // setup mocks
             object hubObj = Activator.CreateInstance(tHub);
@@ -1770,9 +1760,13 @@ namespace AbiturEliteCode.cs
             if (ctorThread == null)
                 throw new Exception("Der Konstruktor von SicherheitsThread entspricht nicht den Vorgaben im UML-Diagramm.");
 
-            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance);
-            if (mRun == null || mRun.DeclaringType != tThread)
-                throw new Exception("Die Methode Run() wurde nicht korrekt überschrieben.");
+            MethodInfo mRun = tThread.GetMethod("Run", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly) ?? tThread.GetMethod("run", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            if (mRun == null)
+                throw new Exception("Sie müssen die Methode 'Run()' überschreiben (verwenden Sie 'public override void Run()').");
+
+            if (mRun.GetBaseDefinition().DeclaringType == mRun.DeclaringType)
+                throw new Exception("Sie müssen die Methode 'Run()' mit dem Schlüsselwort 'override' überschreiben.");
 
             MethodInfo mVergleiche = tThread.GetMethod("VergleicheZugangsdaten", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance) ?? tThread.GetMethod("vergleicheZugangsdaten", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             if (mVergleiche == null)
@@ -1838,16 +1832,16 @@ namespace AbiturEliteCode.cs
                 throw new Exception("Falsche Antwort auf QUIT oder die Schleife wurde danach nicht korrekt beendet.");
 
             // internal state assertions
-            MethodInfo mGetAlarm = tZentrale.GetMethod("GetAlarmanlage");
+            MethodInfo mGetAlarm = tZentrale.GetMethod("GetAlarmanlage") ?? tZentrale.GetMethod("getAlarmanlage");
             object alarmObj = mGetAlarm.Invoke(zueObj, null);
-            MethodInfo mGetAktiv = alarmObj.GetType().GetMethod("GetAktiv");
+            MethodInfo mGetAktiv = alarmObj.GetType().GetMethod("GetAktiv") ?? alarmObj.GetType().GetMethod("getAktiv");
             bool isAktiv = (bool)mGetAktiv.Invoke(alarmObj, null);
             if (isAktiv)
                 throw new Exception("Der TOGGLE Befehl hat den Status der Alarmanlage auf Objektebene nicht verändert. Nutzen Sie SetAktiv(!GetAktiv()).");
 
-            MethodInfo mGetLog = tZentrale.GetMethod("GetLog");
+            MethodInfo mGetLog = tZentrale.GetMethod("GetLog") ?? tZentrale.GetMethod("getLog");
             object logObj = mGetLog.Invoke(zueObj, null);
-            MethodInfo mGetEintraege = logObj.GetType().GetMethod("GetEintraege");
+            MethodInfo mGetEintraege = logObj.GetType().GetMethod("GetEintraege") ?? logObj.GetType().GetMethod("getEintraege");
             IList eintraege = mGetEintraege.Invoke(logObj, null) as IList;
 
             if (eintraege == null || eintraege.Count == 0 || !eintraege[0].ToString().Contains("umgeschaltet"))

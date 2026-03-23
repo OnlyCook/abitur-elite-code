@@ -98,71 +98,60 @@ namespace AbiturEliteCode.cs
             return auxId switch
             {
                 "Paket" => @"
-                    public class Paket
-                    {
+                    public class Paket {
                         private double gewicht;
                         private string zielort;
-                        
-                        public Paket(string ziel, double gew) 
-                        { 
-                            this.zielort = ziel; 
-                            this.gewicht = gew; 
+                        public bool istGesperrt;
+
+                        public Paket(string ziel, double gew)
+                        {
+                            this.zielort = ziel;
+                            this.gewicht = gew;
                         }
 
-                        public double GetGewicht() { return gewicht; }
-                        public string GetZielort() { return zielort; }
+                        public double GetGewicht() => gewicht;
+                        public string GetZielort() => zielort;
+                        public double getGewicht() => GetGewicht();
+                        public string getZielort() => GetZielort();
                     }",
                 "LocalDate" => @"
                     using System;
-
-                    public class LocalDate
-                    {
+                    public class LocalDate {
                         private DateTime date;
-
-                        private LocalDate(DateTime date)
-                        {
-                            this.date = date.Date;
-                        }
-
-                        public static LocalDate Now()
-                        {
-                            return new LocalDate(DateTime.Now);
-                        }
-
-                        public bool IsAfter(LocalDate other)
-                        {
-                            return this.date > other.date;
-                        }
-
-                        public bool IsBefore(LocalDate other)
-                        {
-                            return this.date < other.date;
-                        }
-
-                        public LocalDate MinusMonths(long months)
-                        {
-                            return new LocalDate(this.date.AddMonths(-(int)months));
-                        }
-
-                        public LocalDate PlusDays(long days)
-                        {
-                            return new LocalDate(this.date.AddDays(days));
-                        }
-
-                        public int Until(DateTime other, object unit = null)
-                        {
-                            return (int)(other.Date - this.date).TotalDays;
-                        }
-
-                        public int Until(LocalDate other, object unit = null)
-                        {
-                            return (int)(other.date - this.date).TotalDays;
-                        }
-
-                        public override string ToString()
-                        {
-                            return date.ToString(""yyyy-MM-dd"");
-                        }
+                        private LocalDate(DateTime date) { this.date = date.Date; }
+                        public static LocalDate Now() { return new LocalDate(DateTime.Now); }
+                        public static LocalDate now() => Now();
+                        public bool IsAfter(LocalDate other) { return this.date > other.date; }
+                        public bool isAfter(LocalDate other) => IsAfter(other);
+                        public bool IsBefore(LocalDate other) { return this.date < other.date; }
+                        public bool isBefore(LocalDate other) => IsBefore(other);
+                        public LocalDate MinusMonths(long months) { return new LocalDate(this.date.AddMonths(-(int)months)); }
+                        public LocalDate minusMonths(long months) => MinusMonths(months);
+                        public LocalDate PlusDays(long days) { return new LocalDate(this.date.AddDays(days)); }
+                        public LocalDate plusDays(long days) => PlusDays(days);
+                        public int Until(LocalDate other, object unit = null) { return (int)(other.date - this.date).TotalDays; }
+                        public int until(LocalDate other, object unit = null) => Until(other, unit);
+                        public override string ToString() { return date.ToString(""yyyy-MM-dd""); }
+                    }",
+                "ListT" => @"
+                    using System.Collections.Generic;
+                    public static class ListExtensions {
+                        public static void add<T>(this List<T> list, T item) => list.Add(item);
+                        public static bool remove<T>(this List<T> list, T item) => list.Remove(item);
+                        public static T get<T>(this List<T> list, int index) => list[index];
+                        public static int size<T>(this List<T> list) => list.Count;
+                        public static bool contains<T>(this List<T> list, T item) => list.Contains(item);
+                    }",
+                "String" => @"
+                    using System;
+                    public static class StringExtensions {
+                        public static bool equals(this string s, object other) => s.Equals(other);
+                        public static char[] toCharArray(this string s) => s.ToCharArray();
+                        public static string substring(this string s, int beginIndex) => s.Substring(beginIndex);
+                        public static string substring(this string s, int beginIndex, int endIndex) => s.Substring(beginIndex, endIndex - beginIndex);
+                        public static string[] split(this string s, string regex) => s.Split(new[] { regex }, StringSplitOptions.None);
+                        public static string[] split(this string s, char separator) => s.Split(separator);
+                        public static bool startsWith(this string s, string prefix) => s.StartsWith(prefix);
                     }",
                 "Serial" => @"
                     using System.Collections.Generic;
@@ -171,9 +160,10 @@ namespace AbiturEliteCode.cs
                         public bool IsOpen { get; private set; } = false;
                         public Serial(string p, int b, int d, int s, int par) {}
                         public bool Open() { IsOpen = true; return true; }
+                        public bool open() => Open();
                         public void Close() { IsOpen = false; }
+                        public void close() => Close();
                         
-                        // Mock Aufstellung zum Testen
                         public void SetTestBytes(int[] bytes) {
                             foreach(var b in bytes) _readBuffer.Enqueue(b);
                         }
@@ -183,126 +173,148 @@ namespace AbiturEliteCode.cs
                             if (_readBuffer.Count > 0) return _readBuffer.Dequeue();
                             return -1;
                         }
+                        public int read() => Read();
                         public int DataAvailable() { return _readBuffer.Count; }
+                        public int dataAvailable() => DataAvailable();
                         public void Write(int val) { }
+                        public void write(int val) => Write(val);
                     }",
                 "FunkModul" => @"
                     public class FunkModul {
                         private string lastCommand = """";
                         public void Send(string cmd) { lastCommand = cmd; }
+                        public void send(string cmd) => Send(cmd);
                         public char Receive() { return (char)0x06; }
+                        public char receive() => Receive();
                         public string GetLastCommand() { return lastCommand; }
+                        public string getLastCommand() => GetLastCommand();
                     }",
                 "ServerSocket" => @"
                     public class ServerSocket {
                         public Socket MockSocket { get; set; } = new Socket();
                         public ServerSocket(int port) {}
-                        public Socket Accept() {
-                            return MockSocket;
-                        }
+                        public Socket Accept() { return MockSocket; }
+                        public Socket accept() => Accept();
                         public void Close() {}
+                        public void close() => Close();
                     }",
                 "Socket" => @"
                     using System.Collections.Generic;
                     public class Socket {
                         private Queue<string> _inputs = new Queue<string>();
                         public List<string> Outputs = new List<string>();
-                        
                         private string remoteHostIP = ""127.0.0.1"";
                         private int remotePort = 54321;
-                        
                         public Socket() {}
                         public Socket(string host, int port) {}
-                        
                         public string GetRemoteHostIP() { return remoteHostIP; }
+                        public string getRemoteHostIP() => GetRemoteHostIP();
                         public int GetRemotePort() { return remotePort; }
-                        
+                        public int getRemotePort() => GetRemotePort();
                         public void SetTestInputs(string[] inputs) {
                             foreach(var i in inputs) _inputs.Enqueue(i);
                         }
-                        
                         public string ReadLine() {
                             if (_inputs.Count > 0) return _inputs.Dequeue();
                             return null;
                         }
-                        
+                        public string readLine() => ReadLine();
                         public void Write(string s) { Outputs.Add(s); }
+                        public void write(string s) => Write(s);
                         public void Close() {}
+                        public void close() => Close();
                     }",
                 "Thread" => @"
                     public abstract class Thread {
-                        public virtual void Run() {}
+                        public virtual void Run() { run(); }
+                        public virtual void run() {}
                         public void Start() { 
                             // Im Test-Mock führen wir Run im Task aus
                             System.Threading.Tasks.Task.Run(() => Run());
                         }
+                        public void start() => Start();
                     }",
                 "Random" => @"
                     public class Random {
                         private System.Random _r = new System.Random();
                         public Random() {}
                         public int NextInt() { return _r.Next(); }
+                        public int nextInt() => NextInt();
                         public int NextInt(int n) { return _r.Next(n); }
+                        public int nextInt(int n) => NextInt(n);
                     }",
                 "SicherheitsZentrale" => @"
                     public class SicherheitsZentrale {
                         private BenutzerVerwaltung verwaltung = new BenutzerVerwaltung();
                         private Alarmanlage alarmanlage = new Alarmanlage();
                         private ProtokollLog log = new ProtokollLog();
-                        
+                    
                         public BenutzerVerwaltung GetVerwaltung() { return verwaltung; }
                         public Alarmanlage GetAlarmanlage() { return alarmanlage; }
                         public ProtokollLog GetLog() { return log; }
+                        public BenutzerVerwaltung getVerwaltung() => GetVerwaltung();
+                        public Alarmanlage getAlarmanlage() => GetAlarmanlage();
+                        public ProtokollLog getLog() => GetLog();
                     }",
                 "BenutzerVerwaltung" => @"
                     public class BenutzerVerwaltung {
                         private string adminUser = ""Admin"";
                         private string adminPin = ""1234"";
-                        
+                    
                         public string GetAdminUser() { return adminUser; }
                         public string GetAdminPin() { return adminPin; }
+                        public string getAdminUser() => GetAdminUser();
+                        public string getAdminPin() => GetAdminPin();
                     }",
                 "Alarmanlage" => @"
                     public class Alarmanlage {
                         private bool aktiv = true;
-                        
+                    
                         public bool GetAktiv() { return aktiv; }
                         public void SetAktiv(bool value) { aktiv = value; }
+                        public bool getAktiv() => GetAktiv();
+                        public void setAktiv(bool value) => SetAktiv(value);
                     }",
                 "ProtokollLog" => @"
                     using System.Collections.Generic;
                     public class ProtokollLog {
                         private List<string> eintraege = new List<string>();
-                        
+                    
                         public List<string> GetEintraege() { return eintraege; }
                         public void SetEintraege(List<string> value) { eintraege = value; }
+                        public List<string> getEintraege() => GetEintraege();
+                        public void setEintraege(List<string> value) => SetEintraege(value);
                     }",
                 "Gepaeckstueck" => @"
                     public abstract class Gepaeckstueck {
                         protected string id;
                         protected double gewicht;
-                        
+                    
                         public Gepaeckstueck(string id, double gewicht) {
                             this.id = id;
                             this.gewicht = gewicht;
                         }
-                        
-                        public abstract double BerechneZuschlag();
+                    
+                        public virtual double BerechneZuschlag() => berechneZuschlag();
+                        public virtual double berechneZuschlag() => 0.0;
                         public double GetGewicht() { return gewicht; }
+                        public double getGewicht() => GetGewicht();
                     }",
                 "GepaeckSchleuse" => @"
                     public class GepaeckSchleuse {
                         private int schleusenNr;
                         private bool locked = true;
-                        
-                        // Tracking-Properties für den Tester
+                    
                         public int UnlockCount { get; set; } = 0;
                         public int LockCount { get; set; } = 0;
-                        
+                    
                         public GepaeckSchleuse(int nr) { schleusenNr = nr; }
                         public void Lock() { locked = true; LockCount++; }
+                        public void @lock() => Lock();
                         public void Unlock() { locked = false; UnlockCount++; }
+                        public void unlock() => Unlock();
                         public bool IsOpen() { return !locked; }
+                        public bool isOpen() => IsOpen();
                     }",
                 "FlughafenVerwaltungMock" => @"
                     using System.Collections.Generic;
@@ -311,27 +323,27 @@ namespace AbiturEliteCode.cs
                     public class Log {
                         public string Eintrag { get; set; }
                         public object Datum { get; set; }
-                        
+                    
                         public Log(string e, DateTime d) { Eintrag = e; Datum = d; }
                         public Log(string e, LocalDate d) { Eintrag = e; Datum = d; }
                     }
 
                     public class FlughafenVerwaltung {
-                        // Tracking-Properties für den Tester
                         public int LastPassID { get; set; } = -1;
                         public double LastGewicht { get; set; } = -1.0;
                         public bool NextCheckResult { get; set; } = true;
-                        
+                    
                         private List<Log> logs = new List<Log>();
-                        
+                    
                         public List<Log> GetLogs() { return logs; }
+                        public List<Log> getLogs() => GetLogs();
 
-                        // Mock für Level 25
                         public bool CheckBoarding(int passID, double gepaeckGewicht) {
                             LastPassID = passID;
                             LastGewicht = gepaeckGewicht;
                             return NextCheckResult;
                         }
+                        public bool checkBoarding(int passID, double gepaeckGewicht) => CheckBoarding(passID, gepaeckGewicht);
                     }",
                 "Flug" => userCode.Contains("LocalDate") ? @"
                     using System;
@@ -342,7 +354,7 @@ namespace AbiturEliteCode.cs
                         private string gate;
                         private int maxPassagiere;
                         private double basisPreis;
-                        
+                    
                         public Flug(string flugNr, string ziel, LocalDate startDatum, string gate, int max, double preis) {
                             this.flugNr = flugNr;
                             this.ziel = ziel;
@@ -353,6 +365,7 @@ namespace AbiturEliteCode.cs
                         }
 
                         public LocalDate GetStartDatum() { return startDatum; }
+                        public LocalDate getStartDatum() => GetStartDatum();
                     }" : @"
                     using System;
                     public class Flug {
@@ -362,7 +375,7 @@ namespace AbiturEliteCode.cs
                         private string gate;
                         private int maxPassagiere;
                         private double basisPreis;
-                        
+                    
                         public Flug(string flugNr, string ziel, DateTime startDatum, string gate, int max, double preis) {
                             this.flugNr = flugNr;
                             this.ziel = ziel;
@@ -373,6 +386,7 @@ namespace AbiturEliteCode.cs
                         }
 
                         public DateTime GetStartDatum() { return startDatum; }
+                        public DateTime getStartDatum() => GetStartDatum();
                     }",
                 "Passagier" => @"
                     using System.Collections.Generic;
@@ -383,16 +397,18 @@ namespace AbiturEliteCode.cs
                         private string ticketNummer;
                         private Flug flug;
                         private List<Gepaeckstueck> gepaeck = new List<Gepaeckstueck>();
-                        
+                    
                         public Passagier(string name, string ticketNummer, Flug f) {
                             this.passagierID = ++autowert;
                             this.name = name;
                             this.ticketNummer = ticketNummer;
                             this.flug = f;
                         }
-                        
+                    
                         public int GetPassagierID() { return passagierID; }
+                        public int getPassagierID() => GetPassagierID();
                         public Flug GetFlug() { return flug; }
+                        public Flug getFlug() => GetFlug();
                     }",
                 "FlughafenVerwaltungPartial" => @"
                     using System.Collections.Generic;
@@ -488,7 +504,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                                   "3. Der Getter gibt den aktuellen Wert des Alters zurück.",
                     StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
                     MaterialDocs = "start-hint: Namenskonventionen\n" +
-                                   "In Java schreibt man [getAlter()] und [setAlter()]. In C# verwenden wir die gleiche Namenskonvention, jedoch mit großem Anfangsbuchstaben: [GetAlter()] und [SetAlter()].\n" +
+                                   "In C# ist es üblich, Methoden mit einem großen Anfangsbuchstaben (PascalCase) zu schreiben (z. B. [GetAlter()]). Wir empfehlen diese Schreibweise, unterstützen in dieser App jedoch auch die Java-typische Kleinschreibung (camelCase), wie zum Beispiel [getAlter()], um den Übergang zu erleichtern.\n" +
                                    ":end-hint\n" +
                                    "start-tipp: Logik im Setter\n" +
                                    "Verwenden Sie eine [if]-Bedingung im Setter, um zu prüfen, ob [neuesAlter > alter] ist.\n" +
@@ -680,7 +696,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     Title = "Die Sortiermaschine (Bubble Sort)",
                     Description = "Die Pakete müssen vor dem Verladen nach Gewicht aufsteigend sortiert werden.\n\n" +
                                   "Aufgabe:\n" +
-                                  "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [Sortiere()].\n" +
+                                  "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [SortiereNachGewicht()].\n" +
                                   "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
                     StarterCode = "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
                     MaterialDocs = "start-hint: Bubble Sort Logik\n" +
@@ -699,7 +715,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startuml\nclass Lager {\n  + sortiere()\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
+                        "@startuml\nclass Lager {\n  + sortiereNachGewicht()\n}\nLager x--> \"*\" Paket : -pakete\n@enduml"
                     },
                     AuxiliaryIds = new List<string> { "ListT", "Paket" },
                     Prerequisites = new List<string>
@@ -936,7 +952,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     {
                         "@startuml\nclass Schule {\n  + Schule()\n  + addKlasse(k : Klasse)\n  + erstelleWarnungen() : String\n}\nclass Klasse {\n  - bezeichnung : String\n  + Klasse(bez : String)\n  + addSchueler(s : Schueler)\n  + getSchueler() : List<Schueler>\n  + getBezeichnung() : String\n}\nclass Schueler {\n  - name : String\n  - note : int\n  + Schueler(name : String, note : int)\n  + getNote() : int\n  + getName() : String\n}\nSchule x--> \"*\" Klasse : -klassen\nKlasse x--> \"*\" Schueler : -schueler\n@enduml"
                     },
-                    AuxiliaryIds = new List<string> { "ListT" },
+                    AuxiliaryIds = new List<string> { "ListT", "String" },
                     Prerequisites = new List<string>
                     {
                         "Nested Loops", "String concatenation", "Accessing List Elements"
@@ -977,7 +993,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     {
                         "@startuml\nclass Rover {\n  - id : String\n  - position : int[]\n  - ausrichtung : String\n  + Rover(id : String)\n  + turn(richtung : String)\n  + move(x : int, y : int)\n  + scan(ziel : String) : LocalDate\n}\nclass Kontrollzentrum {\n  - letzterScan : LocalDate\n  + Kontrollzentrum()\n  + verarbeiteKommando(befehl : String)\n}\nKontrollzentrum x--> \"1\" Rover : -rover\n@enduml"
                     },
-                    AuxiliaryIds = new List<string> { "LocalDate" },
+                    AuxiliaryIds = new List<string> { "LocalDate", "String" },
                     Prerequisites = new List<string>
                     {
                         "Split", "Creating Arrays", "Parse Methods", "Switch statements", "DateTime Basics"
@@ -1240,7 +1256,7 @@ BEGIN
     END;
 END.",
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "ListT" },
+                    AuxiliaryIds = new List<string> { "ListT", "String" },
                     Prerequisites = new List<string>
                     {
                         "Split", "Parse Methods", "While Loops", "If statements", "Booleans"
@@ -1425,7 +1441,7 @@ END.",
                         "@startuml\nskinparam SequenceGroupFontColor #888888\nskinparam SequenceGroupBorderColor #888888\nskinparam SequenceGroupBackgroundColor #222222\nhide footbox\nparticipant \": SicherheitsThread\" as T\nparticipant \": Socket\" as CS\nparticipant \": SicherheitsZentrale\" as Z\n\n[o-> T : run()\nactivate T\nT -> CS : readLine()\nactivate CS\nCS --> T : befehl\ndeactivate CS\nopt befehl beginnt mit \"LOGIN;\"\n  T -> T : vergleicheZugangsdaten(user, pin)\n  activate T\n  T -> Z : getVerwaltung()\n  activate Z\n  Z --> T : verwaltung\n  deactivate Z\n  T --> T : true/false\n  deactivate T\n  alt erfolgreich\n    T -> CS : write(\"+OK Willkommen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n    loop befehl != \"QUIT\"\n      T -> CS : readLine()\n      activate CS\n      CS --> T : befehl\n      deactivate CS\n      alt befehl == \"STATUS\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> CS : write(\"+OK ALARM_ON (oder OFF)\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"TOGGLE\"\n        T -> Z : getAlarmanlage()\n        activate Z\n        Z --> T : alarmanlage\n        deactivate Z\n        T -> T : wechsle Status (aktiv)\n        activate T\n        T --> T\n        deactivate T\n        T -> Z : getLog()\n        activate Z\n        Z --> T : log\n        deactivate Z\n        T -> T : füge Eintrag hinzu\n        activate T\n        T --> T\n        deactivate T\n        T -> CS : write(\"+OK Umschaltung erfolgreich\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      else befehl == \"QUIT\"\n        T -> CS : write(\"+OK Bye\\n/\")\n        activate CS\n        CS --> T\n        deactivate CS\n      end\n    end\n  else fehlgeschlagen\n    T -> CS : write(\"-ERR Login fehlgeschlagen\\n/\")\n    activate CS\n    CS --> T\n    deactivate CS\n  end\nend\nT -> CS : close()\nactivate CS\nCS --> T\ndeactivate CS\ndeactivate T\n@enduml"
                     },
                     NoUMLAutoScale = true,
-                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "SicherheitsZentrale", "BenutzerVerwaltung", "Alarmanlage", "ProtokollLog", "ListT" },
+                    AuxiliaryIds = new List<string> { "ServerSocket", "Socket", "Thread", "SicherheitsZentrale", "BenutzerVerwaltung", "Alarmanlage", "ProtokollLog", "ListT", "String" },
                     Prerequisites = new List<string>
                     {
                         "Inheritance Basics", "Method Overriding", "While Loops", "Booleans", "If-Else statements", "Defining void methods"
