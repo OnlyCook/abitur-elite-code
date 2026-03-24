@@ -732,9 +732,11 @@ namespace AbiturEliteCode
                 if (!string.IsNullOrEmpty(fullText))
                 {
                     int offset = SqlQueryEditor.CaretOffset;
+
+                    _sqlAutocompleteService.ClearSuggestion();
+
                     SqlQueryEditor.Document.Replace(offset - wordLen, wordLen, fullText);
                     SqlQueryEditor.CaretOffset = offset - wordLen + fullText.Length;
-                    _sqlAutocompleteService.ClearSuggestion();
                     e.Handled = true;
                     return;
                 }
@@ -1150,9 +1152,11 @@ namespace AbiturEliteCode
                     if (!string.IsNullOrEmpty(suffixText))
                     {
                         int offset = CodeEditor.CaretOffset;
+
+                        _csharpAutocompleteService.ClearSuggestion();
+
                         CodeEditor.Document.Insert(offset, suffixText);
                         CodeEditor.CaretOffset = offset + suffixText.Length;
-                        _csharpAutocompleteService.ClearSuggestion();
                         e.Handled = true;
                         return;
                     }

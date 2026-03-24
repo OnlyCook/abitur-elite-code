@@ -1419,10 +1419,10 @@ namespace AbiturEliteCode.cs
             {
                 if (ack.Contains("HELLO:"))
                     throw new Exception("Fehler bei der Substring-Extraktion. Die ID enthält noch das 'HELLO:'. Nutzen Sie Substring(6)!");
-                throw new Exception($"Das ACK-Protokoll ist inkorrekt. Erhalten: \"{ack.Trim()}\", Erwartet: \"{expectedAck.Trim()}\"");
+                throw new Exception($"Das ACK-Protokoll ist inkorrekt. Erhalten: \"{ack.Trim()}\", Erwartet: \"{expectedAck.Trim() + "\\n"}\"");
             }
 
-            if (!err.Contains("-ERR unbekannt"))
+            if (!err.Contains("-ERR unbekannt") || !err.EndsWith("\n"))
                 throw new Exception("Unbekannte Befehle (außer QUIT) müssen mit '-ERR unbekannt\\n' beantwortet werden.");
 
             feedback = "Hervorragend! Sie haben die Port-Initialisierung korrekt umgesetzt und die Befehlsverarbeitung erfolgreich in einer Schleife mit Fallunterscheidung implementiert.";
@@ -1546,13 +1546,16 @@ namespace AbiturEliteCode.cs
             if (outputs.Count < 4)
                 throw new Exception("Der Server hat nicht auf alle Befehle (außer QUIT) geantwortet.");
 
+            if (!outputs[0].EndsWith("\n") || !outputs[1].EndsWith("\n") || !outputs[2].EndsWith("\n") || !outputs[3].EndsWith("\n"))
+                throw new Exception("Die Formatierung einer oder mehrerer Server-Antworten ist inkorrekt. Prüfen Sie das geforderte Protokoll-Format exakt.");
+
             string okResp = outputs[0].Trim();
             string lowerCaseErrResp = outputs[1].Trim();
             string symbolErrResp = outputs[2].Trim();
             string notFoundResp = outputs[3].Trim();
 
             if (okResp != "+OK")
-                throw new Exception($"Erwartete Antwort '+OK' für gültiges Licht 'B', aber erhalten: '{okResp}'.");
+                throw new Exception($"Erwartete Antwort '+OK\\n' für gültiges Licht 'B', aber erhalten: '{okResp}'.");
 
             // check for misaligned else blocks (common when converting sequence diagrams)
             if (lowerCaseErrResp == "-ERR Licht nicht gefunden" || symbolErrResp == "-ERR Licht nicht gefunden")
@@ -1680,12 +1683,15 @@ namespace AbiturEliteCode.cs
             if (outputs.Count < 3)
                 throw new Exception("Der ServerThread hat nicht ausreichend auf die Befehle geantwortet.");
 
+            if (!outputs[0].EndsWith("\n") || !outputs[1].EndsWith("\n") || !outputs[2].EndsWith("\n"))
+                throw new Exception("Die Formatierung einer oder mehrerer Server-Antworten ist inkorrekt. Prüfen Sie das geforderte Protokoll-Format exakt.");
+
             string pongResp = outputs[0].Trim();
             string infoResp = outputs[1].Trim();
             string tokenResp = outputs[2].Trim();
 
             if (pongResp != "+PONG")
-                throw new Exception($"Erwartete Antwort '+PONG' auf Befehl 'PING', aber erhalten: '{pongResp}'.");
+                throw new Exception($"Erwartete Antwort '+PONG\\n' auf Befehl 'PING', aber erhalten: '{pongResp}'.");
 
             if (infoResp != "+IP 127.0.0.1")
                 throw new Exception($"Auf 'INFO' muss der Server mit der korrekten IP antworten. Erhalten: '{infoResp}'. Haben Sie clientSocket.GetRemoteHostIP() genutzt?");
@@ -1816,14 +1822,20 @@ namespace AbiturEliteCode.cs
             if (outputs.Count < 5)
                 throw new Exception("Das Protokoll wurde nicht vollständig umgesetzt. Der Server antwortet nicht auf alle übermittelten Befehle.");
 
+            for (int i = 0; i < 5; i++)
+            {
+                if (!outputs[i].EndsWith("\n"))
+                    throw new Exception("Die Formatierung einer oder mehrerer Server-Antworten ist inkorrekt. Prüfen Sie das geforderte Protokoll-Format exakt.");
+            }
+
             if (outputs[0].Trim() != "+OK Willkommen")
-                throw new Exception($"Falsche Antwort auf korrekten Login. Erwartet: '+OK Willkommen', Erhalten: '{outputs[0].Trim()}'");
+                throw new Exception($"Falsche Antwort auf korrekten Login. Erwartet: '+OK Willkommen\\n', Erhalten: '{outputs[0].Trim()}'");
 
             if (outputs[1].Trim() != "+OK ALARM_ON")
-                throw new Exception($"Falsche Antwort auf STATUS. Erwartet: '+OK ALARM_ON', Erhalten: '{outputs[1].Trim()}'");
+                throw new Exception($"Falsche Antwort auf STATUS. Erwartet: '+OK ALARM_ON\\n', Erhalten: '{outputs[1].Trim()}'");
 
             if (outputs[2].Trim() != "+OK Umschaltung erfolgreich")
-                throw new Exception($"Falsche Antwort auf TOGGLE. Erwartet: '+OK Umschaltung erfolgreich', Erhalten: '{outputs[2].Trim()}'");
+                throw new Exception($"Falsche Antwort auf TOGGLE. Erwartet: '+OK Umschaltung erfolgreich\\n', Erhalten: '{outputs[2].Trim()}'");
 
             if (outputs[3].Trim() != "+OK ALARM_OFF")
                 throw new Exception($"Die Alarmanlage wurde durch TOGGLE nicht ausgeschaltet (STATUS meldet immer noch ON).");
@@ -1865,10 +1877,21 @@ namespace AbiturEliteCode.cs
 
             List<string> outputsFail = (List<string>)fOutputs.GetValue(mockSocketFail);
 
-            if (outputsFail.Count == 0 || outputsFail[0].Trim() != "-ERR Login fehlgeschlagen")
+            if (outputsFail.Count == 0)
             {
-                throw new Exception("Fehlerhafter Login wurde nicht korrekt abgewiesen. Erwartet: '-ERR Login fehlgeschlagen'.");
+                throw new Exception("Fehlerhafter Login wurde nicht korrekt abgewiesen. Erwartet: '-ERR Login fehlgeschlagen\\n'.");
             }
+
+            if (!outputsFail[0].EndsWith("\n"))
+            {
+                throw new Exception("Die Formatierung der Server-Antwort bei fehlgeschlagenem Login ist inkorrekt. Prüfen Sie das geforderte Protokoll-Format exakt.");
+            }
+
+            if (outputsFail[0].Trim() != "-ERR Login fehlgeschlagen")
+            {
+                throw new Exception("Fehlerhafter Login wurde nicht korrekt abgewiesen. Erwartet: '-ERR Login fehlgeschlagen\\n'.");
+            }
+
             if (outputsFail.Count > 1)
             {
                 throw new Exception("Nach einem fehlerhaften Login darf der Server keine weiteren Befehle verarbeiten (Verbindung muss beendet werden).");
