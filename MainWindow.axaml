@@ -440,28 +440,38 @@
 														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>
 
-											<StackPanel Name="PnlDesignSqlExpected" Spacing="5" IsVisible="False">
-												<Grid ColumnDefinitions="*, Auto">
-													<TextBlock Text="Musterlösung / Erwartete Abfrage (SELECT / UPDATE / ...)" Foreground="Gray" VerticalAlignment="Center"/>
-													<Button Grid.Column="1" Name="BtnEditSqlExpected" Width="30" Height="30"
-															Background="Transparent" Click="BtnEditSqlExpected_Click" ToolTip.Tip="Im Editor testen">
-														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
-													</Button>
-												</Grid>
-												<TextBox Name="TxtDesignSqlExpected" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
-														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
-														 BorderThickness="1" BorderBrush="#333"/>
+											<StackPanel Name="PnlDesignSqlMode" Spacing="5" IsVisible="False">
+												<TextBlock Text="Validierungs-Modus" Foreground="Gray" VerticalAlignment="Center"/>
+												<ComboBox Name="CmbSqlValidationMode" Background="#1E1E1E" Foreground="White" SelectedIndex="0" HorizontalAlignment="Stretch">
+													<ComboBoxItem Content="SELECT Abfrage (Standard)"/>
+													<ComboBoxItem Content="DML (UPDATE / INSERT / DELETE)"/>
+												</ComboBox>
+											</StackPanel>
+
+											<StackPanel Name="PnlDesignExpectedTable" Spacing="5" IsVisible="False">
+												<TextBlock Text="Erwartetes Ergebnis (Tabelle)" Foreground="Gray" VerticalAlignment="Center"/>
+												<Border Background="#1E1E1E" BorderBrush="#333" BorderThickness="1" CornerRadius="4" Padding="5">
+													<StackPanel Spacing="5">
+														<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="250">
+															<Grid Name="GridExpectedTable" Margin="5"/>
+														</ScrollViewer>
+														<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" Margin="5,0,0,0">
+															<Button Name="BtnAddExpectedCol" Content="+ Spalte" Background="#333" Foreground="White" Padding="8,4" CornerRadius="4"/>
+															<Button Name="BtnAddExpectedRow" Content="+ Zeile" Background="#333" Foreground="White" Padding="8,4" CornerRadius="4"/>
+														</StackPanel>
+													</StackPanel>
+												</Border>
 											</StackPanel>
 
 											<StackPanel Name="PnlDesignSqlVerify" Spacing="5" IsVisible="False">
 												<Grid ColumnDefinitions="*, Auto">
-													<TextBlock Text="Verifizierungs-Abfrage (Nur für DML wie UPDATE/INSERT/DELETE nötig)" Foreground="Gray" VerticalAlignment="Center"/>
+													<TextBlock Text="Verifizierungs-Abfrage (Nur für DML nötig)" Foreground="Gray" VerticalAlignment="Center"/>
 													<Button Grid.Column="1" Name="BtnEditSqlVerify" Width="30" Height="30"
 															Background="Transparent" Click="BtnEditSqlVerify_Click" ToolTip.Tip="Im Editor bearbeiten">
 														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
 													</Button>
 												</Grid>
-												<TextBox Name="TxtDesignSqlVerify" AcceptsReturn="True" TextWrapping="Wrap" Height="100"
+												<TextBox Name="TxtDesignSqlVerify" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
 														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
 														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>

@@ -14,8 +14,14 @@ public class SqlLevelDraft
 
     // sql specific fields
     public string SetupScript { get; set; } = "CREATE TABLE MeineTabelle (id INTEGER PRIMARY KEY, name TEXT);\nINSERT INTO MeineTabelle VALUES (1, 'Test');";
-    public string VerificationQuery { get; set; } = ""; // for update/insert/delete validation
-    public string ExpectedQuery { get; set; } = "SELECT * FROM MeineTabelle;"; // used to generate expectedschema and expectedresult during verification
+    public bool IsDmlMode { get; set; } = false;
+    public string VerificationQuery { get; set; } = "";
+
+    public List<SqlExpectedColumn> ExpectedSchema { get; set; } = new List<SqlExpectedColumn>();
+    public List<string[]> ExpectedResult { get; set; } = new List<string[]>();
+
+    public bool IsRelationalModelReadOnly { get; set; } = false;
+    public List<RTable> InitialRelationalModel { get; set; } = new List<RTable>();
 
     // single main diagram only (no material auxiliary diagrams)
     public string PlantUmlSource { get; set; } = "@startchen\nentity MeineTabelle {\n    id <<key>>\n    name\n}\n@endchen";
@@ -56,7 +62,7 @@ public static class SqlLevelDesigner
     {
         string dir = Path.GetDirectoryName(draftPath);
         string filename = Path.GetFileNameWithoutExtension(draftPath);
-        string targetPath = Path.Combine(dir, filename + ".eliteslvl"); // exported sql level
+        string targetPath = Path.Combine(dir, filename + ".eliteslvl");
 
         var exportData = new
         {
@@ -65,13 +71,13 @@ public static class SqlLevelDesigner
             MaterialDocs = draft.Materials,
             Prerequisites = draft.Prerequisites,
             SetupScript = draft.SetupScript,
-            VerificationQuery = draft.VerificationQuery,
+            VerificationQuery = draft.IsDmlMode ? draft.VerificationQuery : "",
             ExpectedSchema = expectedSchema,
             ExpectedResult = expectedResult,
             PlantUMLSources = new List<string> { draft.PlantUmlSource },
             DiagramPaths = new List<string> { draft.PlantUmlSvgContent },
-            IsRelationalModelReadOnly = false,
-            InitialRelationalModel = new List<RTable>()
+            IsRelationalModelReadOnly = draft.IsRelationalModelReadOnly,
+            InitialRelationalModel = draft.InitialRelationalModel
         };
 
         var options = new JsonSerializerOptions { WriteIndented = false };

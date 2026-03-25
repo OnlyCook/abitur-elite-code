@@ -391,7 +391,6 @@ namespace AbiturEliteCode
             TxtDesignTesting.TextChanged += OnDesignerInputChanged;
             TxtDesignPlantUml.TextChanged += OnDesignerInputChanged;
             TxtDesignSqlSetup.TextChanged += OnDesignerInputChanged;
-            TxtDesignSqlExpected.TextChanged += OnDesignerInputChanged;
             TxtDesignSqlVerify.TextChanged += OnDesignerInputChanged;
             TxtDesignPrereqInput.TextChanged += (s, e) =>
             {
@@ -431,6 +430,37 @@ namespace AbiturEliteCode
                     LstPrereqSuggestions.SelectedItem = null;
                 }
             };
+
+            BtnAddExpectedCol.Click += (s, e) => {
+                if (_currentSqlDraft.ExpectedSchema == null) _currentSqlDraft.ExpectedSchema = new List<SqlExpectedColumn>();
+                _currentSqlDraft.ExpectedSchema.Add(new SqlExpectedColumn { Name = "Neu", Type = "VARCHAR(255)" });
+
+                if (_currentSqlDraft.ExpectedResult != null)
+                {
+                    for (int i = 0; i < _currentSqlDraft.ExpectedResult.Count; i++)
+                    {
+                        var list = _currentSqlDraft.ExpectedResult[i].ToList();
+                        list.Add("");
+                        _currentSqlDraft.ExpectedResult[i] = list.ToArray();
+                    }
+                }
+                RenderExpectedTable();
+                _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+            };
+
+            BtnAddExpectedRow.Click += (s, e) => {
+                if (_currentSqlDraft.ExpectedResult == null) _currentSqlDraft.ExpectedResult = new List<string[]>();
+                _currentSqlDraft.ExpectedResult.Add(new string[_currentSqlDraft.ExpectedSchema?.Count ?? 0]);
+                RenderExpectedTable();
+                _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+            };
+
+            CmbSqlValidationMode.SelectionChanged += (s, e) => {
+                if (_isLoadingDesigner) return;
+                _currentSqlDraft.IsDmlMode = CmbSqlValidationMode.SelectedIndex == 1;
+                PnlDesignSqlVerify.IsVisible = _currentSqlDraft.IsDmlMode;
+                _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+            };
         }
 
         private void UpdateTabStyles()
@@ -467,12 +497,19 @@ namespace AbiturEliteCode
                 UpdateFocusedColumn(null, null);
             }
 
-            if (_isSqlMode && currentSqlLevel != null)
+            if (_isSqlMode)
             {
-                if (MainTabs.SelectedIndex == 0 && PnlTaskRelationalModel != null)
-                    RenderRelationalModel(PnlTaskRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
-                else if (MainTabs.SelectedIndex == 1 && PnlUmlRelationalModel != null)
-                    RenderRelationalModel(PnlUmlRelationalModel, currentSqlLevel.IsRelationalModelReadOnly);
+                bool isReadOnly = false;
+                if (!_isDesignerMode && currentSqlLevel != null)
+                    isReadOnly = currentSqlLevel.IsRelationalModelReadOnly;
+
+                if (currentSqlLevel != null || _isDesignerMode)
+                {
+                    if (MainTabs.SelectedIndex == 0 && PnlTaskRelationalModel != null)
+                        RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
+                    else if (MainTabs.SelectedIndex == 1 && PnlUmlRelationalModel != null)
+                        RenderRelationalModel(PnlUmlRelationalModel, isReadOnly);
+                }
             }
 
             if (wasQueryEditorFocused)
@@ -2593,66 +2630,31 @@ namespace AbiturEliteCode
                         setupCmd.ExecuteNonQuery();
                     }
 
-                    // execute expected query
-                    string processedQuery = SqlLevelTester.ConvertMysqlToSqlite(connection, _currentSqlDraft.ExpectedQuery);
-                    DataTable expectedDt = null;
-                    bool isSelect = processedQuery.Trim().ToUpper().StartsWith("SELECT");
+                    if (_currentSqlDraft.IsDmlMode)
+                    {
+                        if (string.IsNullOrWhiteSpace(_currentSqlDraft.VerificationQuery))
+                            throw new Exception("Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
 
-                    if (isSelect)
-                    {
-                        expectedDt = ExecuteDbQuery(connection, processedQuery);
-                    }
-                    else
-                    {
-                        using (var cmd = connection.CreateCommand())
-                        {
-                            cmd.CommandText = processedQuery;
-                            cmd.ExecuteNonQuery();
-                        }
-                        if (!string.IsNullOrWhiteSpace(_currentSqlDraft.VerificationQuery))
-                        {
-                            string verifyQuery = SqlLevelTester.ConvertMysqlToSqlite(connection, _currentSqlDraft.VerificationQuery);
-                            expectedDt = ExecuteDbQuery(connection, verifyQuery);
-                        }
-                    }
-
-                    if (expectedDt == null)
-                    {
-                        AddSqlOutput("Error", "❌ Fehler: Konnte keine erwartete Ergebnistabelle generieren.", Brushes.Red);
-                        BtnDesignerExport.IsEnabled = false;
-                        _verifiedSqlDraftState = null;
-                        return;
-                    }
-
-                    string ObjectToInvariantString(object x)
-                    {
-                        if (x == null || x == DBNull.Value) return "NULL";
-                        if (x is IFormattable formattable) return formattable.ToString(null, CultureInfo.InvariantCulture);
-                        return x.ToString();
-                    }
-
-                    var schema = new List<SqlExpectedColumn>();
-                    foreach (DataColumn col in expectedDt.Columns)
-                    {
-                        schema.Add(new SqlExpectedColumn { Name = col.ColumnName, Type = "VARCHAR(255)", StrictName = true });
-                    }
-
-                    var resultRows = new List<string[]>();
-                    foreach (DataRow row in expectedDt.Rows)
-                    {
-                        var arr = new string[expectedDt.Columns.Count];
-                        for (int i = 0; i < arr.Length; i++) arr[i] = ObjectToInvariantString(row[i]);
-                        resultRows.Add(arr);
+                        // check whether syntax is alright
+                        string verifyQuery = SqlLevelTester.ConvertMysqlToSqlite(connection, _currentSqlDraft.VerificationQuery);
+                        ExecuteDbQuery(connection, verifyQuery);
                     }
 
                     string json = JsonSerializer.Serialize(_currentSqlDraft);
                     _verifiedSqlDraftState = JsonSerializer.Deserialize<SqlLevelDraft>(json);
-                    _verifiedExpectedSchema = schema;
-                    _verifiedExpectedResult = resultRows;
+                    _verifiedExpectedSchema = _currentSqlDraft.ExpectedSchema;
+                    _verifiedExpectedResult = _currentSqlDraft.ExpectedResult;
 
                     BtnDesignerExport.IsEnabled = true;
                     TxtDesignerStatus.Text = "Bereit zum Export";
-                    AddSqlOutput("System", $"✓ DESIGNER TEST BESTANDEN! ({resultRows.Count} Zeilen generiert).", Brushes.LightGreen);
+                    AddSqlOutput("System", "✓ DESIGNER TEST BESTANDEN! (Ergebnis-Tabelle übernommen).", Brushes.LightGreen);
+
+                    // render table for level creator
+                    DataTable expectedDt = new DataTable();
+                    foreach (var col in _verifiedExpectedSchema)
+                        expectedDt.Columns.Add(col.Name, typeof(string));
+                    foreach (var row in _verifiedExpectedResult)
+                        expectedDt.Rows.Add(row);
                     AddSqlTable(expectedDt);
                 }
             }
@@ -2670,15 +2672,8 @@ namespace AbiturEliteCode
             {
                 if (_isDesignerMode)
                 {
-                    if (_activeDesignerSource == DesignerSource.SqlExpected)
-                    {
-                        UpdateDraftFromUI();
-                        RunSqlDesignerTest();
-                    }
-                    else
-                    {
-                        AddSqlOutput("System", "> Ausführen im Designer nur im 'Erwartete Abfrage' Editor möglich.", Brushes.LightGray);
-                    }
+                    UpdateDraftFromUI();
+                    RunSqlDesignerTest();
                     return;
                 }
                 RunSqlQuery();
@@ -6264,8 +6259,6 @@ namespace AbiturEliteCode
                 TxtDesignTesting.Text = ActiveEditor.Text;
             else if (_activeDesignerSource == DesignerSource.SqlSetup)
                 TxtDesignSqlSetup.Text = ActiveEditor.Text;
-            else if (_activeDesignerSource == DesignerSource.SqlExpected)
-                TxtDesignSqlExpected.Text = ActiveEditor.Text;
             else if (_activeDesignerSource == DesignerSource.SqlVerify)
                 TxtDesignSqlVerify.Text = ActiveEditor.Text;
         }
@@ -6282,7 +6275,6 @@ namespace AbiturEliteCode
                 _currentSqlDraft.Description = TxtDesignDesc.Text ?? "";
                 _currentSqlDraft.Materials = TxtDesignMaterials.Text ?? "";
                 _currentSqlDraft.SetupScript = TxtDesignSqlSetup.Text ?? "";
-                _currentSqlDraft.ExpectedQuery = TxtDesignSqlExpected.Text ?? "";
                 _currentSqlDraft.VerificationQuery = TxtDesignSqlVerify.Text ?? "";
             }
             else
@@ -6329,17 +6321,36 @@ namespace AbiturEliteCode
             PnlDesignTesting.IsVisible = !_isSqlMode;
             PnlDesignValidation.IsVisible = !_isSqlMode;
             PnlDesignSqlSetup.IsVisible = _isSqlMode;
-            PnlDesignSqlExpected.IsVisible = _isSqlMode;
+            PnlDesignSqlMode.IsVisible = _isSqlMode;
+            PnlDesignExpectedTable.IsVisible = _isSqlMode;
             PnlDesignSqlVerify.IsVisible = _isSqlMode;
 
             if (enable)
             {
                 _isLoadingDesigner = true;
 
+                // clear designated consoles + editors
+                if (_isSqlMode)
+                {
+                    SqlQueryEditor.Text = "";
+                    PnlSqlOutput.Children.Clear();
+                    AddSqlOutput("System", "> SQL Level Designer geladen. Wähle einen Bereich zum Bearbeiten.", Brushes.LightGray);
+                }
+                else
+                {
+                    CodeEditor.Text = "";
+                    TxtConsole.Inlines?.Clear();
+                    AddToConsole("> C# Level Designer geladen. Wähle einen Bereich zum Bearbeiten.", Brushes.LightGray);
+                }
+
                 _originalSyntaxSetting = _isSqlMode ? AppSettings.IsSqlSyntaxHighlightingEnabled : AppSettings.IsSyntaxHighlightingEnabled;
 
                 if (_isSqlMode)
                 {
+                    CmbSqlValidationMode.SelectedIndex = _currentSqlDraft.IsDmlMode ? 1 : 0;
+                    PnlDesignSqlVerify.IsVisible = _currentSqlDraft.IsDmlMode;
+                    RenderExpectedTable();
+
                     AppSettings.IsSqlSyntaxHighlightingEnabled = true;
                     ApplySqlSyntaxHighlighting();
                 }
@@ -6366,15 +6377,23 @@ namespace AbiturEliteCode
                     TxtDesignDesc.Text = _currentSqlDraft.Description;
                     TxtDesignMaterials.Text = _currentSqlDraft.Materials;
                     TxtDesignSqlSetup.Text = _currentSqlDraft.SetupScript;
-                    TxtDesignSqlExpected.Text = _currentSqlDraft.ExpectedQuery;
                     TxtDesignSqlVerify.Text = _currentSqlDraft.VerificationQuery;
 
                     TxtPrereqTitle.Text = "Vorraussetzungen / Grundlagen";
                     TxtDesignPrereqInput.Watermark = "z.B. SELECT...";
 
-                    // explicitly clear relational model for sql drafts so it stays empty in designer
                     _currentRelationalModel.Clear();
-                    if (PnlTaskRelationalModel != null) PnlTaskRelationalModel.Children.Clear();
+                    if (_currentSqlDraft.InitialRelationalModel != null && _currentSqlDraft.InitialRelationalModel.Count > 0)
+                    {
+                        string json = JsonSerializer.Serialize(_currentSqlDraft.InitialRelationalModel);
+                        _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(json) ?? new List<RTable>();
+                    }
+
+                    if (PnlTaskRelationalModel != null)
+                    {
+                        PnlTaskRelationalModel.Children.Clear();
+                        RenderRelationalModel(PnlTaskRelationalModel, false);
+                    }
                     if (PnlUmlRelationalModel != null) PnlUmlRelationalModel.Children.Clear();
                 }
                 else
@@ -6532,7 +6551,7 @@ namespace AbiturEliteCode
         {
             try
             {
-                string url = "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE";
+                string url = _isSqlMode ? "https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_DESIGNER_GUIDE" : "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE";
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
@@ -6708,17 +6727,12 @@ namespace AbiturEliteCode
 
         private void BtnEditSqlSetup_Click(object sender, RoutedEventArgs e)
         {
-            SwitchDesignerMode(DesignerSource.SqlSetup, TxtDesignSqlSetup, "\n> Editor: Setup-Script geladen (Ausführen deaktiviert).");
-        }
-
-        private void BtnEditSqlExpected_Click(object sender, RoutedEventArgs e)
-        {
-            SwitchDesignerMode(DesignerSource.SqlExpected, TxtDesignSqlExpected, "\n> Editor: Erwartete Abfrage geladen. 'Ausführen' jetzt verfügbar.");
+            SwitchDesignerMode(DesignerSource.SqlSetup, TxtDesignSqlSetup, "> Editor: Setup-Script geladen (Ausführen deaktiviert).");
         }
 
         private void BtnEditSqlVerify_Click(object sender, RoutedEventArgs e)
         {
-            SwitchDesignerMode(DesignerSource.SqlVerify, TxtDesignSqlVerify, "\n> Editor: Verifizierungs-Abfrage geladen (Ausführen deaktiviert).");
+            SwitchDesignerMode(DesignerSource.SqlVerify, TxtDesignSqlVerify, "> Editor: Verifizierungs-Abfrage geladen (Ausführen deaktiviert).");
         }
 
 
@@ -6747,8 +6761,6 @@ namespace AbiturEliteCode
                 TxtDesignTesting.Text = ActiveEditor.Text;
             else if (_activeDesignerSource == DesignerSource.SqlSetup)
                 TxtDesignSqlSetup.Text = ActiveEditor.Text;
-            else if (_activeDesignerSource == DesignerSource.SqlExpected)
-                TxtDesignSqlExpected.Text = ActiveEditor.Text;
             else if (_activeDesignerSource == DesignerSource.SqlVerify)
                 TxtDesignSqlVerify.Text = ActiveEditor.Text;
         }
@@ -6776,7 +6788,6 @@ namespace AbiturEliteCode
             SetIcon(BtnEditValidation, "ic_move.svg");
             SetIcon(BtnEditTesting, "ic_move.svg");
             SetIcon(BtnEditSqlSetup, "ic_move.svg");
-            SetIcon(BtnEditSqlExpected, "ic_move.svg");
             SetIcon(BtnEditSqlVerify, "ic_move.svg");
 
             BtnRun.IsVisible = (_activeDesignerSource == DesignerSource.TestingCode || _activeDesignerSource == DesignerSource.SqlExpected);
@@ -6785,7 +6796,6 @@ namespace AbiturEliteCode
             else if (_activeDesignerSource == DesignerSource.Validation) SetIcon(BtnEditValidation, "ic_exit.svg");
             else if (_activeDesignerSource == DesignerSource.TestingCode) SetIcon(BtnEditTesting, "ic_exit.svg");
             else if (_activeDesignerSource == DesignerSource.SqlSetup) SetIcon(BtnEditSqlSetup, "ic_exit.svg");
-            else if (_activeDesignerSource == DesignerSource.SqlExpected) SetIcon(BtnEditSqlExpected, "ic_exit.svg");
             else if (_activeDesignerSource == DesignerSource.SqlVerify) SetIcon(BtnEditSqlVerify, "ic_exit.svg");
 
             if (AppSettings.IsErrorHighlightingEnabled && !_isSqlMode)
@@ -6844,11 +6854,15 @@ namespace AbiturEliteCode
                 if (_activeDesignerSource == DesignerSource.SqlSetup) _currentSqlDraft.SetupScript = SqlQueryEditor.Text;
                 else _currentSqlDraft.SetupScript = TxtDesignSqlSetup.Text;
 
-                if (_activeDesignerSource == DesignerSource.SqlExpected) _currentSqlDraft.ExpectedQuery = SqlQueryEditor.Text;
-                else _currentSqlDraft.ExpectedQuery = TxtDesignSqlExpected.Text;
-
                 if (_activeDesignerSource == DesignerSource.SqlVerify) _currentSqlDraft.VerificationQuery = SqlQueryEditor.Text;
                 else _currentSqlDraft.VerificationQuery = TxtDesignSqlVerify.Text;
+
+                // initialize relational model
+                _currentSqlDraft.InitialRelationalModel = _currentRelationalModel.Select(t => new RTable
+                {
+                    Name = t.Name,
+                    Columns = t.Columns.Select(c => new RColumn { Name = c.Name, IsPk = c.IsPk, IsFk = c.IsFk }).ToList()
+                }).ToList();
             }
             else
             {
@@ -7072,17 +7086,20 @@ namespace AbiturEliteCode
             }, RegexOptions.Multiline);
 
             // add theme attributes if missing
-            if (!source.Contains("skinparam backgroundcolor transparent")
-                && !source.Contains("skinparam classAttributeIconSize 0"))
+            if (!source.Contains("skinparam backgroundcolor transparent"))
             {
                 var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
                 bool inserted = false;
                 for (int i = 0; i < lines.Count; i++)
                 {
-                    if (lines[i].Trim().StartsWith("@startuml"))
+                    string trimmed = lines[i].Trim();
+                    if (trimmed.StartsWith("@startuml") || trimmed.StartsWith("@startchen") || trimmed.StartsWith("@starter"))
                     {
                         lines.Insert(i + 1, "skinparam backgroundcolor transparent");
-                        lines.Insert(i + 2, "skinparam classAttributeIconSize 0");
+                        if (trimmed.StartsWith("@startuml") && !source.Contains("skinparam classAttributeIconSize 0"))
+                        {
+                            lines.Insert(i + 2, "skinparam classAttributeIconSize 0");
+                        }
                         inserted = true;
                         break;
                     }
@@ -7823,34 +7840,34 @@ namespace AbiturEliteCode
             // remove old output if exceeds soft limit
             if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
 
+            StackPanel targetContainer = null;
+
             // grouping for system
             if (author == "System" && PnlSqlOutput.Children.Count > 0)
             {
                 var lastContainer = PnlSqlOutput.Children.Last() as StackPanel;
-                if (lastContainer != null && lastContainer.Children.Count >= 2)
+                if (lastContainer != null && lastContainer.Children.Count >= 1)
                 {
                     var authorBlock = lastContainer.Children[0] as TextBlock;
-                    var contentBlock = lastContainer.Children[1] as TextBlock;
-
-                    if (authorBlock != null && authorBlock.Text == "System" && contentBlock != null)
+                    if (authorBlock != null && authorBlock.Text == "System")
                     {
-                        // append to existing block
-                        contentBlock.Text += "\n" + text;
-                        SqlOutputScroller.ScrollToEnd();
-                        return;
+                        targetContainer = lastContainer;
                     }
                 }
             }
 
-            var container = new StackPanel { Spacing = 2 };
-
-            container.Children.Add(new SelectableTextBlock
+            if (targetContainer == null)
             {
-                Text = author,
-                FontWeight = FontWeight.Bold,
-                Foreground = Brushes.Gray,
-                FontSize = 10
-            });
+                targetContainer = new StackPanel { Spacing = 0 };
+                targetContainer.Children.Add(new SelectableTextBlock
+                {
+                    Text = author,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.Gray,
+                    FontSize = 10
+                });
+                PnlSqlOutput.Children.Add(targetContainer);
+            }
 
             if (isCode)
             {
@@ -7882,7 +7899,7 @@ namespace AbiturEliteCode
                     Child = codeOutput
                 };
 
-                container.Children.Add(border);
+                targetContainer.Children.Add(border);
             }
             else
             {
@@ -7945,15 +7962,14 @@ namespace AbiturEliteCode
                     ToolTip.SetShowDelay(btnExpected, 0);
 
                     stack.Children.Add(btnExpected);
-                    container.Children.Add(stack);
+                    targetContainer.Children.Add(stack);
                 }
                 else
                 {
-                    container.Children.Add(content);
+                    targetContainer.Children.Add(content);
                 }
             }
 
-            PnlSqlOutput.Children.Add(container);
             SqlOutputScroller.ScrollToEnd();
         }
 
@@ -8294,7 +8310,14 @@ namespace AbiturEliteCode
         {
             targetPanel.Children.Clear();
 
-            if (isReadOnly && _currentRelationalModel.Count == 0) return;
+            bool showEditControls = !isReadOnly;
+            if (_isDesignerMode && _currentSqlDraft != null)
+            {
+                showEditControls = _currentSqlDraft.IsRelationalModelReadOnly;
+            }
+
+            // prevent method being cancelled early by designer
+            if (!_isDesignerMode && !showEditControls && _currentRelationalModel.Count == 0) return;
 
             // header with global buttons
             var headerGrid = new Grid
@@ -8333,6 +8356,29 @@ namespace AbiturEliteCode
                 _relationalValidationIcon = null;
             }
 
+            if (_isDesignerMode && _currentSqlDraft != null)
+            {
+                var btnLock = new Button
+                {
+                    Content = LoadIcon(_currentSqlDraft.IsRelationalModelReadOnly ? "assets/icons/ic_lock.svg" : "assets/icons/ic_lock_open.svg", 16),
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(6),
+                    CornerRadius = new CornerRadius(4),
+                    Cursor = Cursor.Parse("Hand"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnLock, _currentSqlDraft.IsRelationalModelReadOnly ? "Relationales Modell für Spieler freigeben (Bearbeitbar)" : "Relationales Modell für Spieler sperren (Read-Only)");
+                btnLock.Click += (s, e) =>
+                {
+                    _currentSqlDraft.IsRelationalModelReadOnly = !_currentSqlDraft.IsRelationalModelReadOnly;
+                    btnLock.Content = LoadIcon(_currentSqlDraft.IsRelationalModelReadOnly ? "assets/icons/ic_lock.svg" : "assets/icons/ic_lock_open.svg", 16);
+                    ToolTip.SetTip(btnLock, _currentSqlDraft.IsRelationalModelReadOnly ? "Relationales Modell für Spieler freigeben (Bearbeitbar)" : "Relationales Modell für Spieler sperren (Read-Only)");
+                    TriggerRelationalAutoSave();
+                    RenderRelationalModel(targetPanel, isReadOnly);
+                };
+                titleStack.Children.Add(btnLock);
+            }
+
             var btnCopyModel = new Button
             {
                 Content = LoadIcon("assets/icons/ic_copy.svg", 16),
@@ -8340,7 +8386,8 @@ namespace AbiturEliteCode
                 Padding = new Thickness(6),
                 CornerRadius = new CornerRadius(4),
                 Cursor = Cursor.Parse("Hand"),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                IsVisible = showEditControls
             };
             ToolTip.SetTip(btnCopyModel, "Modell kopieren");
             btnCopyModel.Click += async (s, e) =>
@@ -8373,7 +8420,7 @@ namespace AbiturEliteCode
 
             headerGrid.Children.Add(titleStack);
 
-            if (!isReadOnly)
+            if (showEditControls)
             {
                 var btnStack = new StackPanel
                 {
@@ -8428,8 +8475,11 @@ namespace AbiturEliteCode
             }
             targetPanel.Children.Add(headerGrid);
 
+            // prevent empty not showing relational model
+            if (_isDesignerMode && !showEditControls && _currentRelationalModel.Count == 0) return;
+
             // --- READ ONLY MODE ---
-            if (isReadOnly)
+            if (!showEditControls)
             {
                 foreach (var table in _currentRelationalModel)
                 {
@@ -8799,6 +8849,141 @@ namespace AbiturEliteCode
             {
                 _btnGlobalFk.IsEnabled = _focusedRColumn != null;
                 _btnGlobalFk.Background = (_focusedRColumn != null && _focusedRColumn.IsFk) ? SolidColorBrush.Parse("#B48EAD") : SolidColorBrush.Parse("#3C3C3C");
+            }
+        }
+
+        private void RenderExpectedTable()
+        {
+            GridExpectedTable.Children.Clear();
+            GridExpectedTable.RowDefinitions.Clear();
+            GridExpectedTable.ColumnDefinitions.Clear();
+
+            if (_currentSqlDraft.ExpectedSchema == null) _currentSqlDraft.ExpectedSchema = new List<SqlExpectedColumn>();
+            if (_currentSqlDraft.ExpectedResult == null) _currentSqlDraft.ExpectedResult = new List<string[]>();
+
+            int cols = _currentSqlDraft.ExpectedSchema.Count;
+            int rows = _currentSqlDraft.ExpectedResult.Count;
+
+            for (int c = 0; c < cols; c++) 
+            {
+                GridExpectedTable.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            }                
+
+            GridExpectedTable.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+            // header row
+            GridExpectedTable.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            for (int c = 0; c < cols; c++)
+            {
+                int colIndex = c;
+                var headerStack = new StackPanel
+                {
+                    Spacing = 2,
+                    Margin = new Thickness(2)
+                };
+
+                var topStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+                var txtName = new TextBox
+                {
+                    Text = _currentSqlDraft.ExpectedSchema[c].Name,
+                    Watermark = "Name",
+                    Width = 100,
+                    FontSize = 12,
+                    Padding = new Thickness(4, 2),
+                    Background = SolidColorBrush.Parse("#141414"),
+                    Foreground = Brushes.White,
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = SolidColorBrush.Parse("#333")
+                };
+                txtName.TextChanged += (s, e) => {
+                    _currentSqlDraft.ExpectedSchema[colIndex].Name = txtName.Text;
+                    _designerAutoSaveTimer.Stop();
+                    _designerAutoSaveTimer.Start();
+                };
+
+                var btnDelCol = new Button
+                {
+                    Content = "X",
+                    Background = Brushes.Transparent,
+                    Foreground = Brushes.Red,
+                    FontSize = 10,
+                    Padding = new Thickness(2),
+                    Margin = new Thickness(2, 0, 0, 0)
+                };
+                btnDelCol.Click += (s, e) => {
+                    _currentSqlDraft.ExpectedSchema.RemoveAt(colIndex);
+                    for (int i = 0; i < _currentSqlDraft.ExpectedResult.Count; i++)
+                    {
+                        var list = _currentSqlDraft.ExpectedResult[i].ToList();
+                        if (list.Count > colIndex) list.RemoveAt(colIndex);
+                        _currentSqlDraft.ExpectedResult[i] = list.ToArray();
+                    }
+                    RenderExpectedTable();
+                    _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+                };
+
+                topStack.Children.Add(txtName);
+                topStack.Children.Add(btnDelCol);
+
+                var txtType = new TextBox
+                {
+                    Text = _currentSqlDraft.ExpectedSchema[c].Type,
+                    Watermark = "Typ",
+                    Width = 100,
+                    FontSize = 10,
+                    Padding = new Thickness(4, 2),
+                    Background = SolidColorBrush.Parse("#141414"),
+                    Foreground = Brushes.Gray,
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = SolidColorBrush.Parse("#333")
+                };
+                txtType.TextChanged += (s, e) =>
+                {
+                    _currentSqlDraft.ExpectedSchema[colIndex].Type = txtType.Text;
+                    _designerAutoSaveTimer.Stop();
+                    _designerAutoSaveTimer.Start();
+                };
+
+                headerStack.Children.Add(topStack);
+                headerStack.Children.Add(txtType);
+
+                Grid.SetRow(headerStack, 0);
+                Grid.SetColumn(headerStack, c);
+                GridExpectedTable.Children.Add(headerStack);
+            }
+
+            // data rows
+            for (int r = 0; r < rows; r++)
+            {
+                GridExpectedTable.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                int rowIndex = r;
+
+                for (int c = 0; c < cols; c++)
+                {
+                    int colIndex = c;
+                    var txtCell = new TextBox { Text = _currentSqlDraft.ExpectedResult[r].Length > c ? _currentSqlDraft.ExpectedResult[r][c] : "", Width = 100, Margin = new Thickness(2), Padding = new Thickness(4, 2), Background = SolidColorBrush.Parse("#141414"), Foreground = Brushes.White, BorderThickness = new Thickness(1), BorderBrush = SolidColorBrush.Parse("#333") };
+                    txtCell.TextChanged += (s, e) => {
+                        if (_currentSqlDraft.ExpectedResult[rowIndex].Length > colIndex)
+                            _currentSqlDraft.ExpectedResult[rowIndex][colIndex] = txtCell.Text;
+                        _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+                    };
+                    Grid.SetRow(txtCell, r + 1);
+                    Grid.SetColumn(txtCell, c);
+                    GridExpectedTable.Children.Add(txtCell);
+                }
+
+                var btnDelRow = new Button { Content = "X", Background = Brushes.Transparent, Foreground = Brushes.Red, Margin = new Thickness(5, 2, 2, 2) };
+                btnDelRow.Click += (s, e) => {
+                    _currentSqlDraft.ExpectedResult.RemoveAt(rowIndex);
+                    RenderExpectedTable();
+                    _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
+                };
+                Grid.SetRow(btnDelRow, r + 1);
+                Grid.SetColumn(btnDelRow, cols);
+                GridExpectedTable.Children.Add(btnDelRow);
             }
         }
     }
