@@ -16,6 +16,7 @@ public class SqlLevelDraft
     public string SetupScript { get; set; } = "CREATE TABLE MeineTabelle (id INTEGER PRIMARY KEY, name TEXT);\nINSERT INTO MeineTabelle VALUES (1, 'Test');";
     public bool IsDmlMode { get; set; } = false;
     public string VerificationQuery { get; set; } = "";
+    public string SampleSolution { get; set; } = "SELECT * FROM MeineTabelle;";
 
     public List<SqlExpectedColumn> ExpectedSchema { get; set; } = new List<SqlExpectedColumn>();
     public List<string[]> ExpectedResult { get; set; } = new List<string[]>();
@@ -67,7 +68,8 @@ public static class SqlLevelDesigner
         var exportData = new
         {
             Title = draft.Name,
-            Description = $"Autor: {draft.Author}\n\n{draft.Description}",
+            Author = draft.Author,
+            Description = draft.Description,
             MaterialDocs = draft.Materials,
             Prerequisites = draft.Prerequisites,
             SetupScript = draft.SetupScript,

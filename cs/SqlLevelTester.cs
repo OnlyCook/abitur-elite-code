@@ -140,7 +140,6 @@ namespace AbiturEliteCode.cs
                             // deep content check
                             for (int i = 0; i < actualRows.Count; i++)
                             {
-                                // row length check
                                 if (actualRows[i].Length != level.ExpectedResult[i].Length)
                                 {
                                     correct = false; break;
@@ -148,7 +147,10 @@ namespace AbiturEliteCode.cs
 
                                 for (int j = 0; j < actualRows[i].Length; j++)
                                 {
-                                    if (actualRows[i][j] != level.ExpectedResult[i][j])
+                                    string expectedCell = level.ExpectedResult[i][j] ?? "";
+                                    if (expectedCell == "") expectedCell = "NULL";
+
+                                    if (actualRows[i][j] != expectedCell)
                                     {
                                         correct = false; break;
                                     }

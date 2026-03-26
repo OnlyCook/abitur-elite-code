@@ -451,16 +451,23 @@
 											<StackPanel Name="PnlDesignExpectedTable" Spacing="5" IsVisible="False">
 												<TextBlock Text="Erwartetes Ergebnis (Tabelle)" Foreground="Gray" VerticalAlignment="Center"/>
 												<Border Background="#1E1E1E" BorderBrush="#333" BorderThickness="1" CornerRadius="4" Padding="5">
-													<StackPanel Spacing="5">
-														<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="250">
-															<Grid Name="GridExpectedTable" Margin="5"/>
-														</ScrollViewer>
-														<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" Margin="5,0,0,0">
-															<Button Name="BtnAddExpectedCol" Content="+ Spalte" Background="#333" Foreground="White" Padding="8,4" CornerRadius="4"/>
-															<Button Name="BtnAddExpectedRow" Content="+ Zeile" Background="#333" Foreground="White" Padding="8,4" CornerRadius="4"/>
-														</StackPanel>
-													</StackPanel>
+													<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="250">
+														<Grid Name="GridExpectedTable" Margin="5"/>
+													</ScrollViewer>
 												</Border>
+											</StackPanel>
+
+											<StackPanel Name="PnlDesignSqlSample" Spacing="5" IsVisible="False">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Musterlösung (Lösung des Levels zur Validierung)" Foreground="Gray" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnEditSqlSample" Width="30" Height="30"
+															Background="Transparent" Click="BtnEditSqlSample_Click" ToolTip.Tip="Im Editor bearbeiten">
+														<svg:Svg Path="/assets/icons/ic_move.svg" Width="16" Height="16"/>
+													</Button>
+												</Grid>
+												<TextBox Name="TxtDesignSqlSample" AcceptsReturn="True" TextWrapping="Wrap" Height="150"
+														 Background="#1E1E1E" Foreground="#D4D4D4" FontFamily="Consolas"
+														 BorderThickness="1" BorderBrush="#333"/>
 											</StackPanel>
 
 											<StackPanel Name="PnlDesignSqlVerify" Spacing="5" IsVisible="False">
