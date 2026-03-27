@@ -3114,34 +3114,16 @@ namespace AbiturEliteCode
 
                     AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
 
-                    try
+                    UpdateNavigationButtons();
+                    if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
                     {
-                        var allCustoms = GetCustomLevels();
-                        var currentInfo = allCustoms.FirstOrDefault(c => c.Name == levelContext.Title && !c.IsDraft);
-
-                        if (currentInfo != null)
-                        {
-                            string dir = Path.GetDirectoryName(currentInfo.FilePath);
-                            var neighbors = Directory.GetFiles(dir, _isSqlMode ? "*.eliteslvl" : "*.elitelvl").OrderBy(f => f).ToList();
-
-                            int idx = neighbors.IndexOf(currentInfo.FilePath);
-                            if (idx != -1 && idx < neighbors.Count - 1)
-                            {
-                                _nextCustomLevelPath = neighbors[idx + 1];
-                                BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                                BtnNextLevel.IsVisible = true;
-                                AddToConsole($"\n> Nächstes Level verfügbar.", Brushes.LightGray);
-                            }
-                            else if (neighbors.Count > 1)
-                            {
-                                // end of a custom section
-                                _nextCustomLevelPath = "SECTION_COMPLETE";
-                                BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
-                                BtnNextLevel.IsVisible = true;
-                            }
-                        }
+                        AddToConsole($"\n> Nächstes Level verfügbar.", Brushes.LightGray);
                     }
-                    catch { }
+                    else if (_nextCustomLevelPath == "SECTION_COMPLETE")
+                    {
+                        BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                        BtnNextLevel.IsVisible = true;
+                    }
 
                     return;
                 }
@@ -3201,6 +3183,44 @@ namespace AbiturEliteCode
             {
                 BtnPrevLevel.IsVisible = false;
                 BtnNextLevel.IsVisible = false;
+                return;
+            }
+
+            if (_isCustomLevelMode)
+            {
+                BtnPrevLevel.IsVisible = true;
+                BtnNextLevel.IsVisible = true;
+
+                // get relevant custom levels for current mode, excluding drafts
+                var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
+                string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+                var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
+
+                if (currentInfo != null)
+                {
+                    // group by section and order alphabetically
+                    var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name).ToList();
+                    int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
+
+                    bool isFirst1 = idx <= 0;
+                    bool isLast1 = idx >= sectionLevels.Count - 1;
+
+                    BtnPrevLevel.IsEnabled = !isFirst1;
+                    BtnPrevLevel.Opacity = isFirst1 ? 0.5 : 1.0;
+
+                    if (isLast1)
+                    {
+                        BtnNextLevel.Content = "✓";
+                        BtnNextLevel.IsEnabled = true;
+                        _nextCustomLevelPath = "SECTION_COMPLETE";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "→";
+                        BtnNextLevel.IsEnabled = true;
+                        _nextCustomLevelPath = sectionLevels[idx + 1].FilePath;
+                    }
+                }
                 return;
             }
 
@@ -3264,6 +3284,25 @@ namespace AbiturEliteCode
 
         private void BtnPrevLevel_Click(object sender, RoutedEventArgs e)
         {
+            if (_isCustomLevelMode)
+            {
+                var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
+                string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+                var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
+
+                if (currentInfo != null)
+                {
+                    var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name).ToList();
+                    int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
+                    if (idx > 0)
+                    {
+                        LoadCustomLevelFromFile(sectionLevels[idx - 1].FilePath);
+                        if (_isSqlMode) SqlQueryEditor.Focus(); else CodeEditor.Focus();
+                    }
+                }
+                return;
+            }
+
             if (_isSqlMode && currentSqlLevel != null)
             {
                 int idx = sqlLevels.IndexOf(currentSqlLevel);
@@ -3306,11 +3345,12 @@ namespace AbiturEliteCode
                 try
                 {
                     LoadCustomLevelFromFile(_nextCustomLevelPath);
-                    CodeEditor.Focus();
+                    if (_isSqlMode) SqlQueryEditor.Focus(); else CodeEditor.Focus();
                 }
                 catch (Exception ex)
                 {
-                    AddToConsole($"\n> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
+                    if (_isSqlMode) AddSqlOutput("Error", $"> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
+                    else AddToConsole($"\n> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
                     BtnNextLevel.IsVisible = false;
                 }
                 return;
@@ -3868,12 +3908,14 @@ namespace AbiturEliteCode
                     if (_isSqlMode)
                     {
                         txtTitle.Text = "SQL Levels";
-                        ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedSqlLevelIds.Count}/{sqlLevels.Count}";
+                        int completedCount = sqlLevels.Count(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+                        ((TextBlock)countBadge.Child).Text = $"{completedCount}/{sqlLevels.Count}";
                     }
                     else
                     {
                         txtTitle.Text = "C# Levels";
-                        ((TextBlock)countBadge.Child).Text = $"{playerData.CompletedLevelIds.Count}/{levels.Count}";
+                        int completedCount = levels.Count(l => playerData.CompletedLevelIds.Contains(l.Id));
+                        ((TextBlock)countBadge.Child).Text = $"{completedCount}/{levels.Count}";
                     }
                     countBadge.IsVisible = true;
 
@@ -4245,7 +4287,7 @@ namespace AbiturEliteCode
                             };
                             Grid.SetColumn(actionPanel, 2);
 
-                            if (cl.IsDraft && cl.QuickGenerate && !_isSqlMode)
+                            if (cl.IsDraft && cl.QuickGenerate)
                             {
                                 var btnQuickExport = new Button
                                 {
@@ -4269,103 +4311,227 @@ namespace AbiturEliteCode
 
                                     try
                                     {
-                                        AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
-                                        var draft = LevelDesigner.LoadDraft(cl.FilePath);
-
-                                        bool valid = await System.Threading.Tasks.Task.Run(async () =>
+                                        if (_isSqlMode)
                                         {
-                                            try
+                                            AddSqlOutput("System", $"> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
+                                            var draft = SqlLevelDesigner.LoadDraft(cl.FilePath);
+
+                                            var validData = await System.Threading.Tasks.Task.Run<(bool Success, List<SqlExpectedColumn> Schema, List<string[]> Result)>(() =>
                                             {
-                                                string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + draft.TestCode;
-                                                string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
-
-                                                var references = GetSafeReferences();
-
-                                                var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
-                                                var compilation = CSharpCompilation.Create(
-                                                    $"QuickExport_{Guid.NewGuid()}",
-                                                    new[] { tree },
-                                                    references,
-                                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-                                                using (var ms = new MemoryStream())
+                                                try
                                                 {
-                                                    var result = compilation.Emit(ms, cancellationToken: cts.Token);
-                                                    if (!result.Success)
+                                                    using (var connection = new SqliteConnection("Data Source=:memory:"))
                                                     {
-                                                        var diag = result.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
-                                                        throw new Exception($"Kompilierfehler: {diag?.GetMessage() ?? "Unbekannt"}");
+                                                        connection.Open();
+
+                                                        // run setup code
+                                                        using (var setupCmd = connection.CreateCommand())
+                                                        {
+                                                            setupCmd.CommandText = draft.SetupScript;
+                                                            setupCmd.ExecuteNonQuery();
+                                                        }
+
+                                                        // exclude empty input buffers
+                                                        var cleanedSchema = draft.ExpectedSchema.Where(c => !string.IsNullOrWhiteSpace(c.Name)).ToList();
+                                                        int validCols = cleanedSchema.Count;
+
+                                                        var cleanedResult = new List<string[]>();
+                                                        foreach (var r in draft.ExpectedResult)
+                                                        {
+                                                            var rowData = r.Take(validCols).Select(c => c ?? "").ToArray();
+                                                            if (rowData.Any(c => !string.IsNullOrWhiteSpace(c)))
+                                                            {
+                                                                cleanedResult.Add(rowData);
+                                                            }
+                                                        }
+
+                                                        if (validCols == 0) throw new Exception("Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
+
+                                                        DataTable actualDt = null;
+                                                        string sampleSolution = SqlLevelTester.ConvertMysqlToSqlite(connection, draft.SampleSolution);
+
+                                                        if (draft.IsDmlMode)
+                                                        {
+                                                            using (var dmlCmd = connection.CreateCommand())
+                                                            {
+                                                                dmlCmd.CommandText = sampleSolution;
+                                                                dmlCmd.ExecuteNonQuery();
+                                                            }
+
+                                                            if (string.IsNullOrWhiteSpace(draft.VerificationQuery))
+                                                                throw new Exception("Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
+
+                                                            string verifyQuery = SqlLevelTester.ConvertMysqlToSqlite(connection, draft.VerificationQuery);
+                                                            actualDt = ExecuteDbQuery(connection, verifyQuery);
+                                                        }
+                                                        else
+                                                        {
+                                                            actualDt = ExecuteDbQuery(connection, sampleSolution);
+                                                        }
+
+                                                        if (actualDt.Columns.Count != validCols)
+                                                            throw new Exception($"Spaltenanzahl stimmt nicht überein. Erwartet: {validCols}, Ist: {actualDt.Columns.Count}");
+
+                                                        for (int i = 0; i < validCols; i++)
+                                                        {
+                                                            if (!actualDt.Columns[i].ColumnName.Equals(cleanedSchema[i].Name, StringComparison.OrdinalIgnoreCase))
+                                                                throw new Exception($"Spaltenname an Position {i + 1} stimmt nicht. Erwartet: '{cleanedSchema[i].Name}', Ist: '{actualDt.Columns[i].ColumnName}'");
+                                                        }
+
+                                                        if (actualDt.Rows.Count != cleanedResult.Count)
+                                                            throw new Exception($"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
+
+                                                        for (int r = 0; r < cleanedResult.Count; r++)
+                                                        {
+                                                            for (int c = 0; c < validCols; c++)
+                                                            {
+                                                                string expectedVal = cleanedResult[r][c] ?? "";
+                                                                if (expectedVal == "") expectedVal = "NULL";
+
+                                                                string actualVal = actualDt.Rows[r][c]?.ToString()?.Replace(",", ".") ?? "";
+                                                                if (actualDt.Rows[r][c] == DBNull.Value || string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
+
+                                                                if (double.TryParse(expectedVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double expNum) &&
+                                                                    double.TryParse(actualVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double actNum))
+                                                                {
+                                                                    if (Math.Abs(expNum - actNum) > 0.0001)
+                                                                        throw new Exception($"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                                }
+                                                                else if (!expectedVal.Equals(actualVal, StringComparison.OrdinalIgnoreCase))
+                                                                {
+                                                                    throw new Exception($"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return (true, cleanedSchema, cleanedResult);
                                                     }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    if (!cts.Token.IsCancellationRequested)
+                                                        Dispatcher.UIThread.InvokeAsync(() => AddSqlOutput("Error", $"❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
+                                                    return (false, null, null);
+                                                }
+                                            }, cts.Token);
 
-                                                    ms.Seek(0, SeekOrigin.Begin);
-                                                    var assembly = Assembly.Load(ms.ToArray());
+                                            if (!validData.Success) throw new Exception("Validierung fehlgeschlagen.");
 
-                                                    // compile validator
-                                                    var valTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
-                                                    var valCompilation = CSharpCompilation.Create(
-                                                        $"Validator_{Guid.NewGuid()}",
-                                                        new[] { valTree },
+                                            AddSqlOutput("System", "> Generiere Diagramme...", Brushes.LightGray);
+
+                                            if (!string.IsNullOrWhiteSpace(draft.PlantUmlSource))
+                                            {
+                                                string prepared = PreparePlantUmlSource(draft.PlantUmlSource);
+                                                draft.PlantUmlSvgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                            }
+
+                                            SqlLevelDesigner.ExportLevel(cl.FilePath, draft, validData.Schema, validData.Result);
+                                            btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
+                                            AddSqlOutput("System", $"> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
+
+                                            await System.Threading.Tasks.Task.Delay(2000);
+                                            RefreshUI();
+                                        }
+                                        else
+                                        {
+                                            AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray);
+                                            var draft = LevelDesigner.LoadDraft(cl.FilePath);
+
+                                            bool valid = await System.Threading.Tasks.Task.Run(async () =>
+                                            {
+                                                try
+                                                {
+                                                    string fullCode = "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\n" + draft.TestCode;
+                                                    string validatorCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + draft.ValidationCode + " }";
+
+                                                    var references = GetSafeReferences();
+
+                                                    var tree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
+                                                    var compilation = CSharpCompilation.Create(
+                                                        $"QuickExport_{Guid.NewGuid()}",
+                                                        new[] { tree },
                                                         references,
                                                         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-                                                    using (var valMs = new MemoryStream())
+                                                    using (var ms = new MemoryStream())
                                                     {
-                                                        var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
-                                                        if (!valResult.Success) throw new Exception("Fehler im Validierungs-Code.");
+                                                        var result = compilation.Emit(ms, cancellationToken: cts.Token);
+                                                        if (!result.Success)
+                                                        {
+                                                            var diag = result.Diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+                                                            throw new Exception($"Kompilierfehler: {diag?.GetMessage() ?? "Unbekannt"}");
+                                                        }
 
-                                                        valMs.Seek(0, SeekOrigin.Begin);
-                                                        var valAssembly = Assembly.Load(valMs.ToArray());
-                                                        var valType = valAssembly.GetType("DesignerValidator");
-                                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                                                            .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
+                                                        ms.Seek(0, SeekOrigin.Begin);
+                                                        var assembly = Assembly.Load(ms.ToArray());
 
-                                                        // run validation
-                                                        object[] args = new object[] { assembly, null };
-                                                        bool passed = (bool)valMethod.Invoke(null, args);
+                                                        // compile validator
+                                                        var valTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
+                                                        var valCompilation = CSharpCompilation.Create(
+                                                            $"Validator_{Guid.NewGuid()}",
+                                                            new[] { valTree },
+                                                            references,
+                                                            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-                                                        if (!passed) throw new Exception($"Validierung nicht bestanden: {args[1]}");
-                                                        return true;
+                                                        using (var valMs = new MemoryStream())
+                                                        {
+                                                            var valResult = valCompilation.Emit(valMs, cancellationToken: cts.Token);
+                                                            if (!valResult.Success) throw new Exception("Fehler im Validierungs-Code.");
+
+                                                            valMs.Seek(0, SeekOrigin.Begin);
+                                                            var valAssembly = Assembly.Load(valMs.ToArray());
+                                                            var valType = valAssembly.GetType("DesignerValidator");
+                                                            var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                                                .FirstOrDefault(m => m.ReturnType == typeof(bool) && m.GetParameters().Length == 2);
+
+                                                            // run validation
+                                                            object[] args = new object[] { assembly, null };
+                                                            bool passed = (bool)valMethod.Invoke(null, args);
+
+                                                            if (!passed) throw new Exception($"Validierung nicht bestanden: {args[1]}");
+                                                            return true;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            catch (Exception ex)
+                                                catch (Exception ex)
+                                                {
+                                                    if (!cts.Token.IsCancellationRequested)
+                                                        await Dispatcher.UIThread.InvokeAsync(() => AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
+                                                    return false;
+                                                }
+                                            }, cts.Token);
+
+                                            if (!valid) throw new Exception("Validierung fehlgeschlagen.");
+
+                                            // generate diagrams
+                                            AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
+
+                                            if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0 && !string.IsNullOrWhiteSpace(draft.PlantUmlSources[0]))
                                             {
-                                                if (!cts.Token.IsCancellationRequested)
-                                                    await Dispatcher.UIThread.InvokeAsync(() => AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}", Brushes.Red));
-                                                return false;
+                                                string prepared = PreparePlantUmlSource(draft.PlantUmlSources[0]);
+                                                string svgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                                if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
+                                                if (draft.PlantUmlSvgContents.Count == 0) draft.PlantUmlSvgContents.Add("");
+                                                draft.PlantUmlSvgContents[0] = svgContent;
                                             }
-                                        }, cts.Token);
 
-                                        if (!valid) throw new Exception("Validierung fehlgeschlagen.");
-
-                                        // generate diagrams
-                                        AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
-
-                                        if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0 && !string.IsNullOrWhiteSpace(draft.PlantUmlSources[0]))
-                                        {
-                                            string prepared = PreparePlantUmlSource(draft.PlantUmlSources[0]);
-                                            string svgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
-                                            if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
-                                            if (draft.PlantUmlSvgContents.Count == 0) draft.PlantUmlSvgContents.Add("");
-                                            draft.PlantUmlSvgContents[0] = svgContent;
-                                        }
-
-                                        for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
-                                        {
-                                            if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
+                                            for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
                                             {
-                                                string prepared = PreparePlantUmlSource(draft.MaterialDiagrams[i].PlantUmlSource);
-                                                draft.MaterialDiagrams[i].PlantUmlSvgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                                if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
+                                                {
+                                                    string prepared = PreparePlantUmlSource(draft.MaterialDiagrams[i].PlantUmlSource);
+                                                    draft.MaterialDiagrams[i].PlantUmlSvgContent = await AbiturEliteCode.cs.PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
+                                                }
                                             }
+
+                                            // export
+                                            LevelDesigner.ExportLevel(cl.FilePath, draft);
+                                            btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
+                                            AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
+
+                                            await System.Threading.Tasks.Task.Delay(2000);
+                                            RefreshUI();
                                         }
-
-                                        // export
-                                        LevelDesigner.ExportLevel(cl.FilePath, draft);
-                                        btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
-
-                                        await System.Threading.Tasks.Task.Delay(2000);
-                                        RefreshUI();
                                     }
                                     catch (OperationCanceledException) { }
                                     catch (Exception)
@@ -4739,7 +4905,8 @@ namespace AbiturEliteCode
             {
                 try
                 {
-                    var url = "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_AI_LEVEL_CREATION_GUIDE";
+                    var url = _isSqlMode ? "https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_AI_LEVEL_CREATION_GUIDE" : "https://github.com/OnlyCook/abitur-elite-code/wiki/CS_AI_LEVEL_CREATION_GUIDE";
+
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) Process.Start("open", url);
@@ -7510,11 +7677,11 @@ namespace AbiturEliteCode
                     var loadedLevel = new SqlLevel
                     {
                         Id = customId,
-                        Title = root.GetProperty("Title").GetString(),
-                        Description = root.GetProperty("Description").GetString(),
-                        MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
-                        SetupScript = root.GetProperty("SetupScript").GetString(),
-                        VerificationQuery = root.GetProperty("VerificationQuery").GetString(),
+                        Title = root.TryGetProperty("Title", out var titleProp) ? titleProp.GetString() : "Unbekannt",
+                        Description = root.TryGetProperty("Description", out var descProp) ? descProp.GetString() : "",
+                        MaterialDocs = root.TryGetProperty("MaterialDocs", out var matProp) ? matProp.GetString() : "",
+                        SetupScript = root.TryGetProperty("SetupScript", out var setupProp) ? setupProp.GetString() : "",
+                        VerificationQuery = root.TryGetProperty("VerificationQuery", out var vqProp) ? vqProp.GetString() : "",
                         SkipCode = "CUST",
                         Section = "Eigene Levels",
                         Prerequisites = new List<string>(),
@@ -7594,10 +7761,10 @@ namespace AbiturEliteCode
                 var loadedLevel = new Level
                 {
                     Id = customId,
-                    Title = root.GetProperty("Name").GetString(),
-                    Description = root.GetProperty("Description").GetString(),
-                    StarterCode = root.GetProperty("StarterCode").GetString(),
-                    MaterialDocs = root.GetProperty("MaterialDocs").GetString(),
+                    Title = root.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() : (root.TryGetProperty("Title", out var titleProp2) ? titleProp2.GetString() : "Unbekannt"),
+                    Description = root.TryGetProperty("Description", out var descProp) ? descProp.GetString() : "",
+                    StarterCode = root.TryGetProperty("StarterCode", out var scProp) ? scProp.GetString() : "",
+                    MaterialDocs = root.TryGetProperty("MaterialDocs", out var matProp) ? matProp.GetString() : "",
                     SkipCode = "CUST",
                     Section = "Eigene Levels",
                     Prerequisites = new List<string>(),
@@ -7668,7 +7835,7 @@ namespace AbiturEliteCode
                     loadedLevel.PlantUMLSources.Add(singleSrcElem.GetString());
                 }
 
-                _currentCustomValidationCode = root.GetProperty("ValidationCode").GetString();
+                _currentCustomValidationCode = root.TryGetProperty("ValidationCode", out var valProp) ? valProp.GetString() : "";
                 _isCustomLevelMode = true;
                 _nextCustomLevelPath = null;
 
@@ -7930,34 +8097,16 @@ namespace AbiturEliteCode
 
                     AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
 
-                    try
+                    UpdateNavigationButtons();
+                    if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
                     {
-                        var allCustoms = GetCustomLevels();
-                        var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentSqlLevel.Title && !c.IsDraft);
-
-                        if (currentInfo != null)
-                        {
-                            string dir = Path.GetDirectoryName(currentInfo.FilePath);
-                            var neighbors = Directory.GetFiles(dir, "*.eliteslvl").OrderBy(f => f).ToList();
-
-                            int idx = neighbors.IndexOf(currentInfo.FilePath);
-                            if (idx != -1 && idx < neighbors.Count - 1)
-                            {
-                                _nextCustomLevelPath = neighbors[idx + 1];
-                                BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                                BtnNextLevel.IsVisible = true;
-                                AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
-                            }
-                            else if (neighbors.Count > 1)
-                            {
-                                // end of a custom section
-                                _nextCustomLevelPath = "SECTION_COMPLETE";
-                                BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
-                                BtnNextLevel.IsVisible = true;
-                            }
-                        }
+                        AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
                     }
-                    catch { }
+                    else if (_nextCustomLevelPath == "SECTION_COMPLETE")
+                    {
+                        BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                        BtnNextLevel.IsVisible = true;
+                    }
 
                     return;
                 }

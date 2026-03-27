@@ -27,6 +27,8 @@ public class SqlLevelDraft
     // single main diagram only (no material auxiliary diagrams)
     public string PlantUmlSource { get; set; } = "@startchen\nentity MeineTabelle {\n    id <<key>>\n    name\n}\n@endchen";
     public string PlantUmlSvgContent { get; set; } = "";
+
+    public bool QuickGenerate { get; set; } = false;
 }
 
 public static class SqlLevelDesigner

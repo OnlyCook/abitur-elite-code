@@ -46,6 +46,20 @@ namespace AbiturEliteCode.cs
                     }
                     else
                     {
+                        // fix dml spoofing edge cases
+                        string upperQuery = processedQuery.Trim().ToUpper();
+                        string levelTitle = level.Title ?? "";
+                        bool taskIsInsert = levelTitle.Contains("INSERT") || levelTitle.Contains("Einfügen");
+                        bool taskIsUpdate = levelTitle.Contains("UPDATE") || levelTitle.Contains("Ändern");
+                        bool taskIsDelete = levelTitle.Contains("DELETE") || levelTitle.Contains("Löschen") || levelTitle.Contains("Stornierung");
+
+                        if (taskIsUpdate && (upperQuery.Contains("DELETE") || upperQuery.Contains("INSERT")))
+                            return new SqlTestResult { Success = false, Feedback = "❌ Umgehung erkannt: Bitte nutze UPDATE, um die Daten zu ändern.", ResultTable = null };
+                        if (taskIsInsert && (upperQuery.Contains("UPDATE") || upperQuery.Contains("DELETE")))
+                            return new SqlTestResult { Success = false, Feedback = "❌ Umgehung erkannt: Bitte nutze INSERT, um die Daten hinzuzufügen.", ResultTable = null };
+                        if (taskIsDelete && (upperQuery.Contains("INSERT") || upperQuery.Contains("UPDATE")))
+                            return new SqlTestResult { Success = false, Feedback = "❌ Umgehung erkannt: Bitte nutze DELETE, um die Daten zu löschen.", ResultTable = null };
+
                         // UPDATE/INSERT/DELETE
                         using (var cmd = connection.CreateCommand())
                         {
@@ -87,6 +101,7 @@ namespace AbiturEliteCode.cs
                             string[] rowData = row.ItemArray.Select(ObjectToInvariantString).ToArray();
                             actualRows.Add(rowData);
                         }
+                        userResultTable = verifyDt;
                     }
 
                     bool correct = true;
