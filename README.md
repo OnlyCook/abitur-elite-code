@@ -28,9 +28,16 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von Le
 https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 
 ## Skip-Codes und Lösungen
-Eine Übersicht aller Level-Codes sowie der Lösungen zu den jeweiligen Leveln findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).
+Eine Übersicht aller Level-Codes sowie der Lösungen zu den jeweiligen Levels findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).
 
 ## Level Designer
-Mit dem integrierten Level Designer kannst du eigene C#-Levels erstellen, die andere Nutzer lösen können. Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE).
 
+Mit dem integrierten Level Designer kannst du eigene Levels erstellen, die andere Nutzer lösen können.
+
+**C# Levels**  
+Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/CS_LEVEL_DESIGNER_GUIDE).
 Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/CS_AI_LEVEL_CREATION_GUIDE) weiter.
+
+**SQL Levels**  
+Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_DESIGNER_GUIDE).
+Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_AI_LEVEL_CREATION_GUIDE) weiter.
