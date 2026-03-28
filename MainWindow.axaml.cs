@@ -4666,6 +4666,12 @@ namespace AbiturEliteCode
                 try
                 {
                     string json = File.ReadAllText(file);
+
+                    if (!file.EndsWith("draft", StringComparison.OrdinalIgnoreCase) && !json.TrimStart().StartsWith("{"))
+                    {
+                        json = LevelEncryption.Decrypt(json);
+                    }
+
                     using (var doc = JsonDocument.Parse(json))
                     {
                         var root = doc.RootElement;
@@ -7668,6 +7674,9 @@ namespace AbiturEliteCode
             if (path.EndsWith(".eliteslvl", StringComparison.OrdinalIgnoreCase))
             {
                 string json = File.ReadAllText(path);
+
+                if (!json.TrimStart().StartsWith("{")) json = LevelEncryption.Decrypt(json);
+
                 using (var doc = JsonDocument.Parse(json))
                 {
                     var root = doc.RootElement;
@@ -7713,7 +7722,11 @@ namespace AbiturEliteCode
                         {
                             var arr = new string[row.GetArrayLength()];
                             int i = 0;
-                            foreach (var cell in row.EnumerateArray()) { arr[i++] = cell.GetString(); }
+                            // replace commas with periods cuz globalization issues
+                            foreach (var cell in row.EnumerateArray())
+                            {
+                                arr[i++] = cell.GetString()?.Replace(",", ".");
+                            }
                             loadedLevel.ExpectedResult.Add(arr);
                         }
                     }
@@ -7752,6 +7765,9 @@ namespace AbiturEliteCode
             }
 
             string json2 = File.ReadAllText(path);
+
+            if (!json2.TrimStart().StartsWith("{")) json2 = LevelEncryption.Decrypt(json2);
+
             using (var doc = JsonDocument.Parse(json2))
             {
                 var root = doc.RootElement;
@@ -8869,6 +8885,19 @@ namespace AbiturEliteCode
             // --- READ ONLY MODE ---
             if (!showEditControls)
             {
+                if (_isDesignerMode)
+                {
+                    var tbInfo = new TextBlock
+                    {
+                        Text = "Spieler startet mit einem leeren Modell.",
+                        Foreground = Brushes.Gray,
+                        FontStyle = FontStyle.Italic,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    };
+                    targetPanel.Children.Add(tbInfo);
+                    return;
+                }
+
                 foreach (var table in _currentRelationalModel)
                 {
                     var tb = new SelectableTextBlock
@@ -9379,11 +9408,12 @@ namespace AbiturEliteCode
 
                     // check if current column lacks name
                     bool isColBuffer = string.IsNullOrWhiteSpace(_currentSqlDraft.ExpectedSchema[c].Name);
+                    bool isRowBuffer = (r == rows - 1);
 
                     var txtCell = new TextBox
                     {
                         Text = _currentSqlDraft.ExpectedResult[r].Length > c ? _currentSqlDraft.ExpectedResult[r][c] : "",
-                        Watermark = isColBuffer ? "LEER" : "NULL",
+                        Watermark = (isColBuffer || isRowBuffer) ? "LEER" : "NULL",
                         IsEnabled = !isColBuffer,
                         Width = 120,
                         FontSize = 12,
@@ -9398,6 +9428,14 @@ namespace AbiturEliteCode
                     };
 
                     txtCell.TextChanged += (s, e) => {
+                        // force period instead of comma
+                        if (txtCell.Text != null && txtCell.Text.Contains(","))
+                        {
+                            int caret = txtCell.CaretIndex;
+                            txtCell.Text = txtCell.Text.Replace(",", ".");
+                            txtCell.CaretIndex = caret;
+                        }
+
                         if (rowIndex < _currentSqlDraft.ExpectedResult.Count && colIndex < _currentSqlDraft.ExpectedResult[rowIndex].Length)
                         {
                             if (_currentSqlDraft.ExpectedResult[rowIndex].Length > colIndex)

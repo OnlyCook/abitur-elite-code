@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AbiturEliteCode.cs
@@ -30,6 +33,47 @@ namespace AbiturEliteCode.cs
         public List<string> PlantUmlSvgContents { get; set; } = new List<string>();
         public List<DiagramData> MaterialDiagrams { get; set; } = new List<DiagramData>();
         public bool QuickGenerate { get; set; } = false;
+    }
+
+    public static class LevelEncryption
+    {
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("AbiturElite_32ByteEncryptionKey!");
+        private static readonly byte[] Iv = Encoding.UTF8.GetBytes("EliteCode_IV1234");
+
+        public static string Encrypt(string plainText)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = Key;
+                aes.IV = Iv;
+                var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+                using (var ms = new MemoryStream())
+                {
+                    using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                    using (var sw = new StreamWriter(cs))
+                    {
+                        sw.Write(plainText);
+                    }
+                    return Convert.ToBase64String(ms.ToArray());
+                }
+            }
+        }
+
+        public static string Decrypt(string cipherText)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = Key;
+                aes.IV = Iv;
+                var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+                using (var ms = new MemoryStream(Convert.FromBase64String(cipherText)))
+                using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (var sr = new StreamReader(cs))
+                {
+                    return sr.ReadToEnd();
+                }
+            }
+        }
     }
 
     public static class LevelDesigner
@@ -92,7 +136,9 @@ namespace AbiturEliteCode.cs
 
             var options = new JsonSerializerOptions { WriteIndented = false };
             string json = JsonSerializer.Serialize(exportData, options);
-            File.WriteAllText(targetPath, json);
+
+            string encryptedJson = LevelEncryption.Encrypt(json);
+            File.WriteAllText(targetPath, encryptedJson);
         }
     }
 
@@ -102,13 +148,47 @@ namespace AbiturEliteCode.cs
 
         public static async Task<string> GenerateSvgFromCodeAsync(string plantUmlCode)
         {
+            var chenKeys = new HashSet<string>();
+            var keyMatches = Regex.Matches(plantUmlCode, @"(\w+)\s*<<key>>");
+            foreach (Match match in keyMatches)
+            {
+                if (match.Groups.Count > 1)
+                {
+                    chenKeys.Add(match.Groups[1].Value);
+                }
+            }
+
             string encoded = EncodePlantUml(plantUmlCode);
             string url = $"http://www.plantuml.com/plantuml/dsvg/{encoded}";
 
+            string svgContent;
             using (var client = new HttpClient())
             {
-                return await client.GetStringAsync(url);
+                svgContent = await client.GetStringAsync(url);
             }
+
+            if (chenKeys.Count > 0)
+            {
+                foreach (var key in chenKeys)
+                {
+                    string unicodeKey = ConvertToUnicodeUnderline(key);
+                    string pattern = @"(<text[^>]*>)\s*" + Regex.Escape(key) + @"\s*(</text>)";
+                    svgContent = Regex.Replace(svgContent, pattern, $"$1{unicodeKey}$2");
+                }
+            }
+
+            return svgContent;
+        }
+
+        private static string ConvertToUnicodeUnderline(string input)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in input)
+            {
+                sb.Append(c);
+                sb.Append('\u0332'); // add underline
+            }
+            return sb.ToString();
         }
 
         private static string EncodePlantUml(string text)

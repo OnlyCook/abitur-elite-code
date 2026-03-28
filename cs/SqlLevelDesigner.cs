@@ -41,9 +41,24 @@ public static class SqlLevelDesigner
             string json = File.ReadAllText(path);
             var draft = JsonSerializer.Deserialize<SqlLevelDraft>(json);
 
-            if (draft != null && string.IsNullOrEmpty(draft.PlantUmlSource))
+            if (draft != null)
             {
-                draft.PlantUmlSource = "@startchen\nentity MeineTabelle {\n    id <<key>>\n    name\n}\n@endchen";
+                if (string.IsNullOrEmpty(draft.PlantUmlSource))
+                {
+                    draft.PlantUmlSource = "@startchen\nentity MeineTabelle {\n    id <<key>>\n    name\n}\n@endchen";
+                }
+
+                // replace commas with periods
+                if (draft.ExpectedResult != null)
+                {
+                    foreach (var row in draft.ExpectedResult)
+                    {
+                        for (int i = 0; i < row.Length; i++)
+                        {
+                            if (row[i] != null) row[i] = row[i].Replace(",", ".");
+                        }
+                    }
+                }
             }
 
             return draft ?? new SqlLevelDraft();
@@ -81,11 +96,13 @@ public static class SqlLevelDesigner
             PlantUMLSources = new List<string> { draft.PlantUmlSource },
             DiagramPaths = new List<string> { draft.PlantUmlSvgContent },
             IsRelationalModelReadOnly = draft.IsRelationalModelReadOnly,
-            InitialRelationalModel = draft.InitialRelationalModel
+            InitialRelationalModel = draft.IsRelationalModelReadOnly ? draft.InitialRelationalModel : new List<RTable>()
         };
 
         var options = new JsonSerializerOptions { WriteIndented = false };
         string json = JsonSerializer.Serialize(exportData, options);
-        File.WriteAllText(targetPath, json);
+
+        string encryptedJson = LevelEncryption.Encrypt(json);
+        File.WriteAllText(targetPath, encryptedJson);
     }
 }

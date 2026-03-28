@@ -1,0 +1,76 @@
+{
+  "Name": "Die Buch-Suche",
+  "Author": "Niko",
+  "Description": "Ermittle den [titel] und den [preis] aller B\u00FCcher, die weniger als 9.00 Euro kosten.",
+  "Materials": "start-hint: Filterung\r\nMit der [WHERE]-Klausel kannst du Ergebnisse einschr\u00E4nken.\r\nBeispiel: [WHERE] spalte \u003C 10\r\n:end-hint",
+  "Prerequisites": [],
+  "SetupScript": "CREATE TABLE Buch (\r\n    bid INTEGER PRIMARY KEY,\r\n    titel VARCHAR(255),\r\n    autor VARCHAR(255),\r\n    preis DOUBLE\r\n);\r\n \r\nINSERT INTO Buch VALUES (1, \u0027Faust\u0027, \u0027Goethe\u0027, 9.99);\r\nINSERT INTO Buch VALUES (2, \u0027Die Verwandlung\u0027, \u0027Kafka\u0027, 5.50);\r\nINSERT INTO Buch VALUES (3, \u0027Der Prozess\u0027, \u0027Kafka\u0027, 8.90);",
+  "IsDmlMode": false,
+  "VerificationQuery": "",
+  "SampleSolution": "SELECT titel, preis FROM Buch WHERE preis \u003C 9.00;",
+  "ExpectedSchema": [
+    {
+      "Name": "titel",
+      "Type": "VARCHAR(255)",
+      "StrictName": false
+    },
+    {
+      "Name": "preis",
+      "Type": "DOUBLE",
+      "StrictName": false
+    },
+    {
+      "Name": "",
+      "Type": "VARCHAR(255)",
+      "StrictName": false
+    }
+  ],
+  "ExpectedResult": [
+    [
+      "Die Verwandlung",
+      "5.5",
+      ""
+    ],
+    [
+      "Der Prozess",
+      "8.9",
+      null
+    ],
+    [
+      null,
+      null,
+      null
+    ]
+  ],
+  "IsRelationalModelReadOnly": true,
+  "InitialRelationalModel": [
+    {
+      "Name": "Buch",
+      "Columns": [
+        {
+          "Name": "bid",
+          "IsPk": true,
+          "IsFk": false
+        },
+        {
+          "Name": "titel",
+          "IsPk": false,
+          "IsFk": false
+        },
+        {
+          "Name": "autor",
+          "IsPk": false,
+          "IsFk": false
+        },
+        {
+          "Name": "preis",
+          "IsPk": false,
+          "IsFk": false
+        }
+      ]
+    }
+  ],
+  "PlantUmlSource": "@startchen\r\nentity Buch {\r\n    bid \u003C\u003Ckey\u003E\u003E\r\n    titel\r\n    autor\r\n    preis\r\n}\r\n@endchen",
+  "PlantUmlSvgContent": "\u003Csvg xmlns=\u0022http://www.w3.org/2000/svg\u0022 xmlns:xlink=\u0022http://www.w3.org/1999/xlink\u0022 contentStyleType=\u0022text/css\u0022 data-diagram-type=\u0022CHEN_EER\u0022 height=\u0022145px\u0022 preserveAspectRatio=\u0022none\u0022 style=\u0022width:320px;height:145px;\u0022 version=\u00221.1\u0022 viewBox=\u00220 0 320 145\u0022 width=\u0022320px\u0022 zoomAndPan=\u0022magnify\u0022\u003E\u003C?plantuml 1.2026.3beta6?\u003E\u003Cdefs/\u003E\u003Cg\u003E\u003Cg\u003E\u003Crect fill=\u0022#313139\u0022 height=\u002236.2969\u0022 style=\u0022stroke:#E7E7E7;stroke-width:0.5;\u0022 width=\u002255.0479\u0022 x=\u0022115.79\u0022 y=\u002295.04\u0022/\u003E\u003Ctext fill=\u0022#FFFFFF\u0022 font-family=\u0022sans-serif\u0022 font-size=\u002214\u0022 lengthAdjust=\u0022spacing\u0022 textLength=\u002235.0479\u0022 x=\u0022125.79\u0022 y=\u0022118.0351\u0022\u003EBuch\u003C/text\u003E\u003C/g\u003E\u003Cg\u003E\u003Cellipse cx=\u002224.3181\u0022 cy=\u002220.5236\u0022 fill=\u0022#313139\u0022 rx=\u002218.3181\u0022 ry=\u002214.5236\u0022 style=\u0022stroke:#E7E7E7;stroke-width:0.5;\u0022/\u003E\u003Ctext fill=\u0022#FFFFFF\u0022 font-family=\u0022sans-serif\u0022 font-size=\u002214\u0022 lengthAdjust=\u0022spacing\u0022 text-decoration=\u0022underline\u0022 textLength=\u002221.6631\u0022 x=\u002213.4866\u0022 y=\u002224.9951\u0022\u003Eb\u0332i\u0332d\u0332\u003C/text\u003E\u003C/g\u003E\u003Cg\u003E\u003Cellipse cx=\u0022100.3243\u0022 cy=\u002220.5236\u0022 fill=\u0022#313139\u0022 rx=\u002222.3543\u0022 ry=\u002214.5236\u0022 style=\u0022stroke:#E7E7E7;stroke-width:0.5;\u0022/\u003E\u003Ctext fill=\u0022#FFFFFF\u0022 font-family=\u0022sans-serif\u0022 font-size=\u002214\u0022 lengthAdjust=\u0022spacing\u0022 textLength=\u002227.3711\u0022 x=\u002286.6387\u0022 y=\u002224.9951\u0022\u003Etitel\u003C/text\u003E\u003C/g\u003E\u003Cg\u003E\u003Cellipse cx=\u0022187.3187\u0022 cy=\u002220.5236\u0022 fill=\u0022#313139\u0022 rx=\u002229.3487\u0022 ry=\u002214.5236\u0022 style=\u0022stroke:#E7E7E7;stroke-width:0.5;\u0022/\u003E\u003Ctext fill=\u0022#FFFFFF\u0022 font-family=\u0022sans-serif\u0022 font-size=\u002214\u0022 lengthAdjust=\u0022spacing\u0022 textLength=\u002237.2627\u0022 x=\u0022168.6874\u0022 y=\u002224.9951\u0022\u003Eautor\u003C/text\u003E\u003C/g\u003E\u003Cg\u003E\u003Cellipse cx=\u0022279.3224\u0022 cy=\u002220.5236\u0022 fill=\u0022#313139\u0022 rx=\u002227.3524\u0022 ry=\u002214.5236\u0022 style=\u0022stroke:#E7E7E7;stroke-width:0.5;\u0022/\u003E\u003Ctext fill=\u0022#FFFFFF\u0022 font-family=\u0022sans-serif\u0022 font-size=\u002214\u0022 lengthAdjust=\u0022spacing\u0022 textLength=\u002234.4395\u0022 x=\u0022262.1026\u0022 y=\u002224.9951\u0022\u003Epreis\u003C/text\u003E\u003C/g\u003E\u003C!--link Buch/bid to Buch--\u003E\u003Cg class=\u0022link\u0022 data-entity-1=\u0022ent0003\u0022 data-entity-2=\u0022ent0002\u0022 data-link-type=\u0022association\u0022 data-source-line=\u00223\u0022 id=\u0022lnk4\u0022\u003E\u003Cpath d=\u0022M37.05,31.22 C56.96,46.39 95.73,75.93 120.53,94.83\u0022 fill=\u0022none\u0022 id=\u0022Buch/bid-Buch\u0022 style=\u0022stroke:#E7E7E7;stroke-width:1;\u0022/\u003E\u003C/g\u003E\u003C!--link Buch/titel to Buch--\u003E\u003Cg class=\u0022link\u0022 data-entity-1=\u0022ent0005\u0022 data-entity-2=\u0022ent0002\u0022 data-link-type=\u0022association\u0022 data-source-line=\u00224\u0022 id=\u0022lnk6\u0022\u003E\u003Cpath d=\u0022M106.66,34.9 C114.19,50.76 126.74,77.24 135.03,94.71\u0022 fill=\u0022none\u0022 id=\u0022Buch/titel-Buch\u0022 style=\u0022stroke:#E7E7E7;stroke-width:1;\u0022/\u003E\u003C/g\u003E\u003C!--link Buch/autor to Buch--\u003E\u003Cg class=\u0022link\u0022 data-entity-1=\u0022ent0007\u0022 data-entity-2=\u0022ent0002\u0022 data-link-type=\u0022association\u0022 data-source-line=\u00225\u0022 id=\u0022lnk8\u0022\u003E\u003Cpath d=\u0022M180.83,34.9 C173.13,50.76 160.28,77.24 151.8,94.71\u0022 fill=\u0022none\u0022 id=\u0022Buch/autor-Buch\u0022 style=\u0022stroke:#E7E7E7;stroke-width:1;\u0022/\u003E\u003C/g\u003E\u003C!--link Buch/preis to Buch--\u003E\u003Cg class=\u0022link\u0022 data-entity-1=\u0022ent0009\u0022 data-entity-2=\u0022ent0002\u0022 data-link-type=\u0022association\u0022 data-source-line=\u00226\u0022 id=\u0022lnk10\u0022\u003E\u003Cpath d=\u0022M262.91,32.46 C239.74,47.91 197.18,76.28 169.58,94.69\u0022 fill=\u0022none\u0022 id=\u0022Buch/preis-Buch\u0022 style=\u0022stroke:#E7E7E7;stroke-width:1;\u0022/\u003E\u003C/g\u003E\u003C?plantuml-src 7OrH2iCm34F_VGgVe6mTzAkKifiugLb3EgSupaSPk_ky20GI3wIr6gd5dGLgJdAIqXi3nVpIqcIBvIYAfYJL4Ok1Ezc5pnPt_02wGjfmdZDVozAxSpvwecP5UpgLKuKlhEoR_pEu3-Djd8P7OAFf1m00?\u003E\u003C/g\u003E\u003C/svg\u003E",
+  "QuickGenerate": false
+}
