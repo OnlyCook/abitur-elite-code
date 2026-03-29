@@ -1,0 +1,216 @@
+--- [ABI 2025 B] ---
+
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Anwendungsfalldiagramm erweitern (aus Vorlage)
+- Gegebenes Struktogramm (Nassi-Shneiderman-Diagramm) in Code implementieren
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+- UML-Anwendungsfalldiagramm zeichnen (aus Vorlage)
+- UML-Klassendiagramm gegeben
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Gegebenes Struktogramm (Nassi-Shneiderman-Diagramm) in Code implementieren
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Anwendungsfalldiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Anwendungsfalldiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2023 C] ---
+
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- 3 Gegebene Struktogramme (Nassi-Shneiderman-Diagramm) in Code implementieren
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+- UML-Anwendungsfalldiagramm zeichnen (dies nur erklären)
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- UML-Klassendiagramm zeichnen (Erweiterung des Nebendiagramms)
+- USB Interface gegeben
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Anwendungsfalldiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Anwendungsfalldiagramm zeichnen (ohne Vorlage)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+- UML-Sequenzdiagramm in Code implementieren
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- Eigenes (neues) UML-Klassendiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Anwendungsfalldiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- Eigenes (neues) UML-Klassendiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Eigenes (neues) UML-Klassendiagramm zeichnen (mit Vorlage)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Gegebenes Struktogramm (Nassi-Shneiderman-Diagramm) in Code implementieren
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+- Eigenes (neues) UML-Klassendiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+- UML-Anwendungsfalldiagramm zeichnen (mit Vorlage)
+- UML-Klassendiagramm gegeben (3 gegeben)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Klassendiagramm zeichnen (aus Objektdiagramm)
+- UML-Sequenzdiagramm in Code implementieren
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+- UML-Anwendungsfalldiagramm erweitern
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- Eigenes (neues) UML-Klassendiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+- UML-Anwendungsfalldiagramm erweitern
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Sequenzdiagramm in Code implementieren
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+- UML-Anwendungsfalldiagramm erweitern
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm erweitern (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- Eigenes (neues) UML-Klassendiagramm zeichnen (ohne Vorlage)
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+- UML-Klassendiagramm gegeben (2 gegeben)
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- UML-Objektdiagramm aus Klassendiagramm zeichnen
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+
+--------------------
+
+--- [ABI 2016 A] ---
+
+- UML-Klassendiagramm gegeben
+- UML-Sequenzdiagramm zeichnen (aus Vorlage)
+- Struktogramm (Nassi-Shneiderman-Diagramm) aus (unimplementierter) Methode zeichnen
+- UML-Klassendiagramm zeichnen (Erweiterung des Hauptdiagramms)
+
+--------------------

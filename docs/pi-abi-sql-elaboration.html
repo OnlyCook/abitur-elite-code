@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PI Abitur – SQL Ausarbeitungsaufgaben (Hessen)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #0d1117;
+    --bg2:         #161b22;
+    --bg3:         #21262d;
+    --border:      #30363d;
+    --border-sub:  #21262d;
+    --text:        #e6edf3;
+    --text-muted:  #8b949e;
+    --text-dim:    #484f58;
+    --link:        #58a6ff;
+    --green:       #3fb950;
+    --green-dim:   rgba(63,185,80,0.15);
+    --yellow:      #d29922;
+    --yellow-dim:  rgba(210,153,34,0.15);
+    --red:         #f85149;
+    --red-dim:     rgba(248,81,73,0.15);
+    --blue:        #58a6ff;
+    --blue-dim:    rgba(88,166,255,0.15);
+    --orange:      #db6d28;
+    --font:        -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 32px 16px 64px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb a { color: var(--link); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* ── NOTE ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+
+  /* ── STAT BADGES ── */
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+
+  .stat-badge {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 100px;
+  }
+
+  .stat-badge .val {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .stat-badge .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    margin-top: 4px;
+  }
+
+  /* ── CHART GRID ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  .chart-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .chart-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 190px 1fr 54px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+
+  .bar-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-fill.ta { background: var(--red); }
+  .bar-fill.tb { background: var(--orange); }
+  .bar-fill.tc { background: var(--yellow); }
+  .bar-fill.td { background: var(--blue); }
+  .bar-fill.te { background: var(--green); }
+
+  .bar-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── OPERATOR GRID ── */
+  .op-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 680px) { .op-grid { grid-template-columns: 1fr 1fr; } }
+
+  .op-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .op-card-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .op-card-count {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .op-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .op-card-examples {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    border-top: 1px solid var(--border-sub);
+    padding-top: 8px;
+  }
+
+  /* ── MISS GRID ── */
+  .miss-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .miss-grid { grid-template-columns: 1fr; } }
+
+  .miss-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .miss-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .miss-panel-title.c-red    { border-left: 3px solid var(--red);    color: var(--red); }
+  .miss-panel-title.c-yellow { border-left: 3px solid var(--yellow); color: var(--yellow); }
+  .miss-panel-title.c-blue   { border-left: 3px solid var(--blue);   color: var(--blue); }
+  .miss-panel-title.c-green  { border-left: 3px solid var(--green);  color: var(--green); }
+
+  .miss-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .miss-row:last-child { border-bottom: none; }
+  .miss-row:hover { background: var(--bg3); }
+  .miss-topic { color: var(--text-muted); }
+
+  .miss-val {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 11px;
+    font-size: 11px;
+  }
+  .v0   { background: rgba(63,185,80,0.12);  color: #3fb950; }
+  .v10  { background: rgba(63,185,80,0.08);  color: #7ee787; }
+  .v20  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v30  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v40  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v50  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v60  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v70  { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .v80  { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .v90  { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .v100 { background: rgba(248,81,73,0.15);  color: #f85149; }
+
+  /* ── YEAR TABLE ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+  }
+
+  table.ytable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  table.ytable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.ytable th:first-child,
+  table.ytable th:nth-child(2) { text-align: left; padding-left: 10px; }
+
+  table.ytable td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border-sub);
+    text-align: center;
+    vertical-align: middle;
+  }
+  table.ytable tbody tr:last-child td { border-bottom: none; }
+  table.ytable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+
+  .ytd-year {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left !important;
+    padding-left: 10px !important;
+    white-space: nowrap;
+  }
+  .ytd-props { text-align: left !important; padding-left: 10px !important; }
+
+  .ptags { display: flex; gap: 3px; }
+  .ptag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .ptag.on {
+    background: rgba(88,166,255,0.1);
+    border-color: rgba(88,166,255,0.4);
+    color: var(--blue);
+  }
+
+  .dot-col {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+  }
+  .dy, .dn {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: default;
+  }
+  .dy { background: var(--green); box-shadow: 0 0 0 2px rgba(63,185,80,0.2); }
+  .dn { background: var(--bg3); border: 1px solid var(--border); }
+
+  /* ── DETAIL TABLE ── */
+  .table-wrap-dt {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+  }
+  table.dtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.dtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-align: left;
+  }
+  table.dtable td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: top;
+  }
+  table.dtable tbody tr:last-child td { border-bottom: none; }
+  table.dtable tbody tr:hover td { background: rgba(88,166,255,0.03); }
+
+  .dt-topic { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .dt-sub   { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+  .pips { display: flex; gap: 3px; margin-bottom: 4px; }
+  .pip { width: 12px; height: 12px; border-radius: 2px; background: var(--bg3); border: 1px solid var(--border); }
+  .pip.p1 { background: var(--red);    border-color: var(--red); }
+  .pip.p2 { background: var(--orange); border-color: var(--orange); }
+  .pip.p3 { background: var(--yellow); border-color: var(--yellow); }
+  .pip.p4 { background: var(--green);  border-color: var(--green); }
+  .pip.p5 { background: #79c0ff;       border-color: #79c0ff; }
+
+  .pill {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+  .pill-g { background: rgba(63,185,80,0.15);  color: #3fb950; }
+  .pill-y { background: rgba(210,153,34,0.15); color: #d29922; }
+  .pill-o { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .pill-r { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .pill-b { background: rgba(88,166,255,0.15); color: #58a6ff; }
+
+  .dt-note { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+  .dt-note strong { color: var(--text); }
+  .dt-note ul { padding-left: 16px; margin: 6px 0; }
+  .dt-note li { margin-bottom: 3px; }
+
+  /* ── LEARN CARDS ── */
+  .learn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .learn-grid { grid-template-columns: 1fr; } }
+
+  .learn-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .learn-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .learn-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .learn-card-title    { font-size: 13px; font-weight: 600; color: var(--text); }
+  .learn-card-subtitle { font-size: 11px; color: var(--text-muted); }
+
+  .learn-card-body {
+    padding: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .learn-card-body strong { color: var(--text); }
+  .learn-card-body ul  { padding-left: 16px; margin: 6px 0; }
+  .learn-card-body li  { margin-bottom: 4px; }
+  .learn-card-body p   { margin-bottom: 8px; }
+  .learn-card-body p:last-child { margin-bottom: 0; }
+
+  .learn-section {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+  .learn-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .learn-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  /* Formula box */
+  .formula-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 6px 0;
+    line-height: 1.6;
+  }
+  .formula-box .hl { color: var(--yellow); }
+  .formula-box .hlg { color: var(--green); }
+  .formula-box .hlb { color: var(--blue); }
+  .formula-box .hlr { color: var(--red); }
+
+  /* Keyword row */
+  .keyword-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .kw {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .kw.hot {
+    background: rgba(210,153,34,0.1);
+    border-color: rgba(210,153,34,0.35);
+    color: var(--yellow);
+  }
+  .kw.must {
+    background: rgba(248,81,73,0.1);
+    border-color: rgba(248,81,73,0.35);
+    color: var(--red);
+  }
+
+  /* ── ANALYSIS SUMMARY ── */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 780px) { .analysis-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .analysis-grid { grid-template-columns: 1fr; } }
+
+  .analysis-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .analysis-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+  .analysis-card-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .analysis-card-body strong { color: var(--text); }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  footer a { color: var(--link); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note" style="border-left-color: var(--yellow); margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Seite wurden durch manuelle Analyse aller SQL-Ausarbeitungsaufgaben aus den offiziellen Prüfungsvorschlägen gewonnen und mithilfe von KI ausgewertet. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen vergleichen.
+</div>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+    <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+    SQL Ausarbeitungsaufgaben
+  </div>
+  <h1>SQL Ausarbeitungsaufgaben — PI Landesabitur Hessen</h1>
+  <p>
+    Analyse aller <strong>Textausarbeitungsaufgaben</strong> im SQL-/Datenbankbereich des hessischen Landesabiturs im Fach
+    <strong>Praktische Informatik</strong>, Jahrgänge <strong>2016–2025</strong> (10 Jahrgänge, 23 Vorschläge).
+    Diese Seite deckt ausschließlich Aufgaben ab, bei denen <em>Fließtext, Erläuterungen, Begründungen oder strukturierte Beschreibungen</em>
+    gefordert sind — keine reinen Diagrammzeichen- oder SQL-Codierungsaufgaben (obwohl manche Aufgaben beides kombinieren).
+  </p>
+</div>
+
+<!-- NOTE -->
+<div class="note">
+  <strong>Berechnungsgrundlage:</strong>
+  <em>Vorschlagswahrscheinlichkeit</em> = Anteil der 23 Vorschläge, in dem ein Thema als Ausarbeitungsaufgabe vorkommt.
+  <em>Jahreswahrscheinlichkeit</em> = Anteil der 10 Jahrgänge, in dem mindestens ein Vorschlag das Thema enthält.
+  Als „Ausarbeitungsaufgabe" zählen Teilaufgaben mit Operatoren wie <em>beschreiben, erläutern, erklären, nennen, analysieren, beurteilen, begründen, erörtern, diskutieren, vergleichen, zeigen, Stellung nehmen</em>.
+  Das Transformieren eines ERM in das relationale Modell inkl. Begründung zählt ebenfalls, da der Ausarbeitungsanteil (begründen, prüfen, entscheiden) wesentlich ist.
+</div>
+
+<!-- STAT BADGES -->
+<div class="stat-row">
+  <div class="stat-badge">
+    <span class="val">10</span>
+    <span class="lbl">Jahrgänge</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val">23</span>
+    <span class="lbl">Vorschläge gesamt</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val">~55</span>
+    <span class="lbl">Ausarbeitungsaufg. gesamt</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--green)">2–3</span>
+    <span class="lbl">Ø pro Vorschlag</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--yellow)">3–6</span>
+    <span class="lbl">Ø Bepunktung (BE)</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--blue)">10</span>
+    <span class="lbl">Themenkategorien</span>
+  </div>
+</div>
+
+<!-- BAR CHARTS -->
+<div class="section">
+  <h2>Themenhäufigkeiten</h2>
+  <div class="section-desc">Wie häufig taucht ein Thema als Ausarbeitungsaufgabe auf — absolut über alle 23 Vorschläge und pro Jahrgang (mind. 1 Vorschlag)</div>
+  <div class="chart-grid">
+
+    <div class="chart-panel">
+      <div class="chart-panel-title">Gesamt — Anteil der 23 Vorschläge</div>
+      <div class="bar-row"><div class="bar-label">Redundanzen &amp; Anomalien</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--red)">61 %</div></div>
+      <div class="bar-row"><div class="bar-label">ERM → Relat. Modell</div><div class="bar-track"><div class="bar-fill ta" style="width:85%"></div></div><div class="bar-pct" style="color:var(--red)">52 %</div></div>
+      <div class="bar-row"><div class="bar-label">Normalform beschreiben</div><div class="bar-track"><div class="bar-fill tb" style="width:49%"></div></div><div class="bar-pct" style="color:var(--orange)">30 %</div></div>
+      <div class="bar-row"><div class="bar-label">SQL-Anweisung erläutern</div><div class="bar-track"><div class="bar-fill tb" style="width:49%"></div></div><div class="bar-pct" style="color:var(--orange)">26 %</div></div>
+      <div class="bar-row"><div class="bar-label">ERM Notationselemente</div><div class="bar-track"><div class="bar-fill tc" style="width:21%"></div></div><div class="bar-pct" style="color:var(--yellow)">13 %</div></div>
+      <div class="bar-row"><div class="bar-label">Spezialisierung (is-a)</div><div class="bar-track"><div class="bar-fill tc" style="width:21%"></div></div><div class="bar-pct" style="color:var(--yellow)">13 %</div></div>
+      <div class="bar-row"><div class="bar-label">Rel. Datenbankmodell</div><div class="bar-track"><div class="bar-fill tc" style="width:21%"></div></div><div class="bar-pct" style="color:var(--yellow)">13 %</div></div>
+      <div class="bar-row"><div class="bar-label">Referentielle Integrität</div><div class="bar-track"><div class="bar-fill td" style="width:16%"></div></div><div class="bar-pct" style="color:var(--blue)">9 %</div></div>
+      <div class="bar-row"><div class="bar-label">Transformationsregeln</div><div class="bar-track"><div class="bar-fill td" style="width:16%"></div></div><div class="bar-pct" style="color:var(--blue)">9 %</div></div>
+      <div class="bar-row"><div class="bar-label">ACID / 3-Schichten / Sonst.</div><div class="bar-track"><div class="bar-fill te" style="width:13%"></div></div><div class="bar-pct" style="color:var(--green)">9 %</div></div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-panel-title">Pro Jahrgang — mind. 1 Vorschlag enthält Thema</div>
+      <div class="bar-row"><div class="bar-label">Redundanzen &amp; Anomalien</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--red)">100 %</div></div>
+      <div class="bar-row"><div class="bar-label">ERM → Relat. Modell</div><div class="bar-track"><div class="bar-fill ta" style="width:80%"></div></div><div class="bar-pct" style="color:var(--red)">80 %</div></div>
+      <div class="bar-row"><div class="bar-label">Normalform beschreiben</div><div class="bar-track"><div class="bar-fill tb" style="width:60%"></div></div><div class="bar-pct" style="color:var(--orange)">60 %</div></div>
+      <div class="bar-row"><div class="bar-label">SQL-Anweisung erläutern</div><div class="bar-track"><div class="bar-fill tb" style="width:60%"></div></div><div class="bar-pct" style="color:var(--orange)">60 %</div></div>
+      <div class="bar-row"><div class="bar-label">ERM Notationselemente</div><div class="bar-track"><div class="bar-fill tc" style="width:30%"></div></div><div class="bar-pct" style="color:var(--yellow)">30 %</div></div>
+      <div class="bar-row"><div class="bar-label">Spezialisierung (is-a)</div><div class="bar-track"><div class="bar-fill tc" style="width:30%"></div></div><div class="bar-pct" style="color:var(--yellow)">30 %</div></div>
+      <div class="bar-row"><div class="bar-label">Rel. Datenbankmodell</div><div class="bar-track"><div class="bar-fill tc" style="width:30%"></div></div><div class="bar-pct" style="color:var(--yellow)">30 %</div></div>
+      <div class="bar-row"><div class="bar-label">Referentielle Integrität</div><div class="bar-track"><div class="bar-fill td" style="width:20%"></div></div><div class="bar-pct" style="color:var(--blue)">20 %</div></div>
+      <div class="bar-row"><div class="bar-label">Transformationsregeln</div><div class="bar-track"><div class="bar-fill td" style="width:20%"></div></div><div class="bar-pct" style="color:var(--blue)">20 %</div></div>
+      <div class="bar-row"><div class="bar-label">ACID / 3-Schichten / Sonst.</div><div class="bar-track"><div class="bar-fill te" style="width:20%"></div></div><div class="bar-pct" style="color:var(--green)">20 %</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPERATORS -->
+<div class="section">
+  <h2>Aufgabenoperatoren — Typen &amp; Anforderungen</h2>
+  <div class="section-desc">Welche Operatoren dominieren und was genau verlangt wird</div>
+  <div class="op-grid">
+
+    <div class="op-card">
+      <div class="op-card-name">beschreiben</div>
+      <div class="op-card-count" style="color:var(--red)">~20×</div>
+      <div class="op-card-desc">Häufigster Operator. Vollständige, sachliche Darstellung aller Merkmale — kein Werten. Strukturiert und vollständig, häufig mit konkreten Beispielen aus dem Szenario.</div>
+      <div class="op-card-examples">z.B.: „Beschreiben Sie die 1. bis 3. Normalform", „Beschreiben Sie die Notationselemente des ERM"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">analysieren</div>
+      <div class="op-card-count" style="color:var(--orange)">~14×</div>
+      <div class="op-card-desc">Zergliedern einer gegebenen Tabelle oder SQL-Anweisung. Struktur benennen, Probleme (Redundanzen, Anomalien, Abhängigkeiten) aufzeigen und am Beispiel belegen.</div>
+      <div class="op-card-examples">z.B.: „Analysieren Sie die Tabelle hinsichtlich Redundanzen", „Analysieren Sie die SQL-Anweisung"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">erläutern / erklären</div>
+      <div class="op-card-count" style="color:var(--yellow)">~12×</div>
+      <div class="op-card-desc">Beschreiben + Bezug zum Kontext + kurze Begründung/Verdeutlichung. Oft verknüpft mit einem konkreten Beispiel aus dem Aufgabenszenario. Mechanismus transparent machen.</div>
+      <div class="op-card-examples">z.B.: „Erläutern Sie die referentielle Integrität", „Erklären Sie die ACID-Eigenschaften"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">begründen / diskutieren</div>
+      <div class="op-card-count" style="color:var(--blue)">~10×</div>
+      <div class="op-card-desc">Entscheidungen für eine Variante belegen oder Vor-/Nachteile verschiedener Möglichkeiten gegenüberstellen. Immer konkrete Argumente, nie nur behaupten.</div>
+      <div class="op-card-examples">z.B.: „Begründen Sie Ihr Vorgehen", „Diskutieren Sie Vor- und Nachteile der Spezialisierungsvarianten"</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- YEAR TABLE -->
+<div class="section">
+  <h2>Jahresübersicht — Ausarbeitungsthemen pro Vorschlag</h2>
+  <div class="section-desc">🟢 Thema als Ausarbeitungsaufgabe enthalten &nbsp; ⚫ nicht enthalten &nbsp;· Hover über Punkt für Details</div>
+  <div class="table-wrap">
+    <table class="ytable">
+      <thead>
+        <tr>
+          <th>Jahr</th>
+          <th>Vorschl.</th>
+          <th>ANO<br><span style="font-weight:400;color:var(--text-dim)">Anomalien</span></th>
+          <th>ERM<br><span style="font-weight:400;color:var(--text-dim)">→ Relat.</span></th>
+          <th>NF<br><span style="font-weight:400;color:var(--text-dim)">Normalform</span></th>
+          <th>SQL<br><span style="font-weight:400;color:var(--text-dim)">Analyse</span></th>
+          <th>NOT<br><span style="font-weight:400;color:var(--text-dim)">ERM-Notat.</span></th>
+          <th>SPZ<br><span style="font-weight:400;color:var(--text-dim)">Spezial.</span></th>
+          <th>MOD<br><span style="font-weight:400;color:var(--text-dim)">Rel. Modell</span></th>
+          <th>RI<br><span style="font-weight:400;color:var(--text-dim)">Ref. Int.</span></th>
+          <th>SON<br><span style="font-weight:400;color:var(--text-dim)">Sonstiges</span></th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- 2025 -->
+        <tr>
+          <td class="ytd-year">2025</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <!-- ANO -->
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 2.4 – Redundanzen, Inkonsistenzen und Anomalien beschreiben (5 BE)"></span>
+          </div></td>
+          <!-- ERM -->
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein ERM→Rel"></span>
+            <span class="dn" title="B: kein ERM→Rel"></span>
+          </div></td>
+          <!-- NF -->
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.2 – 1. bis 3. Normalform beschreiben + je ein Vor- und Nachteil (5 BE)"></span>
+            <span class="dn" title="B: kein NF-Beschreiben"></span>
+          </div></td>
+          <!-- SQL -->
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein SQL-Analyse"></span>
+            <span class="dy" title="B: 2.2.5 – SQL DELETE erläutern und Komplikationen der Löschweitergabe beschreiben (6 BE)"></span>
+          </div></td>
+          <!-- NOT -->
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1 – ERM-Notationselemente (Darstellung und Funktion) beschreiben (3 BE)"></span>
+            <span class="dn" title="B: kein Notationselemente-Thema"></span>
+          </div></td>
+          <!-- SPZ -->
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <!-- MOD -->
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <!-- RI -->
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <!-- SON -->
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Sonstiges"></span>
+            <span class="dy" title="B: 2.1.1 – Vier Transformationsregeln ERM→Rel beschreiben (4 BE)"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2024 -->
+        <tr>
+          <td class="ytd-year">2024</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.3 – Tabellenstruktur auf Probleme analysieren, Anomalien mit Beispielen beschreiben (5 BE)"></span>
+            <span class="dy" title="B: 2.4 – Tabellenstruktur auf Probleme analysieren, Anomalien mit Beispielen beschreiben (5 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein ERM→Rel"></span>
+            <span class="dy" title="B: 2.1 – ERM→Rel begründen (5 BE) + 2.5 – Tabelle in 3NF überführen und begründen (8 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein NF-Beschreiben"></span>
+            <span class="dy" title="B: 2.5 – 1NF/2NF/3NF-Prüfung als Begründung beim Normalisieren (8 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.4 – SQL SELECT erläutern + Ausgabe angeben (4 BE)"></span>
+            <span class="dn" title="B: kein SQL-Analyse"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+        </tr>
+
+        <!-- 2023 -->
+        <tr>
+          <td class="ytd-year">2023</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 2.4 – Redundanzen und alle drei Anomalienarten mit Beispielen beschreiben (5 BE)"></span>
+            <span class="dn" title="C: kein Anomalienthema"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein ERM→Rel (nur Transformationsregeln nennen)"></span>
+            <span class="dy" title="B: 2.1 – ERM→Rel in 3NF begründen (6 BE)"></span>
+            <span class="dy" title="C: 2.2 – ERM→Rel in 3NF begründen (8 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.2.5 – SQL SELECT erörtern und verbesserte Anweisung formulieren (4 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: 2.1 – ERM-Grundbausteine beschreiben + Verwendungszweck nennen (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1.3 – Referentielle Integrität erklären + Beispiel aus dem eigenen Modell (4 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1.1 – Vier Transformationsregeln ERM→Rel angeben (4 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2022 -->
+        <tr>
+          <td class="ytd-year">2022</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 2.4 – Tabellenstruktur analysieren, Redundanzen zeigen, Anomalienarten mit Beispielen beschreiben (5 BE)"></span>
+            <span class="dn" title="C: kein Anomalienthema"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 1.2 – ERM in 3NF überführen und begründen (9 BE)"></span>
+            <span class="dy" title="B: 2.2 – ERM in 3NF überführen (5 BE)"></span>
+            <span class="dy" title="C: 2.2 – ERM in 3NF überführen (unter Berücksichtigung Spezialisierung) (5 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 1.1 – ERM-Notationselemente beschreiben und je anhand eines Beispiels erklären (6 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: 2.1 – Drei Spezialisierungsvarianten angeben und Vor-/Nachteile diskutieren (6 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+        </tr>
+
+        <!-- 2021 -->
+        <tr>
+          <td class="ytd-year">2021</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 2.4.1 – Redundanzen/Inkonsistenzen zeigen und alle drei Anomalienarten mit Beispielen beschreiben (5 BE)"></span>
+            <span class="dy" title="C: 2.3 – Tabellenprobleme analysieren und Anomalien beschreiben (Teil eines 12-BE-Blocks mit Normalisierung)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: Spezialisierung ist Teil der Transformation, aber hauptsächlich diskutieren"></span>
+            <span class="dy" title="B: 2.1 – ERM in 3NF überführen und Entscheidungen begründen (8 BE)"></span>
+            <span class="dy" title="C: 2.1.2 – ERM in 3NF überführen und begründen (8 BE) + 2.3 – Tabelle in 3NF überführen (12 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: 2.3 – 3NF-Prüfung implizit im Normalisierungsblock (12 BE gesamt)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1.1 – Drei Spezialisierungsvarianten diskutieren und Entscheidung begründen (6 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: 2.1.1 – Relationales Datenbankmodell beschreiben, Vor- und Nachteile nennen (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.3.1 – Transaktion erläutern (2 BE) + 2.3.2 – ACID-Eigenschaften beschreiben (4 BE)"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2020 -->
+        <tr>
+          <td class="ytd-year">2020</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 2.4.1 – Redundanzen und Anomalien analysieren, Beispiele angeben (3 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.2.3 – SQL SELECT mit JOIN, GROUP BY, HAVING analysieren (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 1.2 – Relationales Datenbankmodell beschreiben + Beziehungen in rel. DB vs. OOP vergleichen (4 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 1.1 – Drei Ebenen der ANSI-SPARC-Architektur (3-Schichten) beschreiben + Vorteile der Trennung erläutern (4 BE) | B: 2.1.2 – Referenztabelle beurteilen (3 BE)"></span>
+            <span class="dy" title="B: 2.1.2 – Referenztabelle für Enumeration beurteilen (3 BE)"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2019 -->
+        <tr>
+          <td class="ytd-year">2019</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.5.1 – Redundanz und Anomalie definieren, alle drei Anomalienarten mit Beispielen beschreiben (5 BE)"></span>
+            <span class="dy" title="B: 2.1.1 – Redundanzen in Tabelle angeben, Anomalien mit Beispielen beschreiben (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.1.2 – Normalisierung als Maßnahme gegen Anomalien erläutern (2 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.3 – Referentielle Integrität beschreiben + RESTRICT und CASCADE erläutern (3 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.1.3 – Inkonsistenz am Beispiel erläutern (abgeleitete Felder) (2 BE)"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2018 -->
+        <tr>
+          <td class="ytd-year">2018</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Anomalienthema"></span>
+            <span class="dy" title="B: 1.3.1 – Redundanzen/Inkonsistenzen zeigen, alle drei Anomalienarten mit Beispiel (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 1.1 – ERM in 3NF überführen und Entscheidungen begründen (7 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.2.5 – SQL INSERT mit Unterabfrage analysieren (Aufbau + inhaltliche Bedeutung) (5 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1.1 – Relationales Datenbankmodell beschreiben, mind. 1 Vor-/Nachteil (3 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+        </tr>
+
+        <!-- 2017 -->
+        <tr>
+          <td class="ytd-year">2017</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.2 – Anomalien der Relation Projekt nennen + je ein Beispiel (3 BE)"></span>
+            <span class="dn" title="B: kein Anomalienthema"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.4.1 – Neues ERM-Modell mit Relationen vergleichen (NF-Einhaltung) (3 BE)"></span>
+            <span class="dy" title="B: 2.3 – Relationen auf 3NF untersuchen, veränderte Relationen angeben (5 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.1 – 1./2./3. Normalform beschreiben und Relationen auf NF prüfen (4 BE)"></span>
+            <span class="dy" title="B: 2.3 – 3NF untersuchen als Beschreibung (5 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.2.4 – SQL SELECT mit mehrfachem JOIN erläutern (Aufbau + Bedeutung) (3 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.5 – Zwei Spezialisierungsvarianten zeigen und Vor-/Nachteile diskutieren (5 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 2.3 – n:m-Beziehung zwischen Mitarbeiter und Projekt beschreiben + Rolle der Zwischentabelle erörtern (3 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2016 -->
+        <tr>
+          <td class="ytd-year">2016</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: 1.3.2 betrifft abgeleitete Felder / 3NF, nicht klassische Anomalienanalyse"></span>
+            <span class="dy" title="B: 2.4.1 – Redundanzen und Anomalien analysieren (4 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.4.2 – Tabelle schrittweise in 3NF überführen und jeden Schritt begründen (10 BE)"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: 2.4.2 – Im Rahmen der Normalisierung: 1NF/2NF/3NF definieren und anwenden (10 BE)"></span>
+          </div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col"><span class="dn"></span><span class="dn"></span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: 1.1.1 – Möglichkeiten der 1:1-Beziehung im rel. Modell nennen und begründet entscheiden (3 BE) | 1.3.2 – Stellung nehmen zu abgeleiteten Feldern / Redundanz (2 BE)"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DETAIL TABLE -->
+<div class="section">
+  <h2>Themenübersicht — Häufigkeit, Schwierigkeit &amp; Erwartungsniveau</h2>
+  <div class="section-desc">Alle Themen mit Häufigkeit, typischer Bepunktung und dem, was das Abitur konkret erwartet</div>
+  <div class="table-wrap-dt">
+    <table class="dtable">
+      <thead>
+        <tr>
+          <th style="width:220px">Thema</th>
+          <th style="width:90px">Schwierigkeit</th>
+          <th style="width:80px">Bepunktung</th>
+          <th style="width:80px">Häufigkeit</th>
+          <th>Was das Abitur erwartet</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Redundanzen &amp; Anomalien</div>
+            <div class="dt-sub">Analysieren, Beschreiben, Beispiele angeben</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p2"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Niedrig</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">3–5 BE</span></td>
+		  <td>
+            <span class="pill pill-r">PFLICHT</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">14/23 VschlL<br>10/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Tabelle auf <strong>Redundanzen</strong> (gleiche Daten mehrfach) und <strong>Inkonsistenzen</strong> (widersprüchliche Einträge) analysieren. Alle <strong>drei Anomalienarten</strong> benennen und jeweils mit einem konkreten Beispiel aus der gegebenen Tabelle belegen:
+            <ul>
+              <li><strong>Änderungsanomalie:</strong> Änderung muss an mehreren Stellen durchgeführt werden → Inkonsistenz möglich</li>
+              <li><strong>Löschanomalie:</strong> Datensatz löschen führt zu ungewolltem Informationsverlust</li>
+              <li><strong>Einfügeanomalie:</strong> Neuer Datensatz nur mit NULL-Werten einfügbar</li>
+            </ul>
+            Bonus-Punkte: <strong>Wiederholungsgruppen</strong> und <strong>nicht-atomare Werte</strong> als weitere Strukturprobleme benennen (falls vorhanden).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">ERM → Relationales Modell</div>
+            <div class="dt-sub">Überführen + Begründen (inkl. 3NF)</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p3"></div><div class="pip p3"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Mittel</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">5–10 BE</span></td>
+		  <td>
+            <span class="pill pill-r">SEHR HÄUFIG</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">12/23 Vschl.<br>8/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Das Ergebnis ist eine Menge von Relationen in der Schreibweise <code>Relation(PK, Attribut, FK#)</code>. Die <strong>Begründung</strong> ist mindestens genauso wichtig wie das Ergebnis. Erwartet wird:
+            <ul>
+              <li>Jeder Entitätstyp wird zur Tabelle</li>
+              <li>1:n → PK der 1-Seite wird FK auf der n-Seite</li>
+              <li>n:m → neue Beziehungsmengenrelation mit PKs beider Seiten als FKs</li>
+              <li>1:1 → FK in eine der beiden Tabellen (begründete Wahl)</li>
+              <li>Nachweis der 3NF: keine nicht-atomaren Werte, keine partiellen/transitiven Abhängigkeiten</li>
+            </ul>
+            Hinweis: Das Transformieren selbst (Zeichnen) ist eine eigene Seite — hier geht es um die textliche Begründung.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Normalform beschreiben / prüfen</div>
+            <div class="dt-sub">1NF, 2NF, 3NF definieren und anwenden</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p3"></div><div class="pip p3"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Mittel</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">2–5 BE</span></td>
+          <td>
+            <span class="pill pill-o">HÄUFIG</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">7/23 Vschl.<br>6/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Entweder <strong>Definitionen rein beschreiben</strong> (mit Vor-/Nachteilen, 2025A) oder <strong>auf konkrete Relationen prüfen</strong> (2017A). Je nach Aufgabenstellung:
+            <ul>
+              <li><strong>1NF:</strong> Alle Attributwerte atomar, keine Wiederholungsgruppen, eindeutiger PK</li>
+              <li><strong>2NF:</strong> In 1NF + alle Nichtschlüsselattribute voll funktional vom gesamten PK abhängig (nur relevant bei zusammengesetztem PK)</li>
+              <li><strong>3NF:</strong> In 2NF + keine transitiven Abhängigkeiten (kein Nichtschlüsselattribut hängt über ein anderes von PK ab)</li>
+            </ul>
+            Wenn Vor-/Nachteile gefragt: Verbesserte Integrität und Vermeidung von Anomalien (Pro) vs. mehr Tabellen, komplexere JOINs, Performanceverlust (Contra).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">SQL-Anweisung erläutern</div>
+            <div class="dt-sub">Aufbau analysieren + Bedeutung beschreiben</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p2"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Niedrig–Mittel</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">3–6 BE</span></td>
+          <td>
+            <span class="pill pill-o">HÄUFIG</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">6/23 Vschl.<br>6/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Immer <strong>zwei Teile</strong>: (1) strukturelle Analyse jeder Klausel, (2) inhaltliche Bedeutung (was liefert die Abfrage?). Typische Klauseln im Abitur: <code>SELECT</code>, <code>FROM</code>, <code>WHERE</code>, <code>JOIN … ON</code>, <code>GROUP BY</code>, <code>HAVING</code>, <code>ORDER BY</code>, <code>IN</code>, <code>LIKE</code>, Unterabfragen. Seit 2023 auch Aufgaben zur <strong>Erörterung</strong> (ist die Anweisung korrekt? Warum nicht? Verbesserung formulieren) und zur Beschreibung von <strong>Komplikationen</strong> (z.B. Löschweitergabe bei DELETE).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">ERM-Notationselemente</div>
+            <div class="dt-sub">Darstellung + Funktion beschreiben</div>
+          </td>
+		  <td>
+            <div class="pips"><div class="pip p1"></div><div class="pip p0"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Sehr niedrig</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">3–6 BE</span></td>
+          <td>
+            <span class="pill pill-y">MITTEL</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">3/23 Vschl.<br>3/10 Jahre</span>
+          </td>
+		  <td class="dt-note">
+            Alle fünf Grundbausteine beschreiben (Form + Bedeutung), immer mit Bezug auf das konkrete Szenario-ERM:
+            <strong>Rechteck</strong> (Entitätstyp), <strong>Ellipse</strong> (Attribut), <strong>Raute</strong> (Beziehungstyp), <strong>Linie</strong> (Verbindung), <strong>Unterstreichung</strong> (Primärschlüssel/Schlüsselattribut). Dazu: <strong>Kardinalität</strong> in [min,max]-Notation und ggf. <strong>Dreieck</strong> (is-a / Generalisierung). Oft mit Verwendungszweck des ERM (konzeptioneller Entwurf, Anforderungsanalyse).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Spezialisierung (is-a)</div>
+            <div class="dt-sub">3 Varianten diskutieren + Entscheidung</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p3"></div><div class="pip p3"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-dim)">Mittel</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">5–6 BE</span></td>
+          <td>
+            <span class="pill pill-y">MITTEL</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">3/23 Vschl.<br>3/10 Jahre</span>
+          </td>
+		  <td class="dt-note">
+            Immer <strong>alle drei Möglichkeiten</strong> angeben (Relationen notieren), dann je Vor- und Nachteil, dann begründete Entscheidung:
+            <ul>
+              <li><strong>M1 – Eine Tabelle:</strong> Alle Attribute in einer Relation → einfach, aber viele NULL-Werte, nicht speichereffizient</li>
+              <li><strong>M2 – Nur Untertypen:</strong> Je eine Relation pro Untertyp mit allen Attributen → einfacher Zugriff, aber doppelte Attribute + ID-Kollisionen möglich</li>
+              <li><strong>M3 – Drei Relationen:</strong> Obertyp + je Untertyp-Relation mit FK (= PK des Obertyps) → systematisch, keine NULL-Werte, aber komplexere JOINs</li>
+            </ul>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Relationales Datenbankmodell</div>
+            <div class="dt-sub">Beschreiben + Vor-/Nachteile</div>
+          </td>
+		  <td>
+            <div class="pips"><div class="pip p1"></div><div class="pip p0"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Sehr niedrig</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">3–4 BE</span></td>
+          <td>
+            <span class="pill pill-y">MITTEL</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">3/23 Vschl.<br>3/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Tabellenbasiertes Modell: <strong>Relation = Tabelle</strong>, Zeile = Tupel (Datensatz), Spalte = Attribut. Primärschlüssel identifiziert Tupel eindeutig, Fremdschlüssel realisiert Beziehungen. <strong>Vorteil:</strong> Einfaches Modell, Datenunabhängigkeit durch Kapselung. <strong>Nachteil:</strong> Objekte werden aufgeteilt → komplexe, JOIN-intensive Abfragen, Performanceprobleme. Manchmal auch Vergleich mit OOP-Beziehungen gefragt.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Referentielle Integrität</div>
+            <div class="dt-sub">Definition + RESTRICT / CASCADE</div>
+          </td>
+		  <td>
+            <div class="pips"><div class="pip p2"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Niedrig</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">3–4 BE</span></td>
+          <td>
+            <span class="pill pill-b">SELTEN</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">2/23 Vschl.<br>2/10 Jahre</span>
+          </td>
+          <td class="dt-note">
+            Definition: Alle Werte eines Fremdschlüssels müssen als Primärschlüsselwert in der referenzierten Tabelle vorhanden sein. Integrität = vollständig, korrekt, widerspruchsfrei. <strong>RESTRICT:</strong> Löschen/Ändern verboten, solange abhängige Datensätze existieren. <strong>CASCADE:</strong> Löschen/Ändern zieht automatisch alle abhängigen Datensätze mit.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="dt-topic">Sonderaufgaben</div>
+            <div class="dt-sub">ACID, 3-Schichten, Transformationsregeln, Sonstiges</div>
+          </td>
+          <td>
+            <div class="pips"><div class="pip p2"></div><div class="pip p2"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div></div>
+            <span style="font-size:11px;color:var(--text-muted)">Niedrig–Mittel</span>
+          </td>
+          <td><span style="font-family:var(--mono);font-size:12px;">2–6 BE</span></td>
+          <td>
+            <span class="pill pill-g">SELTEN</span><br>
+            <span style="font-size:11px;color:var(--text-muted)">~5/23 Vschl.<br>3/10 Jahre</span>
+          </td>
+		  <td class="dt-note">
+            Selten, aber bei Auftauchen oft überraschend. Bekannte Sonderthemen:
+            <ul>
+              <li><strong>ACID (2021A):</strong> Atomicity, Consistency, Isolation, Durability je in 1–2 Sätzen beschreiben</li>
+              <li><strong>3-Schichten-Architektur (2020A):</strong> Externe, konzeptionelle, interne Ebene beschreiben + Vorteil der Trennung</li>
+              <li><strong>Transformationsregeln (2023A, 2025B):</strong> Die vier Standard-Transformationsregeln ERM→Relational nennen</li>
+              <li><strong>Inkonsistenz / abgeleitete Felder / Referenztabellen:</strong> Einzelne punktuelle Aufgaben</li>
+            </ul>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- LEARN CARDS -->
+<div class="section">
+  <h2>Lernleitfaden — Was wie gelernt werden muss</h2>
+  <div class="section-desc">Detaillierte Vorbereitung auf jede Aufgabenart: Musterlösungsstruktur, Standardformulierungen und Schlüsselwörter</div>
+  <div class="learn-grid">
+
+    <!-- CARD 1: ANOMALIEN -->
+    <div class="learn-card full-width">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">Redundanzen &amp; Anomalien — Das absolute Pflichtthema</div>
+          <div class="learn-card-subtitle">100 % der Jahrgänge · 61 % der Vorschläge · Prio: KRITISCH</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Definitionen auswendig lernen</div>
+          <ul>
+            <li><strong>Redundanz:</strong> Gleiche Daten werden mehrfach gespeichert. Redundante Daten können entfernt werden, ohne dass Informationen verloren gehen.</li>
+            <li><strong>Inkonsistenz:</strong> Widersprüchliche Daten in einer Datenbank (z.B. gleiche Person mit zwei verschiedenen Adressen). Entsteht häufig durch nicht konsequent gepflegte Redundanzen.</li>
+            <li><strong>Anomalie:</strong> Ein Problem, das durch eine fehlerhafte Datenbankstruktur (Redundanz) entsteht und zu Inkonsistenzen führen kann.</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Die drei Anomalienarten — immer alle drei nennen</div>
+          <div class="formula-box">
+            <span class="hl">Änderungsanomalie:</span> Wenn [Eigenschaft X] geändert werden soll, muss dies an <span class="hlg">mehreren Stellen</span> in der Tabelle geändert werden. Geschieht dies nicht konsequent, entstehen inkonsistente Daten.<br><br>
+            <span class="hl">Löschanomalie:</span> Wenn [Datensatz Y] gelöscht wird, gehen auch die Informationen zu [Entität Z] <span class="hlr">unbeabsichtigt verloren</span>, obwohl diese noch benötigt werden.<br><br>
+            <span class="hl">Einfügeanomalie:</span> Ein neuer [Datensatz W] kann nur eingefügt werden, wenn bereits [Pflichtfeld V] vorhanden ist — andernfalls entstehen <span class="hlg">NULL-Werte</span>.
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Struktur einer guten Antwort (Reihenfolge einhalten)</div>
+          <ul>
+            <li><strong>Schritt 1 — Redundanzen benennen:</strong> Konkret angeben, welcher Wert mehrfach vorkommt (z.B. „Der Name des Betreuers wird für jeden Schüler erneut gespeichert").</li>
+            <li><strong>Schritt 2 — Inkonsistenz erwähnen:</strong> Falls in der Tabelle erkennbar (z.B. Schreibfehler bei Herstellernamen), explizit benennen.</li>
+            <li><strong>Schritt 3 — Nicht-atomare Werte / Wiederholungsgruppen:</strong> Wenn Felder mehrere Werte enthalten (z.B. „Thomas Müller, Lisa Schmidt" in einer Zelle), als separates Problem benennen.</li>
+            <li><strong>Schritt 4 — Alle drei Anomalien mit Beispiel:</strong> Jede Anomalie am konkreten Szenario illustrieren. Nie abstrakt bleiben.</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">Redundanz</span>
+            <span class="kw must">Inkonsistenz</span>
+            <span class="kw must">Änderungsanomalie</span>
+            <span class="kw must">Löschanomalie</span>
+            <span class="kw must">Einfügeanomalie</span>
+            <span class="kw hot">NULL-Wert</span>
+            <span class="kw hot">mehrfach gespeichert</span>
+            <span class="kw hot">Informationsverlust</span>
+            <span class="kw hot">nicht atomar</span>
+            <span class="kw">Wiederholungsgruppe</span>
+            <span class="kw">inkonsistenter Datenbestand</span>
+            <span class="kw">unbeabsichtigt</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 2: NORMALFORMEN -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">Normalformen — 1NF, 2NF, 3NF</div>
+          <div class="learn-card-subtitle">60 % der Jahrgänge · 30 % der Vorschläge · Prio: HOCH</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Definitionen — exakt und vollständig</div>
+          <div class="formula-box">
+            <span class="hl">1NF:</span> Alle Attributwerte sind <span class="hlg">atomar</span> (unteilbar). Keine Wiederholungsgruppen. Jeder Datensatz ist durch einen Primärschlüssel eindeutig identifizierbar.<br><br>
+            <span class="hl">2NF:</span> Relation ist in 1NF <span class="hlb">und</span> alle Nichtschlüsselattribute sind <span class="hlg">voll funktional vom gesamten Primärschlüssel abhängig</span>. (Partielle Abhängigkeit von einem Teil des zusammengesetzten PKs ist verboten.)<br><br>
+            <span class="hl">3NF:</span> Relation ist in 2NF <span class="hlb">und</span> kein Nichtschlüsselattribut ist <span class="hlr">transitiv</span> vom Primärschlüssel abhängig. (Kein Nichtschlüsselattribut hängt indirekt über ein anderes Nichtschlüsselattribut vom PK ab.)
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Vor-/Nachteile der Normalisierung (2025A: 2 BE)</div>
+          <ul>
+            <li><strong>Vorteile:</strong> Keine Redundanzen → keine Anomalien; verbesserte Datenintegrität; Änderungen nur an einer Stelle nötig; weniger Speicherplatz</li>
+            <li><strong>Nachteile:</strong> Mehr Tabellen → komplexere JOINs; Leistungseinbußen bei Leseabfragen; höherer Verwaltungsaufwand (Fremdschlüssel); weniger Flexibilität</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Wie eine Relation prüfen (2017A-Stil)</div>
+          <p>Immer von 1NF nach 3NF prüfen. Für jede NF: Bedingung nennen → prüfen ob erfüllt → Verstoß konkret benennen (z.B. „Relation X verletzt die 1NF, weil das Feld Adresse nicht atomar ist").</p>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">atomar</span>
+            <span class="kw must">voll funktional abhängig</span>
+            <span class="kw must">transitiv abhängig</span>
+            <span class="kw hot">partiell abhängig</span>
+            <span class="kw hot">zusammengesetzter PK</span>
+            <span class="kw hot">Nichtschlüsselattribut</span>
+            <span class="kw">Wiederholungsgruppe</span>
+            <span class="kw">Normalisierung</span>
+            <span class="kw">Redundanzfreiheit</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 3: SQL ERLÄUTERN -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">SQL-Anweisung erläutern / analysieren</div>
+          <div class="learn-card-subtitle">60 % der Jahrgänge · 26 % der Vorschläge · Prio: HOCH</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Pflichtstruktur der Antwort</div>
+          <div class="formula-box">
+            <span class="hl">1. Aufbau erklären:</span> Jede Klausel einzeln erklären (was tut sie syntaktisch?)<br>
+            <span class="hl">2. Bedeutung angeben:</span> Was liefert die Anweisung inhaltlich? (Wen/Was/Wie viele…)
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Klauseln die im Abitur vorkommen — Formulierungen</div>
+          <ul>
+            <li><strong>JOIN … ON:</strong> „Verknüpft Tabelle A mit Tabelle B über die Bedingung PK = FK. Es werden nur Datensätze ausgegeben, für die die Verbindung besteht."</li>
+            <li><strong>LEFT JOIN:</strong> „Alle Datensätze der linken Tabelle werden ausgegeben — auch wenn kein passender Eintrag in der rechten Tabelle existiert (dann NULL)."</li>
+            <li><strong>GROUP BY:</strong> „Fasst Datensätze mit identischen Werten in den genannten Spalten zu Gruppen zusammen."</li>
+            <li><strong>HAVING:</strong> „Filtert Gruppen (aus GROUP BY) nach einer Bedingung — analog zu WHERE, aber auf Gruppenebene."</li>
+            <li><strong>IN (Liste):</strong> „Prüft, ob der Spaltenwert in der angegebenen Liste enthalten ist."</li>
+            <li><strong>LIKE '%…%':</strong> „Prüft auf Musterübereinstimmung; % steht für beliebige Zeichen."</li>
+            <li><strong>COUNT(*):</strong> „Zählt die Anzahl der Datensätze in der Gruppe."</li>
+            <li><strong>Unterabfrage (Subquery):</strong> „Innere SELECT-Anweisung wird zuerst ausgewertet; ihr Ergebnis wird in der äußeren Abfrage verwendet."</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Neuer Aufgabentyp: Erörtern / Komplikationen</div>
+          <ul>
+            <li><strong>Erörtern (2023A):</strong> Ist die gegebene SQL korrekt? → Kartesisches Produkt bei fehlendem JOIN erkennen, LEFT JOIN bei Bedarf erklären.</li>
+            <li><strong>Komplikationen bei DELETE (2025B):</strong> Löschweitergabe beschreiben: Zuerst alle FK-abhängigen Datensätze löschen, dann erst den Datensatz selbst.</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">JOIN</span>
+            <span class="kw must">GROUP BY</span>
+            <span class="kw must">HAVING</span>
+            <span class="kw hot">LEFT JOIN</span>
+            <span class="kw hot">Unterabfrage</span>
+            <span class="kw hot">kartesisches Produkt</span>
+            <span class="kw hot">Löschweitergabe</span>
+            <span class="kw">ORDER BY</span>
+            <span class="kw">COUNT / SUM</span>
+            <span class="kw">LIKE</span>
+            <span class="kw">IN</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 4: ERM NOTATION -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">ERM-Notationselemente beschreiben</div>
+          <div class="learn-card-subtitle">30 % der Jahrgänge · 13 % der Vorschläge · Prio: MITTEL</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Alle Elemente — Form + Funktion + Beispiel</div>
+          <ul>
+            <li><strong>Rechteck → Entitätstyp:</strong> Kategorisiert gleichartige Entitäten mit denselben Eigenschaften. Beispiel: „Kunde", „Produkt".</li>
+            <li><strong>Ellipse → Attribut:</strong> Charakterisiert einen Entitätstyp oder Beziehungstyp. Unterstrichenes Attribut = Primärschlüssel (Schlüsselattribut).</li>
+            <li><strong>Raute → Beziehungstyp:</strong> Abstraktion gleichartiger Beziehungen zwischen Entitätstypen. Kann selbst Attribute besitzen.</li>
+            <li><strong>Linie → Verbindung:</strong> Verbindet Attribute mit Entitäts-/Beziehungstypen sowie Beziehungstypen mit Entitätstypen.</li>
+            <li><strong>[min,max]-Notation → Kardinalität:</strong> Legt fest, wie viele Entitäten einer Menge mit wie vielen einer anderen in Beziehung stehen können/müssen. min=0 = Kann-Beziehung, min≥1 = Muss-Beziehung.</li>
+            <li><strong>Dreieck → is-a (Generalisierung/Spezialisierung):</strong> Untertypen erben alle Attribute des Obertyps und ergänzen eigene spezifische Attribute.</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Verwendungszweck des ERM</div>
+          <p>Grafische Veranschaulichung des konzeptionellen Entwurfs einer Datenbank. Eingesetzt nach der Anforderungsanalyse zur übersichtlichen Darstellung der Datenstruktur und Beziehungen, unabhängig von der konkreten Implementierung.</p>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">Entitätstyp</span>
+            <span class="kw must">Attribut</span>
+            <span class="kw must">Beziehungstyp</span>
+            <span class="kw must">Kardinalität</span>
+            <span class="kw must">Primärschlüssel</span>
+            <span class="kw hot">Schlüsselattribut</span>
+            <span class="kw hot">Kann-/Muss-Beziehung</span>
+            <span class="kw hot">Generalisierung</span>
+            <span class="kw">Spezialisierung</span>
+            <span class="kw">konzeptionell</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 5: SPEZIALISIERUNG -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">Spezialisierung (is-a) — 3 Varianten</div>
+          <div class="learn-card-subtitle">30 % der Jahrgänge · 13 % der Vorschläge · Prio: MITTEL</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Die drei Möglichkeiten (immer alle drei)</div>
+          <ul>
+            <li><strong>M1 — Eine Tabelle (flach):</strong> Alle Attribute des Obertyps und aller Untertypen in eine einzige Relation. <em>Vorteil: nur eine Tabelle, keine JOINs. Nachteil: viele NULL-Werte, nicht speichereffizient.</em></li>
+            <li><strong>M2 — Nur Untertypen:</strong> Für jeden Untertyp eine eigene Tabelle mit allen Attributen (inkl. der des Obertyps). Kein Obertyp als Tabelle. <em>Vorteil: einfacher Attributzugriff ohne JOIN. Nachteil: Attribute des Obertyps werden dupliziert; IDs können in mehreren Tabellen gleich sein (kein zentrales Verzeichnis).</em></li>
+            <li><strong>M3 — Obertyp + Untertypen:</strong> Obertyp als eigene Tabelle, Untertypen als eigene Tabellen mit dem PK des Obertyps als FK (und zugleich PK). <em>Vorteil: systematisch, keine Duplizierung, keine NULL-Werte. Nachteil: Navigation über JOINs für vollständige Datensätze erforderlich.</em></li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Entscheidung begründen — Formel</div>
+          <p>„Die Entscheidung fällt zugunsten von Möglichkeit X, da [Vorteil von X]. Der Nachteil [Nachteil von X] fällt nicht stark ins Gewicht, weil [Kontext-Begründung]."</p>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">Spezialisierung</span>
+            <span class="kw must">Generalisierung</span>
+            <span class="kw must">NULL-Werte</span>
+            <span class="kw hot">Obertyp / Untertyp</span>
+            <span class="kw hot">Fremdschlüssel = Primärschlüssel</span>
+            <span class="kw hot">JOIN</span>
+            <span class="kw">speichereffizient</span>
+            <span class="kw">ID-Kollision</span>
+            <span class="kw">Navigation</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 6: ERM TRANSFORMATION -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">ERM → Rel. Modell: Begründen &amp; Transformationsregeln</div>
+          <div class="learn-card-subtitle">80 % der Jahrgänge · 52 % der Vorschläge · Prio: SEHR HOCH</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Die 4 Standard-Transformationsregeln (auswendig!)</div>
+          <ul>
+            <li><strong>R1:</strong> Jeder Entitätstyp wird als Relation dargestellt. Jede Relation benötigt einen Primärschlüssel.</li>
+            <li><strong>R2 — 1:n:</strong> Der PK des Entitätstyps auf der 1-Seite wird Fremdschlüssel des Entitätstyps auf der n-Seite.</li>
+            <li><strong>R3 — n:m:</strong> Die Beziehung wird zu einer eigenen Beziehungsmengenrelation. Beide PKs der beteiligten Entitätstypen werden FKs darin; zusammen bilden sie meist den PK.</li>
+            <li><strong>R4 — Beziehungsattribute:</strong> Attribute einer Beziehung wandern in die Tabelle, in der der FK entsteht (n-Seite bei 1:n; Beziehungsrelation bei n:m).</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Begründungsformel beim Überführen</div>
+          <div class="formula-box">
+            „Alle Entitätstypen werden mit ihren Attributen in Relationen überführt. [Atomarität] muss zur Einhaltung der 1NF aufgespalten werden. Bei der 1:n-Beziehung [Name] wird der PK der 1-Relation ([Attr.]) als FK in die n-Relation aufgenommen. Die n:m-Beziehung [Name] wird durch eine eigene Beziehungsmengenrelation realisiert. Die Nicht-Schlüsselattribute sind vollständig vom PK abhängig und es existieren keine transitiven Abhängigkeiten — die 3NF ist eingehalten."
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">Primärschlüssel (PK)</span>
+            <span class="kw must">Fremdschlüssel (FK)</span>
+            <span class="kw must">Beziehungsmengenrelation</span>
+            <span class="kw hot">voll funktional abhängig</span>
+            <span class="kw hot">1:n-Beziehung</span>
+            <span class="kw hot">n:m-Beziehung</span>
+            <span class="kw hot">atomar</span>
+            <span class="kw">Relation(PK, Attr., FK#)</span>
+            <span class="kw">3. Normalform</span>
+            <span class="kw">Zwischentabelle</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 7: SONDERAUFGABEN -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">Rel. Datenbankmodell &amp; Referentielle Integrität</div>
+          <div class="learn-card-subtitle">30 % / 20 % der Jahrgänge · Prio: MITTEL</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Relationales Datenbankmodell — Vollständige Beschreibung</div>
+          <p>„Das relationale Datenbankmodell ist tabellenbasiert. Eine relationale Datenbank besteht aus einer Sammlung von Tabellen (Relationen). Jede Zeile ist ein <strong>Tupel</strong> (Datensatz), jede Spalte ein <strong>Attribut</strong>. Das Tupel wird durch den <strong>Primärschlüssel</strong> eindeutig identifiziert. <strong>Fremdschlüssel</strong> realisieren Beziehungen zwischen Tabellen."</p>
+          <p><strong>Vorteil:</strong> Einfaches, leicht verständliches Modell; <strong>Datenunabhängigkeit</strong> durch Kapselung der physikalischen Datenspeicherung.</p>
+          <p><strong>Nachteil:</strong> Objekte werden auf viele Tabellen aufgeteilt → komplexe, JOIN-intensive Abfragen, mögliche <strong>Performanceprobleme</strong>.</p>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Referentielle Integrität + RESTRICT / CASCADE</div>
+          <p><strong>Definition:</strong> Alle Attributwerte eines Fremdschlüssels müssen als Primärschlüsselwerte in der referenzierten Tabelle vorhanden sein. Ein FK darf nie auf einen nicht existierenden Datensatz zeigen.</p>
+          <ul>
+            <li><strong>RESTRICT:</strong> Löschen oder Ändern eines Datensatzes wird verhindert, solange in der abhängigen Tabelle FK-Einträge auf ihn zeigen.</li>
+            <li><strong>CASCADE:</strong> Löschen oder Ändern eines Datensatzes wird durchgeführt und automatisch auf alle abhängigen Datensätze übertragen (Löschweitergabe).</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw must">Tupel</span>
+            <span class="kw must">Attribut</span>
+            <span class="kw must">Relation</span>
+            <span class="kw must">referentielle Integrität</span>
+            <span class="kw hot">Datenunabhängigkeit</span>
+            <span class="kw hot">RESTRICT</span>
+            <span class="kw hot">CASCADE</span>
+            <span class="kw">Kapselung</span>
+            <span class="kw">Löschweitergabe</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD 8: ACID / 3-SCHICHTEN -->
+    <div class="learn-card">
+      <div class="learn-card-header">
+        <div>
+          <div class="learn-card-title">ACID-Eigenschaften &amp; 3-Schichten-Architektur</div>
+          <div class="learn-card-subtitle">Selten — je 10 % der Jahrgänge · Prio: NIEDRIG (aber lernbar)</div>
+        </div>
+      </div>
+      <div class="learn-card-body">
+
+        <div class="learn-section">
+          <div class="learn-section-title">Transaktionen &amp; ACID (2021A, 6 BE gesamt)</div>
+          <p><strong>Transaktion:</strong> Eine Gruppe logisch zusammengehörender SQL-Anweisungen, die nur gemeinsam ausgeführt werden. Bei Fehler: vollständiger Rollback in den Ausgangszustand.</p>
+          <ul>
+            <li><strong>Atomicity (Atomarität):</strong> Alles oder nichts — entweder alle Operationen der Transaktion werden ausgeführt oder keine.</li>
+            <li><strong>Consistency (Konsistenz):</strong> Die Datenbank befindet sich vor und nach der Transaktion in einem konsistenten Zustand (Integritätsbedingungen eingehalten).</li>
+            <li><strong>Isolation:</strong> Gleichzeitig ablaufende Transaktionen beeinflussen sich nicht gegenseitig (Daten werden gesperrt).</li>
+            <li><strong>Durability (Dauerhaftigkeit):</strong> Erfolgreich abgeschlossene Transaktionen sind dauerhaft gespeichert — auch bei Systemausfall.</li>
+          </ul>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">3-Schichten-Architektur (ANSI/SPARC) (2020A, 4 BE)</div>
+          <ul>
+            <li><strong>Externe Ebene:</strong> Benutzersicht — zeigt nur den für eine Benutzergruppe relevanten Ausschnitt der Daten.</li>
+            <li><strong>Konzeptionelle Ebene:</strong> Logische Gesamtsicht auf alle Daten und ihre Beziehungen; unabhängig von Hardware und Benutzergruppen.</li>
+            <li><strong>Interne Ebene:</strong> Physikalische Speicherung — Datentypen, Längen, Zugriffspfade auf Speichermedien.</li>
+          </ul>
+          <p><strong>Vorteil der Trennung:</strong> Datenunabhängigkeit — Änderungen in der internen Ebene haben keinen Einfluss auf Anwendungen; Änderungen in der konzeptionellen Ebene wirken sich nur kontrolliert aus.</p>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-section-title">Schlüsselwörter</div>
+          <div class="keyword-row">
+            <span class="kw hot">Atomarität</span>
+            <span class="kw hot">Konsistenz</span>
+            <span class="kw hot">Isolation</span>
+            <span class="kw hot">Dauerhaftigkeit</span>
+            <span class="kw">Rollback</span>
+            <span class="kw">Transaktion</span>
+            <span class="kw hot">externe Ebene</span>
+            <span class="kw hot">konzeptionelle Ebene</span>
+            <span class="kw hot">interne Ebene</span>
+            <span class="kw">Datenunabhängigkeit</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ANALYSIS SUMMARY -->
+<h2 style="margin-top:40px;">Zusammenfassende Prüfungsanalyse</h2>
+<div class="section-desc" style="margin-bottom:16px;">Das Wesentliche auf einen Blick — Muster, Erwartungsniveau, Signalwörter und Vorbereitung</div>
+
+<div class="analysis-grid">
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Kernmuster der SQL-Ausarbeitungsaufgaben</div>
+    <div class="analysis-card-body">
+      SQL-Ausarbeitungsaufgaben folgen einem <strong>stabilen Trio</strong>: Fast jeder Vorschlag enthält eine Aufgabe zu <strong>Redundanzen &amp; Anomalien</strong> (100 % aller Jahrgänge) und eine zur <strong>ERM-Transformation mit Begründung</strong> (80 %). In 60 % der Jahrgänge kommt zusätzlich eine Aufgabe zur <strong>SQL-Anweisung</strong> oder zu den <strong>Normalformen</strong>. Wer diese drei Bereiche beherrscht, deckt die große Mehrheit der Ausarbeitungspunkte ab.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Erwartetes Wissensniveau</div>
+    <div class="analysis-card-body">
+      Das Abitur erwartet <strong>konzeptionelles Verständnis</strong> und korrekte Fachsprache — keine Details, die über den Unterrichtsstoff hinausgehen. Definitionen müssen <strong>präzise und vollständig</strong> sein (z.B. alle drei Anomalienarten). Für die Anomalien-Aufgabe reicht Standardwissen. Bei Normalformen und Transformation wird erwartet, dass man <strong>am konkreten Szenario begründen</strong> kann — reine Definitionen ohne Anwendung auf das Beispiel werden nur teilweise bewertet.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Signalwörter in der Aufgabenstellung</div>
+    <div class="analysis-card-body">
+      <strong>„Analysieren Sie die Tabelle…"</strong> → Immer: Redundanzen benennen, alle 3 Anomalien mit Beispiel<br>
+      <strong>„Beschreiben Sie die Normalform…"</strong> → Definition + Prüfung am Modell<br>
+      <strong>„Begründen Sie Ihre Entscheidungen"</strong> → Transformationsregeln und NF-Nachweis explizit ausformulieren<br>
+      <strong>„Erläutern Sie Aufbau und Bedeutung…"</strong> → Zwei-Teil-Antwort: Struktur + Inhalt<br>
+      <strong>„Diskutieren Sie…"</strong> → Alle Varianten mit Vor- und Nachteilen, danach eigene Entscheidung mit Begründung
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Bearbeitungszeit &amp; Umfang</div>
+    <div class="analysis-card-body">
+      Aufgaben mit <strong>2–3 BE</strong>: 3–5 Sätze, ca. 3–5 Min.<br>
+      Mit <strong>4–5 BE</strong>: 1–2 strukturierte Absätze + Beispiel, ca. 6–10 Min.<br>
+      Mit <strong>6–8 BE</strong>: vollständige mehrteilige Antwort, ca. 10–15 Min.<br>
+      Orientierung: <strong>1 BE ≈ 1 korrekte, präzise inhaltliche Aussage</strong>. Für Anomalien-Aufgaben gilt: jede Anomalienart = ca. 1 BE. Für Normalformen: jede NF vollständig = ca. 1 BE.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Trends &amp; Prognose 2026</div>
+    <div class="analysis-card-body">
+      <strong>Redundanzen &amp; Anomalien</strong> waren in allen 10 Jahren — nahezu garantiert auch 2026.<br>
+      <strong>ERM-Transformation</strong> fehlte zuletzt 2025 (beide Vorschläge) — erhöhte Wahrscheinlichkeit für 2026.<br>
+      <strong>ERM-Notation</strong> in 3 der letzten 4 Jahre — wahrscheinlich auch 2026.<br>
+      <strong>SQL-Analyse</strong> taucht seit 2017 regelmäßig auf — weiterhin wahrscheinlich.<br>
+      <strong>ACID und 3-Schichten</strong> sind Einzelereignisse — möglich, aber nicht priorisieren.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Optimale Vorbereitung (Priorität)</div>
+    <div class="analysis-card-body">
+      <strong>Prio 1 (immer lernen):</strong> Anomalien-Definitionen + Standardformulierungen · ERM→Rel-Transformationsregeln · NF 1–3 präzise definieren · SQL-Klauseln erläutern können<br><br>
+      <strong>Prio 2 (sehr wahrscheinlich):</strong> ERM-Notationselemente + Verwendungszweck · Spezialisierung (alle 3 Varianten) · Begründungsformeln für NF-Nachweis<br><br>
+      <strong>Prio 3 (möglich):</strong> Rel. Datenbankmodell · Referentielle Integrität + RESTRICT/CASCADE · ACID-Eigenschaften · 3-Schichten-Architektur
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Datengrundlage: Offizielle Prüfungsvorschläge des hessischen Landesabiturs im Fach Praktische Informatik, Jahrgänge 2016–2025 · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">23 Vorschläge aus 10 Jahrgängen</a>
+</footer>
+
+</div>
+</body>
+</html>

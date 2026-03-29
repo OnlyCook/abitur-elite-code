@@ -1,0 +1,162 @@
+[ABI 2025 B]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Person (pid, name, gebDatum)
+Bändchen (bid, farbe, rfid)
+Aufbuchung (aid, datum, uhrzeit, betrag)
+Kauf (kid, datum, uhrzeit, anzahlGetraenke)
+Getränkestand (gsid, standort)
+Getränk (gid, bezeichnung, preis, liter)
+--- Assoziationen
+Person -(1,n)-trägt-(0,m)- Bändchen
+Bändchen -(1,1)-erhält-(1,n)- Aufbuchung
+Bändchen -(1,1)-bezahlt-(0,n)- Kauf
+Kauf -(0,n)-bei-(1,1)- Getränkestand
+Kauf -(0,n)-beinhaltet-(1,1)- Getränk
+--- Beziehungen mit Attributen
+trägt(von, bis)
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Person (pid, nachname, vorname, gebDatum)
+Baendchen (bid, farbe, rfid)
+traegt (pid#, bid#, von, bis)
+Aufbuchung (aid, datum, uhrzeit, betrag, bid#)
+Kauf (kid, datum, uhrzeit, anzahlGetraenke, bid#, gsid#, gid#)
+Getraenkestand (gsid, standort)
+Getraenk (gid, bezeichnung, preis, liter)
+
+[ABI 2025 A]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Mitarbeiter(mID, vor- und nachname)
+Bestellung(bID, datum)
+Position(pID, menge, ablaufdatum)
+Artikel(aID, bezeichnung, preis)
+Lager(lID, standort)
+--- Assoziationen
+Mitarbeiter -(1,n)-beteiligt-(0,m)- Bestellung
+Bestellung -(0,m)-füllt_auf-(0,n)- Lager
+Bestellung -(1,1)-enthält-(1,n)- Position
+Position -(0,n)-bezieht_sich_auf-(1,1)- Artikel
+Lager -(0,n)-entnimmt-(0,m)- Artikel
+--- Beziehungen mit Attributen
+entnimmt(datum, anzGenutzt, anzAbgelaufen)
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Mitarbeiter(mID, name, vorname)
+Bestellung(bID, datum)
+Mitarbeiter_Bestellung(mID#, bID#)
+Position(pID, menge, ablaufdatum, aID#, bID#)
+Artikel(aID, bezeichnung, preis)
+Lager(lID, standort)
+Bestellung_Lager (bID#, lID#)
+Lager_Artikel(datum, anzGenutzt, anzAbgelaufen, lID#, aID#)
+
+[ABI 2024 B]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Kunde (kid, vorname, name, adresse, telefon, email)
+Ticket (tid, status, sitzplatz)
+Gepäck (gid, gewicht)
+Flug (fid, preis, startZeit, endZeit)
+Flugzeug (aid, geschwindigkeit, sitze, modell)
+Fluggesellschaft (fgid, name, adresse, telefon, email)
+--- Assoziationen
+Kunde -(1,1)-bucht-(0,n)- Ticket
+Ticket -(1,1)-gehört_zu-(0,n)- Gepäck
+Ticket -(0,n)-reserviert-(1,1)- Flug
+Flug -(0,n)-durchgeführt-(1,1)- Flugzeug
+Flugzeug -(1,n)-gehört_zu-(1,1)- Fluggesellschaft
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Kunde (kid, vorname, name, adresse, telefon, email)
+Ticket (tid, status, sitzplatz, kid#, fid#)
+Gepäck (gid, gewicht, tid#)
+Flug (fid, preis, startZeit, endZeit, aid#)
+Flugzeug (aid, geschwindigkeit, sitze, modell, fgid#)
+Fluggesellschaft (fgid, name, adresse, telefon, email)
+
+[ABI 2024 A]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Chor(cID, name, land, adresse)
+Teilnahme(tID, anzahlPers, ankunft, abfahrt)
+Wettbewerb(wID, bezeichnung, land, beginn, ende)
+Kategorie(kID, bezeichnung)
+--- Assoziationen
+Chor -(1,1)-hat-(0,n)- Teilnahme
+Teilnahme -(0,m)-in-(0,28)- Kategorie
+Teilnahme -(0,n)-gehört_zu-(1,1)- Wettbewerb
+--- Beziehungen mit Attributen
+in(bewertung)
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Chor(cID, name, land, strasse, plz, ort)
+Teilnahme(tID, anzahlPers, ankunft, abfahrt, cID#, wID#)
+Wettbewerb(wID, bezeichnung, land, beginn, ende)
+Kategorie(kID, bezeichnung)
+Teilnahme_Kategorie(tID#, kID#, bewertung)
+
+[ABI 2023 C]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Spieler(sID, name, vorname, gebDat)
+Team(teamID, bewertMod)
+Canastaspiel(cSpielID, datum, startZeit, ort)
+Kartensatz(kID, bezeichnung, herkunft, kaufDat, preis)
+--- Assoziationen
+Spieler -(2,2)-gehört_zu-(0,n)- Team
+Team -(2,3)-nimmt_teil-(1,n)- Canastaspiel
+Kartensatz -(1,1)-wird_benötigt-(0,n)- Canastaspiel
+--- Beziehungen mit Attributen
+nimmt_teil(punktezahl)
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Spieler(sID, name, vorname, gebDat)
+Team(teamID, bewertMod, sNr1#, sNr2#)
+NimmtTeil(teamID#, cSpielID#, punktezahl)
+Canastaspiel(cSpielID, datum, startZeit, ort, kID#)
+Kartensatz(kID, bezeichnung, herkunft, kaufDat, preis)
+
+[ABI 2023 B]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Fahrer(fahrerNr, name, stundenlohn, iban)
+Taxi(wagenNr, kennzeichen)
+Einsatz(eID, beginn, ende)
+Auftrag(auftragNr, start, ende)
+Adresse(aID, strasse, plz, ort)
+Ortsteil(oID, bezeichnung)
+--- Assoziationen
+Fahrer -(1,1)-hat-(0,n)- Einsatz
+Taxi -(1,1)-fährt-(0,n)- Einsatz
+Einsatz -(1,1)-beinhaltet-(0,n)- Auftrag
+Auftrag -(1,n)-von-(1,1)- Adresse
+Auftrag -(1,n)-nach-(1,1)- Adresse
+Ortsteil -(1,1)-gehört_zu-(0,n)- Adresse
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Fahrer(fahrerNr, nachname, vorname, stundenlohn, iban)
+Taxi(wagenNr, kennzeichen)
+Einsatz(eID, beginn, ende, fahrerNr#, wagenNr#)
+Auftrag(auftragNr, start, ende, eID#, von#, nach#)
+Adresse(aID, strasse, plz, ort, oID#)
+Ortsteil(oID, bezeichnung)
+
+[ABI 2023 A]
+
+- Unnormalisiert (einfach vom ER-Diagramm ins relationale Datenmodell):
+Nutzer (benutzerName, passwort, email, zuletztAktiv)
+Beitrag (beitragid, erstelltAm, titel, text)
+Bild (bildid, dateiname)
+--- Assoziationen
+Nutzer -(1,1)-istAutor-(0,n)- Beitrag
+Nutzer -(0,n)-likes-(0,m)- Beitrag
+Beitrag -(0,m)-enthaelt-(1,n)- Bild
+
+- Normalisisert (3te Normalform, Lösung der Abiturprüfung):
+Nutzer (benutzerName, passwort, email, zuletztAktiv)
+Beitrag (beitragid, erstelltAm, titel, text, autor#)
+NutzerLikesBeitrag (benutzerName#, beitragid#, zeitstempel)
+Bild (bildid, dateiname)
+BeitragEnthaeltBild (beitragid#, bildid#)

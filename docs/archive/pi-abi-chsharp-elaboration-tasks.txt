@@ -1,0 +1,1489 @@
+--- [ABI 2016 A] ---
+
+# OOP
+
+2. Client-Server-Systementwicklung zur Abfrage intelligenter Stromzähler
+Intelligente Stromzähler messen den verbrauchten Strom in kWh und speichern ihn stundenweise,
+also 24 Werte pro Tag. Sind mehrere Stromzähler vorhanden, werden sie über eine serielle
+Schnittstelle mit einem Controller verbunden. Jeden Tag, um Mitternacht, ermittelt der Controller
+den Tagesverbrauch über alle Zähler nach Stunden und sendet diese 24 Werte an den Server des
+Energieversorgers. In Material 2 ist ein Klassendiagramm mit Hinweisen zur Implementierung
+dargestellt.
+
+2.6.1 Modellieren Sie notwendige Klassen und Assoziationen dieses Client-Server-Systems als
+Erweiterung des bestehenden UML-Klassendiagramms. Zeichnen Sie sowohl die Server- als
+auch die Client-Seite, einschließlich evtl. notwendiger get- und/oder set-Methoden. Beschreiben
+Sie die Aufgabe jeder ihrer Klassen und deren Methoden inklusive der notwendigen Parameter.
+(9 BE)
+
+## Loesung 2.6.1
+KundenClient:
+Der Kunde nutzt seinen Client, um sich mit dem KundenServer des Energieversorgers zu verbinden und seine Verbrauchswerte abzufragen.
+KundenServer:
+Der KundenServer horcht an seinem Port und nimmt Verbindungsanfragen von
+KundenClients entgegen. Hat er eine Verbindungsanfrage akzeptiert, erzeugt er
+einen AnfrageThread für diesen Kunden, da mehrere Kunden parallel Anfragen
+senden können.
+AnfrageThread:
+Der AnfrageThread erbt von Thread, überschreibt die run-Methode und wird
+damit in einem nebenläufigen Prozess ausgeführt. Die run-Methode übernimmt
+den Dialog mit dem KundenClient. Der Kunde kann seinen Verbrauch des aktuellen Monats und den des Vormonats abfragen, dafür stellt die Klasse Kunde
+Methoden zur Verfügung, getVerbrauchAktuellerMonat() und getVerbrauchVormonat(). Der AnfrageThread ruft diese Methoden auf und sendet
+die ermittelten Daten an den KundenClient. Am Ende des Dialogs schließt er die
+Verbindung zum Client.
+Hinweis: Andere Lösungen sind möglich. Die Methoden des Kunden-Clients
+können auch in einer Methode zusammengefasst sein.
+
+2.6.2 Der bereits bestehende Server und der neue Kunden-Server greifen beide auf Objekte der Klasse
+zu. Es kann passieren, dass ein Stromkunde seine Verbrauchsdaten abfragt; zur selben
+Kunde
+Zeit sendet der Controller dessen neu abgelesene Verbrauchsdaten an den Server, der sie im
+Kunden-Objekt einträgt (Aufgabe 2.4). Beide Server greifen auf gemeinsame Daten zu.
+Erläutern Sie die Probleme, die hierbei entstehen können, und wie diese vermieden werden
+können.
+(3 BE)
+
+## Loesung 2.6.2
+Wenn der Controller die Verbrauchsdaten aktualisiert und der Kunde die Daten
+zur gleichen Zeit lesen möchte, bevor die Aktualisierung abgeschlossen ist, kann
+der Kunde unvollständige und damit inkonsistente Daten erhalten. Diese Proble-
+me können vermieden werden, wenn die Aktualisierung nur vollständig und ohne
+Unterbrechung durchgeführt werden kann, die entsprechende Methode muss synchronisiert werden.
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+# OOP
+
+1. Entwicklung eines Client-Server-Systems
+Ein Klassendiagramm der Anwendung wurde erstellt (Material 1).
+
+1.1 Beschreiben Sie die Klasse (Material 1) und ihre Beziehungen unter Berück-
+Lehrkraft
+sichtigung der Begriffe Klasse, Attribut, Konstruktor, Assoziation, Navigierbarkeit, Rolle und
+Multiplizität.
+Beschreiben Sie den Begriff Methode exemplarisch unter Angabe von Parameter und Rück-
+gabewert.
+(5 BE)
+
+## Loesung 1.1
+Beschreibung der Klasse Lehrkraft
+Die Klasse Lehrkraft besitzt die privaten Attribute anrede, name, vorname
+vom Typ Zeichenkette und lehrerNr als ganze Zahl, zudem ein Klassenattribut
+namens autoNr, das dazu dient, für jede Lehrkraft eine eindeutige lehrerNr zu
+vergeben.
+Die Klasse Lehrkraft verfügt über mehrere öffentliche Methoden.
+Exemplarisch sei die Methode boolean hatUnterricht(Date d, int
+stunde)genannt. Sie hat als Parameter eine Referenz auf ein Datumsobjekt und
+eine Ganzzahl. Sie liefert einen Wahrheitswert zurück.
+Eine Lehrkraft kann mehrere Unterrichtsstunden (stunden) erteilen. Darüber
+hinaus kann jede Lehrkraft zu Vertretungen (vertretungen) herangezogen
+werden. In dieser Beziehung tritt die Lehrkraft als Vertretungslehrer (vertretungslehrer) auf. Eine Lehrkraft kann für mehrere Klassen Klassenlehrer sein.
+In dieser Beziehung kommt der Lehrkraft die Rolle des Klassenlehrers (klassenlehrer) zu. Jede Lehrkraft unterrichtet in einem bis drei Fächern (Multipli-
+zität 1..3). Alle Assoziationen der Lehrkraft sind beidseitig navigierbar mit Ausnahme der Beziehung zur Klasse Stundenplanverwaltung.
+
+1.4.1 Listen (wie z.B. die Klasse in Material 5) können mittels der Datenstruktur Array oder als
+List
+verkettete Listen umgesetzt werden.
+Geben Sie die Unterschiede zwischen Arrays und verketteten Listen an und beschreiben Sie für
+folgende Fälle den jeweiligen algorithmischen Aufwand.
+– Einfügen in die leere Liste, wenn es noch keine Vertretungsobjekte gibt.
+– Einfügen vor einem bestehenden Listenelement, falls es bereits Vertretungsstunden gibt.
+– Alle Vertretungsobjekte liegen vor dem einzufügenden Objekt. Das Einfügen am Ende der
+Liste ist erforderlich.
+(6 BE)
+
+## Loesung 1.4.1
+Vergleich zwischen Array und verketteter Liste
+Fall 1: Einfügen in die leere Liste
+Array verkettete Liste
+Das neue Listenelement wird an die Der Listenkopf muss auf das neue
+erste Position im Array geschrieben. Listenelement gesetzt werden.
+geringer Aufwand für beide Varianten
+Fall 2: Einfügen vor einem bestehenden Listenelement
+Array verkettete Liste
+Wenn ein freier Platz vorhanden ist, Sortiertes Einfügen ist hier bei einer
+müssen die Einfügeposition gesucht, Liste weniger aufwändig als bei
+alle folgenden Elemente verschoben einem Array. Wie beim Array muss
+und anschließend das neue Element zuerst die richtige Position gefunden
+eingefügt werden. Ist kein freier Platz werden. Doch dann werden nur
+vorhanden, muss ein neues Array next-Referenzen geändert. Kein
+erzeugt und alle bisherigen Elemente Element muss verschoben werden.
+in das neue Array kopiert werden, was
+einen erheblichen Mehraufwand bedeutet.
+Fall 3: Einfügen am Ende der Liste erforderlich
+Array verkettete Liste
+Falls Platz im Array ist, kann das neue Beim bisher letzten Listenelement
+Listenelement an die nächste freie muss die next-Referenz auf das
+Position gesetzt werden. Falls das neue Listenelement gesetzt werden.
+Array voll besetzt ist, muss ein neues,
+größeres erzeugt und umkopiert werden. Durch das unter Umständen er-
+forderliche Umkopieren ist auch hier
+der Aufwand beim Array höher als bei
+einer verketteten Liste.
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Quizduell-Spiels als Client/Server-System
+Quiz Duell light Quiz Duell light
+Frage Nr. 5: Frage Nr. 5:
+In welchem Jahr ging Facebook an In welchem Jahr ging Facebook an
+die Börse? die Börse?
+1: 2005 2: 2010 1: 2005 2: 2010
+3: 2012 4: 2014 3: 2012 4: 2014
+Ihre Eingabe: Ihre Eingabe: 2 ist leider falsch
+Richtig ist 3.
+Dialogfenster vor Eingabe der Lösung Dialogfenster nach Eingabe der Lösung,
+mit Reaktion des Systems
+Das zu entwickelnde Spiel ist eine vereinfachte Version des aus der App "QuizDuell" bekannten
+Quizspiels. Zwei Spielerinnen oder Spieler (in der Folge Spieler genannt) spielen in einem Spiel
+gegeneinander und beantworten abwechselnd zehn Fragen. Eine Frage bietet vier Antwort-
+möglichkeiten, nur eine ist die richtige Antwort (Lösung). Für jede richtig beantwortete Frage
+gibt es einen Punkt. Gewonnen hat der Spieler mit den meisten Punkten. Ein Spieler kann
+mehrere Spiele nacheinander spielen, die Anzahl der Siege wird mitgezählt.
+
+1.1 Für das Spiel wurde das UML-Anwendungsfalldiagramm in Material 1 entwickelt.
+Geben Sie den Zweck von UML-Anwendungsfalldiagrammen an. Beschreiben Sie anhand des
+dargestellten Diagramms die wesentlichen Notationselemente und die Unterschiede zwischen
+extend- und include-Beziehungen.
+(4 BE)
+
+## Loesung 1.1
+UML-Anwendungsfalldiagramm
+Ein UML-Anwendungsfalldiagramm modelliert die Anforderungen an ein
+System, „Was“ ein System leistet. Es dient der Absprache zwischen Kunden und
+Software-Entwicklungsteam.
+Das System, hier Quizduell, wird mit seiner Systemgrenze als umfassendem
+Rechteck dargestellt. Außerhalb des Systems gibt es einen Akteur (Figur), den
+Spieler. Ein Akteur ist eine Rolle, die ein Benutzer übernimmt Es gibt die
+Anwendungsfälle "registrieren", "anmelden", "neues Spiel starten" und
+"beantworte Frage". Anwendungsfälle (use cases) sind Haupt-Funktionen des
+Systems. Eine Linie zwischen Akteur und Anwendungsfall bedeutet, dass eine
+Kommunikation stattfindet.
+Mithilfe der extend-Beziehung wird ein Anwendungsfall durch einen anderen
+erweitert (kann-Beziehung), falls eine bestimmte Bedingung zutrifft. Hier: Der
+Anwendungsfall "registrieren" erweitert den Fall "neues Spiel starten" unter der
+Bedingung, dass der Spieler unbekannt ist.
+Die include-Beziehung bedeutet, dass ein Anwendungsfall einen anderen einschließt (muss-Beziehung), der andere Anwendungsfall wird immer ausgeführt.
+So ist es auch möglich, gemeinsame Funktionalität mehrerer Anwendungsfälle in
+einen weiteren Anwendungsfall auszulagern. Beispielsweise schließt der
+Anwendungsfall "neues Spiel starten" den Fall "anmelden" ein, der beim
+Spielstart immer ausgeführt wird.
+
+1.3.3 Beim Entwurf des Client/Server-Systems wurde folgendes Problem nicht berücksichtigt: Wenn
+der zweite Spieler Verbindung zum Server aufnimmt, aber keine gültigen Anmeldedaten
+übermittelt, blockiert er den ersten Spieler, das Spiel wird nicht gestartet.
+Erklären Sie den Begriff Thread und erläutern Sie, wie dieses Problem mithilfe von Threads
+vermieden werden kann.
+(4 BE)
+
+## Loesung 1.3.3
+Threads erklären und erläutern
+Threads sind leichtgewichtige Prozesse, die sich den gleichen Adressraum im
+Speicher teilen. Innerhalb eines Prozesses kann es mehrere Threads geben.
+Threads werden in dem vorliegenden Softwaresystem bereits für nebenläufige
+Spiele genutzt.
+Um die Blockade des ersten Spielers zu vermeiden, muss die Anmeldung jedes
+Spielers in einem eigenen Thread erfolgen. So werden die Anmeldungen
+unabhängig voneinander durchgeführt. Erfolgreich angemeldete Spieler werden in
+eine Warteliste eingetragen. Gibt es zwei wartende Spieler, wird ein Spiel
+gestartet.
+
+1.5.2 Nennen Sie drei weitere Regeln, um die Passwort-Sicherheit darüber hinaus zu erhöhen.
+(3 BE)
+
+## Loesung 1.5.2
+drei weitere Regeln nennen
+Weitere sinnvolle Regeln sind beispielsweise:
+– Benutzername und Passwort müssen unterschiedlich sein.
+– Ein Buchstabe soll höchstens zweimal in einem Passwort vorkommen.
+– Ein Passwort soll keine Folgen enthalten, z. B. 12345678aa$.
+– Ein Passwort oder Teile davon sollen nicht in einer Wortliste, z. B. der Liste
+von Vornamen oder der Liste der häufigsten Nachnamen, vorkommen.
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Software-Systems
+Sie haben die Aufgabe ein Software-System für ein Carsharing-Unternehmen zu entwickeln.
+
+1.1 Anwendungsfalldiagramme dienen dazu, die Anwendungsfälle eines Software-Systems auf einem
+hohen Abstraktionsniveau abzubilden, um einen Überblick über das Gesamtsystem zu geben.
+Beschreiben Sie das in Material 1 dargestellte unvollständige UML-Anwendungsfalldiagramm.
+(4 BE)
+
+## Loesung 1.1
+UML-Anwendungsfalldiagramm beschreiben
+Das abgebildete Use Case-Diagramm enthält zwei Akteure, das zu entwickelnde
+System mit Systemgrenzen und 2 Anwendungsfälle. Die Beziehung Akteur und
+Anwendungsfall besagt, dass der Akteur an diesem Anwendungsfall beteiligt ist
+oder diesen auslösen kann.
+Zwischen den beiden Akteuren besteht eine Generalisierung. Diese Beziehung 2
+kann zwischen Akteuren und zwischen Anwendungsfällen modelliert werden und
+bedeutet, dass ein Anwendungsfall oder ein Akteur spezialisiert wird. Die
+Pfeilspitze zeigt auf den Akteur oder Anwendungsfall, der spezialisiert wird. Im
+vorliegenden Fall heißt das, dass der Akteur Mitarbeiter alle Anwendungsfälle
+verwenden kann, die auch ein Mitglied verwenden kann, darüber hinaus ist es
+aber nur dem Mitarbeiter möglich Rechnungen auszustellen.
+
+1.5.1 Bei der Abholung wird das Fahrzeug von
+außen mittels einer Mitgliedskarte (kontakt-
+lose Chipkarte) geöffnet. Zum Öffnen des
+Fahrzeugs wurde für die Methode
+der Klasse
+fetchCar() Bordcomputer
+(Material 3) ein UML-Sequenzdiagramm
+entwickelt (Material 4).
+Beschreiben Sie anhand des im UML-Sequenzdiagramm wiedergegeben Ablaufs den Vorgang
+zur Abholung eines Fahrzeugs.
+(5 BE)
+
+## Loesung 1.5.1
+Den in einem UML-Sequenzdiagramm dargestellten Ablauf beschreiben
+Bei der Abholung prüft der Bordcomputer die Gültigkeit der Mitgliedskarte.
+Hierzu wird in der Methode fetchCar() zunächst mittels RFID-Reader
+geprüft, ob eine Mitgliedskarte vorhanden ist (rr.isCardAvailable()).
+Wurde eine Karte erkannt, werden die Daten der Karte mittels RFID-Reader
+gelesen (rr.readCard()) und (über Funk) geprüft, ob die Mitgliedskarte
+gültig ist (isCardValid()).
+Ist die Karte gültig, wird (über Funk) geprüft, ob eine Buchung für das Fahrzeug
+erfolgt ist (getOrderState()). Ist dies der Fall, wird die Zentralverriegelung
+geöffnet ( ). Anschließend wird die Zeitüberwachung aktiviert
+openDoor()
+(startTimer()). Nun hat das Mitglied maximal 5 Minuten Zeit, die PIN über
+das Touchdisplay einzugeben (td.readLine()), dabei kann es sich
+Fehlversuche leisten. Die PIN wird mittels der Methode checkPin() geprüft.
+Wurde die PIN korrekt eingeben wird das Fahrzeug freigegeben (enable()) ,
+andernfalls wird die Freigabe verweigert. In beiden Fällen wird eine
+entsprechende Meldung auf dem Touchdisplay ausgegeben (td.printLine())
+und die Buchungszentrale informiert (rm.sendData()). Wird die PIN dreimal
+falsch eingegeben, bleibt die Wegfahrsperre aktiviert.
+
+1.5.4 Bordcomputer sind technische Systeme, die verschiedene Aufgaben bewältigen. Sie steuern das
+Öffnen und Schließen des Fahrzeugs, erfassen Fahrdaten und kommunizieren mit der
+Carsharing-Zentrale via Funkmodul (Radio Module). Zum Beispiel fragt das Carsharing-
+Unternehmen regelmäßig den Aufenthaltsort der Fahrzeuge ab.
+Zeigen Sie am Beispiel des Bordcomputers, dass es sinnvoll ist, bestimmte Vorgänge in einem
+Thread ablaufen zu lassen und beschreiben Sie, wie Threads in der von Ihnen verwendeten
+Programmiersprache realisiert werden.
+(5 BE)
+
+## Loesung 1.5.4
+Prinzip des Thread an einem Beispiel zeigen und beschreiben der Realisierung
+Threads sind leichtgewichtige Prozesse, die sich den gleichen Adressraum im
+Speicher teilen. Mit Hilfe von Threads lassen sich parallele Aktivitäten innerhalb
+eines Prozesses beschreiben. In einem Prozess können mehrere Threads
+gleichzeitig ablaufen.
+Da sowohl die Erfassung der Fahrdaten als auch die Kommunikation des
+Bordcomputers mit der Zentrale, die z.B. jederzeit die aktuellen Fahrdaten
+abrufen kann, nebenläufig ablaufen sollen, ist es günstig, beide Vorgänge als
+Threads zu realisieren.
+Um einen Thread in Java zu realisieren kann man eine Unterklasse der Klasse
+Thread ableiten, in dieser die Methode run() überschreiben und dann ein
+Exemplar von dieser neuen Unterklasse erzeugen. Der Thread kann dann durch
+den Aufruf der Methode start() gestartet werden. Diese ruft hierzu die
+überschriebene Methode run() asynchron auf, das heißt, die Methode run()
+wird nebenläufig ausgeführt. Der Thread ist beendet, sobald die run()-Methode
+beendet ist.
+In der run()-Methode des Threads zur Funk-Kommunikation mit der Zentrale
+werden die Anforderungen der Zentrale entgegen genommen und die geforderten
+Daten an die Zentrale zurückgeliefert. Parallel dazu kann der Bordcomputer noch
+weitere Aufgaben wahrnehmen, wie z.B. die Zeitüberwachung oder die Erfassung
+der Fahrdaten.
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Lagerhaltungssystems
+Sie finden ein Klassendiagramm in Material 1.
+
+1.1 Im Klassendiagramm wurden eine Aggregation und eine Komposition verwendet.
+Beschreiben Sie diese Assoziationstypen und stellen Sie sie hinsichtlich ihrer Bedeutung, ihrer
+UML-Notation und der Lebensdauer der Teile-Objekte gegenüber.
+(4 BE)
+
+## Loesung 1.1
+beschreiben, gegenüberstellen
+Beide Assoziationen modellieren eine Ganzes-Teile-Beziehung. Ein größeres
+Ganzes besteht aus einem oder mehreren Teilen. Die UML-Notation ist die Raute
+auf der des größeren Ganzen. Ein Segment besteht aus mehreren Fächern.
+Die Lebensdauer der Teile, hier der Fächer, ist an die Lebensdauer des Ganzen,
+hier des Segments, geknüpft (strong ownership). Gibt es das Segment nicht mehr,
+wird es die Fächer auch nicht mehr geben, es handelt sich um eine Komposition,
+die Raute ist ausgefüllt. Ein Wareneingang besteht aus mehreren Kartons, die
+Kartons gehören zum Wareneingang, werden aber unabhängig vom Wareneingangs-Objekt weiterbestehen (weak ownership). Es handelt sich um eine Aggre-
+gation, die Raute ist nicht ausgefüllt.
+gegenüberstellen
+
+1.7 Beim Einlagern der Kartons eines Wareneingangs kann es vorkommen, dass nicht alle Kartons
+in das zum Artikel gehörende Segment eingelagert werden können, weil es voll ist. Diese
+Kartons finden im System bisher keinen Platz, sie müssen vorübergehend in einem
+Zwischenlager gelagert werden.
+Beschreiben Sie eine Lösung für diesen Fall und modellieren Sie die notwendigen Erweiterungen
+im Klassendiagramm in Material 1.
+Hinweis: Diese Erweiterung des Modells ist in den Aufgaben 1.1 bis 1.6 nicht zu berücksichtigen.
+(5 BE)
+
+## Loesung 1.7
+Das Klassendiagramm wird um ein Zwischenlager mit mehreren Stellplätzen erweitert. Die Anzahl der Stellplätze wird bei Erstellung des Zwischenlagers festge-
+legt, jeder Stellplatz wird durch eine Nummer identifiziert. Der Lagermanager
+kann einen Karton in das Zwischenlager einlagern. Das Zwischenlager wählt den
+Stellplatz des Kartons aus.
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung eines Client/Server-Systems
+Das Unternehmen plant eine Online-Plattform, um Kunden selbstständig tätige Reinigungskräfte
+zu vermitteln. Die Anwendung soll folgende Anforderungen erfüllen:
+– Kunden müssen sich auf dem Online-Portal anmelden.
+– Ein Kunde kann eine Reinigungskraft für ein Datum und eine Anzahl von Stunden buchen.
+– Für jede erfolgreiche Buchung erhält das Unternehmen eine Vermittlungsgebühr.
+– Die Abrechnung der Gebühren erfolgt monatlich.
+Ein erstes Klassenmodell finden Sie in Material 3.
+
+2.1.1 Erläutern Sie das Konzept der Vererbung in der objektorientierten Softwareentwicklung
+allgemein und beschreiben sie die vorliegende Vererbungsstruktur im Klassendiagramm in
+Material 3 ausführlich (Stichworte: Spezialisierung, Generalisierung, abstrakte Klassen und
+Methoden, Zugriffsrecht , Polymorphie).
+protected
+(6 BE)
+
+## Loesung 2.1.1
+Vererbung ist ein wichtiges Konzept der objektorientierten Programmierung und
+ist deshalb in allen objektorientierten Sprachen enthalten. Ihr Hauptzweck liegt in
+der Nutzung der Ähnlichkeit von neu zu schaffenden Klassen mit bereits vorhandenen Klassen.
+Bei der Spezialisierung erweitert die Subklasse (Unterklasse) die Oberklasse (Superklasse) um spezifische Attribute und Methoden.
+Die Generalisierung abstrahiert mehrere Klassen, indem allgemeingültige Attribute und Methoden in eine Superklasse ausgelagert werden.
+Durch Vererbung kann man sich Entwicklungsarbeit sparen. Die verwendeten
+Klassen sind bereits ausgetestet. Programmierfehler können dann nur noch in den
+Erweiterungen auftreten.
+In dem vorliegenden Klassendiagramm ist die Klasse Person die Superklasse und
+die Klassen Kunde und Reinigungskraft sind Subklassen von Person. Die Subklassen erben die Attribute und Methoden der Superklasse. Auf die privaten At-
+tribute darf allerdings auch in den Subklassen nur über entsprechende get- und
+set-Methoden zugegriffen werden. Das Zugriffsrecht protected (geschützt) bei
+dem Container für Buchungen erlaubt den Zugriff innerhalb der Vererbungshierarchie bzw. aus Klassen desselben Pakets.
+Die Klasse Person ist abstract, das heißt, sie stellt eine Schnittstelle für weitere Klassen dar. Es lassen sich keine Objekte von einer abstrakten Klasse erzeugen.
+Die abstrakte Methode abrechnenMonat() erzwingt, dass sie in den Unterklassen Kunde und Reinigungskraft überschrieben werden muss.
+Eine Methode ist polymorph, wenn sie in verschiedenen Klassen einer Vererbungshierarchie die gleiche Signatur hat, jedoch erneut implementiert ist wie bei-
+spielsweise die Methoden abrechnenMonat() und toString() der Klassen Kunde und Reinigungskraft. Welche der Methoden für ein konkretes Objekt
+verwendet wird, wird erst zur Laufzeit bestimmt (Dynamisches Binden).
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+# OOP
+
+1 PC-Steuerung für einen Ergometer
+Ergometer findet man an sehr vielen Trainingsgeräten, z.B. an Fahrrad- oder auch Crosstrainern. Sie bieten für Hobby- oder Profi-Sportlerinnen und Hobby- oder Profi-Sportler die
+Möglichkeit, zahlreiche Trainings- und Gesundheitsdaten (z.B. die aktuelle Pulsfrequenz) zu
+erfassen und diese zur Auswertung an einen Personal Computer (PC) zu übertragen. Die
+Pulsmessung findet über einen Brustgurt statt. Die Kommunikation zwischen Ergometer und PC
+erfolgt über die serielle Schnittstelle. Es soll eine Anwendung realisiert werden, die sich mit
+dem Ergometer über die serielle Schnittstelle verbindet, die Trainingsdaten misst und das
+Ergometer steuert. Ein Klassenmodell der Anwendung finden Sie in Material 1. Die Befehle zur
+Gerätesteuerung sind in Material 2 beschrieben.
+
+1.1 Die Klasse Ergometer stellt die Verbindung zum Ergometer her. Dabei soll sie alle Eigenschaften der Ergometer-Ansteuerung kapseln.
+
+1.1.1 Beschreiben Sie das Prinzip der Datenkapselung (Geheimhaltungsprinzip) in der objektorientierten Programmierung.
+(2 BE)
+
+## Loesung 1.1.1
+Als Datenkapselung bezeichnet man in der Programmierung das Verbergen von
+Daten oder Informationen vor dem Zugriff von außen. Der direkte Zugriff auf die
+interne Datenstruktur wird unterbunden und erfolgt stattdessen über definierte
+Schnittstellen. Die Klasse Steuerung muss das serielle Schnittstellenobjekt, über
+das die Klasse das Ergometer steuert, nicht kennen. Sie werden in der Klasse
+Ergometer gekapselt.
+
+1.1.2 Im Klassendiagramm (Material 1) finden Sie Assoziationen.
+Erläutern Sie die Bedeutung der Beziehungen zwischen den Klassen Benutzer und
+Trainingseinheit sowie zwischen Trainingseinheit und Messung und deren
+Umsetzung in eine objektorientierte Programmiersprache.
+(5 BE)
+
+## Loesung 1.1.2
+Die Assoziation beschreibt eine Beziehung zwischen zwei oder mehr Klassen.
+Beziehung zwischen den Klassen Benutzer und Trainingseinheit
+Es handelt sich um eine bidirektionale Beziehung. Sie drückt aus, dass es zu
+jedem Benutzer mehrere Trainingseinheiten geben kann, jede Trainingseinheit
+aber genau einem Benutzer zugeordnet sein muss. Bei der Umsetzung deklariert
+man eine Referenzvariable vom Typ Benutzer in der Klasse
+Trainingseinheit. Der Wert wird beim Anlegen der Trainingseinheit über
+den Konstruktor initialisiert. Bei der Mehrfachbeziehung deklariert man einen
+Container mit Objekten der Klasse Trainingseinheit und erzeugt ihn im
+Konstruktor. Der Container bekommt den Namen der Rolle, die im
+Klassendiagramm angegeben ist, hier einheiten. Die Referenzvariable in
+Trainingseinheit erhält den Namen benutzer.
+Beziehung zwischen den Klassen Trainingseinheit und Messung
+Hier wird ausgedrückt, dass eine Trainingseinheit aus mehreren Messungen
+bestehen kann. Messungen sind existenzabhängig von der Trainingseinheit, das
+heißt, dass ein Löschen der Trainingseinheit dazu führt, dass alle Messungen
+gelöscht werden.
+Messungen werden über die Trainingseinheit verwaltet, Objekte vom Typ
+Messung kennen nicht die Trainingseinheit.
+Die hier verwendete Komposition wird wie eine Mehrfachbeziehung mithilfe
+einer Liste in Trainingseinheit ungesetzt.
+
+1.6.1 Beschreiben Sie die Eigenschaften von Threads. Erklären Sie mögliche Probleme, die entstehen,
+wenn zwei Threads, wie in 1.6 beschrieben, auf das gleiche Objekt zugreifen und erläutern Sie
+eine Lösung.
+(4 BE)
+
+## Loesung 1.6.1
+Threads sind leichtgewichtige Prozesse, die sich den gleichen Adressraum im
+Speicher teilen. Da sowohl die Messung der Trainingsdaten als auch die Anzeige
+der Daten nebenläufig ablaufen sollen, ist es günstig, sie als Threads zu
+realisieren.
+erklären
+Da beide Threads auf ein Objekt der Klasse Trainingseinheit zugreifen
+müssen, um die Messwerte zu schreiben bzw. anzuzeigen, könnte es zu Fehlern
+kommen. Es kann vorkommen, dass noch nicht alle Messwerte einer Messung
+geschrieben wurden, bevor sie angezeigt werden.
+erläutern
+Dies ist durch die Synchronisation (synchronized) der Methoden
+hinzufuegenMessung() und leseMessung() zu verhindern.
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+1 Für die Fußball-Bundesliga soll ein objektorientiertes Ticket-Reservierungssystem erstellt werden.
+
+1.1 In der Analysephase wurde ein Anwendungsfalldiagramm zu folgendem Geschäftsprozess
+erstellt (Material 1).
+Eine Kundin oder ein Kunde (im Folgenden Kunde genannt) reserviert über das Internet Plätze
+für ein Fußballspiel. Nach Auswahl des Spiels wählt er den Block und die dort zu
+reservierenden Plätze, die aufeinanderfolgend in einer Reihe liegen müssen. Nach dem
+Absenden des Reservierungswunsches bekommt er bei Erfolg eine eindeutige
+Reservierungsnummer als Ergebnis. Eine Mitarbeiterin oder ein Mitarbeiter (im Folgenden
+Mitarbeiter genannt) des Betreibers erstellt daraufhin eine Rechnung und schickt diese an den
+Kunden. Sobald der Kunde seine Rechnung bezahlt hat, druckt der Mitarbeiter die Tickets und
+verschickt sie an den Kunden. Geht keine Zahlung innerhalb des Zahlungszeitraums ein, werden
+die Tickets storniert. Auch der Kunde kann Stornierungen veranlassen, indem er mit einem
+Mitarbeiter Kontakt aufnimmt und diesen damit beauftragt.
+
+1.1.1 Geben Sie den Zweck von Anwendungsfalldiagrammen an. Beschreiben Sie anhand des in
+Material 1 wiedergegebenen Diagramms die wesentlichen Notationselemente und den
+Unterschied zwischen extend- und include-Beziehungen.
+(4 BE)
+
+## Loesung 1.1.1
+In Anwendungsfalldiagrammen wird das externe Systemverhalten aus Anwendersicht beschrieben.
+beschreiben
+– Ein Anwendungsfall (z.B. Rechnung erstellen) beschreibt eine Funktionalität
+des Softwaresystems.
+– Ein Akteur ist eine Rolle, z.B. Benutzer des Softwaresystems.
+– Eine Linie zwischen Akteur und Anwendungsfall bedeutet, dass eine Kommunikation stattfindet.
+– Mithilfe der extend-Beziehung wird ein Anwendungsfall durch einen anderen
+erweitert (kann-Beziehung). Hier: Der Anwendungsfall „Reservierung stornieren“ erweitert den Anwendungsfall „Zahlung überwachen“. Falls der Kunde
+nicht gezahlt hat, muss die Reservierung storniert werden.
+– Die include-Beziehung ermöglicht es, dass die gemeinsame Funktionalität
+mehrerer Anwendungsfälle bzw. eine Teilfunktionalität durch einen weiteren
+Anwendungsfall beschrieben wird (muss-Beziehung). Hier: Der Anwendungsfall „Zahlung überwachen“ ist Teil des Anwendungsfalls „Tickets erstellen“.
+
+1.1.2 Erläutern Sie die Beziehung zwischen den Akteuren Kunde und Mitarbeiter.
+(2 BE)
+
+## Loesung 1.1.2
+Ein Mitarbeiter ist in der Lage im Reservierungssystem alle Anwendungsfälle
+auszuführen, die auch ein Kunde ausführen kann.
+
+1.3.2 Es ist damit zu rechnen, dass viele Kunden zeitgleich den Reservierungsvorgang über das
+Internet nutzen werden.
+Erklären Sie die Probleme, die beim gleichzeitigen Zugriff auf die reservierten Plätze in der
+momentanen Implementierung entstehen können, und beschreiben Sie eine Lösung.
+(3 BE)
+
+## Loesung 1.3.2
+In der jetzigen Implementierung kann der Reservierungsserver zu einem Zeitpunkt immer nur einen Client bedienen, mehrere nur nacheinander. Um mehrere
+Clients zeitgleich bedienen zu können, muss der Server in die Lage versetzt werden, für jeden verbundenen Kunden einen Thread zu erzeugen, der die Kommunikation mit diesem übernimmt.
+Die Methoden für die Reservierung bzw. Stornierung müssen vollständig ausgeführt werden, um einen konkurrierenden Zugriff auf die Plätze zu vermeiden.
+Deshalb müssen die Methoden synchronisiert werden.
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung des Kassensystems
+
+2.1.1 Beschreiben Sie die Funktionen der Klassen des vorliegenden UML-Klassendiagramms unter
+Berücksichtigung des Netzwerkschemas in Material 1.
+(4 BE)
+
+## Loesung 2.1.1
+Im Klassendiagramm ist die Verwaltungsklasse HandelVerwaltung dargestellt,
+die Container für Kunden-, Rechnungs- und Artikel-Objekte besitzt. Die
+Methoden der Klasse HandelVerwaltung repräsentieren die typischen
+Anwendungsfälle der Software, wie das Anlegen und Hinzufügen von Objekten
+sowie die Suche nach Objekten.
+Die Klasse Server kennt genau ein Objekt der Klasse HandelVerwaltung
+(muss-Beziehung).
+Der Scan-Client besitzt die Attribute clientSocket für den Verbindungsaufbau
+zum Server und serial als serielle Schnittstelle für das Barcode-Lesegerät. Die
+Methoden des Scan-Clients erlauben das Scannen des Barcodes und die
+Validierung des gelesenen Werts. Die eingelesenen Daten werden an den Server
+gesendet.
+Wenn sich ein Scan-Client mit dem Server verbindet, wird vom Server ein neuer
+Thread erzeugt und gestartet, damit mehrere Scan-Clients gleichzeitig bedient
+werden können. Der Scan-Thread erhält den Socket für die Kommunikation zum
+Scan-Client und eine Referenz auf das Objekt HandelVerwaltung. Die gesamte
+Kommunikation wird serverseitig von der run-Methode des Threads ausgeführt.
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+# OOP
+
+1 Objektorientiertes Software-System für die Servicedesk-Anwendung
+
+1.2.1 Beschreiben Sie anhand des UML-Klassendiagramms die Beziehungen zwischen den Klassen.
+(4 BE)
+
+## Loesung 1.2.1
+Zwischen der Klasse Servicedesk und den Klassen Kunde, Mitarbeiter und
+Ticket bestehen unidirektionale Beziehungen, d.h. Objekte der Klassen Kunde,
+Mitarbeiter und Ticket kennen ihr Verwaltungsobjekt nicht.
+Zwischen der Klasse Kunde und Ticket besteht eine bidirektionale Assoziation.
+Die Multiplizität gibt dabei die Anzahl der an der Assoziation beteiligten Objekte
+an, der Rollenbezeichner die Rolle, die ein Objekt in der Beziehung einnimmt. Im
+vorliegenden Fall kann ein Kunde mehrere Tickets aufgeben, ein Ticket wird 2
+jedoch nur von genau einem Kunden aufgegeben (muss-Beziehung).
+Zwischen den Klassen Mitarbeiter und Ticket bestehen zwei Beziehungen.
+Ein Ticket hat genau einen Erfasser (muss-Beziehung). Dies wird durch eine
+unidirektionale Beziehung modelliert, in der der Mitarbeiter die Rolle des
+Erfassers des Tickets einnimmt. Ein Ticket kann genau einem Mitarbeiter zur
+Bearbeitung zugewiesen werden (kann-Beziehung), umgekehrt kann aber ein
+Mitarbeiter mehrere Tickets bearbeiten.
+
+1.3.1 Als Grundlage für die Entwicklung einer Client-Server-Lösung für den Servicedesk wird Ihnen
+ein Modell in Form eines UML-Klassendiagramms vorgelegt (Material 5).
+Erläutern Sie die Aufgaben der Klassen ServicedeskClient, ServicedeskServer und
+AnfrageThread.
+(5 BE)
+
+## Loesung 1.3.1
+ServicedeskClient:
+Der Kunde nutzt den ServicedeskClient, um sich beim Server des
+Servicedesks anzumelden, um neue Tickets aufzugeben.
+ServicedeskServer:
+Der ServicedeskServer horcht an seinem Port und nimmt
+Verbindungsanfragen von Objekten der Klasse ServicedeskClient entgegen.
+Hat er eine Verbindungsanfrage akzeptiert, erzeugt er einen AnfrageThread für
+diesen Client, da mehrere Clients parallel Anfragen senden können. Der
+ServicedeskServer erhält bei der Erzeugung eine Referenz auf ein Objekt der
+Klasse Servicedesk, die die Anwendungsfälle des Servicedesks implementiert.
+AnfrageThread:
+Der AnfrageThread erbt von Thread. Um den Dialog mit dem
+ServicedeskClient in einem nebenläufigen Prozess ausführen zu können,
+wird die run-Methode überschrieben. Damit die run-Methode nebenläufig
+(asynchron) ausgeführt wird, muss der AnfrageThread mittels der von Thread
+geerbten start-Methode gestartet werden.
+Nach erfolgreicher Anmeldung kann ein Kunde neue Tickets aufgeben und deren
+Status verfolgen. Hierzu stellt die Klasse Servicedesk entsprechende Methoden
+(z.B. anmelden, aufnehmenTicket, sucheTicket) zur Verfügung. Um diese
+nutzen zu können, muss der AnfrageThread ein Objekt der Klasse
+Servicedesk referenzieren. Diese Referenz wird dem AnfrageThread bei
+dessen Erzeugung (Konstruktor) übergeben. Die Kommunikation mit dem
+ServicedeskClient erfolgt über den dem Konstruktor ebenfalls übergebenen
+Socket.
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Anwendung
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.5.1 Vererbung, Aggregation und Komposition sind Konzepte der Objektorientierung.
+Erläutern Sie diese Konzepte mit ihrer Notation in UML-Klassendiagrammen sowie ihrem
+Nutzen für die objektorientierte Modellierung und geben Sie jeweils ein Beispiel aus dem
+Kontext des Lieferservice an.
+(6 BE)
+
+## Loesung 1.5.1
+erläutern, angeben
+Vererbung ist ein wesentliches Konzept der objektorientierten Programmierung.
+Dabei werden neue Klassen auf der Basis vorhandener Klassen definiert. Es wird
+eine Hierarchie von Klassen, bestehend aus Superklassen (Oberklassen) und
+Subklassen (Unterklassen) modelliert. Eine Superklasse enthält alle Attribute und
+Methoden, die den Objekten der Subklassen gemeinsam sind. Die Objekte der
+Subklassen erben diese Attribute und Methoden. Durch Vererbung kann man sich
+ausgetestet. Subklassen erweitern diese. Programmierfehler können nur noch in
+den Erweiterungen auftreten. Pizza- und Pastagerichte sowie Getränke sind alle
+Produkte, die vom Restaurant verkauft werden. Alle haben eine Produktnummer,
+eine Bezeichnung und einen Preis. Während die Speisen eine zusätzliche
+Beschreibung haben, haben die Getränke eine Größe in Liter und einen
+Pfandbetrag für die Flasche. Die Vererbung wird durch einen Pfeil mit
+Dreiecksspitze an der Superklasse dargestellt.
+Aggregation und Komposition beschreiben eine Beziehung zwischen einem
+Ganzen und seinen Teilen, ein Ganzes "besteht aus" seinen Teilen. Die
+Komposition wird mit einer ausgefüllten Raute dargestellt, die Lebensdauer der
+Teile ist an die Lebensdauer des Ganzen geknüpft. Eine Bestellung besteht aus
+Bestellpositionen. Eine Bestellposition ohne eine Bestellung ergibt keinen Sinn.
+Wird eine Bestellung gelöscht, werden alle Bestellpositionen ebenfalls gelöscht.
+Die Aggregation stellt auch eine "besteht aus"-Beziehung dar, wobei die Teile
+aber durchaus ohne das Ganze existieren können. Sie wird durch eine nichtausgefüllte Raute am Ganzen dargestellt. Ein Beispiel für eine Aggregation ist die
+Assoziation "Abteilung besteht aus Mitarbeitern“ in einer Firma. Wird eine
+Abteilung aufgelöst, gibt es die Mitarbeiter i.d.R. weiterhin in der Firma.
+Aggregation und Komposition betonen die Bindung zwischen den Objekten der
+beiden Klassen und die Komposition gibt Hinweise auf die Implementierung.
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des Kino-Management-Systems
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.4.1 Erläutern Sie die Aufgaben und Funktionsweisen der Klassen Client, Server und
+ServerThread mit Thread sowie deren Zusammenarbeit mit der Klasse KinoManager
+(Material 1).
+Hinweis: Der Server kann mehrere Clients parallel bedienen und läuft endlos.
+(4 BE)
+
+## Loesung 1.4.1
+Client:
+Ein Besucher nutzt den Client für die Verbindungsaufnahme zum Server des
+Kinocenters und für die Anmeldung am Server. Über den Client kann der
+Besucher verschiedene Kommandos an den Server senden, um dessen Dienste in
+Anspruch zu nehmen.
+Server:
+Die Klasse Server implementiert einen Server, der an einem Port horcht und
+Verbindungsanfragen von Clients entgegennimmt. Hat er eine
+Verbindungsanfrage akzeptiert, erzeugt er einen ServerThread für diesen
+Client, da mehrere Clients parallel Anfragen senden können. Der Server erhält
+bei der Erzeugung eine Referenz auf ein Objekt der Klasse KinoManager, die
+die Anwendungsfälle des Kinocenters implementiert.
+ServerThread, Thread:
+Der ServerThread erbt von der Klasse Thread. Um den Dialog mit dem
+Client in einem nebenläufigen Prozess ausführen zu können, wird die run-
+Methode von Thread überschrieben. Damit die run-Methode nebenläufig
+(asynchron) ausgeführt wird, muss ein ServerThread mittels der von Thread
+geerbten start-Methode gestartet werden.
+Nach erfolgreicher Anmeldung kann sich ein Besucher Filme und Vorstellungen
+anzeigen lassen sowie Sitzplätze suchen und belegen. Hierzu stellt die Klasse
+KinoManager entsprechende Methoden (z.B. zeigeFilme(),
+zeigeVorstellungZuFilm(), …) zur Verfügung. Um diese nutzen zu
+können, muss der ServerThread ein Objekt der Klasse KinoManager
+referenzieren. Diese Referenz wird dem ServerThread bei dessen Erzeugung
+(Konstruktor) übergeben. Die Kommunikation mit dem Client erfolgt über den,
+dem Konstruktor ebenfalls übergebenen, Socket.
+
+1.4.3 Wenn zwei Clients gleichzeitig für eine Vorstellung dieselben Sitzplätze belegen wollen, kann
+es passieren, dass diese Sitzplätze mehrfach belegt werden.
+Erklären Sie anhand des Ablaufs der Methode belegeSitz(sitznr: int), wie es zu der
+Mehrfachbelegung kommen kann, und beschreiben Sie, wie diese auf Programm- bzw.
+Methodenebene zu verhindern ist.
+(5 BE)
+
+## Loesung 1.4.3
+Wenn ein Client einen Sitzplatz belegen will, ruft der Kino-Manager die Methode
+belegeSitz(sitznr: int) der Klasse Vorstellung auf. In dieser Methode
+wird geprüft, ob der Sitz noch frei ist und falls er noch frei ist, wird er belegt, d.h.
+das entsprechende Feld-Element wird auf false gesetzt. Will nun ein zweiter
+Client denselben Sitz belegen und die Ausführung der Methode für den ersten
+Client wird nach der Prüfung vom Betriebssystem unterbrochen und der zweite
+Client kommt zum Zug, könnte er evtl. die Methode belegeSitz(…) komplett
+ausführen und damit den Sitz belegen. Wird daraufhin zur Ausführung der
+Methode für den ersten Client zurückgekehrt, wird die auf die Unterbrechung
+folgende Anweisung ausgeführt, d.h. der Sitz wird belegt. Damit ist der Sitz
+zweimal belegt.
+Man kann dieses Problem vermeiden, indem man dafür sorgt, dass die
+Ausführung der Methode belegeSitz(…) nicht unterbrochen werden kann.
+Dazu muss die Methode synchronisiert werden. 1
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des Impfzentrum-Systems
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.4.1 Bei den Datenstrukturen Warteschlange und Stapel handelt es sich um besondere Formen der
+verketteten Liste. Beschreiben Sie die wesentlichen Eigenschaften der Datenstrukturen
+verkettete Liste, Warteschlange sowie Stapel und erläutern Sie deren Umsetzung in einer
+objektorientierten Programmiersprache unter Berücksichtigung benötigter Operationen.
+Hinweis: Es sind nur einfach verkettete Liste zu berücksichtigen.
+(6 BE)
+
+## Loesung 1.4.1
+beschreiben, erläutern
+Die verkettete Liste ist eine Datenstruktur zur dynamischen Speicherung von
+beliebig vielen Objekten. Dabei beinhaltet jedes Listenelement einer verketteten
+Liste als Besonderheit einen Verweis auf das nächste Element, wodurch die
+Gesamtheit der Objekte zu einer Verkettung von Objekten wird. Für den Zugriff
+auf ein Objekt muss die Liste durchlaufen werden, bis ein Objekt keinen
+Nachfolger mehr hat oder das Objekt gefunden wurde. Umgesetzt wird die
+Verkettung über Referenzen.
+Ein Stapel (englisch: Stack) wird in der Regel als verkettete Liste umgesetzt. In
+einem Stapel kann ebenfalls eine beliebige Anzahl von Objekten gespeichert
+werden, jedoch können die gespeicherten Objekte nur in umgekehrter
+Reihenfolge wieder gelesen werden. Dies entspricht dem LIFO (Last In First
+Out)-Prinzip. Zu einem Stapelspeicher gehören zumindest die Operationen
+– push, um ein Objekt im Stapelspeicher abzulegen und
+– pop, um das zuletzt gespeicherte Objekt wieder zu lesen und vom Stapel zu
+entfernen.
+Auch in einer Warteschlange (englisch: Queue) kann eine beliebige Anzahl von
+Objekten gespeichert werden, jedoch können die gespeicherten Objekte nur in der
+gleichen Reihenfolge wieder gelesen werden, in der sie gespeichert wurden. Dies
+entspricht dem FIFO (First In First Out)-Prinzip. Zu einer Queue gehören
+zumindest die Operationen
+– enqueue, um ein Objekt in der Warteschlange zu speichern und
+– dequeue, um das zuerst gespeicherte Objekt wieder zu lesen und aus der
+Warteschlange zu entfernen.
+
+1.5.1 Erläutern Sie den Zweck von Anwendungsfalldiagrammen. Beschreiben Sie die wesentlichen
+Notationselemente des vorliegenden UML-Anwendungsfalldiagramms sowie die Unterschiede
+zwischen extend- und include-Beziehungen.
+(5 BE)
+
+## Loesung 1.5.1
+Ein Anwendungsfalldiagramm ermöglicht die grafische Beschreibung von
+wesentlichen Funktionen (Anwendungsfällen) eines Systems. Es stellt auch dar,
+welche Funktionen eines Systems von welchen Anwendern benutzt werden.
+Durch Anwendungsfälle werden die Erwartungen des Kunden an ein System auf
+sehr abstrakter Ebene repräsentiert.
+– Ein System wird durch die Summe aller Anwendungsfälle beschrieben. Diese
+werden durch die Systemgrenze zusammengefasst. Der Name des Systems
+steht innerhalb der Systemgrenze (hier „Impfzentrum“).
+– Ein Akteur modelliert einen Typ oder eine Rolle, die ein externer Benutzer
+oder ein externes System während der Interaktion mit dem System einnimmt
+(hier „Empfangskraft“).
+– Ein Anwendungsfall (z.B. „Termin vergeben“) wird durch eine Ellipse
+innerhalb der Systemgrenze dargestellt. In der Ellipse steht die
+Funktionsbeschreibung.
+– Die Akteure werden über Verbindungslinien (Beziehungen) mit den
+Anwendungsfällen verbunden. Eine Beziehung zwischen einem Akteur und
+einem Anwendungsfall besagt, dass der Akteur an diesem beteiligt ist oder
+diesen auslösen kann.
+– Eine include-Beziehung modelliert die unbedingte Einbindung der
+Funktionalität eines Anwendungsfalls in einen anderen Anwendungsfall
+(muss-Beziehung). Hier: Der Anwendungsfall „Person anmelden“ bindet die
+Funktionalität des Anwendungsfalls „Termin überprüfen“ zwingend ein.
+– Eine extend-Beziehung modelliert die bedingte Einbindung der Funktionalität
+eines Anwendungsfalls in einen anderen Anwendungsfall (kann-Beziehung).
+Hier: Der Anwendungsfall „Termin vergeben“ erweitert den Anwendungsfall
+„Termin überprüfen“ und drückt aus, dass ein Termin vergeben werden kann,
+falls keiner existiert.
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung eines Zuchtmanagementsystems
+Ein erstes UML-Klassendiagramm finden Sie in Material 3.
+
+2.1 Beschreiben Sie das Prinzip der Datenkapselung unter Nennung der verschiedenen
+Zugriffsmodifizierer aus dem Klassendiagramm und erläutern Sie dieses Prinzip am Beispiel
+des Containers lebewesen der Klasse Aquarium.
+(4 BE)
+
+## Loesung 2.1
+beschreiben, erläutern
+Das Prinzip der Datenkapselung stellt sicher, dass nur ein kontrollierter Zugriff
+von außen auf Attribute und Methoden einer Klasse möglich ist. Mithilfe des
+Zugriffsmodifikators private (-) wird die Sichtbarkeit eines Attributs so
+eingeschränkt, dass nur innerhalb der Klasse darauf zugegriffen werden kann. Ein
+Zugriff von anderen Klassen ist dann nur über definierte Schnittstellen möglich,
+beispielsweise über get- und set-Methoden. Durch den Zugriffsmodifizierer
+public (+) ist ein Zugriff von außerhalb und innerhalb der Klasse möglich. Die
+Zugriffsart protected (#) in der Klasse Lebewesen ermöglicht den Zugriff
+innerhalb der Klasse und seiner Spezialisierungen (z.B. aus der Subklasse
+Fischart). In der Aquaristik-Software muss sichergestellt werden, dass die
+Attribute vor missbräuchlichen oder versehentlichen Veränderungen geschützt
+werden. Der Container lebewesen der Klasse Aquarium soll nur mithilfe der
+öffentlichen Methode besetzeAquarium()verändert werden können. Somit
+wird verhindert, dass durch direktes Hinzufügen von Fischen in ein Aquarium ein
+Überbesatz entstehen kann.
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des E-Banking-Systems
+Ein erstes Klassendiagramm finden Sie in Material 1.
+
+1.2 Datenkapselung ist ein wichtiges Prinzip der Objektorientierten Programmierung. Beschreiben
+Sie den Zweck der Datenkapselung und die im Klassendiagramm (Material 1) vertretenen
+Zugriffsarten. Erläutern Sie das Geheimnisprinzip am Beispiel der Attribute pin und
+kontostand der Klasse Konto.
+(4 BE)
+
+## Loesung 1.2
+Als Datenkapselung wird der kontrollierte Zugriff auf Attribute und Methoden
+von Klassen bezeichnet. Klassen sollen den internen Zustand anderer Klassen
+nicht in unkontrollierter Weise lesen oder ändern können. Eine Klasse hat eine
+Schnittstelle, die darüber bestimmt, wie mit der Klasse agiert werden kann. Die
+im Klassendiagramm enthaltenen Zugriffsrechte sind:
+public (+): Zugreifbar für alle Objekte.
+private (-): Zugreifbar nur innerhalb der eigenen Klasse.
+Die Attribute pin und kontostand der Klasse Konto sind private und somit
+von außerhalb der Klasse nicht sichtbar. Der Kontostand kann mit einer
+entsprechenden get-Methode abgefragt werden, eine set-Methode fehlt hingegen.
+Der Kontostand kann damit nur über die öffentlichen Methoden einzahlen()
+und überweisen() geändert werden.
+Das Attribut pin ist von außen ausschließlich über die Schnittstelle login()
+erreichbar.
+
+1.6.1 Erläutern Sie das Client-Server-Modell anhand des EB-Systems unter Berücksichtigung der
+Begriffe "Client", "Server", "Dienst" und "Protokoll".
+(4 BE)
+
+## Loesung 1.6.1
+Das Client-Server-Modell beschreibt die Möglichkeit, Aufgaben und
+Dienstleistungen innerhalb eines Netzwerks zu verteilen. Die Aufgaben werden
+von Programmen erledigt, die in Clients und Server unterteilt werden.
+Der EB-Client fordert die Erledigung einer Aufgabe vom EB-Server an, wie das
+Anmelden und Durchführen von Überweisungen. Der Client ist aktiv.
+Der Server ist passiv und wartet auf Verbindungsanfragen. Er bearbeitet die
+Anfrage und gibt eine Rückmeldung über den Erfolg der Ausführung.
+Ein Dienst ist eine solche festgelegte Aufgabe, die der Server anbietet und der
+Client nutzt.
+Die Regeln der Kommunikation für einen Dienst (Kommandos, die Bedeutung
+der zwischen Server und Client ausgetauschten Daten und Formate) werden
+durch ein Protokoll festgelegt. Das Protokoll ist spezifisch für den jeweiligen
+Dienst.
+
+1.7.1 Beschreiben Sie die Eigenschaften von Prozessen und Threads. Erläutern Sie anhand des
+E-Banking-Systems, dass es zu Problemen kommen kann, wenn mehrere Threads auf eine
+Variable zugreifen und benennen Sie eine Lösung für das Problem.
+(4 BE)
+
+## Loesung 1.7.1
+Die sequentielle Ausführung von Anweisungen eines Programms stellt einen
+Prozess dar, für den ein eigener Speicherbereich reserviert ist und der vom
+Betriebssystem verwaltet, gestartet und angehalten wird. Ein Thread ist ein
+einzelner in sich geschlossener Steuerfluss innerhalb eines Prozesses. Jeder
+Prozess besitzt einen Haupt-Thread, mit dem das Programm gestartet wird
+(main). Mehrere neue Threads können vom Programm gestartet werden. Diese
+Threads laufen dann alle quasi-parallel ab, besitzen jeweils einen eigenen
+Zustand mit Befehlszähler und Stack, arbeiten aber im Gegensatz zu Prozessen
+auf demselben Speicherbereich im Arbeitsspeicher.
+erläutern
+Mehrere Threads können über die Kontomethoden auf die Variable kontostand
+eines Konto-Objekts gleichzeitig zugreifen. Es darf aber nicht vorkommen, dass
+ein Thread bereits aus einem Objekt liest, während ein anderer Thread noch
+Daten desselben Objekts ändert. Somit könnte eine Überweisung erfolgen
+obwohl keine ausreichende Deckung vorliegt.
+benennen
+Das wird verhindert, indem die Methoden ueberweisen() und einzahlen()
+synchronisiert werden.	
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung für die Fertigungsorganisation der Bikes
+Die Kundin oder der Kunde (im Folgenden Kunde genannt) wählen für Rahmenkit,
+Schaltgruppe und diverse Einzelteile aus dem Gesamtsortiment aus. Die Auswahl wird in einem
+Datenblatt festgehalten und führt zu einer Konfigurationsdatei für die Herstellung des
+gewünschten Bikes (Material 1). Bei der Montage, beispielsweise von einem Rennrad, beginnt
+man mit dem Rahmen und allen Teilen, die zum ausgewählten Rahmenkit gehören.
+Anschließend erfolgt der Einbau des Sattels (Einzelteil) und nach der Montage einiger
+Schaltelemente der Einbau des Lenkers (Einzelteil). Dann werden die restlichen Schalt-
+/Bremselemente sowie die Räder (Einzelteile) verbaut. Ein UML-Klassendiagramm finden Sie
+in Material 2, die Dokumentation der Klasse String in Material 3.
+
+1.1 Die Klasse Komponente hat bei der Modellierung der Bestandteile eines Bikes eine besondere
+Bedeutung. Beschreiben Sie die im Klassendiagramm in Material 2 vorliegende
+Vererbungsstruktur (Stichworte: Spezialisierung, Generalisierung, abstrakte Klassen, Methoden,
+Zugriffsrecht protected, Polymorphie). Erläutern Sie die Beziehung zwischen den
+Komponenten und deren Bedeutung für die Implementierung einer doppelt verketteten Liste.
+(6 BE)
+
+## Loesung 1.1
+Die abstrakte Klasse Komponente als Oberklasse (Superklasse) dieser
+Vererbungsstruktur ist eine Generalisierung der Unterklassen (Subklassen)
+RahmenTeil, SchaltElement und EinzelTeil. Die Subklassen haben die
+gemeinsamen Attribute iD, bezeichnung, gewicht, preis und hersteller,
+die in die Superklasse ausgelagert sind. Außer der privaten
+Identifikationsnummer haben diese Attribute das Zugriffsrecht protected
+(geschützt), benötigen innerhalb der Vererbungshierarchie beziehungsweise aus
+Klassen des Pakets keine get- und set-Methoden, sind aber gegen Zugriffe von
+außerhalb geschützt. Die drei Subklassen sind Spezialisierungen ihrer
+Superklasse Komponente. Jede dieser Klassen hat eigene Attribute, wie gruppe
+und abmessung der Klasse RahmenTeil. Dass es sich bei Komponente um
+eine abstrakte Klasse handelt, bedeutet, dass man von ihr keine Objekte erzeugen
+kann. Aber die Objekte ihrer Subklassen sind ebenfalls vom Datentyp
+Komponente, was für den gemeinsamen Aufruf von Methoden und Attributen
+vorteilhaft ist. Die toString()-Methoden sind polymorphe Methoden, sie
+haben die gleiche Signatur. So wird erst zur Laufzeit der Software entschieden, 2
+welche davon für ein konkretes Objekt verwendet wird.
+Die abgebildete Beziehung ist eine bidirektionale rekursive Assoziation auf das
+eigene Objekt. Jede Komponente kann eine vorherige und/oder eine nächste
+Komponente haben. In der Klasse Komponente werden vorherige und
+naechste als Referenzvariablen bereitgestellt. Die so verketteten Komponenten
+sind über ihre Vorgänger und über ihre Nachfolger erreichbar und können
+deshalb in beide Richtungen durchlaufen werden.
+
+1.7 Die Fertigungsorganisation soll durch ein Verwaltungssystem erweitert werden.
+Folgende Funktionalitäten sollen vom System bereitgestellt werden:
+– Kunden konfigurieren ihr zukünftiges Bike, das Servicepersonal kann sie dabei unterstützen.
+– Das Servicepersonal ist zuständig für die Auslieferung des fertigen Bikes, was voraussetzt,
+dass das Bike von einer Technikerin bzw. einem Techniker (im folgenden Techniker
+genannt) montiert und der Preis vom Servicepersonal ermittelt worden ist.
+– Im Montageprozess der Fahrräder wird regelmäßig ein Bike ausgewählt, das ausführlich im
+Testlabor geprüft wird. Diese Prüfung liegt in der Verantwortung eines Technikers. Sollte
+sich dabei zeigen, dass eine montierte Komponente des Bikes den hohen Belastungen nicht
+standhält, wird sie von einem Techniker ausgetauscht.
+– Das Unternehmen bietet für seine Bikes auch Zubehör an, zum Beispiel Flaschenhalter und
+Beleuchtung. Wenn der Kunde Zubehör wünscht, wird die Auslieferung des Bikes um den
+Anbau von Zubehör erweitert. Dafür ist wiederum ein Techniker zuständig.
+
+1.7.1 Beschreiben Sie den Zweck eines Anwendungsfalldiagramms und ordnen Sie seine
+Verwendung in den Softwarelebenszyklus ein.
+(2 BE)
+
+## Loesung 1.7.1
+Ein Anwendungsfalldiagramm modelliert die Anforderungen an ein System und
+dient der Absprache zwischen dem Kunden als Auftraggeber und dem
+Softwareentwickler als Auftragnehmer. Es beschreibt die Beziehungen zwischen
+Akteuren und Funktionalitäten in einem System. Auch Beziehungen zwischen
+Funktionalitäten können eingetragen werden.
+einordnen
+UML-Anwendungsfalldiagramme werden in der Analysephase des
+Softwarelebenszyklus eingesetzt. In der Integrationsphase wird getestet, ob das
+Endprodukt die festgelegten Anforderungen gewährleistet.
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Softwaresystems für die Social-Media-Plattform
+Ein erstes UML-Klassendiagramm ist in Material 1 zu finden.
+
+1.1 Zwischen der Klasse Beitrag und den Klassen Bild und Text (Material 1) sind "besteht
+aus"-Assoziationen modelliert. Benennen Sie die beiden Arten von Assoziationen und erläutern
+Sie jeweils deren Bedeutung.
+(3 BE)
+
+## Loesung 1.1
+benennen, erläutern
+Beide Assoziationen sind Ganzes-Teile-Assoziationen. Zwischen Beitrag und
+Bild ist eine Aggregation modelliert (nicht ausgefüllte Raute). Wird ein Beitrag
+gelöscht, bleibt das Bild im System erhalten. Bei der Aggregation ist die
+Lebensdauer der Teile, hier der Bilder, nicht an die Lebensdauer des Ganzen, hier
+der Beitrag, gebunden. Zwischen Beitrag und Text ist eine Komposition
+modelliert (ausgefüllte Raute). Bei der Komposition ist die Lebensdauer der
+Teile, hier des optionalen Textes, an die Lebensdauer des Ganzen, des Beitrags
+gebunden. Wird der Beitrag gelöscht, wird auch der Text gelöscht.
+benennen
+
+1.4.1 Beschreiben Sie die Aufgaben und Funktionsweisen der Socket-Klassen, der Klassen Server
+und ServerThread sowie deren Zusammenarbeit mit der Klasse SocialMediaPlatform
+beim Verbindungsaufbau und der Anmeldung.
+(4 BE)
+
+## Loesung 1.4.1
+Die Socket-Klassen verwendet man, um Daten senden und empfangen zu
+können. Sie dienen dem Aufbau einer bidirektionalen Verbindung. Anschließend
+führen die erzeugten Socket-Objekte Methoden zum Schreiben und Lesen von
+Texten aus.
+Server:
+Die Klasse Server implementiert einen Server, der an einem Port horcht und
+Verbindungsanfragen von Clients über einen Server-Socket entgegennimmt.
+Wurde eine Verbindungsanfrage akzeptiert, wird ein Socket geliefert und ein
+Objekt der Klasse ServerThread für diesen Client erzeugt und gestartet. Der
+Server erhält bei der Erzeugung eine Referenz auf ein Objekt der Klasse
+SocialMediaPlatform, die die Anwendungsfälle der Social-Media-Plattform
+in Methoden implementiert. Diese Referenz wird an den ServerThread 2
+weitergegeben, der die Methoden aufruft.
+ServerThread:
+Die Klasse ServerThread erbt von der Klasse Thread, damit der Client-
+Server-Dialog in einem nebenläufigen Prozess ausgeführt wird. Die run-
+Methode von Thread wird deshalb überschrieben. Ein Thread wird stets durch
+den Aufruf der Methode start() erzeugt und initialisiert. Dabei wird
+schließlich die Methode run() aufgerufen.
+Bei der Anmeldung schreibt der Client die Anforderung auf seinen Socket
+(write-Methode), der ServerThread liest die Anforderung von seinem Socket
+mit readline() und ruft die anmelden-Methode der Klasse
+SocialMediaPlatform auf. Die Antwort wird über dieselbe Verbindung in
+umgekehrter Richtung geschickt.
+
+1.5 Wenn ein Nutzer sein Passwort vergessen hat, kann er ein neues anfordern. Die Methode
+generierePasswort() der Klasse SocialMediaPlatform liefert ein sicheres Passwort,
+das zwölf Zeichen lang ist und die folgenden Elemente enthält:
+– einen Großbuchstaben [A – Z]
+– eine Ziffer [0 – 9]
+– ein Sonderzeichen [#, $, %, &]
+Jedes Element wird per Zufall ausgewählt und an eine, ebenfalls per Zufall ausgewählte
+Position im 12-stelligen Passwort geschrieben. Die restlichen neun Stellen werden mit
+zufälligen Kleinbuchstaben besetzt.
+Beispiele für Passwörter sind %fivqwj2iKez, i4koarmbN$ae, Sbazoygvc4#s.
+Hinweis: In Material 4 ist eine ASCII-Tabelle zu finden, in Material 2 die Beschreibung der
+Klasse Random, mit der Zufallszahlen erzeugt werden können.
+
+1.5.1 Entwickeln Sie einen Algorithmus für die Methode generierePasswort()in Textform oder
+als Pseudocode.
+(5 BE)
+
+## Loesung 1.5.1
+Für das Passwort wird ein 12-stelliges char-Array deklariert. Die Indizes der
+freien Stellen werden in einer Liste vom Datentyp Integer verwaltet. Zu Beginn
+ist das Passwort-Array leer, deshalb werden alle Indizes (0 – 11) in die Liste
+eingetragen.
+Die vier Sonderzeichen sind in einem Zeichen-Array gegeben. Großbuchstaben
+und Ziffern werden mittels einer Zufallszahl erzeugt, für die der geforderte
+Wertebereich festgelegt wird. Anschließend entstehen aus den gecasteten
+zufälligen int-Werten die geforderten Zeichen.
+Beim Eintragen eines Zeichens in das Passwort wird zunächst ein Element der
+Liste per Zufall ermittelt. Dieses Element liefert den Index im Passwort und das
+Zeichen wird bei diesem Index eingetragen. Anschließend wird dieser
+verwendete Index aus der Liste gestrichen.
+Am Ende werden Kleinbuchstaben auf alle noch freien Stellen geschrieben, deren
+Indizes noch in der Liste stehen.
+Hinweis: Der hier entwickelte und beschriebene Algorithmus verwendet explizite
+und automatische Typecasts zwischen int und char.
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+# OOP
+
+1 Entwicklung von Software für die Taxizentrale und zur Steuerung der Taxameter.
+Für die Auftragsverwaltung der Taxizentrale soll ein Softwaresystem entwickelt werden.
+Außerdem ist eine Steuerung für die in den Taxis eingebauten Taxameter erforderlich.
+
+1.1 Die Entwicklung von Software ist ein strukturierter Prozess, der in mehreren Phasen erfolgt.
+Ziel ist die Sicherstellung der Softwarequalität.
+
+1.1.1 Folgende Phasen der Softwareentwicklung lassen sich abgrenzen:
+– Analysieren und Definieren der Anforderungen
+– Softwareentwurf
+– Implementierung und Komponententests
+– Integration und Systemtests
+– Betrieb und Wartung
+Beschreiben Sie die Aufgaben, die in den einzelnen Phasen zu erledigen sind. Nennen Sie
+jeweils ein Produkt (z.B. Dokument oder Diagramm), das in der jeweiligen Phase zu erstellen
+ist.
+(7 BE)
+
+## Loesung 1.1.1
+– Analyse und Definition der Anforderungen
+Die Dienstleistungen, Einschränkungen und Ziele des Systems werden in
+Zusammenarbeit mit den Systembenutzern aufgestellt. Dann werden sie
+detaillierter definiert und dienen so als Systemspezifikation. (Produkte z.B.:
+Lastenheft, Pflichtenheft, Meilensteine, UML-Anwendungsfalldiagramm,
+Prototyp Benutzeroberfläche, Testdaten)
+– Softwareentwurf
+Beim Softwareentwurf geht es um das Erkennen und Beschreiben der
+grundlegenden abstrakten Softwaresysteme und ihrer Beziehung zueinander.
+(Produkte z.B.: UML-Klassendiagramm, UML-Sequenzdiagramm, Modell der
+Datenhaltung, Schnittstellenspezifikation, Entwicklerdokumentation)
+– Implementierung und Komponententests
+In dieser Phase wird der Softwareentwurf in einer Reihe von Programmen
+oder Programmeinheiten umgesetzt. Das Testen der Einheiten stellt sicher,
+dass jede Einheit ihre Spezifikationen erfüllt.
+(Produkte z.B.: kommentierte Programmmodule, Testprotokolle)
+– Integration und Systemtests
+Die einzelnen Programme oder Programmeinheiten werden zusammengeführt
+bzw. integriert und als Ganzes getestet, um sicherzustellen, dass die
+Softwareanforderungen erfüllt werden. Nach den Tests wird das
+Softwaresystem an den Kunden ausgeliefert. (Produkte z.B.: Testprotokolle,
+Dokumentation, Benutzerhandbuch)
+– Betrieb und Wartung
+Das System wird installiert und zum Gebrauch frei gegeben. Zur Wartung
+gehören das Korrigieren von Fehlern, die in den früheren Phasen nicht
+entdeckt wurden, die Verbesserung der Implementierung von Systemeinheiten
+und die Verbesserung des Systems, falls neue Anforderungen entdeckt
+werden.
+(Produkte z.B.: Benutzerhandbuch, Abnahmeprotokoll, Dokumentation)
+
+1.1.2 Beschreiben Sie vier Qualitätskriterien, um Softwarequalität sicherzustellen.
+(4 BE)
+
+## Loesung 1.1.2
+– Funktionalität: Die Funktionen erfüllen die Anforderungen hinsichtlich
+Richtigkeit, Sicherheit und Angemessenheit.
+– Zuverlässigkeit: Fähigkeit der Software, ihr Leistungsniveau unter
+festgelegten Bedingungen über einen festgelegten Zeitraum zu bewahren.
+Dazu gehören Verfügbarkeit, Fehlertoleranz und Wiederherstellbarkeit.
+– Benutzbarkeit: Die Gebrauchstauglichkeit der Software hinsichtlich
+Attraktivität, Bedienbarkeit und Verständlichkeit unterliegt der individuellen
+Beurteilung durch die Personen, die mit der Software arbeiten.
+– Wartbarkeit: Aufwand, der zur Durchführung vorgegebener Änderungen
+notwendig ist. Änderungen können Korrekturen, Verbesserungen oder
+Anpassungen an Änderungen der Umgebung, der Anforderungen oder der
+funktionalen Spezifikationen einschließen.
+Hinweis: Die Beschreibung anderer Qualitätskriterien ist als gleichwertig zu
+betrachten.
+
+1.2 Kundinnen und Kunden (im Folgenden Kunden genannt) können bei der Taxizentrale
+telefonisch rund um die Uhr Aufträge für Fahrten, unter Angabe der Start- und Zieladresse,
+aufgeben. Für die Auftragsabwicklung in der Taxizentrale liegt ein Anwendungsfalldiagramm
+vor (Material 1).
+Beschreiben Sie die wesentlichen Notationselemente des vorliegenden UMLAnwendungsfalldiagramms sowie die Unterschiede zwischen extend- und include-Beziehungen.
+Erläutern Sie die inhaltliche Bedeutung des vorliegenden Anwendungsfalldiagramms.
+(5 BE)
+
+## Loesung 1.2
+– Ein System wird durch die Summe aller Anwendungsfälle beschrieben. Diese
+werden durch die Systemgrenze zusammengefasst. Der Name des Systems
+steht innerhalb der Systemgrenze.
+– Ein Akteur modelliert einen Typ oder eine Rolle, die ein externer Benutzer
+oder ein externes System während der Interaktion mit dem System einnimmt.
+– Ein Anwendungsfall wird durch eine Ellipse innerhalb der Systemgrenze
+dargestellt. In der Ellipse steht die Funktionsbeschreibung.
+– Die Akteure werden über Verbindungslinien (Beziehungen) mit den
+Anwendungsfällen verbunden. Eine Beziehung zwischen einem Akteur und
+einem Anwendungsfall besagt, dass der Akteur am Anwendungsfall beteiligt
+ist oder diesen Anwendungsfall auslösen kann.
+– Eine include-Beziehung modelliert die unbedingte Einbindung der
+Funktionalität eines Anwendungsfalls in einen anderen Anwendungsfall
+(muss-Beziehung). Dargestellt wird die include-Beziehung durch einen
+gestrichelten Pfeil, wobei der Pfeil auf den inkludierten Anwendungsfall zeigt.
+– Eine extend-Beziehung modelliert die bedingte Einbindung der Funktionalität
+eines Anwendungsfalls in einen anderen Anwendungsfall (kann-Beziehung).
+Der erweiterte Anwendungsfall wird durch sogenannte Erweiterungspunkte
+bzw. Extension Points detailliert beschrieben. Die Bedingung wird definiert.
+Tritt die Bedingung ein, wird die Erweiterung ausgeführt. Dargestellt wird die
+extend-Beziehung durch einen gestrichelten Pfeil, wobei der Pfeil auf den
+erweiterten Anwendungsfall zeigt.
+erläutern
+Im System „Taxizentrale“ löst der Kunde den Anwendungsfall „Taxi bestellen“
+durch Anruf bei der Taxizentrale aus. Der Mitarbeiter ist an diesem
+Anwendungsfall beteiligt, da er den Anruf entgegennimmt. Der Anwendungsfall
+„Taxi bestellen“ bindet die Funktionalität des Anwendungsfalls „Auftrag mit
+Ortsangaben erfassen“ zwingend ein. Der Mitarbeiter kann die Verfügbarkeit der
+Taxis prüfen. Wenn ein Taxi verfügbar ist, kann der Mitarbeiter die Bereitschaft
+zur Übernahme des Auftrags bei dem Fahrer des Taxis anfragen. Signalisiert der
+Fahrer seine Bereitschaft, kann der Mitarbeiter den Auftrag an den Fahrer
+vergeben.
+
+--------------------
+
+--- [ABI 2023 C] ---
+
+# OOP
+
+1 Objektorientierte Modellierung und Implementierung eines Canasta-Spiels
+Ein UML-Klassendiagramm finden Sie in Material 1. Die nachfolgenden Aufgaben beziehen
+sich auf ein Canasta-Spiel für zwei Personen. Hauptziel jeder Spielerin beziehungsweise jedes
+Spielers (im Folgenden Spieler genannt) ist es, jeweils sieben Karten gleicher Art (einen
+„Canasta“) zu sammeln und auszulegen, also zum Beispiel sieben Damen oder sieben Achten.
+Für die Lösung der Aufgaben sind keine Kenntnisse der Spielregeln erforderlich.
+
+1.6.1 Erklären Sie die Vorgehensweise des vorliegenden Sortieralgorithmus.
+Hinweis: Die Vorgehensweise in der Hilfsmethode teileArray() soll nicht in die Erklärung
+einbezogen werden.
+(5 BE)
+
+## Loesung 1.6.1
+Die Vorgehensweise des vorliegenden Sortieralgorithmus wird maßgeblich durch
+die Methode quicksort() festgelegt, die in der main-Methode aufgerufen
+wird und die das sortierte Zahlenarray zurückgibt. Ihr wird das in der main-
+Methode bereitgestellte Zahlenarray sowie sein erster Index start und sein
+letzter Index ende übergeben. Die dargestellte Methode quicksort() ist eine
+rekursive Methode. Rekursive Methoden rufen sich immer wieder selbst auf, bis
+ein Rekursionsanker erreicht ist, der diesen Prozess beendet. Immer, wenn start
+< ende wahr ist, ist das Ende der Rekursion noch nicht erreicht, und die
+Methode teileArray() wird aufgerufen. Sie liefert den Index q, dessen
+zugehöriges Element (Pivotelement) bereits an seinen Platz im später fertig
+sortierten Array getauscht worden ist. Nun muss in den Rekursionsschritten, also
+in den zwei darstellten Aufrufen der Methode quicksort(), im Teilarray vor
+und im Teilarray hinter dem Index q weiter sortiert werden, was aber nur
+durchgeführt wird, wenn es noch einen unsortierten Bereich des Arrays gibt, also
+dessen erster Index vor seinem letzten Index liegt. Die dargestellte Ausgabe vonq
+erfolgt zu Testzwecken und gehört normalerweise nicht zur Methode
+quicksort().
+
+1.6.2 Um nachzuvollziehen, wie eine fremde Software funktioniert, kann sie zunächst auf dem Papier
+an einem kleinen Beispiel getestet werden („Schreibtischtest“). Bestimmen Sie auf Grundlage
+des vorliegenden Sortieralgorithmus die ersten beiden Ausgabewerte von q. Geben Sie dabei
+nach jeder Änderung im Array immer das gesamte aktuelle Array an.
+Hinweise: Gehen Sie schrittweise die Struktogramme, beginnend bei der main()-Methode,
+durch. Geben Sie bei möglichen Methodenaufrufen, Bedingungen oder Schleifen immer die
+konkreten Parameterwerte an. Beispielhaft sind in Material 6 bereits die ersten Methodenaufrufe
+und Ausgabewerte angegeben.
+(8 BE)
+
+## Loesung 1.6.2
+bestimmen, angeben
+0<2? ja
+0<3? ja und 7<16? ja, positionLinks=1
+1<3? ja und 14<16? ja, positionLinks=2
+2<3? ja und 21<16? nein
+2>0? ja und 21>=16? ja; positionRechts=1
+1>0? ja und 14>=16? nein; positionLinks<positionRechts: 2<1?
+nein //also kein Tausch
+2<1? nein //äußere Schleife zu Ende
+21>16? ja, testArray=tauscheElemente(testArray,2,3):
+return
+Ausgabe
+QuicksortArray.quicksort(testArray,0,1)
+start=0, ende=1, 0<1? ja
+q=teileArray(testArray,0,1)
+positionLinks=0, positionRechts=0, m=0
+testArray=tauscheElemente(testArray,0,0):
+pivotElement=21
+solange positionLinks<positionRechts: 0<0? nein
+7>21? nein
+return
+Ausgabe
+bestimmen
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Wettbewerbsverwaltung
+Für die Verwaltung der Wettbewerbe sollen eine Applikation und eine Client-Server-Lösung
+realisiert werden. Ein erstes Klassendiagramm finden Sie in Material 1.
+
+1.1 Beschreiben Sie beispielhaft die verschiedenen Assoziationstypen im Klassendiagramm
+(Stichworte: Assoziation, Navigierbarkeit, Rollenname, Multiplizität).
+(4 BE)
+
+## Loesung 1.1
+Zwischen den Klassen Bewertung und Chor besteht eine einfache
+unidirektionale Assoziation. Die Bewertung kennt den Chor (Rollenname chor),
+welcher er zugewiesen ist. Der Chor kennt jedoch seine Bewertung nicht, weil
+die Navigationsrichtung explizit ausgeschlossen ist. Die Multiplizität bei der 3
+Klasse Chor ist eins. Es handelt sich um eine Muss-Beziehung.
+Zwischen den Klassen Wettbewerb und Teilnahme besteht eine bidirektionale
+Assoziation. Der Wettbewerb kennt beliebig viele Teilnahmen (Rollenname
+teilnahmen). Die Teilnahme kennt jedoch nur genau einen Wettbewerb
+(Rollenname wb).
+
+1.4 Bisher wurden eine neue Dirigentin bzw. ein neuer Dirigent (im Folgenden Dirigent genannt)
+immer als Person gespeichert. Dieses Vorgehen ist jedoch nicht mehr vorteilhaft, da eine
+Zuordnung von Chor zu Dirigent und umgekehrt nicht möglich ist. Deswegen sollen nun
+notwendige Schritte bei der nachträglichen Umsetzung besprochen werden, um folgende
+Vorgaben umzusetzen:
+Bei dem Wettbewerb können Dirigenten ein bis zwei Chöre leiten. Der Chor und sein Dirigent
+kennen sich gegenseitig. Ein Dirigent hat dieselben Eigenschaften wie eine Person in Material 1
+und wird mit seinem Chor von einer Mitarbeiterin bzw. einem Mitarbeiter (im Folgenden
+Mitarbeiter genannt) über die Wettbewerbsverwaltung registriert.
+Ein Dirigent kann bereits als Person gespeichert bzw. von einem anderen Chor registriert
+worden sein.
+Erklären Sie die Schritte, die bei der Ergänzung einer neuen Klasse Dirigent beachtet werden
+müssen. Bestehende Strukturen sollen bestehen bleiben bzw. modifiziert werden.
+(5 BE)
+
+## Loesung 1.4
+Ein Dirigent ist durch die Betreuung von bis zu zwei Chören eine Erweiterung der
+Klasse Person. Daher wird eine neue Klasse Dirigent implementiert, welche
+von der Klasse Person erbt. Die Klasse Dirigent besitzt ein Array der Größe
+zwei vom Datentyp Chor zur Speicherung der betreuten Chöre.
+In der Klasse Wettbewerbsverwaltung wird eine Methode
+registriereDirigent() implementiert, der als Übergabeparameter eine
+Repräsentanz des Chor-Objekts und die Eigenschaften einer Person (name,
+adresse) übergeben werden. Die Methode durchsucht anschließend die Liste
+personen und prüft, ob eine entsprechende Person bereits in der Liste der
+registrierten Personen existiert.
+Wenn keine entsprechende Person gefunden wurde, wird ein neuer Dirigent mit
+den entsprechenden Eigenschaften einer Person und einer Referenz zum
+entsprechenden Chor initialisiert. Anschließend wird die Referenz des Dirigenten
+in der Personenliste der Wettbewerbsverwaltung hinzugefügt.
+Wenn eine passende Person gefunden wurde, wird sie als Dirigent via Polymorphie
+zugewiesen und die Chorreferenz wird zu seiner Liste der betreuten Chöre
+hinzugefügt, falls der Dirigent weniger als zwei Chöre betreut. Andernfalls kann
+ein Chor diesen Dirigenten nicht registrieren oder auswählen.
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+# OOP
+
+Für eine Flughafenverwaltung sollen eine neue Anwendung sowie eine Datenbank entwickelt werden.
+
+1 Für mehrere Flughäfen soll eine Software zur Verwaltung entwickelt werden. Hauptaspekte der
+Software ist die Verwaltung von Tickets, Flügen, Kundinnen und Kunden (im Folgenden Kunde
+genannt) und Pilotinnen und Piloten (im Folgenden Pilot genannt). Ein erstes Klassendiagramm
+finden Sie in Material 1.
+
+1.1 Erläutern Sie jeweils die Aufgaben eines Lasten- und eines Pflichtenhefts im Prozess der
+Softwareentwicklung. Nennen Sie dabei die Rollen der beteiligten Parteien.
+(4 BE)
+
+## Loesung 1.1
+Ein Lastenheft wird in der Planungsphase eines Softwareprojektes erstellt und
+beschreibt die gesamte Funktionalität, die eine Software erfüllen soll in nicht
+technischer Sprache. Es umfasst den aktuellen IST-Zustand, den gewünschten
+SOLL-Zustand sowie die Schnittstellen und funktionalen Anforderungen der
+Software. Das Lastenheft wird vom Auftraggeber dem Auftragnehmer
+übergeben, damit dieser, auf dessen Grundlage, das Pflichtenheft erstellt. Dieses
+stellt die zu entwickelnde Softwarelösung dar und beschreibt technisch, die im
+Lastenheft gewünschten Funktionen und deren Umsetzung, sowie die Schritte
+zur Erreichung des SOLL-Zustands.
+
+1.9 Beschreiben Sie wie sich Aktoren und Sensoren in ihrer Funktion unterscheiden und nennen Sie
+jeweils zwei typischen Anwendungsbeispiele für ein Flughafen-Szenario.
+(4 BE)
+
+## Loesung 1.9
+Sensoren erfassen Informationen aus ihrer Umgebung, in dem sie physikalische
+oder chemische Größen messen um diese in elektrische Signale zu übersetzt.
+Aktoren hingegen reagieren auf elektrische Signale der Sensoren, indem sie
+physische Handlungen ausführen.
+Mögliche Anwendungsbeispiele für Sensoren:
+ Rauchmelder zur Erkennung von Rauchentwicklung und Bränden
+ Bewegungssensoren zur Steuerung von Türen.
+Mögliche Anwendungsbeispiele für Aktoren:
+ Gepäckbänder zum Transport des Gepäcks der Passagiere
+ Automatische Türen, die sich auf Basis von Bewegungssensoren öffnen
+und schließen
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Krankenhausmanagementsystems.
+
+1.1 In der Softwareentwicklung werden verschiedene UML-Diagramme verwendet, um
+unterschiedliche Aspekte eines Softwaresystems zu visualisieren und zu dokumentieren.
+Beschreiben Sie die jeweiligen Anwendungsbereiche von Klassendiagrammen,
+Objektdiagrammen, Anwendungsfalldiagrammen und Sequenzdiagrammen. Erläutern Sie den
+Nutzen für die jeweiligen Betroffenen, für die diese Diagramme erstellt werden.
+(6 BE)
+
+## Loesung 1.1
+beschreiben, erläutern
+Klassendiagramm:
+Anwendungsbereich: Klassendiagramme zeigen die statische Struktur eines
+Systems, indem sie die Klassen, ihre Attribute, Methoden und Beziehungen
+zwischen Klassen (z. B. Vererbung, Assoziation) darstellen.
+Nutzen: Klassendiagramme sind hilfreich für Entwickler, um das Systemdesign
+zu verstehen und zu implementieren, sowie für Analysten und Architekten, um
+die Struktur und die Beziehungen zwischen Komponenten zu analysieren.
+Objektdiagramm:
+Anwendungsbereich: Objektdiagramme zeigen die Instanzen von Klassen und
+ihre Beziehungen zueinander in einem bestimmten Moment. Sie dienen dazu, den
+Zustand von Objekten in einem System zu visualisieren.
+Nutzen: Objektdiagramme sind hilfreich für Entwickler, um den konkreten
+Zustand des Systems in einer bestimmten Situation zu verstehen und die
+Interaktionen zwischen Objekten besser nachzuvollziehen.
+Anwendungsfall-Diagramm:
+Anwendungsbereich: Anwendungsfall-Diagramme zeigen die Funktionalität
+eines Systems aus der Sicht der Benutzer (Akteure) und beschreiben die
+Interaktionen zwischen Akteuren und Systemfunktionalitäten (Anwendungsfälle).
+Nutzen: Anwendungsfall-Diagramme sind nützlich für Stakeholder wie Kunden,
+Analysten und Entwickler, um die Systemanforderungen und das erwartete
+Verhalten des Systems zu verstehen und zu kommunizieren.
+Sequenzdiagramm:
+Anwendungsbereich: Sequenzdiagramme zeigen die zeitliche Abfolge von
+Interaktionen zwischen Objekten (Klasseninstanzen) in einem bestimmten
+Szenario oder Anwendungsfall. Sie visualisieren die Nachrichten, die zwischen
+Objekten ausgetauscht werden, und die Reihenfolge, in der dies geschieht.
+Nutzen: Sequenzdiagramme sind hilfreich für Entwickler und Architekten, um
+die Abläufe und die Zusammenarbeit der Systemkomponenten im Detail zu
+verstehen und deren Implementierung zu planen.
+
+1.3 Beschreiben Sie das Klassendiagramm in Material 2 am Beispiel der Klasse .
+Patient
+Hinweis: Die Stichworte Klasse, Objekt, Attribut, Methode, Beziehung, Multiplizität und Rolle
+sind sinnvoll zu verwenden.
+(5 BE)
+
+## Loesung 1.3
+Im gegebenen Modell besitzt die Klasse Patient die Attribute patientenNr,
+name, geschlecht, versicherungsart und das statische Attribut
+autowert sowie die Methoden Patient() (der Konstruktor),
+entferneBehandlungsplan() und indikationMitHoechsterPriorität().
+Die Klasse Patient hat eine unidirektionale Beziehung zu Indikation, eine 3
+unidirektionale Beziehung von Operation und Zimmer sowie eine bidirektionale
+Beziehung zu Abteilung und zu Behandlungsplan. Die Multiplizität der
+Beziehung besagt exemplarisch, dass das Patienten-Objekt 0, 1 oder mehrere
+Indikationen kennt und jeweils eine Abteilung und einen Behandlungsplan kennen
+muss. In dieser Beziehung tritt der Behandlungsplan in der Rolle
+behandlungsplan auf.
+
+--------------------
+
+--- [ABI 2025 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Festivalverwaltung
+Das Festival „Heartbeat of Hessen“ möchte weitgehend auf Bargeld auf dem Gelände
+verzichten und hat sich deshalb dazu entschieden, Armbänder mit RFID1-Chip einzuführen. Das
+Festival-Armband kann zu diesem Zweck an Automaten mit Bargeld aufgeladen werden. Am
+Ende des Festivals können sich die Besucherinnen und Besucher (im Folgenden Besucher
+genannt) den Restbetrag vom Automaten auszahlen lassen. Ein erstes Klassendiagramm ist in
+Material 1 hinterlegt.
+
+1.1 Beschreiben Sie das Konzept der Assoziation in der objektorientierten Softwareentwicklung
+allgemein und gehen Sie auf vier Beziehungstypen ein. Erläutern Sie die Assoziationen, die im
+Klassendiagramm in Material 1 zu sehen sind am Beispiel.
+(5 BE)
+
+## Loesung 1.1
+In einem UML-Klassendiagramm werden Assoziationstypen verwendet, um die
+Beziehungen zwischen Klassen oder Objekten darzustellen. Es gibt verschiedene
+Arten von Assoziationstypen, die die Art und Weise beschreiben, wie Klassen
+miteinander in Beziehung stehen.
+Unidirektionale Assoziation: Eine Klasse ist mit einer anderen Klasse
+verbunden, aber die Verbindung ist einseitig. Das bedeutet, dass eine Klasse auf
+die andere verweisen kann, aber nicht unbedingt umgekehrt.
+Bidirektionale Assoziation: Zwei Klassen sind miteinander verbunden, und
+beide Klassen können auf die andere verweisen. Es besteht eine gegenseitige
+Beziehung.
+Aggregation: Aggregation stellt eine Teil-Ganzes-Beziehung dar, bei der eine
+Klasse (Ganzes) andere Klassen (Teile) enthält. Die Teile können jedoch
+unabhängig vom Ganzen existieren.
+Komposition: Die Komposition ist eine stärkere Form der Aggregation, bei der
+die Teile eng mit dem Ganzen verbunden sind und nicht unabhängig davon
+existieren können. Wenn das Ganze zerstört wird, werden auch seine Teile
+zerstört.
+Im vorliegenden Klassendiagramm handelt es sich bei der Klasse Person um
+eine Oberklasse, von der die Klassen Mitarbeiter und Besucher abgeleitet
+werden. Sie erben die Attribute und den Konstruktor. Dieser wird in der Klasse
+Besucher um das Attribut ticket ergänzt.
+Alle übrigen Beziehungen sind unidirektionale Assoziationen, z.B. kann die
+Klasse Ticket ein Attribut der Klasse Baendchen besitzen und auf dieses
+zugreifen. Umgekehrt kann die Klasse Baendchen nicht auf die Klasse Ticket
+zugreifen.
+
+1.6.1 Erläutern Sie die Verwendung und die Vorteile von Struktogrammen bei der Entwicklung und
+Darstellung von Algorithmen.
+(3 BE)
+
+## Loesung 1.6.1
+Struktogramme werden verwendet, um Algorithmen zu planen, normiert
+darzustellen, zu kommunizieren und zu dokumentieren. Struktogramme sind
+hilfreich, um komplexe Probleme in kleinere, leichter zu bewältigende
+Teilaufgaben aufzuteilen. Dies erleichtert die Entwicklung von Software. Es
+handelt sich somit um eine vereinfachte Darstellung von Teilen eines
+Programms.
+
+--------------------

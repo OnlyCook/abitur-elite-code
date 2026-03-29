@@ -1,0 +1,1209 @@
+--- [ABI 2025 B] ---
+
+(ER-Diagramm gegeben)
+
+Person (pid, nachname, vorname, gebDatum)
+Baendchen (bid, farbe, rfid)
+traegt (pid#, bid#, von, bis)
+Aufbuchung (aid, datum, uhrzeit, betrag, bid#)
+Kauf (kid, datum, uhrzeit, anzahlGetraenke, bid#, gsid#,
+gid#)
+Getraenkestand (gsid, standort)
+Getraenk (gid, bezeichnung, preis, liter)
+
+UPDATE Getraenk
+SET bezeichnung = 'Hessen Cola'
+WHERE bezeichnung = 'Fratz Cola';
+
+SELECT Getraenkestand.standort,
+ SUM(Getraenk.preis * Kauf.anzahlGetraenke) AS Umsatz
+FROM Kauf
+ JOIN Getraenkestand USING(gsid)
+ JOIN Getraenk USING(gid)
+GROUP BY Getraenkestand.standort;
+
+SELECT G.bezeichnung AS Getränk,
+ K.anzahlGetraenke AS Anzahl,
+ K.anzahlGetraenke * G.preis AS Summe,
+ K.datum AS Datum, K.uhrzeit AS Uhrzeit
+FROM Kauf K
+ JOIN Getraenk G USING(gid)
+ JOIN traegt T USING(bid)
+ JOIN Person P USING(pid)
+WHERE P.name = 'Amar' AND P.vorname = 'Hedy'
+ AND K.datum BETWEEN '2025-04-05' AND '2025-04-07';
+ 
+SELECT IF (geburtsdatum <= NOW() - INTERVAL 18 YEAR,
+ 'Ja', 'Nein')
+FROM Person
+WHERE nachname = 'Goldmann' AND vorname = 'Adele';
+
+DELETE FROM Getraenk
+WHERE gid IN (
+ SELECT gid
+ FROM (
+ SELECT gid, SUM(anzahlGetraenke)
+ FROM Kauf
+ GROUP BY gid
+ ORDER BY SUM(anzahlGetraenke) ASC
+ LIMIT 5
+) AS x );
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+(ER-Diagramm gegeben)
+
+Mitarbeiter(mID, name, vorname)
+Bestellung(bID, datum)
+Mitarbeiter_Bestellung(mID#, bID#)
+Position(pID, menge, ablaufdatum, aID#, bID#)
+Artikel(aID, bezeichnung, preis)
+Lager(lID, standort)
+Bestellung_Lager (bID#, lID#)
+Lager_Artikel(datum, anzGenutzt, anzAbgelaufen, lID#, aID#)
+
+SELECT bezeichnung, preis
+FROM Artikel
+ORDER BY bezeichnung ASC;
+
+SELECT bezeichnung, ablaufdatum
+FROM Artikel
+JOIN Position USING(aID)
+JOIN Bestellung USING(bID)
+JOIN Bestellung_Lager USING(bID)
+JOIN Lager USING(lID)
+WHERE standort = 'Kreißsaal' AND ablaufdatum < NOW();
+
+SET @bestellung = (
+ SELECT bID
+ FROM Bestellung
+ ORDER BY bID DESC
+ LIMIT 1);
+DELETE FROM Position WHERE bID = @bestellung;
+DELETE FROM Bestellung_Lager WHERE bID = @bestellung;
+DELETE FROM Mitarbeiter_Bestellung WHERE bID = @bestellung;
+DELETE FROM Bestellung WHERE bID = @bestellung;
+Hinweis: Eine Umsetzung ohne SET ist als gleichwertig anzusehen.
+
+SELECT Lager.standort, COUNT(Bestellung_Lager.bID)
+ AS Bestellanzahl
+FROM Lager
+LEFT JOIN Bestellung_Lager USING(lID)
+GROUP BY Lager.standort;
+
+SELECT a.bezeichnung AS Artikelbezeichnung,
+ SUM(p.menge) AS Bestellmenge,
+ (SUM(la.anzGenutzt)+ SUM(la.anzAbgelaufen)) AS verbraucht
+FROM artikel a
+ JOIN Lager_Artikel la USING(aID)
+ JOIN Position p USING(aID)
+ JOIN Bestellung b USING(bID)
+WHERE la.datum BETWEEN '2025-01-01' AND '2025-03-31'
+ AND b.datum BETWEEN '2025-01-01' AND '2025-03-31'
+GROUP BY a.bezeichnung;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+(ER-Diagramm gegeben)
+
+Kunde (kid, vorname, name, adresse, telefon, email)
+Ticket (tid, status, sitzplatz, kid#, fid#)
+Gepäck (gid, gewicht, tid#)
+Flug (fid, preis, startZeit, endZeit, aid#)
+Flugzeug (aid, geschwindigkeit, sitze, modell, fgid#)
+Fluggesellschaft (fgid, name, adresse, telefon, email)
+
+INSERT INTO Kunde (vorname, name, adresse, telefon, email)
+VALUES ('Mark', 'Duvall', 'Hauptstraße 21 63075 Offenbach
+am Main', '069123456', 'Mark.Duvall@online.com');
+
+UPDATE Flugzeug SET sitze = 50
+WHERE modell = 'CRJ700'
+ AND fgid =
+ (SELECT fgid FROM Fluggesellschaft
+ WHERE name = 'DijkstraAir');
+ 
+SELECT SUM(gewicht) AS Gewicht
+FROM Gepäck g, Ticket t, Flug f
+WHERE g.tid = t.tid
+AND t.fid = f.fid
+AND f.fid = 'NJ1381'
+AND f.startZeit = '2024-02-04 14:05:00';
+
+SELECT t.tid AS Ticket_Id, k.name AS Name, k.vorname AS
+Vorname, t.sitz AS Sitzplatz
+FROM Kunde k, Ticket t
+WHERE k.kid = t.kid
+AND t.fid = 'DL1942'
+ORDER BY k.name, k.vorname;
+
+SELECT fgid.name, COUNT(fg.fgid) AS Starts
+FROM Fluggesellschaft fg, Flugzeug fz, Flug f
+WHERE fg.fgid = fz.fgid
+AND fz.aid = f.aid
+AND f.startzeit BETWEEN '2024-03-01 00:00:00'
+AND '2024-03-31 23:59:59'
+GROUP BY fg.fgid
+HAVING Starts < 50;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+(ER-Diagramm gegeben)
+
+Chor(cID, name, land, strasse, plz, ort)
+Teilnahme(tID, anzahlPers, ankunft, abfahrt, cID#, wID#)
+Wettbewerb(wID, bezeichnung, land, beginn, ende)
+Kategorie(kID, bezeichnung)
+Teilnahme_Kategorie(tID#, kID#, bewertung)
+
+INSERT INTO Teilnahme (anzahlPers, ankunft, abfahrt, cID,
+ wID) VALUES (43, '2024-07-01', '2024-07-22', 201, 62);
+UPDATE Teilnahme SET anzahlPers = anzahlPers - 1
+WHERE tID = 6258;
+
+SELECT *
+FROM Wettbewerb
+WHERE beginn >= NOW() AND beginn <= DATEADD(year, 1, NOW())
+ORDER BY beginn ASC
+LIMIT 5;
+
+SELECT c.*
+FROM Wettbewerb w JOIN Teilnahme t USING(wID)
+ JOIN Chor c USING(cID)
+WHERE w.bezeichnung = '11. World Choir Games'
+ AND c.cID IN (SELECT cid
+ FROM Wettbewerb w JOIN Teilnahme t USING(wID)
+ WHERE w.bezeichnung = '12. World Choir Games');
+ 
+SELECT c.name, w.bezeichnung, COUNT(tk.kID) AS
+'Kategorieanzahl'
+FROM Chor c JOIN Teilnahme t USING(cID)
+ JOIN Teilnahme_Kategorie tk USING(tID)
+ JOIN Wettbewerb w USING(wID)
+WHERE w.beginn > NOW()
+GROUP BY c.name, w.bezeichnung
+HAVING Kategorieanzahl > 3;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2023 C] ---
+
+(ER-Diagramm gegeben)
+(ER-Diagramm-Erweiterung gegeben)
+
+Spieler(sID, name, vorname, gebDat)
+Team(teamID, bewertMod, sNr1#, sNr2#)
+NimmtTeil(teamID#, cSpielID#, punktezahl)
+Canastaspiel(cSpielID, datum, startZeit, ort, kID#)
+Kartensatz(kID, bezeichnung, herkunft, kaufDat, preis)
+
+INSERT INTO Spieler VALUES (57, 'Schmidt', 'Petra',
+ '2001-07-19');
+INSERT INTO Team (bewertMod, sNr1, sNr2)
+VALUES (false, (SELECT sID FROM Spieler
+ WHERE name LIKE 'Treusch'
+ AND vorname LIKE 'Astrid'),
+ 57);
+
+UPDATE Canastaspiel SET kID =13
+WHERE datum > NOW() AND kID = 1;
+UPDATE Canastaspiel SET kID = NULL
+WHERE kID = 1;
+DELETE FROM Kartensatz WHERE kID = 1;
+
+SELECT teamID, cSpielID, punktezahl
+FROM Nimmtteil
+WHERE punktezahl >= 5000;
+
+SELECT c.kID, COUNT(c.kID) AS Anzahl
+FROM Canastaspiel c, Kartensatz e
+WHERE c.kID = e.kID
+GROUP BY c.kID
+HAVING COUNT(c.kID) > 100
+ORDER BY Anzahl DESC;
+
+SELECT sp.sID, sp.vorname, sp.name, SUM(n.punktezahl) AS
+ Gesamtpunkte
+FROM Spieler sp, Team z, Nimmtteil n
+WHERE z.teamID = n.teamID AND (sp.sID = z.sID1 OR
+ sp.sID = z.sID2) AND z.bewertMod = true
+GROUP BY sp.sID;
+
+(ER-Diagramm-Erweiterung erweitern)
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+(ER-Diagramm gegeben)
+
+Fahrer(fahrerNr, nachname, vorname, stundenlohn, iban)
+Taxi(wagenNr, kennzeichen)
+Einsatz(eID, beginn, ende, fahrerNr#, wagenNr#)
+Auftrag(auftragNr, start, ende, eID#, von#, nach#)
+Adresse(aID, strasse, plz, ort, oID#)
+Ortsteil(oID, bezeichnung)
+
+INSERT INTO Fahrer
+VALUES(333, 'Knebel', 'Lennard', 12.0, null);
+INSERT INTO Einsatz(beginn, ende, fahrerNr, wagenNr)
+VALUES('2023-05-18 08:00:00', '2023-05-18 17:00:00', 333,
+(SELECT wagenNr FROM Taxi WHERE kennzeichen = 'F-TT 661'));
+
+UPDATE Einsatz SET fahrerNr = 333
+WHERE fahrerNr = (SELECT fahrerNr FROM Fahrer
+ WHERE nachname = 'Tischendorf'
+ AND vorname = 'Tobias')
+AND beginn BETWEEN '2023-05-01%' AND '2023-05-14%';
+
+SELECT *
+FROM Taxi
+WHERE wagenNr NOT IN
+ (SELECT wagenNr FROM Einsatz
+ WHERE beginn LIKE '2023-05-30%'
+ OR ende LIKE '2023-05-30%
+ 
+ELECT CONCAT(e.beginn," - ", e.ende)
+ AS 'Arbeitszeit von - bis',
+ TIMESTAMPDIFF(MINUTE, e.beginn, e.ende)/60
+ AS 'Anzahl Stunden'
+FROM Einsatz e JOIN Fahrer f USING(fahrerNr)
+WHERE e.beginn LIKE '2023-03%'
+ AND f.nachname = 'Großfuss'
+ AND f.vorname = 'Karl-Heinz';
+ 
+SELECT f.nachname, f.vorname, f.iban,
+ SUM(TIMESTAMPDIFF(MINUTE, e.beginn, e.ende)/60 *
+ f.stundenlohn) AS 'Löhne März 2023'
+FROM Einsatz e JOIN Fahrer f USING(fahrerNr)
+WHERE e.ende LIKE '2023-03%'
+GROUP BY f.fahrerNr
+ORDER BY f.nachname, f.vorname;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+(ER-Diagramm gegeben)
+
+Nutzer (benutzerName, passwort, email, zuletztAktiv)
+Beitrag (beitragid, erstelltAm, titel, text, autor#)
+NutzerLikesBeitrag (benutzerName#, beitragid#, zeitstempel)
+Bild (bildid, dateiname)
+BeitragEnthaeltBild (beitragid#, bildid#)
+
+SELECT BE.titel, BEB.bildid, B.dateiname
+FROM Beitrag BE JOIN BeitragEnthaeltBild BEB
+USING(beitragid)
+ JOIN Bild B USING(bildid)
+WHERE BE.autor = 'Anna';
+
+INSERT INTO Nutzer
+VALUES ('Clark', 'ert4$alPhawe', 'Clark@familiy.com',
+ NOW());
+INSERT INTO Beitrag
+VALUES (42, NOW(), 'Best of 2022', null, 'Clark');
+INSERT INTO BeitragEnthaeltBild (beitragid, bildid)
+VALUES (42,3);
+
+SELECT B.titel AS Beitragstitel, B.autor AS 'Autor:in',
+ COUNT(N.beitragid) AS 'Anzahl Likes im Januar 2023'
+FROM NutzerLikesBeitrag N JOIN Beitrag B USING(beitragid)
+WHERE N.zeitstempel LIKE '2023-01%'
+GROUP BY N.beitragid
+HAVING COUNT(N.beitragid) > 10
+ORDER BY COUNT(N.beitragid) DESC;
+
+SELECT bildid, dateiname
+FROM Bild
+WHERE bildid NOT IN
+(SELECT bildid FROM BeitragEnthaeltBild);
+
+SELECT benutzerName AS Benutzername, titel AS Beitragstitel,
+ erstelltAm AS Erstellungsdatum
+FROM Nutzer N LEFT JOIN Beitrag B ON
+ N.benutzerName = B.autor
+ 
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+(ER-Diagramm gegeben)
+
+Fachhändler(fiD, name, plz, ort, strasseNr)
+Bike(bikeID, modell, baujahr, fiD#, kBez#)
+Kategorie(kBez, versicherung)
+Montage(miD, bikeID#, iD#)
+Komponente(iD, bezeichnung, gewicht, preis, hersteller)
+Rahmenteil(iD#, gruppe, abmessung)
+Schaltelement(iD#, gruppe, detail)
+Einzelteil(iD#, modellName, abmessung)
+
+UPDATE Komponente SET preis = preis*1.05
+WHERE hersteller = 'MANU';
+
+INSERT INTO Kategorie
+VALUES('E-Bike Trekking',true);
+INSERT INTO Fachhändler (name, plz, ort, strasseNr)
+VALUES('MyChain', '63452', 'Hanau', 'Einkaufsstraße 28');
+INSERT INTO Bike (modell, baujahr, fiD, kBez)
+VALUES('Manu SportABC', YEAR(NOW()),
+ (SELECT fiD
+ FROM Fachhändler
+ WHERE name = 'MyChain'
+ AND ort = 'Hanau'),'E-Bike Trekking');
+ 
+SELECT b.bikeID, b.modell, b.kBez
+FROM Bike b, Fachhändler f
+WHERE b.fiD = f.fiD
+AND f.name = 'Bosse Zweirad'
+AND f.ort = 'Köln'
+AND b.baujahr = 2021;
+
+SELECT b.bikeID, SUM(kom.gewicht) AS 'Gesamtgewicht'
+FROM Bike b, Montage m, Komponente kom
+WHERE b.bikeID = m.bikeID AND m.iD = komp.iD
+ AND b.kBez = 'RacingBike'
+GROUP BY b.bikeID;
+
+SELECT k.hersteller, COUNT(k.iD) AS Anzahl
+FROM Bike b, Montage m, Komponente k, Schaltelement s
+WHERE b.bikeID = m.bikeID AND m.iD = k.iD AND k.iD = s.iD
+ AND s.detail LIKE 'Felgen-Br'
+ AND b.baujahr = YEAR(NOW())-1
+GROUP BY k.hersteller
+HAVING COUNT(k.iD)>=10
+ORDER BY Anzahl DESC;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+(ER-Diagramm gegeben)
+
+Kunde(kid, nname, vname, strasse, plz, ort)
+Girokonto(iban, pin, kontostand, inhaber#)
+Buchung(bid, buTag, text, betrag, iban#)
+Darlehen(vertragsNr, datum, summe, rate, laufzeit, turnus,
+ zinssatz, referenzkonto
+
+SELECT buTag, text, betrag
+FROM Buchung b
+WHERE iban = 'DE06550205000222222222'
+ORDER BY buTag DESC
+LIMIT 10;
+
+INSERT INTO Darlehen(vertragsNr, datum, summe, laufzeit,
+ turnus, zinssatz, referenzkonto)
+VALUES(12345, NOW(), 30000, 10, 12, 1.76,
+ 'DE06550205000222222222');
+UPDATE Darlehen
+SET rate = ROUND((summe *
+ ((POWER(1+zinssatz/100,laufzeit)*zinssatz/100) /
+ (POWER(1+zinssatz/100,laufzeit)-1)))/turnus, 2)
+WHERE vertragsNr = 12345;
+
+SELECT kid, k.nname, k.vname, g.iban, d.vertragsNr, d.rate
+FROM Kunde k JOIN Girokonto g ON kid = inhaber
+JOIN Darlehen d ON g.iban = d.referenzkonto
+WHERE d.turnus = 12
+AND g.kontostand - d.rate < 0;
+UPDATE Girokonto g, Darlehen d
+SET g.kontostand = g.kontostand - d.rate
+WHERE d.referenzkonto = g.iban
+AND d.turnus = 12
+AND g.kontostand - d.rate >= 0;
+
+SELECT Kunde.*, SUM(summe) AS 'Kreditsumme aufgenommen'
+FROM Kunde JOIN Girokonto ON kid = inhaber
+ JOIN Darlehen ON iban = referenzkonto
+GROUP BY kid
+HAVING SUM(summe) > 100000
+ORDER BY SUM(summe) DESC;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+(ER-Diagramm gegeben)
+
+Artikel(artNr, preis, bestand)
+Lebewesen(artNr#, name, herkunft)
+Pflanzenart(artNr#, wuchshoehe, lichtbedarf)
+Fischart(artNr#, laenge, gruppengroesse)
+Zubehoer(artNr#, bezeichnung, beschreibung)
+Kunde(kNr, vname, nname, plz, ort, strasse, telefon)
+Bestellung(bestellNr, bestellDatum, lieferDatum, kNr#)
+Position(bestellNr#, artNr#, anzahl)
+
+INSERT INTO Kunde(vname, nname, plz, ort, strasse, telefon)
+VALUES(7654, 'Hans', 'Hecht', '89075', 'Ulm', 'Donautor 1',
+ '0177 1234567');
+INSERT INTO Bestellung(bestellDatum, kNr)
+VALUES('2022-05-02', 7654);
+INSERT INTO Position
+VALUES((SELECT bestellNr FROM Bestellung
+ WHERE bestellDatum = '2022-05-02'
+ AND kNr = 7654), 277, 1);
+UPDATE Artikel SET bestand = bestand - 1
+WHERE artNr = 277;
+
+SELECT bestellNr, k.*
+FROM Bestellung b JOIN Kunde k ON(b.kNr=k.kNr)
+WHERE b.lieferDatum IS null
+AND k.plz LIKE '12%';
+
+SELECT l.herkunft, SUM(a.preis * p.anzahl) AS Gesamtumsatz
+FROM Bestellung b JOIN Position p
+ ON(b.bestellNr = p.bestellNr)
+ JOIN Artikel a ON(p.artNr = a.artNr)
+ JOIN Lebewesen l ON(a.artNr = l.artNr)
+ JOIN Fischart f ON(l.artNr = f.artNr)
+WHERE b.bestellDatum BETWEEN '2022-01-01' AND '2022-03-31'
+GROUP BY l.herkunft;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+(ER-Diagramm gegeben)
+
+Person(personID, nname, vname, gebDatum, plz, ort, strasse,
+ risiko)
+Impfung(personID#, termin1, termin2, bezeichnung#)
+Impfstoff(bezeichnung, entwickler, gruppe, lagerTemperatur)
+Standort(ortID, temperatur, istAnzahlImpfdosen,
+ kapazitaetImpfdosen, bezeichnung#)
+Produzent(prodID, name, plz, ort, land)
+Lieferung(prodID#, bezeichnung#, anzahlImpfdosen, termin)
+
+SELECT p.personID, p.vname, p.nname, i.termin1
+FROM Person p, Impfung i
+WHERE p.personID = i.personID
+AND i.bezeichnung = 'BT223a2'
+AND i.termin1 <= NOW()
+AND (i.termin2 > NOW() OR i.termin2 IS null);
+
+SELECT gruppe, COUNT(*) AS Anzahl
+FROM Impfung JOIN Impfstoff USING (bezeichnung)
+WHERE termin2 BETWEEN '2021-1-1' AND '2021-3-31'
+GROUP BY gruppe
+ORDER BY Anzahl DESC;
+
+INSERT INTO Produzent
+VALUES(96, 'PharmaCorn', 'BCV6T1Z3', 'Vancouver', 'Kanada');
+INSERT INTO Lieferung
+VALUES(96, 'BT223a2', 2500, '2021-04-26');
+UPDATE Standort SET istAnzahlImpfdosen =
+ istAnzahlImpfdosen + 2500
+WHERE ortID =
+ (SELECT ortID FROM Standort
+ WHERE bezeichnung = 'BT223a2'
+ AND kapazitaetImpfdosen – istAnzahlImpfdosen >= 2500
+ ORDER BY istAnzahlImpfdosen ASC
+ LIMIT 1);
+
+SELECT bezeichnung AS Impfstoff,
+ SUM(istAnzahlImpfdosen) AS 'Vorrätige Dosen',
+ (SELECT COUNT(*) FROM impfung AS i
+ WHERE (i.termin2 IS null OR i.termin2 > NOW())
+ AND Impfstoff = i.bezeichnung
+ GROUP BY i.bezeichnung
+ ) AS 'Benötigte Dosen'
+FROM Standort
+GROUP BY bezeichnung;
+
+(Normalisierung einer unnormalisierten Tabelle)
+Impfling(personID, nname, vname, gebDatum, bezeichnung#)
+Impfstoff(bezeichnung, gruppe)
+Risikofaktor(risID, bezeichnung)
+Impfling_Risikofaktor(personID#, risID#)
+Impfung(iID, personID#, termin, kuerzel#)
+Impfreaktion(reakID, bezeichnung)
+Impfung_Impfreaktion(iID#, reakID#)
+Arzt(kuerzel, titel, nname, vname, fID#)
+Fachrichtung(fID, bezeichnung)
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+(ER-Diagramm gegeben)
+
+Film(fid, titel, osprache, fsk, laenge, vid#, gid#)
+Genre(gid, bezeichnung)
+Verleih(vid, name, land, plz, ort, strasseHausnr)
+Trailer(tid, bezeichnung, sprache, laenge, fid#)
+Schauspieler(sid, name, vorname, gebdatum)
+Besetzung(fid#, sid#)
+
+SELECT titel
+FROM Film, Genre
+WHERE Film.gid = Genre.gid
+ AND fsk <= 12
+ AND laenge <= 100
+ AND bezeichnung = 'Komödie';
+
+INSERT INTO Film (fid,titel,osprache,fsk,laenge,vid,gid)
+VALUES (4723, 'Logo Movie', 'English', 0, 145,
+ (SELECT vid FROM Verleih
+ WHERE name = 'Logo Movie Production'),
+ (SELECT gid FROM Genre
+ WHERE bezeichnung = 'Animation'));
+
+SELECT F.titel
+FROM Film AS F, Besetzung AS B
+WHERE F.fid = B.fid
+ AND B.sid = 111
+ AND F.fid IN
+ (SELECT F.fid
+ FROM Film AS F, Besetzung AS B
+ WHERE F.fid = B.fid
+ AND B.sid = 114);
+
+SELECT vorname, name, COUNT(*) AS Anzahl_Filme
+FROM Schauspieler AS S, Besetzung AS B
+WHERE S.sid = B.sid
+GROUP BY vorname, name
+HAVING COUNT(*) > 3;
+
+(Normalisierung einer unnormalisierten Tabelle)
+Bereich(bid, bezeichnung, bedarf)
+Mitarbeiter(pnr, vorname, nachname, telefonnr, vid#)
+Einsatz(bid#, pnr#, istStd)
+Vertrag(vid, vaid#, sollStd, zid#)
+Vertragsart(vaid, bezeichnung)
+Zeitarbeitsfirma(zid, name, ansprechpartnerName, anrede,
+ telefonnr)
+ 
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+(ER-Diagramm gegeben)
+
+Filiale(filialnr, strassehausnr, plz, ort)
+Fahrer(fahrernr, handynr, vorname, nachname,
+ führerscheinklasse)
+FahrerEinsatzFuerFiliale(filialnr#, fahrernr#, tag)
+Lieferauftrag(bestellnr, strassehausnr, plz, ort, start,
+ ausgeliefert, ende, fahrernr#, fahrzeugnr#)
+Fahrzeug(fahrzeugnr, kmStand, kennzeichen, nächsteHU,
+ versicherungskennzeichen, ladezeit, reichweite)
+ 
+SELECT bestellnr,
+ TIMEDIFF(ausgeliefert,start)) AS Lieferdauer
+FROM Lieferauftrag
+WHERE HOUR(TIMEDIFF(ausgeliefert, start)) >= 1
+ OR MINUTE(TIMEDIFF(ausgeliefert, start)) > 45;
+ 
+SELECT kennzeichen, vorname, nachname
+FROM Fahrzeug INNER JOIN Lieferauftrag USING (fahrzeugnr)
+ INNER JOIN Fahrer USING (fahrernr)
+WHERE bestellnr = 4711;
+
+SELECT vorname, nachname, COUNT(bestellnr) AS Anzahl
+FROM Fahrer LEFT JOIN Lieferauftrag USING (fahrernr)
+GROUP BY fahrernr
+ORDER BY Anzahl DESC;
+
+CREATE TABLE Geschäftsführer (
+ personalnr INTEGER AUTO_INCREMENT,
+ vorname VARCHAR(64),
+ nachname VARCHAR(64),
+ PRIMARY KEY (personalnr)
+);
+ALTER TABLE Filiale
+ ADD gf_personalnr INTEGER;
+ALTER TABLE Filiale
+ ADD FOREIGN KEY (gf_personalnr)
+ REFERENCES Geschäftsführer(personalnr);
+INSERT INTO Geschäftsführer (vorname, nachname)
+VALUES ('Mira', 'Bellenbaum');
+INSERT INTO Filiale
+ (filialnr, strassehausnr, plz, ort, gf_personalnr)
+VALUES (3, 'Bahnhofstr.3', '37213', 'Witzenhausen',
+ (SELECT personalnr
+ FROM Geschäftsführer
+ WHERE vorname = 'Mira'
+ AND nachname = 'Bellenbaum'));
+ 
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+(ER-Diagramm gegeben)
+
+Kunde (kid, name, vorname, email)
+Mitarbeiter (mid, name, vorname)
+Ticket (tid, erfassungsdatum, betreff, beschreibung, status,
+ kid#, erfasst_von#, zugewies
+ 
+ SELECT tid, erfassungsdatum
+FROM Ticket
+WHERE beschreibung LIKE '%Drucker%'; 
+
+SELECT erfassungsdatum, betreff
+FROM Kunde
+JOIN Ticket
+ON (Kunde.kid = Ticket.kid)
+WHERE vorname = 'Franziska'
+AND name = 'Hall'
+AND erfassungsdatum LIKE '2020-02-14%'; 
+
+SELECT status AS Status, COUNT(*) AS Anzahl
+FROM Ticket, Mitarbeiter
+WHERE mid = zugewiesen_an
+AND vorname ='Horst'
+AND name = 'Schmitt'
+AND (status = 'offen' OR status = 'geschlossen')
+GROUP BY status; 
+
+SELECT Kunde.vorname, Kunde.name, erfassungsdatum, betreff
+FROM Kunde
+JOIN Ticket
+ON Kunde.kid = Ticket.kid
+JOIN Mitarbeiter
+ON zugewiesen_an = mid
+WHERE Mitarbeiter.vorname ='Horst'
+AND Mitarbeiter.name = 'Schmitt'
+AND Ticket.status = 'offen'; 
+
+(Normalisierung einer unnormalisierten Tabelle)
+Kategorie(kid, kategoriename)
+FAQ(fid, kid#, frage, antwort)
+Mitarbeiter(mid, vorname, name)
+Aktualisierung(fid#, mid#, datum)
+Datei(did, datei)
+Anhang(fid#, did#)
+Stichwort(sid, stichwort)
+Bezieht_Sich_Auf(fid#, sid#)
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+(Nur ER-Diagramm Vorlage gegeben)
+
+INSERT INTO Position
+VALUES(322333, 61123, 1),
+ (322333, 52133, 3);
+UPDATE Artikel SET istBestand = istBestand - 1
+WHERE artikelNr = 61123;
+UPDATE Artikel SET istBestand = istBestand - 3
+WHERE artikelNr = 52133; 
+
+SELECT a.artikelNr AS 'Artikel-Nr.',
+ bezeichnung AS Bezeichnung, menge AS Menge,
+ nettopreis AS 'Nettopreis in €',
+ mwstSatz AS 'MwSt.-Satz in %',
+ (nettopreis*menge) AS 'Gesamtnettopreis in €'
+FROM Position p, Artikel a
+WHERE rechnungsNr = 322333
+AND p.artikelNr = a.artikelNr; 
+
+
+SELECT a.artikelNr, bezeichnung,
+ SUM(menge) AS Gesamtmenge
+FROM Position p, Artikel a, Rechnung r
+WHERE p.artikelNr = a.artikelNr
+AND p.rechnungsNr = r.rechnungsNr
+AND rechnungsDatum LIKE '2020-01-%'
+GROUP BY a.artikelNr
+ORDER BY Gesamtmenge DESC
+LIMIT 10; 
+
+SELECT *
+FROM Kunde
+WHERE kundenNr NOT IN
+ (SELECT kundenNr FROM Rechnung
+ WHERE YEAR(rechnungsDatum) = YEAR(NOW()))
+AND plz LIKE '6%';
+Hinweis: Gleichwertige Lösungen ohne Verwendung der Datumsfunktionen sind
+möglich.
+
+SELECT artikelNr, bezeichnung, sollBestand, istBestand,
+ (istBestand/sollBestand)*100 AS 'Anteil in %'
+FROM Artikel
+WHERE istBestand < sollBestand
+ORDER BY (istBestand/sollBestand)*100 ASC; 
+
+SELECT SUM((nettopreis*menge)/100*mwstSatz)
+ AS Mehrwertsteuer
+FROM Rechnung r, Position p, Artikel a
+WHERE r.rechnungsNr = p.rechnungsNr
+AND p.artikelNr = a.artikelNr
+AND rechnungsDatum LIKE '2020-02-%'; 
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+(ER-Diagramm gegeben)
+
+kunde(knr, name, vorname, plz, ort, strasse)
+rechnung(rechnr, datum, datumFaellig, betragRechnung, knr#)
+reservierung(resnr, datum, rechnr#, snr#)
+spiel(snr, heimmannschaft, gastmannschaft, datum, uhrzeit)
+zahlung(rechnr#, laufendeNr, datum, betrag)
+
+DELETE
+FROM rechnung
+WHERE rechnr = 4743;
+
+SELECT *
+FROM Kunde
+WHERE knr NOT IN
+ (SELECT knr FROM rechnung);
+Hinweis: Lösungen mit LEFT JOIN sind gleichwertig.
+
+SELECT r.rechnr, r.betragRechnung, SUM(betrag) AS gezahlt
+FROM rechnung r LEFT JOIN zahlung z ON r.rechnr = z.rechnr
+WHERE r.knr = 1073
+GROUP BY r.rechnr;
+
+SELECT r.rechnr, k.vorname, k.nachname
+FROM kunde k
+JOIN rechnung r ON k.knr = r.knr
+JOIN reservierung re ON r.rechnr = re.rechnr
+GROUP BY re.rechnr
+HAVING COUNT(re.resnr) > 1;
+
+SELECT k.knr,k.nachname, r.rechnr,
+ r.betragRechnung, SUM(betrag) AS bishergezahlt
+FROM rechnung r
+JOIN kunde k ON r.knr = k.knr
+LEFT JOIN zahlung z ON r.rechnr = z.rechnr
+WHERE MONTH(r.datum) = 1 AND YEAR(r.datum) = 2019
+GROUP BY k.knr,r.rechnr
+HAVING (bishergezahlt < r.betragRechnung
+ OR bishergezahlt IS NULL);
+Die Abfrage von bishergezahlt IS NULL wird nicht gefordert und führt
+nicht zu Punktabzug.
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+(ER-Diagramm gegeben)
+
+Kunde(kundenNr, name, vorname, iban)
+Vertrag(vertragsNr, startDatum, endDatum, beitrag,
+ kundenNr#, typNr#)
+Vertragstyp(typNr, bezeichnung)
+Geraet(geraeteNr, bezeichnung, gekauftAm)
+trainiertAn(kundenNr#, geraeteNr#, datumzeit, dauer,
+ maxPuls)
+
+INSERT INTO kunde (kundenNr, name, vorname)
+VALUES (3876, 'Müller', 'Josef');
+
+SELECT datumzeit, bezeichnung
+FROM trainiertAn t, geraet g
+WHERE t.geraeteNr = g.geraeteNr
+AND t.kundenNr = 8888;
+
+SELECT g.*, COUNT(*) AS anzahl
+FROM trainiertAn t, geraet g
+WHERE t.geraeteNr = g.geraeteNr
+GROUP BY t.geraeteNr
+ORDER BY anzahl DESC
+LIMIT 1;
+
+SELECT name, vorname, endDatum
+FROM kunde k LEFT JOIN vertrag v
+ON k.kundenNr = v.kundenNr
+ORDER BY name, vorname;
+
+SELECT bezeichnung AS Gerät, Sum(dauer) AS Minutenanzahl
+FROM geraet g
+LEFT JOIN trainiertan t ON g.geraeteNr = t.geraeteNr
+WHERE YEAR(datumzeit) = YEAR(NOW())-1
+GROUP BY bezeichnung
+ORDER BY Minutenanzahl DESC;
+
+(Normalisierung einer unnormalisierten Tabelle)
+Kunde(kundenNr, name, vorname, strasse, plz, ort, iban,
+ bic#)
+Bank(bic, name)
+Vertrag(vertragsNr, laufzeit, beginn, status, kundenNr#)
+Kurs(kursNr, titel, beginn, kosten, trainerNr#)
+Trainer(trainerNr, name, vorname)
+besucht(kundenNr#, kursNr#, datum)
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+(ER-Diagramm gegeben)
+
+Kunde(kid, name, vorname, plz, ort, strasse)
+Mitarbeiter(mid, name, vorname, telefon, gehalt)
+Art(aid, bezeichnung, stundensatz)
+Befaehigung(aid#, mid#)
+Dienstleistung(did, datum, von, stunden, kid#, aid#, mid#)
+
+SELECT name, vorname, bezeichnung,
+ SUM(stunden) AS Gesamtstunden
+FROM Mitarbeiter, Dienstleistung, Art
+WHERE Mitarbeiter.mid = Dienstleistung.mid
+AND Dienstleistung.aid = Art.aid
+AND datum LIKE '2018-01-%'
+GROUP BY name, vorname, bezeichnung;
+
+UPDATE Dienstleistung SET mid =
+ (SELECT mid FROM Mitarbeiter
+ WHERE name = 'Weiss' AND vorname = 'Tim')
+WHERE mid = 23
+AND datum >= NOW();
+DELETE FROM Befaehigung
+WHERE mid = 23;
+
+SELECT name, vorname
+FROM Mitarbeiter, Befaehigung
+WHERE Mitarbeiter.mid = Befaehigung.mid
+AND aid = 17
+AND Mitarbeiter.mid NOT IN
+ (SELECT mid FROM Dienstleistung
+ WHERE datum = '2018-04-24');
+
+SELECT datum, stunden, bezeichnung,
+ stundensatz*stunden AS betrag
+FROM Dienstleistung, Art
+WHERE Dienstleistung.aid = Art.aid
+AND kid = 4711
+AND datum LIKE '2017-12-%'
+ORDER BY datum;
+SELECT SUM(stunden*stundensatz) AS Gesamt
+FROM Dienstleistung, Art
+WHERE Dienstleistung.aid = Art.aid
+AND kid = 4711
+AND datum LIKE '2017-12-%';
+
+(Normalisierung einer unnormalisierten Tabelle)
+Art(aid, Bezeichnung)
+Gerätetyp(tid, Bezeichnung)
+Gerät(gid, Modell, Anzahl_Geräte, tid#, Hersteller#)
+Hersteller(hid, Name)
+Verbrauchsmittel(vid, Bezeichnung, Soll, Ist)
+Art_Gerät(aid#, gid#)
+Gerät_Verbrauchsmittel(gid#, vid#)
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+(ER-Diagramm gegeben)
+
+Bestellung(bestellnr, datum)
+Wareneingang(bestellnr#, datum)
+Karton(kartonnr, bestellnr#, fachnr#, segmentnr#,
+ artikelnr#)
+Fach(fachnr, segmentnr#, regalnr#, kapazität)
+Segment(segmentnr, regalnr)
+Artikel(artikelnr, typ, bezeichnung, farbe, vkpreis,
+segmentnr#, regalnr#, anzahlImKarton)
+Bestellposition(artikelnr#, bestellnr#, anzahl,
+ekpreis)
+
+UPDATE Artikel
+SET vkpreis = vkpreis * 1.15
+WHERE typ = 'Badetuch';
+
+SELECT kartonnr
+FROM Karton
+WHERE bestellnr = 201801
+AND segmentnr IS null;
+
+SELECT A.typ, A.bezeichnung, A.anzahlimKarton,
+K.kartonnr, K.segmentnr, K.fachnr
+FROM Wareneingang AS W, Artikel AS A, Karton AS K
+WHERE W.datum = '2018-01-04'
+AND W.bestellnr = K.bestellnr
+AND A.artikelnr = K.artikelnr
+ORDER BY W.bestellnr, K.kartonnr;
+
+SELECT A.artikelnr, A.bezeichnung, A.typ,
+ Count(kartonnr)*A.anzahlImKarton AS Bestand
+FROM Artikel AS A, Karton AS K
+WHERE A.artikelnr = K.artikelnr
+GROUP BY A.artikelnr, A.bezeichnung,
+ A.typ, A.anzahlImKarton
+HAVING Count(kartonnr)*A.anzahlImKarton < 50;
+
+(ER-Diagramm erweitern)
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+(ER-Diagramm gegeben)
+
+Mitglied (mitgliedsnr, name, vorname)
+Buchung (buchungsnr, nutzungsBeginn, nutzungsEnde,
+ mitgliedsnr#,kennzeichen#)
+Fahrzeug (kennzeichen, hersteller, modell, baujahr,
+ kmStand, klasse#)
+Fahrzeugklasse (bezeichnung, preisProMin, preisProKm)
+
+SELECT bezeichnung
+FROM Fahrzeugklasse
+WHERE preisProMin < 0.15
+AND preisProKm < 0.20;
+
+SELECT DISTINCT name, vorname
+FROM Mitglied, Buchung, Fahrzeug
+WHERE Mitglied.mitgliedsnr = Buchung.mitgliedsnr
+AND Buchung.kennzeichen = Fahrzeug.kennzeichen
+AND hersteller = 'Mercedes'
+AND modell = 'Smart'
+ORDER BY name, vorname;
+
+SELECT name, vorname, COUNT(*) AS Anzahl
+FROM Mitglied, Buchung, Fahrzeug
+WHERE Mitglied.mitgliedsnr = Buchung.mitgliedsnr
+AND Buchung.kennzeichen = Fahrzeug.kennzeichen
+AND Fahrzeug.klasse = 'Mittel'
+GROUP BY name, vorname
+HAVING anzahl >= 4;
+
+INSERT INTO Fahrzeugklasse VALUES ("Van", 0.15, 0.25);
+INSERT INTO Fahrzeug
+VALUES ("F-UT 421", "VW", "Touran", 2016, 120, "Van");
+Hinweis: die Reihenfolge der Anweisungen ist zu beachten
+
+(Normalisierung des ER-Diagramms)
+Fahrzeug (fahrzeugnr, kennzeichen, baujahr, kmStand,
+ modellnr#)
+Fahrzeugmodell (modellnr, modell, herstellernr#,
+ klasse#)
+Hersteller (herstellernr, hersteller)
+
+(Realisierung der Spezialisierung)
+1.
+Fahrzeug(kennzeichen, …, anzahlPlaetze, ladevolumen)
+2.
+Pkw(kennzeichen, …, anzahlPlaetze)
+Transporter(kennzeichen, …, ladevolumen)
+3.
+Fahrzeug(kennzeichen, …)
+Pkw(kennzeichen#, anzahlPlaetze)
+Transporter(kennzeichen#, ladevolumen)
+Hinweis: Nur zwei der drei Lösungsmöglichkeiten sind gefragt.
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+(ER-Diagramm gegeben)
+
+Projekt(projNr, titel, beginn, ende, kdNr#, part#)
+Projektart(part, vertragsvorlage)
+Kunde(kdNr, firmenname, plz, ort, strasse)
+Stelle(sid, zu_besetzen_ab, zu_besetzen_bis, projNr#,
+ fid#, mid#)
+Mitarbeiter(mid, vorname, nachname)
+Funktion(fid, bezeichnung, stundensatz)
+
+INSERT INTO Projekt (projNr, titel, kdNr)
+VALUES (401, 'Suchmaschine', 4);
+
+UPDATE Projekt
+SET beginn='2016-06-01', ende='2017-09-30'
+WHERE projNr=401;
+
+SELECT DISTINCT nachname,vorname
+FROM Mitarbeiter m, Funktion f , Stelle s
+WHERE f.fid = s.fid
+AND m.mid = s.mid
+AND f.bezeichnung = 'Projektleitung'
+AND (m.mid NOT IN
+ (SELECT mid
+ FROM Stelle st
+ WHERE m.mid = st.mid
+ AND((st.zu_besetzen_ab < '2017-10-01'
+ AND st.zu_besetzen_bis > '2017-10-01')
+ OR (st.zu_besetzen_ab < '2017-11-30'
+ AND st.zu_besetzen_bis > '2017-11-30')
+ OR (st.zu_besetzen_ab > '2017-10-01'
+ AND st.zu_besetzen_bis < '2017-11-30')
+ OR (st.zu_besetzen_ab = '2017-10-01'
+ AND st.zu_besetzen_bis = '2017-11-30')
+ )
+ )
+ )
+;
+
+SELECT bezeichnung, titel
+FROM Funktion f, Projekt p, Stelle s
+WHERE f.fid = s.fid
+ AND s.projNr = p.projNr
+ AND s.zu_besetzen_ab > NOW()
+ AND s.mid IS null;
+ 
+SELECT nachname, vorname,
+ count(*) AS anzProjektleitungen
+FROM Mitarbeiter m, Stelle s
+WHERE m.mid = s.mid
+ AND s.fid=1
+GROUP BY nachname, vorname;
+
+(Eigenes ER-Diagramm entwickeln/zeichnen)
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+(ER-Diagramm gegeben)
+
+lehrer(persNr, kuerzel, name, vorname, plz, ort, strasse,
+ telNr)
+schueler(schuelerNr, name, vorname, plz, ort, strasse,
+ gebDatum, konfession)
+fach(fachkuerzel, bezeichnung)
+klasse(klBezeichnung, klSchuljahr, persNr_kl#)
+darfUnterrichten(persNr#, fachkuerzel#)
+unterrichtsstunde(wochentag, stundenNr, klSchuljahr#,
+ klBezeichnung#, persNr#, fachkuerzel#)
+besucht(schuelerNr#, klBezeichnung#, klSchuljahr#)
+
+UPDATE klasse
+SET persNr_kl = 101702
+WHERE klBezeichnung = '10a'
+AND klSchuljahr = '2014/15';
+
+SELECT u.stundenNr, u.klBezeichnung, f.bezeichnung
+FROM unterrichtsstunde u, fach f
+WHERE u.fachkuerzel = f.fachkuerzel
+AND persNr = 101803
+AND u.wochentag = 'Montag'
+AND klSchuljahr = '2014/15'
+ORDER BY u.stundenNr;
+
+SELECT l.persNr, l.name , l.vorname,
+COUNT(*) AS Stundenzahl
+FROM unterrichtsstunde u, lehrer l
+WHERE l.persNr = u.persNr
+AND klSchuljahr = '2014/15'
+GROUP BY l.persNr, l.name, l.vorname;
+
+UPDATE unterrichtsstunde
+SET persNr=(SELECT persNr FROM lehrer
+ WHERE name = 'Martens'
+ AND vorname = 'Christina')
+WHERE fachkuerzel = 'PHY'
+AND klBezeichnung = '10a'
+AND klSchuljahr = '2014/15';
+
+SELECT u.* FROM unterrichtsstunde u
+WHERE fachkuerzel NOT IN
+ (SELECT fachkuerzel FROM darfunterrichten d
+ WHERE u.persNr = d.persNr)
+AND klSchuljahr = '2014/15';
+
+(Normalisierung einer unnormalisierten Tabelle)
+schueler(schuelerNr, name, vorname, klBezeichnung#)
+klasse(klBezeichnung, kl-id#)
+arbeitsgruppe(agNr, agBezeichnung)
+agUebersicht(agNr#, schuelerNr#, agStunden)
+lehrer(id, Lname, LVorname)
+agLehrer(agNr#, id#)
+
+(ER-Diagramm Kardianlitäten erweitern)
+
+--------------------
+
+--- [ABI 2016 A] ---
+
+(ER-Diagramm gegeben)
+
+Kunde(kundennummer, name, vorname, strasse, hausnummer,
+ plz, wohnort)
+Vertrag(vertragsnummer, zaehlernummer, kundennummer#,
+ verbrauch_vorjahr, zaehlerstand_alt,
+ zaehlerstand_neu, tarifID#)
+Tarif(tarifID, bezeichnung, grundpreis, preis_pro_kWh)
+
+SELECT kundennummer, vorname, name, vertragsnummer,
+ (zaehlerstand_neu - zaehlerstand_alt)
+ * Tarif.preis_pro_kWh + grundpreis) AS Stromkosten
+FROM Kunde, Vertrag, Tarif
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Vertrag.tarifID = Tarif.tarifID;
+
+UPDATE Vertrag
+SET verbrauch_vorjahr =
+ (zaehlerstand_neu – zaehlerstand_alt),
+ zaehlerstand_alt = zaehlerstand_neu,
+ zaehlerstand_neu = 9999
+WHERE Vertrag.zaehlernummer = 123456;
+
+SELECT Kunde.kundennummer, name, vorname,
+ verbrauch_vorjahr AS Verbrauch
+FROM Kunde, Vertrag
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND verbrauch_vorjahr >
+ (SELECT AVG(verbrauch_vorjahr)
+ FROM Vertrag);
+ 
+SELECT vorname, name, strasse, hausnummer,
+ zaehlernummer,
+ zaehlerstand_neu AS 'letzte Ablesung'
+FROM Kunde, Vertrag
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Kunde.wohnort = 'Frankfurt'
+AND Kunde.strasse = 'Heinrichstrasse'
+ORDER BY Kunde.hausnummer;
+
+SELECT Kunde.kundennummer, name, vorname,
+ SUM(verbrauch_vorjahr)
+ AS Verbrauch
+FROM Kunde, Vertrag, Tarif
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Vertrag.tarifID = Tarif.tarifID
+AND Tarif.bezeichnung = 'Ökostrom'
+GROUP BY Kunde.kundennummer, name, vorname
+ORDER BY Verbrauch
+LIMIT 3;
+
+(ER-Diagramm erweitern)
+
+--------------------

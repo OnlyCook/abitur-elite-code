@@ -1,0 +1,1573 @@
+--- [ABI 2016 A] ---
+
+# SQL
+
+1. Datenbankentwicklung
+Das ER-Modell mit Strom-Kunden, Verträgen und Tarifen sowie den zugehörigen Strom-Zählern
+ist in Material 1 dargestellt.
+
+1.1.1 Nennen Sie die Möglichkeiten, eine 1:1-Beziehung wie die zwischen den Entitätstypen
+Vertrag
+und in das relationale Modell zu übertragen. Entscheiden Sie sich für eine Möglichkeit.
+Zaehler
+(3 BE)
+
+## Loesung 1.1.1
+Umsetzung einer 1:1 Beziehung
+– Eine 1:1 Beziehung kann umgesetzt werden, indem der Primärschlüssel des
+einen Entitätstyps beim anderen Entitätstyp als Fremdschlüssel eingetragen
+wird, oder umgekehrt. Die der Eintragung ist zunächst unwichtig.
+– Eine Zusammenfassung der beiden Entitätstypen in einer Tabelle ist grundsätzlich möglich.
+Begründete Entscheidung für eine Alternative:
+Der Entitätstyp Vertrag hat nur das Schlüsselattribut vertragsnummer. Eine
+Zusammenlegung von Vertrag und Zaehler in einer Tabelle empfiehlt sich,
+da keine Informationen verloren gehen, das relationale Modell und damit die
+Abfragen der Datenbank werden einfacher.
+
+1.3.2 Sie werden aufgefordert, Umsatzsteuersatz und Bruttobetrag in das Modell aufzunehmen.
+Nehmen Sie dazu Stellung.
+Hinweis: Der Nettobetrag ermittelt sich aus Grundpreis und Verbrauchskosten. Der Bruttobetrag
+ist die Summe aus Nettobetrag und Umsatzsteuer.
+(2 BE)
+
+## Loesung 1.3.2
+Der Umsatzsteuersatz wird in die Datenbank aufgenommen, weil der Wert sich
+von Zeit zu Zeit ändert und er deshalb nicht als fester Wert im Programm enthalten seine sollte. Er muss aber nicht Teil dieses Modells sein. Der Bruttobetrag
+wird als abgeleitetes Feld nicht ins Modell aufgenommen. Es wäre ein Verstoß
+gegen die 3. Normalform.
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+# SQL
+
+2. Datenbank der Stundenplanverwaltung
+Das Verwaltungsprogramm soll auch die Erstellung von Stundenplänen unterstützen. Dazu wurde
+ein erstes ER-Modell erstellt (Material 4). Dieses Modell dient als Ausgangspunkt.
+Die Schülerinnen und Schüler werden mit Schülernummer, Name, Vorname, Adresse, Geburts-
+datum und Konfession gespeichert.
+– Für die Lehrerinnen und Lehrer (im Folgenden Lehrer) werden Personalnummer, Name,
+Vorname, Adresse, Telefonnummer sowie ein Kürzel (z.B. Ste für Steiner) festgehalten. Die
+zulässigen Unterrichtsfächer eines Lehrers müssen ebenso verwaltet werden (z.B. Mathe-
+matik, Physik). Ein Lehrer unterrichtet mindestens ein, aber höchstens drei Fächer. Jedes
+Fach hat ein eindeutiges Kürzel, z.B. PHY für Physik, ENG für Englisch.
+– Die Schülerinnen und Schüler (im Folgenden Schüler) werden Klassen zugeordnet. Sie
+besuchen während ihrer gesamten Schulzeit mehrere Klassen. Eine Klasse wird identifiziert
+durch ihren Namen und das Schuljahr (eine Klasse 10a gibt es im Schuljahr 2013/14 und im
+Schuljahr 2014/15).
+– Eine Klasse wird von mindestens acht, aber höchstens 24 Schülern besucht. Jede Klasse wird
+von mehreren Lehrern in verschiedenen Fächern unterrichtet. Jeder Lehrer unterrichtet in
+mehreren Klassen und leitet eine oder mehrere Klassen als Klassenlehrer. Es gibt auch
+Lehrer, die nicht Klassenlehrer einer Klasse sind.
+
+2.4.1 Analysieren Sie diese Tabelle im Hinblick auf Redundanzen und beschreiben Sie mögliche
+Anomalien.
+(4 BE)
+
+## Loesung 2.4.1
+Redundanzen und Anomalien
+Redundanz liegt vor, wenn die gleichen Werte mehrmals gespeichert werden.
+Dies trifft hier z.B. auf die Angabe der betreuenden Lehrer zu. Für die AG Chor
+ist immer Herr Thomas Müller der AG-Leiter.
+Diese Art der Speicherung kann dazu führen, dass folgende Anomalien auftreten.
+– Änderungsanomalie:
+Wird der betreuende Lehrer einer AG geändert, muss er bei jedem Schüler der 1
+AG geändert werden.
+– Löschanomalie:
+Löscht man den letzten Schüler einer AG, gehen alle Informationen über diese
+AG verloren.
+– Einfügeanomalie:
+Es können keine neuen AGs abgespeichert werden, für die sich noch kein
+Schüler angemeldet hat, ohne null-Werte zu erzeugen.
+
+2.4.2 Überführen Sie die Tabelle schrittweise in das relationale Modell in der 3. Normalform.
+Begründen Sie jeden ihrer Normalisierungsschritte.
+Hinweis: Alle Relationen sind in der Schreibweise
+anzugeben.
+Relation (PK, Attribut, … , FK#)
+(10 BE)
+
+## Loesung 2.4.2
+Normalisierung der Tabellen
+1. Normalform
+Zur Bildung der ersten Normalform müssen die nicht atomaren Werte umgewandelt werden. Zusätzlich muss ein Primärschlüssel festgelegt werden.
+agUebersicht(schuelerNr, name, vorname, klBezeichnung,
+klLehrer_Name, klLehrer_Vorname, agNr, 1
+agBezeichnung, LName, LVorname, agStunden)
+2. Normalform
+Eine Relation befindet sich in der zweiten Normalform, wenn sie in der ersten
+Normalform ist und jedes Nicht-Schlüssel-Attribut vom Primärschlüssel voll
+funktional abhängig ist.
+Da die agNr nur die agBezeichnung eindeutig festlegt, müssen Name und Vorname des Lehrers ausgelagert werden. Da ein Lehrer mehrere AGs betreuen kann
+und eine AG von mehreren Lehrern betreut werden kann, entstehen folgende Relationen:
+schueler(schuelerNr, name, vorname, klBezeichnung, kl-id#)
+arbeitsgruppe(agNr, agBezeichnung)
+agUebersicht(agNr#, schuelerNr#, agStunden)
+lehrer(id, Lname, LVorname) 1
+agLehrer(agNr#, id#)
+3. Normalform
+Eine Relation befindet sich in der dritten Normalform, wenn sie in der zweiten
+Normalform ist und jedes Nichtschlüsselattribut nicht transitiv vom Primärschlüssel abhängig ist, d.h., aus keinem Nichtschlüsselattribut folgt ein anderes Nicht-
+schlüsselattribut.
+Da die Klasse des Schülers auch den Klassenlehrer festlegt, besteht in diesem Fall
+eine transitive Abhängigkeit, die beseitigt werden muss:
+schueler(schuelerNr, name, vorname, klBezeichnung#)
+klasse(klBezeichnung, kl-id#)
+arbeitsgruppe(agNr, agBezeichnung)
+agUebersicht(agNr#, schuelerNr#, agStunden)
+lehrer(id, Lname, LVorname) 1
+agLehrer(agNr#, id#)
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+# SQL
+
+2 Projekt-Datenbank des Softwarehauses
+In Material 5 sind die Relationen , , und der
+Kunde Projekt Mitarbeiter Stelle
+Datenbank auszugsweise dargestellt. Die Datenbank soll analysiert, konzeptionell überarbeitet
+und ausgewertet werden.
+
+2.1 Beschreiben Sie die 1., 2. und 3. Normalform und prüfen Sie die Relationen und
+Kunde
+auf ihre Normalformen.
+Projekt
+(4 BE)
+
+## Loesung 2.1
+Beschreiben der Normalformen und Prüfen auf Einhaltung
+Kunde ist nicht in der 1. Normalform, da die Werte im Datenfeld Adresse nicht
+atomar sind.
+Eine Relation befindet sich in der 2. Normalform, wenn sie sich in der 1.
+Normalform befindet und alle Nicht-Schlüsselattribute vom ganzen Schlüssel 2
+abhängig sind. Die Relation Projekt befindet sich in der 2. Normalform, weil
+alle Nicht-Schlüsselattribute vollständig vom Primärschlüssel abhängen.
+Projekt ist in der 2. aber nicht in der 3. Normalform, da die Vertragsvorlage
+funktional abhängig ist von der Projektart und somit transitiv vom
+Primärschlüssel ProjNr abhängt.
+
+2.2 Nennen Sie Anomalien, die bei der Relation auftreten können. Geben Sie jeweils ein
+Projekt
+Beispiel an.
+(3 BE)
+
+## Loesung 2.2
+Mögliche Anomalien nennen
+Einfügeanomalie: Eine neue Projektart kann nur eingefügt werden, wenn bereits
+ein Projekt dazu vorhanden ist, da sonst der Primärschlüssel ProjNr einen null-
+Wert enthalten würde.
+Änderungsanomalie: Wenn sich die Vertragsvorlage einer Projektart ändert, muss
+er an mehreren Stellen in der Tabelle geändert werden. Ansonsten treten
+Inkonsistenzen auf.
+Löschanomalie: Wird ein Projekt gelöscht, wird die Projektart ebenfalls gelöscht.
+Wenn es das letzte Projekt seiner Art ist, geht auch die Information über die
+Projektart verloren.
+
+2.3 Beschreiben Sie den Beziehungstyp zwischen den Relationen und
+Mitarbeiter Projekt
+sowie die Bedeutung der Relation . Erörtern Sie die in Material 5 vorliegende Lösung.
+Stelle
+(3 BE)
+
+## Loesung 2.3
+Beziehung beschreiben und erörtern
+Zwischen den Relationen Mitarbeiter und Projekt besteht eine n:m-
+Beziehung, ein Mitarbeiter kann in mehreren Projekten arbeiten, in einem Projekt
+arbeiten mehrere Mitarbeiter.
+n:m-Beziehungen können in den meisten relationalen Datenbanken nicht direkt
+umgesetzt werden. Zur Realisierung wird eine zusätzliche Tabelle erstellt, die die
+Primärschlüssel beider Tabellen als Fremdschlüssel enthält. Die n:m-Beziehung
+wird also aufgelöst, und man erhält eine weitere Datenbanktabelle, hier Stelle,
+die zwei 1:n-Beziehungen realisiert.
+
+2.4.1 Vergleichen Sie dieses neue ER-Modell mit den Relationen in Material 5 im Hinblick auf die
+Einhaltung der Normalformen.
+(3 BE)
+
+## Loesung 2.4.1
+Neues und altes ER-Modell vergleichen
+Entitätstyp Funktion mit Stundensatz wurde ausgelagert, dadurch genügt
+Stelle der 3. Normalform. Die transitive Abhängigkeit existiert nicht mehr.
+Mögliche Inkonsistenzen bei der Änderung eines Stundensatzes werden
+vermieden.
+Der Verstoß gegen die 3. Normalform in Projekt besteht weiterhin.
+Kunde verstößt nicht mehr gegen die 1. Normalform, da das Attribut Adresse
+atomisiert ist.
+
+2.5.3 Für das Projekt "MarketingApp" soll eine Projektleiterin oder ein Projektleiter (in der Folge
+Projektleiter genannt) bestimmt werden. Es soll ein Mitarbeiter sein, der bereits eine
+Projektleitung inne hatte und der während der gesamten Projektlaufzeit vom 1.10.2017 bis
+30.11.2016 verfügbar ist.
+Erklären Sie alle Bedingungen, die in der SQL-Anweisung geprüft werden müssen oder
+entwickeln Sie die SQL-Anweisung.
+Hinweis: Zur Erreichung der fünf Bewertungseinheiten ist nur eine der beiden Alternativen zu
+bearbeiten, d.h. entweder alle Bedingungen in einem Text erklären oder die SQL-Anweisung zu
+entwickeln.
+(5 BE)
+
+## Loesung 2.5.3
+Lösungsalternative 1: notwendige Bedingungen erklären
+Für die in Frage kommenden Mitarbeiter muss es in der Relation Stelle einen
+Eintrag mit der Funktionsbezeichnung "Projektleitung" bzw. der entsprechenden
+FunktionsID (fid) geben. Für diese Mitarbeiter muss die Verfügbarkeit geprüft
+werden, indem ihr Engagement in anderen Projekten betrachtet wird.
+Dazu muss geprüft werden, ob sie in einem Projekt mitarbeiten, das
+– vor dem 1.10. beginnt und nach dem 1.10. endet
+(Überschneidung mit dem Projektbeginn), oder
+– vor dem 30.11. beginnt und nach dem 30.11. endet
+(Überschneidung mit dem Projektende), oder
+– nach dem 1.10. beginnt und vor dem 30.11. endet
+(komplett innerhalb der Projektlaufzeit der MarketingApp) oder
+– genau vom 1.10. bis zum 30.11. dauert
+(genau zur gleichen Zeit läuft).
+Arbeitet ein in Frage kommender Projektleiter in einem solchen Projekt mit, egal
+in welcher Funktion, wird er ausgeschlossen. Übrig bleiben die möglichen
+Projektleiter für das Projekt MarketingApp, hier ist es nur Katharina Kunz.
+SELECT DISTINCT nachname,vorname
+FROM Mitarbeiter m, Funktion f, Stelle s
+WHERE f.fid = s.fid
+AND m.mid = s.mid
+AND f.bezeichnung = 'Projektleitung'
+AND (m.mid NOT IN
+(SELECT mid
+FROM Stelle st
+WHERE m.mid = st.mid
+AND((st.zu_besetzen_ab < '2017-10-01'
+AND st.zu_besetzen_bis > '2017-10-01')
+OR (st.zu_besetzen_ab < '2017-11-30'
+AND st.zu_besetzen_bis > '2017-11-30')
+OR (st.zu_besetzen_ab > '2017-10-01'
+AND st.zu_besetzen_bis < '2017-11-30')
+OR (st.zu_besetzen_ab = '2017-10-01'
+AND st.zu_besetzen_bis = '2017-11-30')
+)
+)
+)
+;
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+# SQL
+
+2 Datenbank für das Carsharing-Unternehmen
+Sie werden von dem Carsharing-Unternehmen beauftragt, seine Fahrzeug- und Mietverwaltung
+durch eine relationale Datenbank zu unterstützen. In dem Datenbanksystem soll u.a. aufgenom-
+men werden, welches Fahrzeug von welchem Mitglied gebucht bzw. genutzt wurde. Ihnen wird
+ein vorläufiges ER-Modell (Material 7) vorgelegt.
+
+2.2.4 Erläutern Sie den Aufbau und die inhaltliche Bedeutung der folgenden SQL-Anweisung.
+SELECT buchungsNr, Buchung.mitgliedsNr, name, vorname, kennzeichen
+FROM Buchung
+INNER JOIN Mitglied ON Buchung.mitgliedsNr = Mitglied.mitgliedsNr
+INNER JOIN Fahrzeug ON Buchung.kennzeichen = Fahrzeug.kennzeichen
+WHERE Buchung.mitgliedsNr IN (1002, 1007, 1009);
+(3 BE)
+
+## Loesung 2.2.4
+SQL-Anweisung erläutern
+Es werden Daten aus drei verbundenen Tabellen abgefragt. Hierzu werden
+mehrere „Joins” hintereinander ausgeführt. Zunächst werden die ersten beiden
+Tabellen miteinander verbunden und die Datensätze ausgewählt, die der in der
+ON-Spezifikation angegebenen Bedingung entsprechen. Anschließend wird diese
+Zwischentabelle mit der nächsten Tabelle verbunden usw. Durch den IN-
+Parameter in der WHERE-Klausel wird verglichen, ob der Inhalt einer Spalte in
+der angegebenen Liste enthalten ist.
+Die angegebene SQL-Abfrage liefert alle Buchungen (Mitgliedsnummer, Vorund Nachname des Mitglieds, Buchungsnummer, Fahrzeugkennzeichen) der
+Mitglieder mit den Mitgliedsnummern 1002, 1007 und 1009
+
+2.3 Nachdem Sie das vorläufige ER-Modell implementiert haben, kommen Ihnen Zweifel, ob das
+entstandene Relationenmodell den Anforderungen der 3. Normalform genügt.
+Untersuchen Sie das Modell auf die Einhaltung der 3. Normalform. Geben Sie die gegenüber
+Ihrer Lösung aus Teilaufgabe 2.1 veränderten bzw. neu entstandenen Relationen in gleicher
+Schreibweise an.
+Hinweis: Es müssen nur die Relationen angeben werden, die von Änderungen betroffen sind.
+(5 BE)
+
+## Loesung 2.3
+ER-Modell auf die Einhaltung der 3. Normalform hin untersuchen
+Die Relationen Mitglied und Fahrzeugklasse befinden sich in der 3.
+Normalform. Alle Attribute der beiden Relationen sind vom Schlüsselattribut voll
+funktional abhängig, es gibt keine transitiven Abhängigkeiten. Die Relation
+Fahrzeug befindet sich in der 2. Normalform. Die Wertebereiche der Attribute
+sind atomar. Das Attribute modell hängt transitiv vom Attribute hersteller
+ab. Aus der Relation Fahrzeug werden die Attribute modell und
+hersteller entfernt und in neue Relationen Fahrzeugmodell und
+Hersteller übertragen. Die ursprünglichen Attribute modell und 2
+hersteller werden durch Fremdschlüssel ersetzt. Darüber hinaus muss der
+Fremdschlüssel klasse aus der Relation Fahrzeug entfernt und in die neue
+Relation Fahrzeugmodell übertragen werden.
+Fahrzeug (fahrzeugnr, kennzeichen, baujahr, kmStand,
+modellnr#)
+Fahrzeugmodell (modellnr, modell, herstellernr#,
+klasse#)
+Hersteller (herstellernr, hersteller)
+
+2.5 Das Carsharing-Unternehmen unterscheidet die Fahrzeuge in Pkws und Transporter. Für Pkws
+werden neben den zuvor genannten Merkmalen zusätzlich die Anzahl der Sitzplätze, für
+Transporter zusätzlich deren Ladevolumen gespeichert.
+Pkw und Transporter sind Spezialisierungen des Entitätstyps Fahrzeug (is-a-Beziehung). Es gibt
+verschiedene Möglichkeiten diese auf Tabellen abzubilden.
+Zeigen Sie zwei Möglichkeiten und diskutieren Sie Vor- und Nachteile der beiden Lösungen.
+(5 BE)
+
+## Loesung 2.5
+Möglichkeiten zur Realisierung einer Spezialisierung zeigen und diskutieren
+Möglichkeit 1:
+Fahrzeug(kennzeichen, …, anzahlPlaetze, ladevolumen)
+Alle Attribute in eine Tabelle Fahrzeug aufnehmen.
+Vorteil: nur eine Tabelle
+Nachteil: im Allgemeinen wenig speichereffizient (null-Einträge)
+Möglichkeit 2:
+Pkw(kennzeichen, …, anzahlPlaetze)
+Transporter(kennzeichen, …, ladevolumen)
+Zwei eigene Entitätstypen PKW und Transporter.
+Vorteil: einfacher Zugriff auf Attribute
+Nachteil: es kann u.U. Pkws und Transporter mit gleichen Kennzeichen geben
+(Fehleinträge). Dies ist in Möglichkeit 1 und 3 ausgeschlossen.
+Möglichkeit 3:
+Fahrzeug(kennzeichen, …)
+Pkw(kennzeichen#, anzahlPlaetze)
+Transporter(kennzeichen#, ladevolumen)
+Jeder Entitätstyp wird in eine Tabelle überführt:
+Spezialisierungen besitzen dieselben Primärschlüssel wie die Generalisierung,
+diese sind zugleich auch Fremdschlüssel.
+Weitere Merkmale werden in die Tabelle als Attribute aufgenommen.
+Vorteil: einfach und systematisch
+Nachteil: umständliche Navigation für bestimmte Attributwerte
+Hinweis: Nur zwei der drei Lösungsmöglichkeiten sind gefragt.
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+# SQL
+
+2 Datenbank
+Das Entity-Relationship-Modell (ERM) der Datenbank ist in Material 4 dargestellt.
+
+2.1 Das ERM soll in das relationale Modell einer Datenbank transformiert werden.
+
+2.1.1 Beschreiben Sie das relationale Datenbankmodell. Nennen Sie mindestens einen Vor- und einen
+Nachteil.
+(3 BE)
+
+## Loesung 2.1.1
+Das relationale Datenbankmodell ist tabellenbasiert. Eine relationale Datenbank
+kann man sich als eine Sammlung von Tabellen (den Relationen) vorstellen, in
+welchen Datensätze abgespeichert sind, die über Fremdschlüssel verknüpft werden. Jede Zeile (Tupel) in einer Tabelle ist ein Datensatz (record). Jedes Tupel
+besteht aus einer Reihe von Attributwerten (Attribute = Eigenschaften), den Spalten der Tabelle. Das Relationenschema legt dabei die Anzahl und den Typ der
+Attribute für eine Relation fest.
+nennen
+Vorteile:
+Das relationale Modell ist ein einfaches Modell, das leicht zu verstehen ist. Datenunabhängigkeit wird durch Kapselung der physikalischen Datenspeicherung
+erreicht
+Nachteile:
+Ein Objekt wird aufgeteilt und in vielen unterschiedlichen Relationen abgespeichert. Das kann zu komplexen, unübersichtlichen Abfragen und damit zu Performanceproblemen führen.
+
+2.2.5 Analysieren Sie den Aufbau und die inhaltliche Bedeutung der folgenden SQL-Anweisung
+INSERT INTO Artikel (typ, bezeichnung, farbe, vkpreis,
+ anzahlImKarton, segmentnr)
+VALUES ('Handtuch', 'Flausch', 'rot', 9.9, 15,
+ (SELECT FIRST (S.segmentnr)
+ FROM Segment AS S
+ WHERE S.segmentnr NOT IN
+ (SELECT SE.segmentnr
+ FROM Segment AS SE, Artikel AS A
+ WHERE SE.segmentnr = A.segmentnr
+ AND SE.regalnr = 3
+ )
+ )
+ );
+Hinweis: Die Funktion FIRST(spalte) liefert den ersten Wert der entsprechenden Spalte.
+(5 BE)
+
+## Loesung 2.2.5
+Die SQL-Anweisung INSERT fügt eine Zeile in die Artikel-Tabelle ein, ein neues
+Handtuch soll gespeichert werden. Die Attribute Typ, Bezeichnung, Farbe, der
+Verkaufspreis und die Anzahl der Handtücher im Karton werden mit festen Werten versorgt. Der Wert für die Segmentnummer wird mittels einer Unterabfrage
+ermittelt. Es wird die erste Segmentnummer im Regal 3 bestimmt, die nicht in der
+Menge der vergebenen Nummern enthalten ist, d.h., die keinem Artikel zugeordnet und damit frei ist.
+Ein neuer Artikel, ein Handtuch mit der Bezeichnung "Flausch", in der Farbe
+"rot", zum Preis von 9,90 € mit 15 Stück im Karton, wird erfasst und dem ersten
+freien Segment in Regal 3 zugeordnet.
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+# SQL
+
+1 Auswertung und Erweiterung der Datenbank des Unternehmens.
+Das Entity-Relationship-Modell der Datenbank ist in Material 1 dargestellt.
+
+1.1 Überführen Sie das gegebene ER-Modell (Material 1) in das relationale Modell unter
+Einhaltung der 3. Normalform und begründen Sie Ihre Entscheidungen.
+Hinweis: Alle Relationen sind in der Schreibweise
+Relation(PK, Attribut, …, FK#)
+anzugeben, die Primär- und Fremdschlüssel sind zu kennzeichnen.
+(7 BE)
+
+## Loesung 1.1
+Kunde(kid, name, vorname, plz, ort, strasse)
+Mitarbeiter(mid, name, vorname, telefon, gehalt)
+Art(aid, bezeichnung, stundensatz)
+Befaehigung(aid#, mid#)
+Dienstleistung(did, datum, von, stunden, kid#, aid#, mid#) 3
+Die Entitätstypen Kunde, Dienstleistung, Mitarbeiter und Art werden zu Tabellen.
+Bei 1:n-Beziehungen wie beispielsweise zwischen Mitarbeiter und Dienstleistung
+wird der PK der 1-Relation FK in der n-Relation. Die n:m-Beziehung „befähigt“
+wird zur Beziehungsmengenrelation. Die PK der beteiligten Relationen Art und
+Mitarbeiter werden FK in der Beziehungsmengenrelation.
+Die Relationen befinden sich in der 3. Normalform, weil die Attribute Name und
+Adresse atomar sind, alle Nicht-Schlüsselattribute vom Primärschlüssel voll funktional abhängig sind und keine transitiven Abhängigkeiten, das heißt kein Nicht-
+Schlüsselattribut ist über den Umweg über ein anderes Nicht-Schlüsselattribut
+abhängig, existieren
+
+1.3.1 Zeigen Sie, dass die Tabelle in Material 2 Redundanzen und Inkonsistenzen enthält. Geben Sie
+je ein Beispiel für die verschiedenen Arten von Anomalien an.
+(4 BE)
+
+## Loesung 1.3.1
+Die Tabelle weist Redundanzen, beispielsweise Fensterreiniger in der Spalte Gerätetyp oder Kärcher in der Spalte Hersteller, auf. Das kann zu Inkonsistenzen
+führen, was bereits bei dem Hersteller Husqvarna-Husquarna in der vorliegenden
+Tabelle der Fall ist.
+Mögliche Anomalien sind:
+Änderungsanomalie: Der Bestand des Reinigungsmittels „Konzentrat 100 ml“
+wird an mehreren Stellen geführt. Wird Reinigungsmittel verbraucht und der Ist-
+Bestand nur an einer Stelle aktualisiert, entsteht Inkonsistenz.
+Einfügeanomalie: Ein neues Gerät kann nur eingefügt werden, wenn schon eine
+entsprechende Dienstleistungsart besteht.
+Löschanomalie: Wird die Dienstleistungsart „Fensterreinigung“ gelöscht, weil sie
+in einer anderen Art enthalten ist, gehen die Daten zu den Geräten und Verbrauchsmitteln ebenfalls verloren, obwohl sie noch vorhanden sind.
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+# SQL
+
+2 Datenbank für das Fitnessstudio BodyFitness
+Die Kunden- und Trainingsdaten des Studios sollen mithilfe einer relationalen Datenbank
+verwaltet werden. Ein erstes ER-Modell wurde entworfen (Material 5).
+
+2.3 An die Datenbank wird folgende Anforderung gestellt:
+Die referentielle Integrität der Datenbank muss jederzeit sichergestellt sein.
+Beschreiben Sie die referentielle Integrität und die Optionen RESTRICT und CASCADE.
+(3 BE)
+
+## Loesung 2.3
+„Die referentielle Integrität (auch Beziehungsintegrität) besagt, dass Attributwerte
+eines Fremdschlüssels auch als Attributwert des Primärschlüssels vorhanden sein
+müssen.“
+https://de.wikipedia.org/wiki/Referentielle_Integrit%C3%A4t, zuletzt abgerufen am 25.09.2015) 2
+Dies kann man z.B. über die Optionen RESTRICT bzw. CASCADE kontrollieren.
+Mit Angabe von RESTRICT wird das Löschen des Datensatzes verhindert,
+solange es in der abhängigen Tabelle zugehörige Datensätze gibt. Mit Angabe von
+CASCADE wird das Löschen des Datensatzes zugelassen, bewirkt aber
+gleichzeitig das Löschen der zugehörigen Datensätze in der abhängigen Tabelle.
+
+2.5.1 Geben Sie die Definition der Begriffe Redundanz und Anomalie an. Beschreiben Sie mithilfe
+von Beispielen mögliche Anomalien, die in dieser Tabelle auftreten.
+(5 BE)
+
+## Loesung 2.5.1
+Redundanz liegt vor, wenn dieselben Daten mehrfach gespeichert werden.
+Redundante Daten können entfernt werden, ohne dass Informationen verloren
+gehen.
+Als Anomalien bezeichnet man Probleme, die durch eine fehlerhafte
+Datenbankstruktur entstehen und die zu Inkonsistenzen führen.
+Änderungsanomalie: Würden in der Tabelle die Kosten des Kurses „Zumba 1“
+geändert, so müsste dies an zwei Stellen geschehen. Geschieht dies nicht, enthält
+die Tabelle inkonsistente Daten.
+Löschanomalie: Das Löschen des Datensatzes von „Anke Trost“ aus der Tabelle
+würde auch die Informationen zum Kurs „Zumba 2“ löschen.
+Einfügeanomalie: Ein Kurs kann erst dann angelegt werden, wenn es auch
+mindestens einen Teilnehmer dazu gibt.
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+# SQL
+
+2 Datenbank des Ticket-Reservierungssystems
+Kunden können mehrere Reservierungen auf einmal vornehmen, für die eine Rechnung gestellt
+wird. Die Zahlung des Rechnungsbetrages kann in mehreren Teilzahlungen erfolgen.
+
+2.1 Bisher wurden die Rechnungen mit ihren Zahlungen in Form einer einfachen Tabelle verwaltet,
+die in Material 6 auszugsweise dargestellt ist.
+
+2.1.1 Geben Sie die in dieser Tabelle auftretenden Redundanzen an. Beschreiben Sie mögliche
+Anomalien anhand von Beispielen.
+(4 BE)
+
+## Loesung 2.1.1
+Redundanz liegt vor, wenn die gleichen Werte mehrmals gespeichert werden.
+Dies trifft hier z.B. auf die Angabe der Kundendaten zu. Der Name und die Adresse des Kunden mit der Nummer 1054 werden zweimal gespeichert.
+beschreiben
+Diese Art der Speicherung kann dazu führen, dass folgende Anomalien auftreten.
+– Änderungsanomalie:
+Ändert sich der Wohnort eines Kunden, muss er bei vielen Tabelleneinträgen
+geändert werden.
+– Löschanomalie:
+Löscht man die Zeile mit dem Kunden mit der Nummer 1055, gehen alle Informationen über das Spiel Augsburg – Mainz verloren.
+– Einfügeanomalie:
+Es können keine neuen Kunden abgespeichert werden, die noch keine Rechnung bekommen haben, ohne null-Werte zu erzeugen.
+
+2.1.2 Erläutern Sie die Maßnahmen, um die in Aufgabe 2.1.1 genannten Probleme zu beheben.
+(2 BE)
+
+## Loesung 2.1.2
+Für die angegebene Tabelle sollte eine Normalisierung durchgeführt werden. Unter Normalisierung versteht man die Aufteilung von Attributen auf mehrere Relationen (Tabellen). In der gegebenen Tabelle sind die Werte nicht atomar und es
+kommen Redundanzen vor. Mithilfe der 1. bis 3. Normalform kann sie so umgeformt werden, dass die Werte atomar sind und keine Redundanzen mehr vorkommen. Zum Beispiel entsteht so eine Relation Kunde, die alle Attribute des Kunden
+enthält, ohne seine Reservierungs- und Zahlungsdaten.
+
+2.1.3 Erläutern Sie den Fachbegriff Inkonsistenz am Beispiel der zusätzlichen Speicherung der
+Summe aller Teilzahlungen in einem Attribut.
+(2 BE)
+
+## Loesung 2.1.3
+Werden Teilbeträge nachträglich geändert und die Summe nicht aktualisiert, entsteht Inkonsistenz. Die Information, wieviel Geld zu einer Rechnung eingegangen
+ist, lässt sich einfach als Summe aller Zahlungseingänge berechnen.
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+# SQL
+
+1 Auswertung und Erweiterung der Datenbank
+Das Unternehmen setzt eine relationale Datenbank ein. Für die vorhandene Datenbankstruktur
+liegt ein Relationenmodell vor (Material 2).
+
+1.1 Um ein möglichst hohes Maß an Datenunabhängigkeit zu erreichen, sollten innerhalb der
+Architektur eines Datenbanksystems drei verschiedene Ebenen realisiert werden (Material 3).
+Beschreiben Sie die drei Ebenen und erläutern Sie die Vorteile ihrer Trennung.
+(4 BE)
+
+## Loesung 1.1
+Der Kern der 3-Schichten-Architektur ist die konzeptionelle Ebene, in der ein
+Realitätsausschnitt, den das Datenbanksystem nachbilden soll, in seiner
+Gesamtheit beschrieben wird. In dieser Ebene werden alle Daten und ihre
+Beziehungen zueinander modelliert. Sie ist unabhängig von der Hardware und den
+Anforderungen einzelner Benutzer. Der Entwurf des Schemas erfolgt beim
+relationalen Datenbankmodell in der Regel durch ein ER-Diagramm.
+Die interne Ebene legt die physikalische Realisierung des konzeptionellen
+Schemas auf Speichermedien fest. Sie enthält Angaben zur Länge und zum Typ
+von Dateneinheiten sowie zu den Zugriffspfaden auf den physischen Speicher.
+Die externe Ebene legt fest, welche Daten bestimmte Benutzer oder Programme
+lesen und/oder bearbeiten können. Sie gibt nur den Teil der logischen
+Gesamtsicht wieder, der für die Anwendungen einer Benutzergruppe von
+Interesse ist.
+Durch die Trennung in Ebenen wird Datenunabhängigkeit erreicht, d.h.
+Änderungen in der konzeptionellen Ebene haben nur erwünschten Einfluss bzw.
+Änderungen in der internen Ebene haben überhaupt keinen Einfluss auf die
+Anwender und die Anwendungsprogramme.
+
+1.2 Beschreiben Sie das relationale Datenbankmodell und vergleichen Sie die Umsetzung von
+Beziehungen in relationalen Datenbanken und der objektorientierten Programmierung.
+(4 BE)
+
+## Loesung 1.2
+Eine relationale Datenbank besteht aus einer Menge von Relationen, in denen die
+logisch zusammengehörigen Daten gespeichert werden. Eine Relation hat die
+Form einer Tabelle und besteht damit aus Zeilen und Spalten. Bei relationalen
+Datenbanken werden die Spalten als Attribute und die Zeilen als Tupel
+(Datensätze) bezeichnet. Jedem Attribut ist ein bestimmter Datentyp zugeordnet.
+Ein Tupel muss eindeutig identifizierbar sein. Der Primärschlüssel einer Tabelle
+ist ein Attribut oder eine Attributkombination, deren Werte die Tupel eindeutig
+identifizieren.
+Umgesetzt werden die Beziehungen bei relationalen Datenbanken durch
+Fremdschlüssel. Ein Fremdschlüssel stellt die Beziehung her, indem der PK der
+einen Relation als FK in die andere Relation übernommen wird.
+In der objektorientierten Modellierung mithilfe von UML werden Beziehungen
+(Assoziationen) mit Multiplizitäten ausgezeichnet, die spezifizieren, wie viele
+Objekte ein bestimmtes Objekt kennen kann oder muss. Eine einwertige
+Multiplizität wird in der OOP durch eine Referenz auf das andere Objekt
+umgesetzt. Für mehrwertige Beziehungen werden Container (zum Beispiel Arrays
+oder Listen) verwendet.
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+2 Für den Servicedesk soll eine Datenbank zur Datenspeicherung neu entwickelt werden. 
+
+2.1 Die Datenbank soll ermöglichen, von Kunden aufgegebene Tickets sowie Erfasser und
+Bearbeiter der Tickets zu verwalten. Hierzu wird Ihnen ein erstes ER-Modell (Material 7)
+vorgelegt. 
+
+2.1.2 Das Attribut status der Relation Ticket kann nur eine begrenzte Anzahl von Werten (offen,
+in Bearbeitung, gelöst, geschlossen) enthalten. Ihnen wird der Vorschlag gemacht, eine
+Referenztabelle Status mit nur zwei Spalten (status_id, bezeichnung) zu verwenden.
+Beurteilen Sie diesen Vorschlag.
+(3 BE) 
+
+## Loesung 2.1.2
+Üblicherweise würde in jedem Datensatz der Tabelle Ticket der Status als
+varchar gespeichert. Es kann jedoch nicht garantiert werden, dass die für den
+Ticketstatus zulässigen Statuswerte "offen", "in Bearbeitung", "gelöst" oder
+"geschlossen" korrekt eingetragen werden.
+Der Datentyp des Attributs status ist vergleichbar einem Aufzählungstyp, ein
+Datentyp mit einer endlichen Wertemenge. Durch die Verwendung einer
+Referenztabelle wird nur die status_id in jedem Datensatz der Tabelle Ticket
+gespeichert, anstatt der Statuswerte. Die Referenztabelle enthält nun die Menge
+der möglichen Statuswerte, die über die status_id referenziert werden können. 
+
+2.2.3 Analysieren Sie die Struktur und erläutern Sie die inhaltliche Bedeutung folgender SQLAnweisung.
+SELECT vorname, name, COUNT(*) AS tickets
+FROM Kunde
+JOIN Ticket
+ON (Kunde.kid = Ticket.kid)
+GROUP BY vorname, name
+HAVING COUNT(*) > 18
+ORDER BY tickets DESC;
+(4 BE)
+
+## Loesung 2.2.3
+Es werden Daten aus zwei verbundenen Tabellen abgefragt. Hierzu wird ein
+„Join” ausgeführt. Zunächst werden die ersten beiden Tabellen miteinander
+verbunden und die Datensätze ausgewählt, die der in der on-Spezifikation
+angegebenen Bedingung entsprechen. Die group by-Klausel fasst Datensätze
+mit identischen Werten in den ausgewählten Spalten zusammen. Dadurch wird ein
+Kunde nur noch in einer Zeile auftreten. Mittels der count-Funktion kann man
+die Anzahl von ausgewählten Datensätzen und somit die Anzahl der Tickets eines
+Kunden ermitteln. Durch die order by-Klausel wird die Ausgabe absteigend
+(desc, descending) sortiert.
+Die angegebene SQL-Abfrage ermittelt die Kunden mit Vornamen, Namen und
+Anzahl der von ihnen aufgegebenen Tickets, die bisher mehr als 18 Tickets
+aufgegeben haben. Die Ausgabe erfolgt nach der Anzahl der Tickets absteigend
+sortiert. 
+
+2.4 Um die Servicedesk-Mitarbeiter bei der Bearbeitung von Tickets zu unterstützen, soll eine
+Datenbank mit häufig gestellten Fragen und zugehörigen Anworten, sogenannte FAQs,
+aufgebaut werden.
+Ein Kollege schlägt vor, die FAQs mittels einer einzigen Tabelle (Material 8) zu verwalten.
+
+2.4.1 Analysieren Sie die Tabelle (Material 8) im Hinblick auf Redundanzen und mögliche
+Anomalien.
+(3 BE)
+
+## Loesung 2.4.1
+In der Datenbankentwicklung gilt es Redundanzen möglichst zu vermeiden, da sie
+zu Inkonsistenzen führen können. Die vorliegende Tabelle weist Redundanzen
+auf, z.B. bei den Bearbeitern der FAQ.
+An Anomalien können hier auftreten:
+– Die nicht vollständige Änderung redundanter Daten einer Entität wird als
+Änderungsanomalie bezeichnet. Wenn die Bearbeiterin „Manuela Berger“
+ihren Namen ändern würde, muss dieser an mehreren Stellen geändert werden,
+sonst erhält man inkonsistente Daten.
+– Von einer Löschanomalie spricht man, wenn durch das Löschen eines Datensatzes mehr Informationen verloren gehen als beabsichtigt. Ist die FAQ Nr. 27
+der einzige Datensatz in der Kategorie „E-Mail“, geht beim Löschen dieses
+Datensatzes diese Kategorie verloren.
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für den Lieferservice
+Ein Entity-Relationship-Modell (ERM) der Datenbank ist in Material 7 zu finden.
+
+2.1.1 Diskutieren Sie die drei unterschiedlichen Möglichkeiten, die Spezialisierung zwischen
+Fahrzeug und E-Motorroller bzw. Kleinwagen in das relationale Modell zu
+transformieren unter Angabe der jeweiligen Relationen. Entscheiden Sie sich für eine
+Möglichkeit.
+(6 BE)
+
+## Loesung 2.1.1
+diskutieren
+1. Möglichkeit:
+Eine Relation mit allen Attributen:
+Fahrzeug(fahrzeugnr, kmStand, kennzeichen, nächsteHU,
+versicherungskennzeichen, ladezeit, reichweite)
+Nur eine Tabelle ist übersichtlicher. Es bleiben in jedem Datensatz Attribute leer,
+das ist wenig speichereffizient.
+2. Möglichkeit:
+Zwei Relationen mit jeweils allen Attributen:
+E-Motorroller (fahrzeugnr, kmStand,
+versicherungskennzeichen,
+ladezeit, reichweite)
+Kleinwagen(fahrzeugnr, kmStand, kennzeichen,
+nächsteHU)
+Das ist eine einfache, da sehr schematische Transformation. Der Zugriff auf die
+Attribute ist einfach, da sie in der passenden Relation stehen und in SQL ohne
+JOINs erreichbar sind. Es kann E-Motorroller und Kleinwagen mit gleicher
+Fahrzeugnummer geben, das kann ungünstig sein.
+3. Möglichkeit:
+Drei Relationen mit Fremdschlüsseln:
+Fahrzeug(fahrzeugnr, kennzeichen, kmStand)
+E-Motorroller(fahrzeugnr#, versicherungskennzeichen,
+ladezeit, reichweite)
+Kleinwagen(fahrzeugnr#, kmStand, kennzeichen, nächsteHU)
+Die Transformation ist schematisch und damit einfach. Die Auswertung per SQL-
+Anweisungen wird durch mehr JOIN-Operationen komplexer.
+entscheiden
+Die Entscheidung fällt zugunsten der Variante 1 aus, da es so weniger Tabellen
+gibt, was die Übersicht erleichtert und die SQL-Anweisungen zur Auswertung
+mit weniger JOIN-Operationen auskommen lässt. Bei einem bzw. zwei leeren
+Attributen pro Datensatz fallen die Nachteile (Speicherplatzverbrauch) nicht sehr
+ins Gewicht.
+Hinweis: Eine andere, korrekte Umsetzung der Spezialisierung ist als
+gleichwertig zu betrachten.
+
+2.1.2 Überführen Sie das gegebene ERM in das relationale Modell unter Einhaltung der 3.
+Normalform und unter Berücksichtigung Ihrer Entscheidung in Teilaufgabe 2.1.1.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, …, FK#)
+anzugeben.
+(5 BE)
+
+## Loesung 2.1.2
+Filiale(filialnr, strassehausnr, plz, ort)
+Fahrer(fahrernr, handynr, vorname, nachname,
+führerscheinklasse)
+FahrerEinsatzFuerFiliale(filialnr#, fahrernr#, tag) 3
+Lieferauftrag(bestellnr, strassehausnr, plz, ort, start,
+ausgeliefert, ende, fahrernr#, fahrzeugnr#)
+Fahrzeug(fahrzeugnr, kmStand, kennzeichen, nächsteHU,
+versicherungskennzeichen, ladezeit, reichweite)
+
+2.3.1 Erläutern Sie in diesem Zusammenhang das Konzept einer Transaktion.
+(2 BE)
+
+## Loesung 2.3.1
+Eine Transaktion ist eine Gruppe von logisch zusammenhängenden SQL-
+Anweisungen, die nur gemeinsam ausgeführt werden sollen. Kann aufgrund eines
+Fehlers oder einer Zugriffsverletzung eine der Anweisung nicht ausgeführt
+werden, wird keine der Anweisungen in der Transaktion ausgeführt und der
+Datenbestand wird in den Ausgangszustand der Transaktion zurückversetzt.
+
+2.3.2 Ein Datenbankmanagementsystem garantiert bei der Ausführung einer Transaktion die
+Einhaltung der vier grundlegenden Eigenschaften atomicity, consistency, isolation und
+durability, die auch als ACID-Eigenschaften bezeichnet werden.
+Beschreiben Sie diese vier grundlegenden Eigenschaften.
+(4 BE)
+
+## Loesung 2.3.2
+Atomicity (Atomarität) – Alles oder nichts, die Operationen einer Transaktion
+werden vollständig oder gar nicht ausgeführt. Hat die Transaktion begonnen und
+es tritt ein Fehler auf, werden die bereits ausgeführten Operationen in einem
+Rollback rückgängig gemacht.
+Consistency (Konsistenz) – DB in konsistentem Zustand, Datenintegrität
+(Wertebereiche, Fremdschlüssel etc.) wird eingehalten. Würde die Datenintegrität
+durch eine Transaktion verletzt, werden alle bereits ausgeführten Operationen 2
+rückgängig gemacht.
+Isolation (Isolation) – Transaktionen laufen isoliert ab, gleichzeitig ablaufende
+Transaktionen stören sich nicht, indem Daten gesperrt werden.
+Durability (Dauerhaftigkeit) – Daten sind nach Abschluss der Transaktion
+dauerhaft in der Datenbank gespeichert; bei Systemfehlern, insbesondere nach
+Ausfall des Hauptspeichers, darf es nicht zu Datenverlusten kommen. Anhand
+eines Transaktions-Logs werden fehlgeschlagene Schreiboperationen nachgeholt.
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für das Kinocenter
+Ein Entity-Relationship-Model (ERM) der Datenbank finden Sie in Material 7.
+
+2.1 Überführen Sie das gegebene ERM (Material 7) in das relationale Modell unter Einhaltung der
+3. Normalform und begründen Sie Ihre Entscheidungen.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, …, FK#)
+anzugeben.
+(8 BE)
+
+## Loesung 2.1
+Film(fid, titel, osprache, fsk, laenge, vid#, gid#)
+Genre(gid, bezeichnung)
+Verleih(vid, name, land, plz, ort, strasseHausnr)
+Trailer(tid, bezeichnung, sprache, laenge, fid#)
+Schauspieler(sid, name, vorname, gebdatum)
+Besetzung(fid#, sid#) 4
+Die Entitätstypen Film, Genre, Verleih, Trailer und Schauspieler werden zu
+Tabellen. Bei 1:n-Beziehungen, wie beispielsweise zwischen Film und Trailer,
+wird der PK der 1-Relation zum FK in der n-Relation. Die n:m-Beziehung „spielt
+in“ wird zur Beziehungsmengenrelation (Zwischentabelle) Besetzung. Die PKs
+der beteiligten Relationen Film und Schauspieler werden FK in dieser neuen
+Relation.
+Die Relationen befinden sich in der 3. Normalform, weil alle Attribute, auch die
+Adresse mit plz, ort und strasseHausnr, atomar sind, alle Nicht-Schlüsselattribute
+vom Primärschlüssel voll funktional abhängig sind und es keine transitiven
+Abhängigkeiten gibt. Das heißt, kein Nicht-Schlüsselattribut ist über den Umweg
+über ein anderes Nicht-Schlüsselattribut vom PK abhängig.
+
+2.4.1 Zeigen Sie, dass die Tabelle in Material 8 Redundanzen und Inkonsistenzen enthält.
+Beschreiben Sie mithilfe von Beispielen aus der Tabelle die verschiedenen Arten von
+Anomalien.
+(5 BE)
+
+## Loesung 2.4.1
+Die Tabelle weist Redundanzen auf, beispielsweise die Telefonnummer der
+Mitarbeiter. Diese wird unnötig mehrfach gespeichert. Hinzu kommt, dass es zu
+Inkonsistenzen kommen kann, wenn eine Telefonnummer fehlerhaft geschrieben
+wird, was bereits bei Herrn Robot in der vorliegenden Tabelle der Fall ist.
+Mögliche Anomalien sind:
+Änderungsanomalie: Bekommt ein Mitarbeiter eine neue Telefonnummer, muss
+sie an mehreren Stellen geändert werden. Wird das nicht konsequent gemacht,
+kommt es zu einem inkonsistenten Datenbestand.
+Einfügeanomalie: Ein weiterer Mitarbeiter kann nur eingefügt werden, wenn er
+schon einem Bereich zugeordnet ist.
+Löschanomalie: Wird der Bereich Security gelöscht, gehen die Daten von Paul
+Panter ebenfalls verloren, das wäre ein unbeabsichtigter Informationsverlust. 1
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für das Impfzentrum
+In einer ersten Version der Datenbank möchte das Impfzentrum die Daten der zu impfenden
+Personen verwalten. Ebenso sollen die Daten der Impfstoffe und ihrer Lagerstandorte, der
+Produzenten sowie der Impfstofflieferungen verwaltet werden. Dabei gilt:
+Eine Person wird zweimal geimpft, wobei zwischen den Impfterminen drei Wochen liegen
+sollen. Es muss sichergestellt sein, dass eine Person bei beiden Impfungen den gleichen
+Impfstoff erhält.
+Ein Entity-Relationship-Modell (ERM) ist in Material 4 dargestellt.
+
+2.1.1 Beschreiben Sie das relationale Datenbankmodell. Nennen Sie mindestens einen Vor- und einen
+Nachteil.
+(4 BE)
+
+## Loesung 2.1.1
+Das relationale Datenbankmodell ist tabellenbasiert. Eine relationale Datenbank
+kann man sich als eine Sammlung von Tabellen (den Relationen) vorstellen, in
+welchen Datensätze abgespeichert sind, die über Fremdschlüssel verknüpft werden. Jede Zeile (Tupel) in einer Tabelle ist ein Datensatz (record). Jedes Tupel
+besteht aus einer Reihe von Attributwerten (Attribute = Eigenschaften), den
+Spalten der Tabelle. Das Relationenschema legt dabei die Anzahl und den Typ
+der Attribute für eine Relation fest.
+Vorteile: Das relationale Datenbankmodell ist ein einfaches Modell, das leicht zu
+verstehen ist. Datenunabhängigkeit wird durch Kapselung der physikalischen
+Datenspeicherung erreicht.
+Nachteile: Ein Anwendungsobjekt wird aufgeteilt und in vielen unterschiedlichen
+Relationen gespeichert. Das kann zu komplexen, unübersichtlichen Abfragen und
+damit zu Performanceproblemen führen.
+
+2.1.2 Überführen Sie das ERM (Material 4) in das relationale Modell in der 3. Normalform und
+begründen Sie Ihre Vorgehensweise.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(8 BE)
+
+## Loesung 2.1.2
+Person(personID, nname, vname, gebDatum, plz, ort, strasse,
+risiko)
+Impfung(personID#, termin1, termin2, bezeichnung#)
+Impfstoff(bezeichnung, entwickler, gruppe, lagerTemperatur)
+Standort(ortID, temperatur, istAnzahlImpfdosen,
+kapazitaetImpfdosen, bezeichnung#)
+Produzent(prodID, name, plz, ort, land)
+Lieferung(prodID#, bezeichnung#, anzahlImpfdosen, termin)
+Alle Entitätstypen werden mit ihren Attributen in Relationen überführt. Der
+Name der Person und die Adresse müssen zur Einhaltung der ersten Normalform
+aufgespalten werden. Die 1:n-Beziehung impfen zwischen Person und
+Impfstoff wird mit den Attributen der Impfdaten in eine eigene Tabelle
+überführt, die außer der personID auch einen FK für den Impfstoff erhält. Um
+auszuschließen, dass eine Person mehrfach mit unterschiedlichen Impfstoffen
+gespeichert werden kann, wird nur der FK personID zum PK der Tabelle
+Impfung. n:m-Beziehungen werden durch eigene Relationen realisiert, hier am
+Beispiel für die Beziehung liefert. Die PK der beteiligten Tabellen werden FK
+in der Beziehungsmengenrelation. Die 1:n-Beziehung lagert erfordert, dass der
+PK der 1-Relation (bezeichnung) FK in der n-Relation wird.
+
+2.3 Ärzte, die die Impfungen begleiten, sind verpflichtet, Daten zu den geimpften Personen
+einzuholen und für Auswertungen zu protokollieren. In Material 5 ist ein Ausschnitt der
+Erhebung zu finden.
+Analysieren Sie die Struktur der Tabelle hinsichtlich eventuell auftretender Probleme.
+Überführen Sie die Tabelle in die 3. Normalform und begründen Sie Ihre Vorgehensweise.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(12 BE)
+
+## Loesung 2.3
+Die vorliegende Tabelle ist unnormalisiert. Die Werte in mehreren Spalten sind
+nicht atomar (z.B. die Felder der Spalten Impfling und Verantwortlich) und es
+treten Wiederholungsgruppen auf. Ein Beispiel für Wiederholungsgruppen ist die
+Spalte Risikofaktoren, deren Felder teilweise mehrere Risikofaktoren enthalten.
+Problematisch ist das bei der Suche nach Datensätzen oder dem Sortieren nach
+bestimmten Kriterien.
+Außerdem treten viele Redundanzen auf, die zu Inkonsistenzen führen können.
+Wenn zum Beispiel der Risikofaktor Übergewicht in „BMI größer 25“ geändert
+werden soll, müsste das an mehreren Stellen gemacht werden
+(Änderungsanomalie). Inkonsistenzen treten bereits auf. Beispielsweise wurden
+die Fachrichtungen der Ärzte mit Internist bzw. Innere Medizin bezeichnet. Das
+Löschen von Datensätzen kann dazu führen, dass Daten verloren gehen, die
+eigentlich noch gebraucht werden (Löschanomalie). Wird zum Beispiel der
+1. Datensatz gelöscht, geht auch die Ärztin Silke Heiler verloren. Das Einfügen
+neuer Ärzte in die vorhandene Tabelle würde dazu führen, dass viele Datenfelder
+leer bleiben würden (Einfügeanomalie).
+Impfling(personID, nname, vname, gebDatum, bezeichnung#)
+Impfstoff(bezeichnung, gruppe)
+Risikofaktor(risID, bezeichnung)
+Impfling_Risikofaktor(personID#, risID#)
+Impfung(iID, personID#, termin, kuerzel#)
+Impfreaktion(reakID, bezeichnung)
+Impfung_Impfreaktion(iID#, reakID#)
+Arzt(kuerzel, titel, nname, vname, fID#)
+Fachrichtung(fID, bezeichnung) 2
+Alle Mehrfacheinträge in einem Attribut wurden durch das Einfügen von
+zusätzlichen Zeilen und Spalten entfernt, sodass alle Attribute der Relation
+atomare Werte enthalten und frei von Wiederholungsgruppen sind. Für die
+Eindeutigkeit der Datensätze wurde ein entsprechender zusammengesetzter
+Primärschlüssel vergeben.
+Die Relation in der 1. Normalform wurde in kleinere Relationen zerlegt, sodass
+in jeder Relation alle Nichtschlüsselattribute vom gesamten Primärschlüssel
+funktional abhängig sind.
+Für die Einhaltung der 3. Normalform wurden transitive Abhängigkeiten
+aufgelöst.
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+# SQL
+
+1 Entwicklung einer Datenbank für den Aquaristikhandel
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 1 dargestellt.
+
+1.1 Beschreiben Sie die in dem ERM auftretenden Notationselemente und erklären Sie deren
+Bedeutung jeweils anhand eines Beispiels aus dem vorliegenden Modell.
+(6 BE)
+
+## Loesung 1.1
+beschreiben, erklären
+Entitätstypen (grafische Darstellung als Rechteck) kategorisieren gleichartige
+Entitäten, die sich durch die gleichen Eigenschaften (Attribute) beschreiben
+lassen. Im vorliegenden Modell ist beispielsweise Kunde ein Entitätstyp.
+Attribute charakterisieren einen Entitätstyp bzw. einen Beziehungstyp. Die
+Attribute des Entitätstyps Kunde sind zum Beispiel name und telefon. Die
+Darstellung von Attributen im ERM sind Ellipsen.
+Identifizierende Attribute, so genannte Schlüsselattribute, dienen der eindeutigen
+Identifizierung von Entitäten eines Entitätstyps. Ein Primärschlüssel kann aus
+mehreren identifizierenden Attributen zusammengesetzt sein und wird durch
+Unterstreichung gekennzeichnet. Der Primärschlüssel von Kunde ist kNr.
+Die Rauten stehen für Beziehungstypen. Durch Beziehungen (Relationships)
+werden die Abhängigkeiten zwischen Entitäten ausgedrückt. Ein Beziehungstyp
+ist die Abstraktion gleichartiger Beziehungen und kann ebenfalls Eigenschaften
+besitzen. Der Beziehungstyp enthält besitzt das Attribut anzahl.
+Über die Kardinalität wird festgelegt, wie viele Entitäten einer Entitätsmenge mit
+Entitäten einer anderen Entitätsmenge in Beziehung stehen können oder müssen.
+Die Kardinalitäten im vorliegenden ERM sind in [min,max]-Notation dargestellt
+und bedeuten am Beispiel des Beziehungstyps enthält: Jede Bestellung enthält
+einen (1) bis beliebig viele (m) Artikel (muss-Beziehung). Jeder Artikel kann in
+keiner (0) bis beliebig vielen (n) Bestellungen enthalten sein (kann-Beziehung).
+Die is-a-Beziehung (als Dreieck dargestellt) steht für Generalisierung bzw.
+Spezialisierung. Das Prinzip der Generalisierung wird eingesetzt, um eine
+übersichtliche und natürliche Strukturierung der Entitätstypen zu erreichen.
+Gemeinsame Eigenschaften sind dem Obertyp zugeordnet. Die Untertypen
+enthalten die speziellen Eigenschaften, die nicht allen Untertypen gemeinsam
+sind. Das vorliegende Modell zeigt die Spezialisierung von Artikeln. Der Obertyp
+Artikel enthält die allgemeinen Eigenschaften artNr, preis und bestand. Der
+Untertyp Lebewesen zeichnet sich zusätzlich durch die Attribute name und
+herkunft, der Untertyp Zubehör durch bezeichnung und beschreibung aus.
+
+1.2 Überführen Sie das ERM in das relationale Modell in der 3. Normalform und begründen Sie
+Ihre Entscheidungen.
+Hinweise: Es ist darauf zu achten, dass möglichst keine null-Werte in den Datenfeldern
+auftreten. Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(9 BE)
+
+## Loesung 1.2
+Artikel(artNr, preis, bestand)
+Lebewesen(artNr#, name, herkunft)
+Pflanzenart(artNr#, wuchshoehe, lichtbedarf)
+Fischart(artNr#, laenge, gruppengroesse)
+Zubehoer(artNr#, bezeichnung, beschreibung)
+Kunde(kNr, vname, nname, plz, ort, strasse, telefon)
+Bestellung(bestellNr, bestellDatum, lieferDatum, kNr#)
+Position(bestellNr#, artNr#, anzahl)
+Alle Entitätstypen werden mit ihren Attributen in Relationen überführt. Der
+Name des Kunden und die Adresse müssen zur Einhaltung der ersten
+Normalform aufgespalten werden. Die 1:n-Beziehung gibt_auf zwischen
+Kunde und Bestellung erfordert, dass der PK der 1-Relation (kNr) als FK in
+die n-Relation aufgenommen wird. n:m-Beziehungen werden durch eigene
+Relationen realisiert, hier am Beispiel der Beziehung enthält. Die PK der
+beteiligten Tabellen werden FK in der Beziehungsmengenrelation Position.
+Bei der Generalisierung wurde für jeden Entitätstyp eine Relation mit den
+relevanten Attributen angelegt. Durch die 1:c-Beziehung wird dem Untertyp der
+PK des Obertyps als FK hinzugefügt und kann hier außerdem als PK dienen. Das
+hat den Vorteil, dass alle Artikel der Hierarchie eine eindeutige Artikelnummer
+besitzen.
+Die Nicht-Schlüsselattribute der Relationen sind vollständig vom jeweiligen PK
+abhängig und es existieren keine transitiven Abhängigkeiten, so dass die 3.
+Normalform eingehalten wird.
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+2 Entwicklung einer Datenbank zur Verwaltung von Darlehensverträgen und Depotkonten
+Ein vorläufiges Entity-Relationship-Modell (ER-Modell) ist in Material 6 dargestellt.
+
+2.4 Mitarbeiterinnen und Mitarbeiter der Bank beraten die Kunden in Finanzangelegenheiten. Dazu
+werden Beratungstermine vereinbart, die zurzeit in der folgenden Tabelle (Ausschnitt)
+festgehalten werden:
+Berater Termin Uhrzeit Thema Kunde
+Kai Schlau
+0152 / 1234567
+15.05.2022 16.30 – 17.30 Darlehensfinanzierung
+Wertpapierdepot
+Hans Hauser
+Feldweg 5, 12345 Auheim
+0173 / 66554489
+16.05.2022 19.00 – 21.00 Darlehensfinanzierung Klara Kühn
+Lingelgasse 12, 23345
+Lingen
+0160 / 4566345
+Klaus Meyer
+0176 / 7199552
+15.05.2022 10.00 – 12.00 Umschuldung
+Darlehensfinanzierung
+Hans Hauser
+Feldweg 5, 12345 Auheim
+0173 / 66554498
+... ... ... ... ...
+Analysieren Sie die Struktur der Tabelle und beschreiben Sie eventuell auftretende Probleme
+anhand von Beispielen.
+(5 BE)
+
+## Loesung 2.4
+Die vorliegende Tabelle ist unnormalisiert. Die Werte in mehreren Spalten sind
+nicht atomar (z.B. die Felder der Spalten Uhrzeit und Kunde) und es treten
+Wiederholungsgruppen auf. Ein Beispiel für Wiederholungsgruppen ist die Spalte
+Thema. Problematisch ist das bei der Suche nach Datensätzen oder dem Sortieren
+nach bestimmten Kriterien.
+beschreiben
+Es treten Redundanzen auf, die zu Inkonsistenzen führen können. Wenn zum
+Beispiel die Adresse des Kunden Hans Hauser geändert werden soll, müsste das
+an mehreren Stellen gemacht werden (Änderungsanomalie). Eine Inkonsistenz
+tritt bereits auf. Die Telefonnummern von Herrn Hauser unterscheiden sich in den
+letzten beiden Stellen.
+Das Löschen von Datensätzen kann dazu führen, dass Daten verloren gehen, die
+eigentlich noch gebraucht werden (Löschanomalie). Wird zum Beispiel der
+Berater Kai Schlau gelöscht, weil er das Unternehmen verlässt, gehen auch die
+Kundendaten von Klara Kühn verloren.
+Das Einfügen neuer Kunden in die vorhandene Tabelle würde dazu führen, dass,
+so lange noch keine Beratungstermine vereinbart wurden, viele Datenfelder leer
+bleiben würden (Einfügeanomalie). 
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+# SQL
+
+2 Entwicklung der Datenbank zur Verwaltung der montierten und ausgelieferten Bikes
+Ein erstes Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 4.
+
+2.1 Geben Sie drei unterschiedliche Lösungen an, um die Spezialisierung zwischen Komponente,
+Rahmenteil, Schaltelement und Einzelteil in das relationale Modell zu transformieren.
+Diskutieren Sie die Vor- und Nachteile dieser Möglichkeiten.
+(6 BE)
+
+## Loesung 2.1
+Möglichkeit 1:
+Komponente(id, bezeichnung, gewicht, preis, hersteller,
+Gruppe, Abmessung, Detail, modellName)
+Möglichkeit 2:
+Rahmenteil(iD, bezeichnung, gewicht, preis, hersteller,
+gruppe, abmessung)
+Schaltelement(iD, bezeichnung, gewicht, preis, hersteller,
+gruppe, detail)
+Einzelteil(iD, bezeichnung, gewicht, preis, hersteller,
+modellName, abmessung)
+Möglichkeit 3:
+Komponente(iD, bezeichnung, gewicht, preis, hersteller)
+Rahmenteil(iD#, gruppe, abmessung)
+Schaltelement(iD#, gruppe, detail)
+Einzelteil(iD#, modellName, abmessung)
+diskutieren
+Möglichkeit 1 würde zu einer einzigen Relation mit sehr vielen Attributen führen,
+wobei die Tabelle in jedem Fall viele null-Einträge hätte. Bei Möglichkeit 2 hat
+man einfache Zugriffe auf alle Attribute. Ein Nachteil wären gleiche IDs, zum
+Beispiel von Rahmenteilen und Einzelteilen, was hier aber ausgeschlossen ist.
+Bei Möglichkeit 3 wird jeder Entitätstyp in eine Tabelle überführt.
+Spezialisierungen besitzen dieselben Primärschlüssel wie die Generalisierung,
+diese sind zugleich auch Fremdschlüssel. Dieses Vorgehen ist einfach und
+systematisch, es hat nur den Nachteil, dass die speziellen Attribute der Bauteile
+durch umständliche Navigation erreichbar sind, dafür aber den Vorteil, die
+generellen Attribute (z.B. preis) über die dafür relevante Tabelle Komponente
+einfach erreichen zu können.
+
+2.2 Überführen Sie das ERM (Material 4) unter Beachtung von Aufgabe 2.1 in das
+Relationenmodell in der 3. Normalform.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(5 BE)
+
+## Loesung 2.2
+Fachhändler(fiD, name, plz, ort, strasseNr)
+Bike(bikeID, modell, baujahr, fiD#, kBez#)
+Kategorie(kBez, versicherung)
+Montage(miD, bikeID#, iD#)
+Komponente(iD, bezeichnung, gewicht, preis, hersteller)
+Rahmenteil(iD#, gruppe, abmessung)
+Schaltelement(iD#, gruppe, detail)
+Einzelteil(iD#, modellName, abmessung)
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Social-Media-Plattform
+Ein Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 5.
+
+2.1.1 Geben Sie vier Regeln zur Transformation des ERM in das relationale Modell an.
+(4 BE)
+
+## Loesung 2.1.1
+1. Jeder Entitätstyp wird als Relation dargestellt. Jede Relation benötigt einen
+Primärschlüssel.
+2. Jede n:m-Beziehung zwischen zwei Entitätstypen wird in eine eigene Tabelle
+transformiert, wobei beide Primärschlüssel der Entitätstypen als
+Fremdschlüssel in die Beziehungstabelle eingehen und zusammen den
+Primärschlüssel bilden.
+3. Jede 1:n-Beziehung wird so transformiert, dass der Primärschlüssel des 1-
+Entitätstyps Fremdschlüssel des n-Entitätstyps wird.
+4. Hat eine Beziehung zwischen zwei Entitätstypen ein oder mehrere Attribute,
+werden diese zu Attributen in der Relation, in der der Fremdschlüssel entsteht
+(auf der n-Seite einer 1:n-Beziehung, bzw. in der Beziehungstabelle einer
+n:m-Beziehung bzw. in der Relation, in die eine 1:1 Beziehung transformiert
+wird).
+
+2.1.3 Referentielle Integrität sichert die Integrität der Daten einer relationalen Datenbank.
+Erklären Sie die referentielle Integrität einer Datenbank im Allgemeinen und am Beispiel Ihres
+relationalen Modells aus Aufgabe 2.1.2.
+(4 BE)
+
+## Loesung 2.1.3
+Daten in einer Datenbank müssen vollständig, korrekt und widerspruchsfrei sein.
+Diese drei Eigenschaften gewährleisten die Integrität in einer relationalen
+Datenbank. Jede Tabelle muss einen Primärschlüssel haben. Wenn Beziehungen
+aus dem ERM in Relationen überführt werden, muss dieser als Fremdschlüssel in
+eine andere Tabelle aufgenommen werden und stellt so die Verknüpfung
+zwischen den Datensätzen der einen Tabelle mit denen der anderen Tabelle her.
+Die referentielle Integrität besagt, dass alle Attributwerte eines Fremdschlüssels
+auch als Attributwerte eines Primärschlüssels vorhanden sein müssen.
+Fremdschlüssel müssen immer auf existierende Datensätze verweisen.
+Beispielsweise muss eine beitragid in der Tabelle BeitragEnthaeltBild
+immer auf eine tatsächliche beitragid eines Beitrags in der Tabelle Beitrag
+verweisen. Die referentielle Integrität wäre verletzt, wenn in der Tabelle
+Beitrag unter dem Fremdschlüssel autor der Name „Müller98“ eingetragen,
+aber in der Tabelle Nutzer in der Spalte des Primärschlüssels benutzerName
+nicht zu finden ist.
+
+2.2.5 Im Folgenden ist ein Ausschnitt einer gewünschten Ergebnistabelle gegeben. In der Tabelle sind
+die Namen aller Nutzer aufgeführt sowie die Titel ihrer Beiträge, sofern die Nutzer Beiträge
+erstellt haben.
+Benutzername Beitragstitel Erstellungsdatum
+Anna Annas Lieblingsessen 01.01.2023 12:00
+Anna Gerne ein E-Bike! 01.01.2023 14:00
+MaxMüller2 happy-end 03.01.2023 01:00
+Benedict
+Amelie
+Clark Best of 2022 20.01.2023 10:00
+MaxMüller3
+Don Eric Porsche 911 23.01.2023 02:00
+Martin
+Nachfolgend ist der Entwurf für eine SQL-Anweisung zur Erstellung der gezeigten
+Ergebnistabelle zu sehen:
+SELECT benutzerName AS Benutzername, titel AS Beitragstitel,
+erstelltAm AS Erstellungsdatum
+FROM Nutzer N, Beitrag B;
+Erörtern Sie die Eignung der SQL-Anweisung zur Erstellung der gezeigten Ergebnistabelle.
+Formulieren Sie eine verbesserte bzw. ergänzte SQL-Anweisung.
+(4 BE)
+
+## Loesung 2.2.5
+Die angegebene SQL-Anweisung erzeugt nicht die gewünschte Ergebnistabelle,
+denn bei fehlender Verknüpfung über ein gemeinsames Feld wird von den
+Tabellen Nutzer und Beitrag das kartesische Produkt gebildet.
+Die notwendige Verknüpfung realisiert man durch einen JOIN über die
+Primärschlüssel-Fremdschlüssel-Beziehung zwischen benutzername und
+autor. Weil darüber hinaus alle Nutzer in der Ergebnistabelle enthalten sein
+sollen, muss ein LEFT JOIN angewendet werden.
+SELECT benutzerName AS Benutzername, titel AS Beitragstitel,
+erstelltAm AS Erstellungsdatum
+FROM Nutzer N LEFT JOIN Beitrag B ON
+N.benutzerName = B.autor
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+2 Datenbank für die Einsatzverwaltung und -planung des Taxiunternehmens
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 7 dargestellt.
+
+2.1 Überführen Sie das ERM in das relationale Modell in der 3. Normalform und begründen Sie
+Ihre Entscheidungen.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ... FK#)
+anzugeben.
+(6 BE)
+
+
+## Loesung 2.1
+überführen
+Fahrer(fahrerNr, nachname, vorname, stundenlohn, iban)
+Taxi(wagenNr, kennzeichen)
+Einsatz(eID, beginn, ende, fahrerNr#, wagenNr#)
+Auftrag(auftragNr, start, ende, eID#, von#, nach#)
+Adresse(aID, strasse, plz, ort, oID#)
+Ortsteil(oID, bezeichnung)
+begründen
+Alle Entitätstypen werden mit ihren Attributen in Relationen überführt. Der Name
+des Fahrers muss zur Einhaltung der ersten Normalform aufgespalten werden. Bei
+1:n-Beziehungen wie zum Beispiel beinhaltet zwischen Einsatz und Auftrag
+wird der PK der 1-Relation (eID) als FK in die n-Relation aufgenommen. Die
+Nichtschlüsselattribute sind vollständig vom jeweiligen PK abhängig und es
+existieren keine transitiven Abhängigkeiten, so dass die 3. Normalform
+eingehalten wird.
+
+2.4 Die Tabelle in Material 8 enthält Redundanzen und Inkonsistenzen. Nennen Sie diese und
+beschreiben Sie mithilfe von Beispielen aus der Tabelle die verschiedenen Arten von
+Anomalien.
+(5 BE)
+
+## Loesung 2.4
+Die Tabelle weist Redundanzen auf, beispielsweise die Telefonnummer der
+Fahrer. Diese wird unnötig mehrfach gespeichert. Hinzu kommt, dass es zu
+Inkonsistenzen kommen kann, wenn eine Telefonnummer fehlerhaft geschrieben
+wird, was bereits bei Herrn Müller in der vorliegenden Tabelle der Fall ist.
+beschreiben
+Mögliche Anomalien sind:
+Änderungsanomalie: Bekommt ein Fahrer eine neue Telefonnummer, muss sie an
+mehreren Stellen geändert werden. Wird das nicht konsequent gemacht, kommt es
+zu einem inkonsistenten Datenbestand.
+Einfügeanomalie: Ein neues Fahrzeug kann nur eingefügt werden, wenn es schon
+einem Fahrer oder einer Fahrt zugeordnet ist.
+Löschanomalie: Wird der Fahrer Finn Kager gelöscht, gehen die Daten des
+Fahrzeugs Mercedes Vito unbeabsichtigt ebenfalls verloren.
+--------------------
+
+--- [ABI 2023 C] ---
+
+# SQL
+
+2 Zudem wird für professionelle Canasta-Turniere eine Datenbank für die Verwaltung von
+zurückliegenden und zukünftigen Canasta-Spielrunden entwickelt.
+Ein erstes Entity-Relationship-Modell (ERM) für das Canastaspielen in Zweierteams ist in
+Material 8 dargestellt. Ein Canasta-Spiel besteht aus mehreren Spielrunden, deren Punkte so
+lange summiert werden, bis ein Team mindestens 5000 Punkte erreicht hat und somit als
+Gewinner feststeht.
+Hinweis: Es ist davon auszugehen, dass nur ein Team mehr als 5000 Punkte erreicht.
+
+2.1 Beschreiben Sie die Grundbausteine des vorliegenden Entity-Relationship-Modells unter
+Einbeziehung von Beispielen. Geben Sie den Verwendungszweck eines ERM an.
+(4 BE)
+
+## Loesung 2.1
+Das vorliegende ERM besteht aus vier Entitätstypen, deren Bezeichnungen in
+den Rechtecken abzulesen sind, einer davon ist Spieler. Mit den drei Rauten sind
+die vorhandenen Beziehungen (Relationships) dargestellt. Zum Beispiel kann
+jeder Spieler zu einem Zweierteam gehören, und jedes Zweierteam besteht aus
+genau zwei Spielern. Die zugehörigen Kardinalitäten sind in min-max-Form in
+eckige Klammern gesetzt. Die Attribute stehen in ellipsenförmigen
+Notationselementen und gehören meistens zu Entitätstypen wie zum Beispiel der
+Preis zu einem Exemplar Kartensatz. Im ERM muss jeder Entitätstyp einen
+Primärschlüssel haben, den man am unterstrichenen Attribut erkennt: cSpieliD
+ist der Primärschlüssel von Canastaspiel. Attribute können auch zu einer
+Beziehung gehören wie hier punktezahl zu nimmt teil.
+Ein ER-Modell ermöglicht eine übersichtliche Darstellung des konzeptionellen
+Entwurfs einer Datenbank. Es wird zur grafischen Veranschaulichung des
+geplanten Abstraktionskonzepts eingesetzt, nachdem die Anforderungsanalyse
+abgeschlossen ist.
+
+2.2 Überführen Sie das ERM (Material 8) in das Relationenmodell in der 3. Normalform.
+Begründen Sie ihre Entscheidungen.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(8 BE)
+
+## Loesung 2.2
+Spieler(sID, name, vorname, gebDat)
+Team(teamID, bewertMod, sNr1#, sNr2#)
+NimmtTeil(teamID#, cSpielID#, punktezahl)
+Canastaspiel(cSpielID, datum, startZeit, ort, kID#)
+Kartensatz(kID, bezeichnung, herkunft, kaufDat, preis)
+Aus jeder der vier Entitätstypen entsteht eine Relation. Zu jedem Team gehören
+genau zwei Personen, und jede Person kann mehreren Teams angehören. Diese
+Beziehung ist zwar eine n:m-Beziehung und wird laut Transformationsregel in
+eine eigene Relation überführt. Da es sich aber hier immer um genau zwei Spieler
+handelt, ist es übersichtlicher, in der Tabelle Team jeweils einen FK für jeden
+Spieler aufzunehmen. Die n:m-Beziehung nimmt teil wird als zusätzliche
+Relation überführt, weil bis zu drei Zweierteams an einer Canastarunde
+teilnehmen können und das Attribut punktezahl von der Beziehung
+nimmtTeil abhängt. Die PK der beteiligten Tabellen werden FK in der
+Beziehungsmengenrelation. Die 1:n-Beziehung wird benötigt wird laut
+Transformationsregel durch den Fremdschlüssel mit der Karten-ID in der
+Relation Canasta realisiert. Die Nicht-Schlüsselattribute der Relationen sind
+vollständig vom jeweiligen PK abhängig und es existieren keine transitiven
+Abhängigkeiten, so dass die 3. Normalform eingehalten wird.
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Choranmeldung
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 7 dargestellt.
+
+2.3 Chöre können sich online über ein Formular zu den verschiedenen Wettbewerben anmelden.
+Diese Anmeldungen werden in der Tabelle WB_Information gespeichert. Ein Beispiel für die
+Ausgabe ist in Material 8 zu finden. Analysieren Sie die Struktur der Tabelle und beschreiben
+Sie eventuell auftretende Probleme anhand von Beispielen.
+(5 BE)
+
+## Loesung 2.3
+Die vorliegende Tabelle ist unnormalisiert. Die Werte in mehreren Spalten sind
+nicht atomar (z.B. die Felder der Spalten Chorleiter und Aufenthaltsdauer) und es
+treten Wiederholungsgruppen auf. Ein Beispiel für Wiederholungsgruppen ist die
+Spalte Kategorie. Problematisch ist das bei der Suche nach Datensätzen oder dem
+Sortieren nach bestimmten Kriterien.
+Es treten Redundanzen auf, die zu Inkonsistenzen führen können. Wenn zum
+Beispiel der Name der Chorleitung von Armonia geändert werden soll, müsste
+das an mehreren Stellen gemacht werden (Änderungsanomalie). Eine
+Inkonsistenz tritt bereits auf. Die Kategorie Männerchöre wurde einmal mit und
+einmal ohne Umlaute geschrieben.
+Das Löschen von Datensätzen kann dazu führen, dass Daten verloren gehen, die
+eigentlich noch gebraucht werden (Löschanomalie). Wird zum Beispiel der
+Wettbewerb Canta al mar in Spanien abgesagt, geht auch die Kategorie Jazz
+verloren.
+Das Einfügen eines neuen Chors in die vorhandene Tabelle würde dazu führen,
+dass, solange noch keine Anmeldung zu einem konkreten Wettbewerb vorliegt,
+viele Datenfelder leer bleiben würden (Einfügeanomalie).
+
+2.4 Folgende SQL-Anweisung wird auf die Tabelle aus Material 8 ausgeführt.
+SELECT chor, count(chor) AS Anzahl
+FROM WB_Information
+WHERE aufenthaltsdauer LIKE '%2023%'
+GROUP BY chor;
+Erläutern Sie Struktur der SQL-Anweisung und geben Sie die Ausgabe an.
+(4 BE)
+
+## Loesung 2.4
+Die SQL-Anweisung bezieht sich auf die Tabelle WB_Information und gibt an,
+an wie vielen Wettbewerben ein Chor im Jahr 2023 teilgenommen hat. Die
+Aggregatfunktion count(chor) zählt, wie oft ein Datensatz existiert und wird
+mit group by nach Chor gruppiert. Mit as wird ein Alias als Spaltenname
+vergeben. Die Vergleichsfunktion like prüft das aufenthaltsdatum auf das
+Jahr 2023. Die Jokerzeichen % ignorieren die davor und dahinter stehenden
+Zeichen.
+chor Anzahl
+Armonia
+Stellenbosch University Choir 1
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+2 Entwicklung einer Datenbank für die Flughafenverwaltung.
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 5 dargestellt.
+
+2.1 Überführen Sie das ERM (Material 5) in das relationale Modell und begründen Sie dabei Ihr
+Vorgehen.
+Hinweis: Alle Relationen sind in der Schreibweise Relation(PK, Attribut, ..., FK#)
+anzugeben.
+(5 BE)
+
+## Loesung 2.1
+überführen
+Kunde (kid, vorname, name, adresse, telefon, email)
+Ticket (tid, status, sitzplatz, kid#, fid#)
+Gepäck (gid, gewicht, tid#)
+Flug (fid, preis, startZeit, endZeit, aid#)
+Flugzeug (aid, geschwindigkeit, sitze, modell, fgid#)
+Fluggesellschaft (fgid, name, adresse, telefon, email)
+begründen
+Alle Entitätstypen werden mit ihren Attributen in Relationen überführt. Bei 1:nBeziehungen wie zum Beispiel bucht zwischen Kunde und Ticket wird der
+PK der 1-Relation (kid) als FK in die n-Relation aufgenommen wird.
+
+2.4 Der Flugplan einer Fluggesellschaft ist auszugsweise in Material 6 abgebildet.
+Analysieren Sie die Struktur der Tabelle hinsichtlich eventuell auftretender Probleme und
+beschreiben Sie diese anhand von Beispielen.
+(5 BE)
+
+## Loesung 2.4
+Es treten Redundanzen auf, die zu Inkonsistenzen führen können. Wenn zum
+Beispiel die Adresse eines Piloten verändert werden soll, muss das an mehreren
+Stellen gemacht werden (Änderungsanomalie). Das Löschen von Datensätzen
+kann dazu führen, dass Daten verloren gehen, die eigentlich noch gebraucht
+werden (Löschanomalie). Wird zum Beispiel der Datensatz mit der FlugNr.
+NJ1401 gelöscht, geht auch der Flugzeugtyp Q400 und dessen Bestuhlung
+verloren. Das Einfügen eines neuen Flugzeugs würde dazu führen, dass viele
+Datenfelder leer bleiben würden (Einfügeanomalie).
+Außerdem ist die Tabelle nicht normalisiert. Die Werte in der Spalte Pilot sind
+nicht atomar und es treten Wiederholungsgruppen auf. Ein Beispiel für eine
+Wiederholungsgruppe ist die Spalte Tag, deren Felder mehrere Wochentage
+enthalten. Problematisch ist das bei der Suche nach Datensätze oder dem
+Sortieren nach bestimmten Kriterien.
+
+2.5 Überführen Sie die Tabellen aus Material 6 in das relationale Modell in der 3. Normalform und
+begründen Sie dabei Ihr Vorgehen.
+Hinweis: Die Relationen sind in der Schreibweise Relation(PK, Attribut, … , FK#)
+anzugeben.
+(8 BE)
+
+## Loesung 2.5
+überführen
+Flugplan (fpid, tag, abZeit, anZeit)
+Flughafen (fhid, name)
+Flug (fpid#, flid#, pid#, fhid_ab#, fhid_an#)
+Flugzeug (flid, plätze1Kl, plätzeEco)
+Pilot (pid, vorname, name, straße_hausnummer, plz, ort)
+begründen
+In der 1. Normalform müssen alle Attributwerte atomar sein: In der Spalte Tag
+und Pilot der Tabelle Flugplan wird dagegen verstoßen.
+Die 2. Normalform ist gegeben, wenn die Relation in der 1. Normalform ist und
+jedes Nichtschlüssel-Attribut voll vom Primärschlüssel abhängig ist. Die
+Attribute Tag, Flugzeug, Pilot und Plätze sind nicht voll funktional abhängig vom
+Primärschlüssel Flugplan. Die Tabelle muss so aufgeteilt werden, dass diese
+Nichtabhängigkeiten beseitigt werden.
+Die 3. Normalform ist gegeben, wenn die Relation in der 2. Normalform ist und
+jedes Nichtschlüsselattribut nicht transitiv abhängig vom Primärschlüssel ist. Die
+Attribute Plätze sind transitiv abhängig vom Attribut Flugzeug. Aus diesem
+Grund muss eine neue Tabelle Flugzeug angelegt werden.
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Logistik eines Krankenhauses.
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 6 dargestellt.
+
+2.1 Beschreiben Sie die Notationselemente eines ERM in Bezug auf deren Darstellung und
+Funktion.
+(3 BE)
+
+## Loesung 2.1
+Entitätstypen beschreiben die Struktur von Entitäten, die dieselben Attribute
+haben. Sie werden als Rechtecke dargestellt. Ein Attribut ist eine Eigenschaft
+oder Charakteristik einer Entität. Attribute werden als Ellipsen dargestellt und
+mit einer geraden Linie mit der zugehörigen Entitätstyp verbunden. Eine
+Beziehung ist eine Assoziation zwischen zwei oder mehr Entitätstypen.
+Beziehungen werden als Rauten dargestellt und durch Linien mit den beteiligten
+Entitätstypen verbunden.
+
+2.2 Beschreiben Sie die 1. bis 3. Normalform und erklären Sie jeweils einen Vor- und Nachteil, die
+durch den Normalisierungsprozess entstehen.
+(5 BE)
+
+## Loesung 2.2
+Die 1. Normalform (1NF) stellt sicher, dass alle Daten in einer Tabelle atomar
+sind. Das bedeutet, dass jede Zelle genau einen einzelnen, unteilbaren Wert
+enthält. Alle Datensätze sind eindeutig identifizierbar, üblicherweise durch einen
+Primärschlüssel.
+Eine Tabelle erreicht die 2. Normalform (2NF), wenn sie bereits in 1NF ist und
+zusätzlich keine partiellen Abhängigkeiten bestehen. Das heißt:
+Alle Nicht-Schlüsselattribute müssen voll funktional vom gesamten
+Primärschlüssel abhängen.
+Die 3. Normalform setzt voraus, dass eine Tabelle in der 2NF vorliegt und stellt
+sicher, dass es keine transitive Abhängigkeit gibt, also, dass kein Nicht-
+Schlüsselattribut indirekt (über ein anderes Nicht-Schlüsselattribut) vom
+Primärschlüssel abhängt. 1
+Vorteile der Normalisierung
+– Verbesserte Datenintegrität: Durch die Eliminierung von Redundanzen sinkt
+das Risiko von Inkonsistenzen und Fehlern bei Änderungen.
+– Effiziente Datenpflege: Änderungen, Einfügungen oder Löschungen müssen
+nur an einer Stelle vorgenommen werden, was Wartungsaufwand und
+Fehlerquellen reduziert.
+– Optimierte Speicherplatznutzung: Durch das Entfernen doppelter Daten wird
+der benötigte Speicherplatz verringert.
+– Vermeidung von Anomalien: Ein normalisiertes Schema verhindert Einfüge-,
+Änderungs- und Löschanomalien, die bei unstrukturierter Datenspeicherung
+auftreten können.
+Nachteile der Normalisierung
+– Erhöhte Komplexität: Die Aufteilung von Daten in viele Tabellen kann das
+Datenbankdesign komplexer machen und den Entwicklungsaufwand erhöhen.
+– Leistungseinbußen bei Abfragen: Häufige Joins zwischen mehreren Tabellen
+können die Ausführungszeit von Leseabfragen verlangsamen.
+– Höherer Verwaltungsaufwand: Die Einrichtung und Pflege von
+Fremdschlüsseln sowie die Gewährleistung korrekter Beziehungen zwischen
+Tabellen erfordern zusätzlichen Aufwand.
+– Geringere Flexibilität: Ein streng normalisiertes Schema kann Anpassungen
+erschweren, wenn sich die Datenanforderungen oder Geschäftsprozesse
+ändern.
+
+--------------------
+
+--- [ABI 2025 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Festival-Verwaltung
+Ein Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 6.
+
+2.1.1 Beschreiben Sie vier Regeln zur Transformation des ERM in das relationale Modell.
+(4 BE)
+
+## Loesung 2.1.1
+Jeder Entitätstyp wird als Relation dargestellt.
+Jede n:m-Beziehung zwischen zwei Entitätstypen wird in eine eigene Tabelle
+transformiert, wobei beide Primärschlüssel der Entitätstypen als Fremdschlüssel
+in die Beziehungstabelle eingehen und zusammen in der Regel den
+Primärschlüssel bilden.
+Jede 1:n-Beziehung wird so transformiert, dass der Primärschlüssel des 1-
+Entitätstyps Fremdschlüssel des n-Entitätstyps wird.
+Hat eine Beziehung zwischen zwei Entitätstypen ein oder mehrere Attribute,
+werden diese zu Attributen in der Relation, in der der Fremdschlüssel entsteht
+(auf der n-Seite einer 1:n-Beziehung, bzw. in der Beziehungstabelle einer n:m-
+Beziehung bzw. in der Relation, in die eine 1:1 Beziehung transformiert wird).
+
+2.2.5 Die fünf am wenigsten verkauften Getränke sollen aus der Tabelle Getränk gelöscht werden.
+Entwickeln Sie eine SQL-Anweisung und beschreiben Sie die Komplikationen, die solch eine
+Löschung verursacht.
+(6 BE)
+
+## Loesung 2.2.5
+entwickeln
+DELETE FROM Getraenk
+WHERE gid IN (
+SELECT gid
+FROM (
+SELECT gid, SUM(anzahlGetraenke)
+FROM Kauf
+GROUP BY gid
+ORDER BY SUM(anzahlGetraenke) ASC
+LIMIT
+) AS x );
+Bei der Löschweitergabe müssen zunächst alle Tabelleneinträge gelöscht
+werden, in denen der Primärschlüssel des Datensatzes als Fremdschlüssel
+verwendet wird. Im Anschluss wird der Datensatz selbst gelöscht. Werden nur
+die Einträge in der Tabelle Getränke gelöscht, können die damit assoziierten
+Tabelleneinträge nicht mehr identifiziert werden.
+
+2.4 Beschreiben Sie anhand der untenstehenden Tabelle, an welchen Stellen Redundanzen und
+Inkonsistenzen auftreten. Zeigen Sie am Beispiel Anomalien, die daraus resultieren können.
+Künstler Genre Catering Bühnenaufbau Agentur Ansprechpartner
+Ada Pop Vegetarisch Große Bühne, Artist Collection Marlene Müller
+Lichtanlage
+Carol Pop Fleisch, Kleine Bühne, mit Universum Moritz Meier
+Bateman Wasser, Hintergrund Music
+Wein
+Hopper Rock Vegan, Mittlere Bühne, Artist Kollection Marlene Müller
+Gang Bier, Lichtanlage,
+Vegan Pyrotechnik
+(5 BE)
+
+## Loesung 2.4
+Diese Tabelle enthält Redundanzen, da die Ansprechpartnerin Marlene Müller
+mehrfach vorkommt. Die Tabelle ist in der Spalte Agentur inkonsistent, da der
+Name von Artist Collection unterschiedlich geschrieben wurde.
+Durch diesen Aufbau der Datenbank können verschiedene Anomalien entstehen:
+Einfügeanomalie: Wenn ein neuer Künstler in die Datenbank aufgenommen
+wird, muss auch die Agentur erfasst werden.
+Änderungs-Anomalie: Wenn die Agentur Artist Collection einen neuen
+Ansprechpartner engagiert, muss dies an mehreren Stellen geändert werden.
+Löschanomalie: Wenn die Künstlerin Carol Bateman aus der Datenbank
+gelöscht wird, gehen auch alle Informationen über ihre Agentur verloren.
+
+--------------------

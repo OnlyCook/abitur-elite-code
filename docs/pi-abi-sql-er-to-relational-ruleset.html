@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER → Relationales Modell: Abitur-Regelwerk</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --border-sub: #21262d;
+    --text:       #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim:   #484f58;
+    --green:      #3fb950;
+    --yellow:     #d29922;
+    --red:        #f85149;
+    --blue:       #58a6ff;
+    --orange:     #db6d28;
+    --purple:     #bc8cff;
+    --teal:       #39d353;
+    --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .ybadge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 11px;
+  }
+
+  /* ── NOTE / CALLOUT ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+  .note.warn  { border-left-color: var(--yellow); }
+  .note.danger{ border-left-color: var(--red); }
+  .note.tip   { border-left-color: var(--green); }
+  .note.purple{ border-left-color: var(--purple); }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 22px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .h3-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--blue);
+    padding: 1px 7px;
+    border-radius: 3px;
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .rule-card.green  { border-left-color: var(--green); }
+  .rule-card.yellow { border-left-color: var(--yellow); }
+  .rule-card.red    { border-left-color: var(--red); }
+  .rule-card.purple { border-left-color: var(--purple); }
+  .rule-card.orange { border-left-color: var(--orange); }
+
+  .rule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .rule-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .rule-body strong { color: var(--text); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .code-block .pk      { color: var(--yellow); font-weight: 700; text-decoration: underline; }
+  .code-block .fk      { color: var(--teal); }
+  .code-block .rel     { color: var(--blue); font-weight: 600; }
+  .code-block .comment { color: #484f58; font-style: italic; }
+  .code-block .attr    { color: var(--text-muted); }
+  .code-block .kw      { color: var(--purple); }
+
+  /* ── TABLES ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 12px 0;
+  }
+  table.rtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.rtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 9px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.rtable td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: top;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  table.rtable tbody tr:last-child td { border-bottom: none; }
+  table.rtable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+  table.rtable td:first-child {
+    font-family: var(--mono);
+    color: var(--blue);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  table.rtable td:nth-child(2) { color: var(--text); font-weight: 600; }
+
+  /* ── PILLS ── */
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+  .pill-g  { background: rgba(63,185,80,0.15);  color: var(--green); }
+  .pill-y  { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .pill-r  { background: rgba(248,81,73,0.15);  color: var(--red); }
+  .pill-b  { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .pill-p  { background: rgba(188,140,255,0.15);color: var(--purple); }
+  .pill-o  { background: rgba(219,109,40,0.15); color: var(--orange); }
+
+  /* notation pills */
+  .npill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin: 0 2px;
+  }
+  .npill-pk { background: rgba(210,153,34,0.15); border: 1px solid rgba(210,153,34,0.35); color: var(--yellow); }
+  .npill-fk { background: rgba(57,211,83,0.10);  border: 1px solid rgba(57,211,83,0.25);  color: var(--teal); }
+
+  /* ── STEP LIST ── */
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 26px;
+    height: 26px;
+    background: var(--blue);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .steps li .st { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+  .steps li .st strong { color: var(--text); }
+
+  /* ── CARD VISUAL (Kardinalität) ── */
+  .card-vis {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin: 8px 0;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .ebox {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 3px 9px;
+    border-radius: 4px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .card-num { color: var(--blue); font-weight: 700; }
+  .rarrow   { color: var(--yellow); font-size: 13px; font-weight: 700; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 36px 0;
+  }
+
+  /* ── EXAMPLE SECTION specific ── */
+  .ex-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 700px) { .ex-grid { grid-template-columns: 1fr; } }
+
+  .ex-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ex-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ex-panel-title.before { color: var(--yellow); border-left: 3px solid var(--yellow); }
+  .ex-panel-title.after  { color: var(--green);  border-left: 3px solid var(--green); }
+  .ex-panel-body { padding: 14px 16px; }
+
+  .assoc-list { list-style: none; }
+  .assoc-list li {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-sub);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .assoc-list li:last-child { border-bottom: none; }
+
+  .step-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .step-box-head {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step-box-body {
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+  }
+
+  .plantuml-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .plantuml-head {
+    padding: 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .plantuml-body {
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .pl-kw   { color: var(--purple); }
+  .pl-ent  { color: var(--blue); font-weight: 600; }
+  .pl-attr { color: var(--text-muted); }
+  .pl-pk   { color: var(--yellow); font-weight: 700; }
+  .pl-fk   { color: var(--teal); }
+  .pl-rel  { color: var(--orange); }
+  .pl-str  { color: var(--green); }
+  .pl-cm   { color: #484f58; font-style: italic; }
+
+    footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .footer a { color: var(--link); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  
+	.code-block span.rel,
+	.code-block span.pk,
+	.code-block span.fk,
+	.code-block span.attr,
+	.code-block span.comment,
+	.code-block span.kw {
+	  display: inline;
+	}
+	
+	.code-block {
+	  white-space: pre-wrap;
+	}
+
+  .step-box-body span,
+.code-block span {
+  display: inline;
+}
+
+.step-box-body,
+.code-block {
+  white-space: pre;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note" style="border-left-color: var(--yellow); margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Statistik wurden mithilfe von KI analysiert und ausgewertet. Die Seite selbst wurde größtenteils von KI erstellt. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen überprüfen.
+</div>
+
+  <!-- ─────────────────────── HEADER ─────────────────────── -->
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+      <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+      ER-Überführung
+    </div>
+    <h1>ER-Diagramm → Relationales Modell: Abitur-Regelwerk</h1>
+    <p>
+      Vollständiges Regelwerk zur Überführung von ER-Diagrammen in das relationale Modell und zur Normalisierung bis 3NF —
+      abgeleitet aus den offiziellen Abitur-Lösungen <strong>2023–2025 (Hessen)</strong>.
+    </p>
+    <div class="badge-row">
+      <span class="ybadge">ABI 2023 A</span>
+      <span class="ybadge">ABI 2023 B</span>
+      <span class="ybadge">ABI 2023 C</span>
+      <span class="ybadge">ABI 2024 A</span>
+      <span class="ybadge">ABI 2024 B</span>
+      <span class="ybadge">ABI 2025 A</span>
+      <span class="ybadge">ABI 2025 B</span>
+    </div>
+  </div>
+
+  <!-- ─────────────────────── 0 · LEGENDE ─────────────────────── -->
+  <div class="section">
+    <h2>0 — Legende &amp; Notation</h2>
+    <div class="section-desc">Schreibweisen, die in diesem Dokument und im Abitur verwendet werden</div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Symbol</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="npill npill-pk">PK</span></td>
+            <td>Primärschlüssel — wird im Abitur <u>unterstrichen</u></td>
+            <td><code><u>mID</u></code></td>
+          </tr>
+          <tr>
+            <td><span class="npill npill-fk">FK#</span></td>
+            <td>Fremdschlüssel — wird im Abitur mit <strong>#</strong> markiert</td>
+            <td><code>bid#</code></td>
+          </tr>
+          <tr>
+            <td><code>[1,n]</code></td>
+            <td>Multiplizität (eckige Klammern — Abitur-Standard)</td>
+            <td><code>[0,m]–[1,n]</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      Im Abitur wird der Primärschlüssel immer <strong>als erstes Attribut</strong> der Relation geschrieben und unterstrichen.
+      Fremdschlüssel stehen am Ende der Attributliste, direkt vor der schließenden Klammer.
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 1 · ENTITÄTEN ─────────────────────── -->
+  <div class="section">
+    <h2>1 — Entitäten übernehmen</h2>
+    <div class="section-desc">Jede Entität des ER-Diagramms wird zu einer eigenen Relation</div>
+
+    <div class="rule-card green">
+      <div class="rule-title">Regel 1.1 — Jede Entität wird zur Relation</div>
+      <div class="rule-body">
+        Jede Entität aus dem ER-Diagramm wird zu einer eigenen Tabelle (Relation).
+        Der Primärschlüssel der Entität wird zum Primärschlüssel der Relation.
+      </div>
+    </div>
+
+    <div class="rule-card green">
+      <div class="rule-title">Regel 1.2 — Zusammengesetzte Attribute aufteilen (3NF)</div>
+      <div class="rule-body">
+        Zusammengesetzte Attribute (z.B. <strong>Adresse</strong>, <strong>Name</strong>) werden in der 3NF in ihre atomaren Bestandteile aufgeteilt.<br><br>
+        <strong>Typische Abitur-Beispiele:</strong><br>
+        · <code>name</code> → <code>nachname, vorname</code> (ABI 2025 B, 2023 B)<br>
+        · <code>adresse</code> → <code>strasse, plz, ort</code> (ABI 2024 A)<br>
+        · <code>vor- und nachname</code> → <code>name, vorname</code> (ABI 2025 A)
+      </div>
+    </div>
+
+    <div class="note danger">
+      <strong>⚠ Häufiger Fehler:</strong>
+      Das Attribut <code>name</code> nicht aufzuteilen. Im Abitur wird die Aufspaltung in <code>nachname</code> und <code>vorname</code>
+      fast immer erwartet — wird das Namensattribut im ER-Diagramm als zusammengesetzt angedeutet, muss es geteilt werden.
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 2 · ASSOZIATIONEN ─────────────────────── -->
+  <div class="section">
+    <h2>2 — Assoziationen überführen</h2>
+    <div class="section-desc">Die Kardinalität bestimmt, wie jede Assoziation im relationalen Modell umgesetzt wird</div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Kardinalität</th><th>Bezeichnung</th><th>Umsetzung</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>[1,1] – [0,n] oder [1,n]</td>
+            <td>1:N Beziehung</td>
+            <td>FK der „1"-Seite in die Relation der „N"-Seite eintragen</td>
+          </tr>
+          <tr>
+            <td>[0,m] – [0,n] oder ähnlich</td>
+            <td>M:N Beziehung</td>
+            <td>Neue Zwischentabelle mit beiden FKs als kombiniertem PK</td>
+          </tr>
+          <tr>
+            <td>[1,1] – [1,1]</td>
+            <td>1:1 Beziehung</td>
+            <td>FK in die Relation mit größerer Abhängigkeit (seltener Fall im Abitur)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span class="h3-num">2.1</span> 1:N Beziehung → Fremdschlüssel</h3>
+
+    <div class="rule-card">
+      <div class="rule-title">Der FK wandert zur „Viele"-Seite</div>
+      <div class="rule-body">
+        Bei einer <strong>1:N-Beziehung</strong> wird der Primärschlüssel der „1"-Seite als Fremdschlüssel in die
+        Relation der „N"-Seite aufgenommen. <strong>Keine neue Tabelle nötig.</strong>
+      </div>
+    </div>
+
+    <div class="card-vis">
+      <span class="ebox">Kunde</span>
+      <span>──</span><span class="card-num">[1,1]</span><span>── bucht ──</span><span class="card-num">[0,n]</span><span>──</span>
+      <span class="ebox">Ticket</span>
+      <span class="rarrow">→</span>
+      <span style="color:var(--teal)">Ticket(<u style="color:var(--yellow)">tid</u>, …, <span style="color:var(--teal)">kid#</span>)</span>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2024 B: Kunde bucht Ticket [1:N]</span>
+<span class="rel">Kunde</span>  (<span class="pk">kid</span>, <span class="attr">vorname, name, adresse, telefon, email</span>)
+<span class="rel">Ticket</span> (<span class="pk">tid</span>, <span class="attr">status, sitzplatz,</span> <span class="fk">kid#, fid#</span>)
+    </div>
+
+    <h3><span class="h3-num">2.2</span> M:N Beziehung → Zwischentabelle</h3>
+
+    <div class="rule-card">
+      <div class="rule-title">Neue Relation mit zusammengesetztem PK aus beiden FKs</div>
+      <div class="rule-body">
+        Bei einer <strong>M:N-Beziehung</strong> entsteht eine neue Zwischenrelation.
+        Ihr Primärschlüssel ist die Kombination der beiden Fremdschlüssel.
+        Benennung: entweder ein sprechender Verbname (<code>traegt</code>) oder die Tabellennamen kombiniert (<code>Mitarbeiter_Bestellung</code>).
+      </div>
+    </div>
+
+    <div class="card-vis">
+      <span class="ebox">Nutzer</span>
+      <span>──</span><span class="card-num">[0,n]</span><span>── likes ──</span><span class="card-num">[0,m]</span><span>──</span>
+      <span class="ebox">Beitrag</span>
+      <span class="rarrow">→</span>
+      <span style="color:var(--teal)">NutzerLikesBeitrag(<u style="color:var(--yellow)">bN#, bId#</u>)</span>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2023 A: Nutzer likes Beitrag [M:N]</span>
+<span class="rel">NutzerLikesBeitrag</span> (<span class="pk">benutzerName#</span>, <span class="pk">beitragid#</span>, <span class="fk">zeitstempel</span>)
+
+<span class="comment">-- ABI 2025 A: Mitarbeiter beteiligt Bestellung [M:N]</span>
+<span class="rel">Mitarbeiter_Bestellung</span> (<span class="pk">mID#</span>, <span class="pk">bID#</span>)
+
+<span class="comment">-- ABI 2024 A: Teilnahme in Kategorie [M:N, mit Attribut]</span>
+<span class="rel">Teilnahme_Kategorie</span> (<span class="pk">tID#</span>, <span class="pk">kID#</span>, <span class="fk">bewertung</span>)
+    </div>
+
+    <div class="note tip">
+      <strong>💡 Attribute an M:N-Beziehungen</strong> (z.B. <code>bewertung</code>, <code>zeitstempel</code>)
+      kommen als normale Attribute in die Zwischentabelle — sie sind aber <strong>kein Teil des zusammengesetzten PKs</strong>.
+    </div>
+
+    <h3><span class="h3-num">2.3</span> Mehrere FKs in einer Relation</h3>
+
+    <div class="rule-card">
+      <div class="rule-title">Eine Entität kann mehrere 1:N-Beziehungen haben</div>
+      <div class="rule-body">
+        Wenn eine Relation zu mehreren anderen in einer 1:N-Beziehung steht, bekommt sie entsprechend mehrere Fremdschlüssel.
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2025 B: Kauf steht mit Bändchen, Getränkestand und Getränk je in 1:N</span>
+<span class="rel">Kauf</span> (<span class="pk">kid</span>, <span class="attr">datum, uhrzeit, anzahlGetraenke,</span> <span class="fk">bid#, gsid#, gid#</span>)
+    </div>
+
+    <h3><span class="h3-num">2.4</span> Dieselbe Relation als FK zweimal referenzieren</h3>
+
+    <div class="rule-card">
+      <div class="rule-title">Zwei unterschiedliche Rollen → zwei FK-Attribute mit verschiedenen Namen</div>
+      <div class="rule-body">
+        Wenn eine Relation zweimal zur gleichen Entität in Beziehung steht (z.B. Auftrag → Adresse als <em>von</em> und <em>nach</em>),
+        werden zwei FKs mit unterschiedlichen, sprechenden Namen vergeben.
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2023 B: Auftrag hat zwei Adressen (von / nach)</span>
+<span class="rel">Auftrag</span> (<span class="pk">auftragNr</span>, <span class="attr">start, ende,</span> <span class="fk">eID#, von#, nach#</span>)
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 3 · BEZIEHUNGSATTRIBUTE ─────────────────────── -->
+  <div class="section">
+    <h2>3 — Beziehungen mit Attributen</h2>
+    <div class="section-desc">Wenn eine Assoziation selbst Attribute trägt, kommen diese in die Zwischentabelle</div>
+
+    <div class="rule-card yellow">
+      <div class="rule-title">Regel 3.1 — Attribute einer Beziehung gehören in die Zwischentabelle</div>
+      <div class="rule-body">
+        Wenn eine Assoziation selbst Attribute trägt (z.B. <code>von, bis</code> bei <em>trägt</em>), werden diese
+        in die entstehende Zwischentabelle aufgenommen. Bei 1:N trägt die FK-Relation die Beziehungsattribute.
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2025 B: trägt(von, bis) → M:N zwischen Person und Bändchen</span>
+<span class="rel">traegt</span> (<span class="pk">pid#</span>, <span class="pk">bid#</span>, <span class="attr">von, bis</span>)
+
+<span class="comment">-- ABI 2024 A: in(bewertung) → M:N zwischen Teilnahme und Kategorie</span>
+<span class="rel">Teilnahme_Kategorie</span> (<span class="pk">tID#</span>, <span class="pk">kID#</span>, <span class="attr">bewertung</span>)
+
+<span class="comment">-- ABI 2025 A: entnimmt(datum, anzGenutzt, anzAbgelaufen) → M:N zwischen Lager und Artikel</span>
+<span class="rel">Lager_Artikel</span> (<span class="pk">datum</span>, <span class="attr">anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+    </div>
+
+    <div class="note warn">
+      <strong>Sonderfall ABI 2025 A (Lager_Artikel):</strong>
+      Hier stehen die Beziehungsattribute <em>vor</em> 2 der Primärschlüssel — eine Ausnahme.
+      Im Normalfall stehen die FKs am Ende. Orientiere dich an der offiziellen Musterlösung bzw. an der logischen Bedeutung.
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 4 · 3NF ─────────────────────── -->
+  <div class="section">
+    <h2>4 — 3. Normalform sicherstellen</h2>
+    <div class="section-desc">Drei Stufen — jede baut auf der vorherigen auf</div>
+
+    <div class="rule-card">
+      <div class="rule-title">Regel 4.1 — Erste Normalform (1NF)</div>
+      <div class="rule-body">
+        Alle Attributwerte müssen <strong>atomar</strong> sein — nicht weiter zerlegbar, keine Wiederholungsgruppen.
+        → Zusammengesetzte Attribute aufteilen (→ Regel 1.2).
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-title">Regel 4.2 — Zweite Normalform (2NF)</div>
+      <div class="rule-body">
+        Jedes Nicht-Schlüssel-Attribut muss vom <strong>gesamten Primärschlüssel</strong> abhängen.
+        Relevant bei zusammengesetztem PK (Zwischentabellen):
+        alle Attribute müssen von <em>beiden</em> FKs gemeinsam abhängen, nicht nur von einem.
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-title">Regel 4.3 — Dritte Normalform (3NF)</div>
+      <div class="rule-body">
+        Kein Nicht-Schlüssel-Attribut darf <strong>transitiv</strong> von einem anderen Nicht-Schlüssel-Attribut abhängen.
+        Klassisches Beispiel: <code>plz → ort</code> — wenn die PLZ den Ort bestimmt, gehört beides in eine eigene Tabelle.<br><br>
+        <strong>Abitur-Praxis:</strong> Transitive Abhängigkeiten innerhalb einer Entität werden manchmal toleriert —
+        die 3NF wird hauptsächlich durch korrekte FK-Verteilung und M:N-Auflösung geprüft.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 5 · SPEZIALFÄLLE ─────────────────────── -->
+  <div class="section">
+    <h2>5 — Spezialfälle aus dem Abitur</h2>
+    <div class="section-desc">Sonderfälle, die in offiziellen Aufgabenvorschlägen vorgekommen sind</div>
+
+    <h3><span class="h3-num">5.1</span> Feste Kardinalität [2,2], [2,3] etc.</h3>
+
+    <div class="rule-card purple">
+      <div class="rule-title">Exakt n Entitäten sind beteiligt → n FK-Attribute</div>
+      <div class="rule-body">
+        Wenn eine Kardinalität genau eine bestimmte Anzahl erzwingt (z.B. ein Team besteht aus exakt 2 Spielern),
+        werden mehrere FK-Attribute mit unterschiedlichen Namen in die Relation aufgenommen.
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2023 C: Spieler [2,2] gehört_zu Team → zwei FK-Attribute</span>
+<span class="rel">Team</span> (<span class="pk">teamID</span>, <span class="attr">bewertMod,</span> <span class="fk">sNr1#, sNr2#</span>)
+    </div>
+
+    <h3><span class="h3-num">5.2</span> Assoziation als eigene Entität (Assoziationsklasse)</h3>
+
+    <div class="rule-card purple">
+      <div class="rule-title">Die Assoziation hat einen eigenen PK → FK auf beide Partnerentitäten</div>
+      <div class="rule-body">
+        Wenn die Assoziation im ER-Diagramm selbst eine eigene Entität mit eigenem Schlüssel ist
+        (z.B. <em>Teilnahme</em>), bekommt sie eigene Fremdschlüssel auf beide beteiligten Entitäten.
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">-- ABI 2024 A: Teilnahme als eigene Entität mit FK auf Chor und Wettbewerb</span>
+<span class="rel">Teilnahme</span> (<span class="pk">tID</span>, <span class="attr">anzahlPers, ankunft, abfahrt,</span> <span class="fk">cID#, wID#</span>)
+    </div>
+
+    <h3><span class="h3-num">5.3</span> Benennung der Zwischentabellen</h3>
+
+    <div class="rule-card">
+      <div class="rule-title">Beide Benennungsschemata sind im Abitur akzeptiert</div>
+      <div class="rule-body">
+        · <strong>Verb/Aktion:</strong> <code>traegt</code>, <code>NimmtTeil</code>, <code>NutzerLikesBeitrag</code><br>
+        · <strong>Tabellen kombiniert:</strong> <code>Mitarbeiter_Bestellung</code>, <code>Bestellung_Lager</code>, <code>Lager_Artikel</code>, <code>Teilnahme_Kategorie</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 6 · SCHRITT FÜR SCHRITT ─────────────────────── -->
+  <div class="section">
+    <h2>6 — Vollständige Schritt-für-Schritt-Anleitung</h2>
+    <div class="section-desc">Das systematische Vorgehen für jede Aufgabe zur ER-Überführung</div>
+
+    <ol class="steps">
+      <li><div class="st"><strong>Alle Entitäten notieren.</strong> Jede Entität wird zur Relation. PK als erstes Attribut (unterstrichen).</div></li>
+      <li><div class="st"><strong>Zusammengesetzte Attribute aufteilen</strong> — Name → nachname, vorname; Adresse → strasse, plz, ort.</div></li>
+      <li><div class="st"><strong>Assoziationen durchgehen</strong> — für jede Assoziation die Kardinalität bestimmen und dem richtigen Fall zuordnen.</div></li>
+      <li><div class="st"><strong>1:N → FK setzen.</strong> Der PK der „1"-Seite wandert als <code>FK#</code> in die Relation der „N"-Seite. Immer ans Ende der Attributliste.</div></li>
+      <li><div class="st"><strong>M:N → Zwischentabelle erstellen.</strong> Neue Relation mit zusammengesetztem PK aus beiden FKs.</div></li>
+      <li><div class="st"><strong>Beziehungsattribute einbauen.</strong> Attribute an Assoziationen kommen in die Zwischentabelle (M:N) oder in die FK-tragende Relation (1:N).</div></li>
+      <li><div class="st"><strong>Feste Kardinalitäten</strong> [2,2] prüfen — ggf. mehrere FK-Attribute verwenden.</div></li>
+      <li><div class="st"><strong>3NF prüfen:</strong> Gibt es transitive Abhängigkeiten? Falls ja, auslagern.</div></li>
+    </ol>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─────────────────────── 7 · SCHNELLREFERENZ ─────────────────────── -->
+  <div class="section">
+    <h2>7 — Schnellreferenz-Tabelle</h2>
+    <div class="section-desc">Komprimierte Übersicht aller Regeltypen mit Abitur-Belegen</div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Situation im ER-Diagramm</th><th>Maßnahme</th><th>Abitur-Beleg</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>[1,1]–[0,n] oder [1,n]</td>
+            <td>FK der 1-Seite in die N-Relation</td>
+            <td>Ticket erhält <code>kid#</code> (2024 B)</td>
+          </tr>
+          <tr>
+            <td>[0,n]–[0,m] oder [1,n]–[0,m]</td>
+            <td>Neue Zwischentabelle</td>
+            <td><code>Mitarbeiter_Bestellung</code> (2025 A)</td>
+          </tr>
+          <tr>
+            <td>Assoziation hat Attribute</td>
+            <td>Attribute in Zwischentabelle</td>
+            <td><code>traegt(von, bis)</code> → traegt-Relation</td>
+          </tr>
+          <tr>
+            <td>Name / Adresse als Attribut</td>
+            <td>Aufteilen in Einzelattribute (1NF)</td>
+            <td><code>name</code> → <code>nachname, vorname</code></td>
+          </tr>
+          <tr>
+            <td>Kardinalität [2,2]</td>
+            <td>Mehrere FK-Attribute in Relation</td>
+            <td><code>Team: sNr1#, sNr2#</code> (2023 C)</td>
+          </tr>
+          <tr>
+            <td>Doppelte Referenz auf gleiche Entität</td>
+            <td>Zwei FKs mit verschiedenen Namen</td>
+            <td><code>Auftrag: von#, nach#</code> (2023 B)</td>
+          </tr>
+          <tr>
+            <td>Assoziationsklasse mit eigenem PK</td>
+            <td>Entität erhält FK auf beide Partner</td>
+            <td><code>Teilnahme: cID#, wID#</code> (2024 A)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════
+       8 · VOLLSTÄNDIGES BEISPIEL — ABI 2025 A
+       ═════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>8 — Vollständiges Beispiel: ABI 2025 A</h2>
+    <div class="section-desc">
+      Komplette Durchführung — von der ER-Beschreibung bis zum normalisierten relationalen Modell (3NF)
+    </div>
+
+    <div class="note purple">
+      <strong>Aufgabenstellung (vereinfacht):</strong>
+      Gegeben ist ein ER-Diagramm mit den Entitäten Mitarbeiter, Bestellung, Position, Artikel und Lager.
+      Überführe das Diagramm in ein vollständig normalisiertes relationales Modell (3NF).
+    </div>
+
+    <!-- 8.1 ER-Ausgangslage -->
+    <h3><span class="h3-num">8.1</span> ER-Ausgangsbeschreibung</h3>
+
+    <div class="ex-grid">
+      <div class="ex-panel">
+        <div class="ex-panel-title before">⬤ Entitäten (nicht normalisiert)</div>
+        <div class="ex-panel-body">
+          <div class="code-block" style="margin:0; background:#010409;">
+<span class="rel">Mitarbeiter</span>(<span class="pk">mID</span>, <span class="attr">vor- und nachname</span>)
+<span class="rel">Bestellung</span>(<span class="pk">bID</span>, <span class="attr">datum</span>)
+<span class="rel">Position</span>(<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum</span>)
+<span class="rel">Artikel</span>(<span class="pk">aID</span>, <span class="attr">bezeichnung, preis</span>)
+<span class="rel">Lager</span>(<span class="pk">lID</span>, <span class="attr">standort</span>)
+          </div>
+        </div>
+      </div>
+
+      <div class="ex-panel">
+        <div class="ex-panel-title before">⬤ Assoziationen</div>
+        <div class="ex-panel-body">
+          <ul class="assoc-list">
+            <li>
+              <span class="ebox" style="font-size:11px;">Mitarbeiter</span>
+              <span class="card-num">[1,n]</span>
+              <span style="color:var(--text-dim)">–beteiligt–</span>
+              <span class="card-num">[0,m]</span>
+              <span class="ebox" style="font-size:11px;">Bestellung</span>
+            </li>
+            <li>
+              <span class="ebox" style="font-size:11px;">Bestellung</span>
+              <span class="card-num">[0,m]</span>
+              <span style="color:var(--text-dim)">–füllt_auf–</span>
+              <span class="card-num">[0,n]</span>
+              <span class="ebox" style="font-size:11px;">Lager</span>
+            </li>
+            <li>
+              <span class="ebox" style="font-size:11px;">Bestellung</span>
+              <span class="card-num">[1,1]</span>
+              <span style="color:var(--text-dim)">–enthält–</span>
+              <span class="card-num">[1,n]</span>
+              <span class="ebox" style="font-size:11px;">Position</span>
+            </li>
+            <li>
+              <span class="ebox" style="font-size:11px;">Position</span>
+              <span class="card-num">[0,n]</span>
+              <span style="color:var(--text-dim)">–bezieht_sich_auf–</span>
+              <span class="card-num">[1,1]</span>
+              <span class="ebox" style="font-size:11px;">Artikel</span>
+            </li>
+            <li>
+              <span class="ebox" style="font-size:11px;">Lager</span>
+              <span class="card-num">[0,n]</span>
+              <span style="color:var(--text-dim)">–entnimmt–</span>
+              <span class="card-num">[0,m]</span>
+              <span class="ebox" style="font-size:11px;">Artikel</span>
+            </li>
+          </ul>
+          <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border-sub); font-family:var(--mono); font-size:11px; color:var(--text-muted);">
+            <strong style="color:var(--text);">Beziehungsattribute:</strong><br>
+            <code>entnimmt</code> → datum, anzGenutzt, anzAbgelaufen
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8.2 PlantUML -->
+    <h3><span class="h3-num">8.2</span> PlantUML-Code für das ER-Diagramm</h3>
+
+    <div class="note">
+      Den folgenden Code kannst du auf <a href="https://www.plantuml.com/plantuml/duml/" target="_blank">plantuml.com</a>
+      oder einem lokalen PlantUML-Tool einfügen, um das ER-Diagramm als SVG/PNG zu exportieren.
+    </div>
+
+    <div class="note" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <span>
+        <strong>Chen-Notation ER-Diagramm</strong> — Entitäten, Beziehungen und Attribute aus ABI 2025 A.
+      </span>
+      <button onclick="openPlantUML('er')"
+        style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:7px 16px;
+               font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font);">
+        In PlantUML öffnen →
+      </button>
+    </div>
+
+    <!-- hidden source kept for encoding -->
+    <textarea id="puml-er" style="display:none">@startchen abi2025a_er
+skinparam backgroundcolor transparent
+skinparam classAttributeIconSize 0
+
+entity Mitarbeiter {
+  mID <<key>>
+  vorname
+  name
+}
+
+entity Bestellung {
+  bID <<key>>
+  datum
+}
+
+entity Position {
+  pID <<key>>
+  menge
+  ablaufdatum
+}
+
+entity Artikel {
+  aID <<key>>
+  bezeichnung
+  preis
+}
+
+entity Lager {
+  lID <<key>>
+  standort
+}
+
+relationship beteiligt {
+}
+
+relationship fuellt_auf {
+}
+
+relationship enthaelt {
+}
+
+relationship bezieht_sich_auf {
+}
+
+relationship entnimmt {
+  datum
+  anzGenutzt
+  anzAbgelaufen
+}
+
+Mitarbeiter -(1,n)- beteiligt
+beteiligt -(0,m)- Bestellung
+
+Bestellung -(0,m)- fuellt_auf
+fuellt_auf -(0,n)- Lager
+
+Bestellung -(1,1)- enthaelt
+enthaelt -(1,n)- Position
+
+Position -(0,n)- bezieht_sich_auf
+bezieht_sich_auf -(1,1)- Artikel
+
+Lager -(0,n)- entnimmt
+entnimmt -(0,m)- Artikel
+
+@endchen</textarea>
+
+    <!-- kept but hidden — section 8.5 button also references this source -->
+    <div class="plantuml-wrap" style="display:none">
+      <div class="plantuml-head">
+        <span>PlantUML — ER-Diagramm (vor Normalisierung)</span>
+        <span class="pill pill-y">Quelldatei: er_abi2025a.puml</span>
+      </div>
+      <div class="plantuml-body"><span class="pl-kw">@startuml</span> er_abi2025a
+<span class="pl-cm">' ── Stil ──────────────────────────────────────────</span>
+<span class="pl-kw">skinparam</span> linetype ortho
+<span class="pl-kw">skinparam</span> entity {
+  BackgroundColor #161b22
+  BorderColor     #30363d
+  FontColor       #e6edf3
+  FontName        Consolas
+  FontSize        13
+}
+<span class="pl-kw">skinparam</span> arrow {
+  Color           #8b949e
+  FontColor       #58a6ff
+  FontSize        11
+  FontName        Consolas
+}
+<span class="pl-kw">skinparam</span> backgroundColor #0d1117
+<span class="pl-kw">skinparam</span> shadowing false
+
+<span class="pl-cm">' ── Entitäten ────────────────────────────────────</span>
+<span class="pl-kw">entity</span> <span class="pl-ent">Mitarbeiter</span> {
+  * <span class="pl-pk">mID</span> : INT
+  <span class="pl-cm">--</span>
+  <span class="pl-attr">vorname     : VARCHAR</span>
+  <span class="pl-attr">name        : VARCHAR</span>
+}
+
+<span class="pl-kw">entity</span> <span class="pl-ent">Bestellung</span> {
+  * <span class="pl-pk">bID</span> : INT
+  <span class="pl-cm">--</span>
+  <span class="pl-attr">datum       : DATE</span>
+}
+
+<span class="pl-kw">entity</span> <span class="pl-ent">Position</span> {
+  * <span class="pl-pk">pID</span> : INT
+  <span class="pl-cm">--</span>
+  <span class="pl-attr">menge         : INT</span>
+  <span class="pl-attr">ablaufdatum   : DATE</span>
+}
+
+<span class="pl-kw">entity</span> <span class="pl-ent">Artikel</span> {
+  * <span class="pl-pk">aID</span> : INT
+  <span class="pl-cm">--</span>
+  <span class="pl-attr">bezeichnung : VARCHAR</span>
+  <span class="pl-attr">preis       : DECIMAL</span>
+}
+
+<span class="pl-kw">entity</span> <span class="pl-ent">Lager</span> {
+  * <span class="pl-pk">lID</span> : INT
+  <span class="pl-cm">--</span>
+  <span class="pl-attr">standort    : VARCHAR</span>
+}
+
+<span class="pl-cm">' ── Beziehung mit Attributen ─────────────────────</span>
+<span class="pl-kw">entity</span> <span class="pl-ent">entnimmt</span> &lt;&lt;Beziehung&gt;&gt; {
+  <span class="pl-attr">datum           : DATE</span>
+  <span class="pl-attr">anzGenutzt      : INT</span>
+  <span class="pl-attr">anzAbgelaufen   : INT</span>
+}
+
+<span class="pl-cm">' ── Assoziationen ────────────────────────────────</span>
+<span class="pl-ent">Mitarbeiter</span> <span class="pl-rel">}|--o{</span> <span class="pl-ent">Bestellung</span>  : <span class="pl-str">"beteiligt\n[1,n]:[0,m]"</span>
+<span class="pl-ent">Bestellung</span>  <span class="pl-rel">}o--o{</span> <span class="pl-ent">Lager</span>       : <span class="pl-str">"füllt_auf\n[0,m]:[0,n]"</span>
+<span class="pl-ent">Bestellung</span>  <span class="pl-rel">||--o{</span> <span class="pl-ent">Position</span>    : <span class="pl-str">"enthält\n[1,1]:[1,n]"</span>
+<span class="pl-ent">Position</span>    <span class="pl-rel">}o--||</span> <span class="pl-ent">Artikel</span>     : <span class="pl-str">"bezieht_sich_auf\n[0,n]:[1,1]"</span>
+<span class="pl-ent">Lager</span>       <span class="pl-rel">}o--o{</span> <span class="pl-ent">entnimmt</span>    : <span class="pl-str">"[0,n]"</span>
+<span class="pl-ent">entnimmt</span>    <span class="pl-rel">}o--o{</span> <span class="pl-ent">Artikel</span>     : <span class="pl-str">"[0,m]"</span>
+
+<span class="pl-kw">@enduml</span></div>
+    </div>
+
+    <!-- 8.3 Schritt-für-Schritt Durchführung -->
+    <h3><span class="h3-num">8.3</span> Schritt-für-Schritt Überführung</h3>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 1</span>
+        Entitäten übernehmen &amp; zusammengesetzte Attribute aufteilen
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 1.1: Jede Entität → eigene Relation</span>
+<span class="comment">-- Regel 1.2: "vor- und nachname" → zwei atomare Attribute (3NF / 1NF)</span>
+<span class="rel">Mitarbeiter</span> (<span class="pk">mID</span>, <span class="attr">name, vorname</span>)          <span class="comment">← "vor- und nachname" aufgeteilt!</span>
+<span class="rel">Bestellung</span>  (<span class="pk">bID</span>, <span class="attr">datum</span>)
+<span class="rel">Position</span>    (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum</span>)
+<span class="rel">Artikel</span>     (<span class="pk">aID</span>, <span class="attr">bezeichnung, preis</span>)
+<span class="rel">Lager</span>       (<span class="pk">lID</span>, <span class="attr">standort</span>)
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 2</span>
+        Assoziation: Mitarbeiter [1,n]–beteiligt–[0,m] Bestellung → M:N
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 2.2: M:N → neue Zwischentabelle</span>
+<span class="comment">-- [1,n]:[0,m] bedeutet: ein Mitarbeiter ist an 1 oder mehr Bestellungen beteiligt</span>
+<span class="comment">--                        eine Bestellung kann 0 oder mehr Mitarbeiter haben</span>
+<span class="rel">Mitarbeiter_Bestellung</span> (<span class="pk">mID#</span>, <span class="pk">bID#</span>)
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 3</span>
+        Assoziation: Bestellung [0,m]–füllt_auf–[0,n] Lager → M:N
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 2.2: M:N → neue Zwischentabelle</span>
+<span class="rel">Bestellung_Lager</span> (<span class="pk">bID#</span>, <span class="pk">lID#</span>)
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 4</span>
+        Assoziation: Bestellung [1,1]–enthält–[1,n] Position → 1:N
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 2.1: 1:N → FK der "1"-Seite in die "N"-Seite</span>
+<span class="comment">-- Bestellung (1,1) ist die "1"-Seite → bID# wandert in Relation</span>
+<span class="rel">Position</span> (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum,</span> <span class="fk">bID#</span>)
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 5</span>
+        Assoziation: Position [0,n]–bezieht_sich_auf–[1,1] Artikel → 1:N
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 2.1: 1:N → FK der "1"-Seite (Artikel) in die "N"-Seite (Position)</span>
+<span class="comment">-- Artikel (1,1) ist die "1"-Seite → aID# wandert in Relation</span>
+<span class="rel">Position</span> (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum,</span> <span class="fk">aID#, bID#</span>)      <span class="comment">← beide FKs jetzt in Position</span>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-box-head">
+        <span class="pill pill-b">Schritt 6</span>
+        Assoziation: Lager [0,n]–entnimmt–[0,m] Artikel → M:N mit Attributen
+      </div>
+      <div class="step-box-body">
+<span class="comment">-- Regel 2.2 + Regel 3.1: M:N mit Beziehungsattributen</span>
+<span class="comment">-- entnimmt(datum, anzGenutzt, anzAbgelaufen) → kommen als Attribute in die Zwischentabelle</span>
+<span class="comment">-- SONDERFALL ABI 2025 A: Attribute stehen VOR den FKs (Ausnahme, folge Musterlösung)</span>
+<span class="rel">Lager_Artikel</span> (<span class="attr">datum, anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+      </div>
+    </div>
+
+    <!-- 8.4 Ergebnis -->
+    <h3><span class="h3-num">8.4</span> Ergebnis — Normalisiertes relationales Modell (3NF)</h3>
+
+    <div class="ex-panel" style="margin-top:8px;">
+      <div class="ex-panel-title after">✓ Vollständiges relationales Modell (Musterlösung ABI 2025 A)</div>
+      <div class="ex-panel-body">
+        <div class="code-block" style="margin:0; background:#010409;">
+<span class="rel">Mitarbeiter</span>           (<span class="pk">mID</span>, <span class="attr">name, vorname</span>)
+<span class="rel">Bestellung</span>            (<span class="pk">bID</span>, <span class="attr">datum</span>)
+<span class="rel">Mitarbeiter_Bestellung</span> (<span class="pk">mID#</span>, <span class="pk">bID#</span>)
+<span class="rel">Position</span>              (<span class="pk">pID</span>, <span class="attr">menge, ablaufdatum,</span> <span class="fk">aID#, bID#</span>)
+<span class="rel">Artikel</span>               (<span class="pk">aID</span>, <span class="attr">bezeichnung, preis</span>)
+<span class="rel">Lager</span>                 (<span class="pk">lID</span>, <span class="attr">standort</span>)
+<span class="rel">Bestellung_Lager</span>      (<span class="pk">bID#</span>, <span class="pk">lID#</span>)
+<span class="rel">Lager_Artikel</span>         (<span class="pk">datum</span>, <span class="attr">anzGenutzt, anzAbgelaufen,</span> <span class="pk">lID#</span>, <span class="pk">aID#</span>)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Regelwerk erstellt auf Basis der offiziellen Abitur-Lösungen 2023–2025 (Hessen) · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">7 Vorschläge aus 3 Jahrgängen analysiert</a>
+  </footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script>
+  function encode6bit(b) {
+    if (b < 10) return String.fromCharCode(48 + b);
+    b -= 10;
+    if (b < 26) return String.fromCharCode(65 + b);
+    b -= 26;
+    if (b < 26) return String.fromCharCode(97 + b);
+    b -= 26;
+    if (b === 0) return '-';
+    if (b === 1) return '_';
+    return '?';
+  }
+  function append3bytes(b1, b2, b3) {
+    const c1 = b1 >> 2;
+    const c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+    const c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
+    const c4 = b3 & 0x3F;
+    return encode6bit(c1) + encode6bit(c2) + encode6bit(c3) + encode6bit(c4);
+  }
+  function encode64(data) {
+    let r = '';
+    for (let i = 0; i < data.length; i += 3) {
+      if (i + 2 === data.length)      r += append3bytes(data[i], data[i+1], 0);
+      else if (i + 1 === data.length) r += append3bytes(data[i], 0, 0);
+      else                            r += append3bytes(data[i], data[i+1], data[i+2]);
+    }
+    return r;
+  }
+  function encodePlantUML(src) {
+    const compressed = pako.deflateRaw(
+      new TextEncoder().encode(src),
+      { level: 9 }
+    );
+    return encode64(compressed);
+  }
+  function openPlantUML(which) {
+    const src = document.getElementById('puml-' + which).value.trim();
+    try {
+      const encoded = encodePlantUML(src);
+      window.open('https://www.plantuml.com/plantuml/duml/' + encoded, '_blank');
+    } catch(e) {
+      alert('Fehler beim Kodieren: ' + e.message + '\n\nPrüfe, ob pako geladen wurde (Internetverbindung nötig).');
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PI Abitur – OOP Ausarbeitungsaufgaben (Hessen)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #0d1117;
+    --bg2:         #161b22;
+    --bg3:         #21262d;
+    --border:      #30363d;
+    --border-sub:  #21262d;
+    --text:        #e6edf3;
+    --text-muted:  #8b949e;
+    --text-dim:    #484f58;
+    --link:        #58a6ff;
+    --green:       #3fb950;
+    --green-dim:   rgba(63,185,80,0.15);
+    --yellow:      #d29922;
+    --yellow-dim:  rgba(210,153,34,0.15);
+    --red:         #f85149;
+    --red-dim:     rgba(248,81,73,0.15);
+    --blue:        #58a6ff;
+    --blue-dim:    rgba(88,166,255,0.15);
+    --orange:      #db6d28;
+    --font:        -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 32px 16px 64px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb a { color: var(--link); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* ── NOTE ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+
+  /* ── STAT BADGES ── */
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+
+  .stat-badge {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 100px;
+  }
+
+  .stat-badge .val {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .stat-badge .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    margin-top: 4px;
+  }
+
+  /* ── CHART GRID ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  .chart-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .chart-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 54px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+
+  .bar-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .bar-fill.ta { background: var(--green); }
+  .bar-fill.tb { background: var(--yellow); }
+  .bar-fill.tc { background: var(--orange); }
+  .bar-fill.td { background: var(--red); }
+  .bar-fill.te { background: var(--blue); }
+
+  .bar-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── OPERATOR GRID ── */
+  .op-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 0;
+  }
+  @media (max-width: 680px) { .op-grid { grid-template-columns: 1fr 1fr; } }
+
+  .op-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+
+  .op-card-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .op-card-count {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .op-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .op-card-examples {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    border-top: 1px solid var(--border-sub);
+    padding-top: 8px;
+  }
+
+  /* ── MISS GRID ── */
+  .miss-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .miss-grid { grid-template-columns: 1fr; } }
+
+  .miss-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .miss-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .miss-panel-title.c-red    { border-left: 3px solid var(--red);    color: var(--red); }
+  .miss-panel-title.c-yellow { border-left: 3px solid var(--yellow); color: var(--yellow); }
+  .miss-panel-title.c-blue   { border-left: 3px solid var(--blue);   color: var(--blue); }
+  .miss-panel-title.c-green  { border-left: 3px solid var(--green);  color: var(--green); }
+
+  .miss-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .miss-row:last-child { border-bottom: none; }
+  .miss-row:hover { background: var(--bg3); }
+  .miss-topic { color: var(--text-muted); }
+
+  .miss-val {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 11px;
+    font-size: 11px;
+  }
+  .v0   { background: rgba(63,185,80,0.12);  color: #3fb950; }
+  .v10  { background: rgba(63,185,80,0.08);  color: #7ee787; }
+  .v20  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v30  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v40  { background: rgba(88,166,255,0.12); color: #58a6ff; }
+  .v50  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v60  { background: rgba(210,153,34,0.15); color: #d29922; }
+  .v70  { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .v80  { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .v90  { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .v100 { background: rgba(248,81,73,0.15);  color: #f85149; }
+
+  /* ── YEAR TABLE ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+  }
+
+  table.ytable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  table.ytable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  table.ytable th:first-child,
+  table.ytable th:nth-child(2) { text-align: left; }
+
+  table.ytable td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-sub);
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  table.ytable tbody tr:last-child td { border-bottom: none; }
+  table.ytable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+
+  .ytd-year {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left !important;
+    white-space: nowrap;
+  }
+
+  .ytd-props { text-align: left !important; }
+
+  .ptags { display: flex; gap: 3px; }
+
+  .ptag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .ptag.on {
+    background: rgba(88,166,255,0.1);
+    border-color: rgba(88,166,255,0.4);
+    color: var(--blue);
+  }
+
+  /* ── DOT COLUMN ── */
+  .dot-col {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dy, .dn, .dp {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: default;
+  }
+
+  /* Present (draw/zeichnen) – green circle */
+  .dy { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--green); box-shadow:0 0 0 2px rgba(63,185,80,0.2); }
+  /* Not present – gray circle */
+  .dn { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); }
+  /* Present (implement) – blue square */
+  .dy-b { display:inline-block; width:10px; height:10px; border-radius:2px; background:var(--blue); box-shadow:0 0 0 2px rgba(88,166,255,0.2); }
+  /* Present (draw AND implement) – yellow triangle */
+
+  /* ── DETAIL TABLE ── */
+  table.dtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  table.dtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  table.dtable td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: top;
+  }
+
+  table.dtable tbody tr:last-child td { border-bottom: none; }
+  table.dtable tbody tr:hover td { background: rgba(88,166,255,0.03); }
+
+  .dt-topic {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .dt-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .pips { display: flex; gap: 3px; margin-bottom: 4px; }
+  .pip {
+    width: 12px; height: 12px; border-radius: 2px;
+    background: var(--bg3); border: 1px solid var(--border);
+  }
+  .pip.p1 { background: var(--red); border-color: var(--red); }
+  .pip.p2 { background: var(--orange); border-color: var(--orange); }
+  .pip.p3 { background: var(--yellow); border-color: var(--yellow); }
+  .pip.p4 { background: var(--green); border-color: var(--green); }
+  .pip.p5 { background: #79c0ff; border-color: #79c0ff; }
+
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+  .pill-g { background: rgba(63,185,80,0.15);  color: #3fb950; }
+  .pill-y { background: rgba(210,153,34,0.15); color: #d29922; }
+  .pill-o { background: rgba(219,109,40,0.15); color: #db6d28; }
+  .pill-r { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .pill-b { background: rgba(88,166,255,0.15); color: #58a6ff; }
+
+  .dt-note { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+  .dt-note strong { color: var(--text); }
+  .dt-note ul { padding-left: 16px; margin: 6px 0; }
+  .dt-note li { margin-bottom: 3px; }
+
+  .trend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(88,166,255,0.12);
+    border: 1px solid rgba(88,166,255,0.3);
+    color: var(--blue);
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── LEARN CARDS ── */
+  .learn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 680px) { .learn-grid { grid-template-columns: 1fr; } }
+
+  .learn-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .learn-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .learn-card-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .learn-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .learn-card-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .learn-card-body {
+    padding: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .learn-card-body strong { color: var(--text); }
+
+  .learn-card-body ul {
+    padding-left: 16px;
+    margin: 6px 0;
+  }
+
+  .learn-card-body li {
+    margin-bottom: 4px;
+  }
+
+  .learn-section {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+  .learn-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .learn-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  .keyword-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .kw {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .kw.hot {
+    background: rgba(210,153,34,0.1);
+    border-color: rgba(210,153,34,0.35);
+    color: var(--yellow);
+  }
+
+  /* ── ANALYSIS SUMMARY ── */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 780px) { .analysis-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .analysis-grid { grid-template-columns: 1fr; } }
+
+  .analysis-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+
+  .analysis-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+
+  .analysis-card-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .analysis-card-body strong { color: var(--text); }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .footer a { color: var(--link); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note" style="border-left-color: var(--yellow); margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Seite wurden durch manuelle Analyse aller OOP-Ausarbeitungsaufgaben aus den offiziellen Prüfungsvorschlägen gewonnen und mithilfe von KI ausgewertet. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen vergleichen.
+</div>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+    <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+    OOP Ausarbeitungsaufgaben
+  </div>
+  <h1>OOP Ausarbeitungsaufgaben — PI Landesabitur Hessen</h1>
+  <p>
+    Analyse aller <strong>Textausarbeitungsaufgaben</strong> im OOP-Teil des hessischen Landesabiturs im Fach
+    <strong>Praktische Informatik</strong>, Jahrgänge <strong>2016–2025</strong> (10 Jahrgänge, 23 Vorschläge).
+    Diese Seite deckt ausschließlich Aufgaben ab, bei denen <em>Fließtext, Erläuterungen oder strukturierte Beschreibungen</em>
+    gefordert sind — keine Diagramm- oder Codierungsaufgaben.
+  </p>
+</div>
+
+<!-- NOTE -->
+<div class="note">
+  <strong>Berechnungsgrundlage:</strong>
+  <em>Vorschlagswahrscheinlichkeit</em> = Anteil der 23 Vorschläge, in dem ein Thema als Ausarbeitungsaufgabe vorkommt.
+  <em>Jahreswahrscheinlichkeit</em> = Anteil der 10 Jahrgänge, in dem mindestens ein Vorschlag das Thema als Ausarbeitungsaufgabe enthält.
+  Als „Ausarbeitungsaufgabe" zählen nur Teilaufgaben mit Operatoren wie <em>beschreiben, erläutern, erklären, nennen, angeben, begründen</em> — nicht das Zeichnen von Diagrammen oder das Schreiben von Code.
+</div>
+
+<!-- STAT BADGES -->
+<div class="stat-row">
+  <div class="stat-badge">
+    <span class="val">10</span>
+    <span class="lbl">Jahrgänge</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val">23</span>
+    <span class="lbl">Vorschläge gesamt</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val">~48</span>
+    <span class="lbl">Ausarbeitungsaufg. gesamt</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--green)">2–3</span>
+    <span class="lbl">Ø pro Vorschlag</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--yellow)">3–6</span>
+    <span class="lbl">Ø Bepunktung (BE)</span>
+  </div>
+  <div class="stat-badge">
+    <span class="val" style="color:var(--blue)">9</span>
+    <span class="lbl">Themenkategorien</span>
+  </div>
+</div>
+
+<!-- BAR CHARTS -->
+<div class="section">
+  <h2>Themenhäufigkeiten</h2>
+  <div class="section-desc">Wie häufig taucht ein Thema als Ausarbeitungsaufgabe auf — absolut über alle Vorschläge und pro Jahrgang</div>
+  <div class="chart-grid">
+
+    <div class="chart-panel">
+      <div class="chart-panel-title">Gesamt — alle 23 Vorschläge</div>
+      <div class="bar-row"><div class="bar-label">AWD beschreiben/erklären</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">30,4 %</div></div>
+      <div class="bar-row"><div class="bar-label">Threads &amp; Synchronisation</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">30,4 %</div></div>
+      <div class="bar-row"><div class="bar-label">Client-Server Klassen</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
+      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Verb./Aggr.)</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
+      <div class="bar-row"><div class="bar-label">KD &amp; Assoziationen beschr.</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
+      <div class="bar-row"><div class="bar-label">Datenkapselung</div><div class="bar-track"><div class="bar-fill tc" style="width:43%"></div></div><div class="bar-pct" style="color:var(--orange)">13,0 %</div></div>
+      <div class="bar-row"><div class="bar-label">SE-Prozess / Qualität</div><div class="bar-track"><div class="bar-fill td" style="width:29%"></div></div><div class="bar-pct" style="color:var(--red)">8,7 %</div></div>
+      <div class="bar-row"><div class="bar-label">Datenstrukturen</div><div class="bar-track"><div class="bar-fill td" style="width:29%"></div></div><div class="bar-pct" style="color:var(--red)">8,7 %</div></div>
+      <div class="bar-row"><div class="bar-label">Algorithmen erläutern</div><div class="bar-track"><div class="bar-fill td" style="width:14%"></div></div><div class="bar-pct" style="color:var(--red)">4,3 %</div></div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-panel-title">Pro Jahrgang — mind. 1 Vorschlag</div>
+      <div class="bar-row"><div class="bar-label">AWD beschreiben/erklären</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">60 %</div></div>
+      <div class="bar-row"><div class="bar-label">Threads &amp; Synchronisation</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
+      <div class="bar-row"><div class="bar-label">Client-Server Klassen</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
+      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Verb./Aggr.)</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
+      <div class="bar-row"><div class="bar-label">KD &amp; Assoziationen beschr.</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
+      <div class="bar-row"><div class="bar-label">Datenkapselung</div><div class="bar-track"><div class="bar-fill td" style="width:33%"></div></div><div class="bar-pct" style="color:var(--red)">20 %</div></div>
+      <div class="bar-row"><div class="bar-label">SE-Prozess / Qualität</div><div class="bar-track"><div class="bar-fill td" style="width:33%"></div></div><div class="bar-pct" style="color:var(--red)">20 %</div></div>
+      <div class="bar-row"><div class="bar-label">Datenstrukturen</div><div class="bar-track"><div class="bar-fill td" style="width:33%"></div></div><div class="bar-pct" style="color:var(--red)">20 %</div></div>
+      <div class="bar-row"><div class="bar-label">Algorithmen erläutern</div><div class="bar-track"><div class="bar-fill td" style="width:17%"></div></div><div class="bar-pct" style="color:var(--red)">10 %</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPERATOR TYPES -->
+<div class="section">
+  <h2>Aufgabenoperatoren — Typen &amp; Anforderungen</h2>
+  <div class="section-desc">Welche Operatoren werden verwendet und was genau wird erwartet</div>
+  <div class="op-grid">
+
+    <div class="op-card">
+      <div class="op-card-name">beschreiben</div>
+      <div class="op-card-count" style="color:var(--green)">~18×</div>
+      <div class="op-card-desc">Häufigster Operator. Vollständige, strukturierte Darstellung aller relevanten Merkmale eines Konzepts, Diagramms oder Systems. Kein Werten, kein Begründen — nur sachlich darstellen.</div>
+      <div class="op-card-examples">z.B.: „Beschreiben Sie die Klasse X", „Beschreiben Sie die Assoziationen", „Beschreiben Sie die Phasen"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">erläutern</div>
+      <div class="op-card-count" style="color:var(--yellow)">~16×</div>
+      <div class="op-card-desc">Zweithäufigster Operator. Beschreiben + Bezug zum Kontext + kurze Begründung oder Verdeutlichung. Oft verknüpft mit einem konkreten Beispiel aus dem Szenario der Aufgabe.</div>
+      <div class="op-card-examples">z.B.: „Erläutern Sie das Konzept der Vererbung", „Erläutern Sie die Aufgaben von Server und Thread"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">erklären</div>
+      <div class="op-card-count" style="color:var(--orange)">~8×</div>
+      <div class="op-card-desc">Sachverhalte verständlich und nachvollziehbar darstellen, insbesondere Ursache-Wirkung-Zusammenhänge. Typisch bei Thread-Problemen und technischen Abläufen.</div>
+      <div class="op-card-examples">z.B.: „Erklären Sie den Begriff Thread", „Erklären Sie die Probleme beim gleichzeitigen Zugriff"</div>
+    </div>
+
+    <div class="op-card">
+      <div class="op-card-name">nennen / angeben</div>
+      <div class="op-card-count" style="color:var(--blue)">~6×</div>
+      <div class="op-card-desc">Kurze, stichwortartige Aufzählung ohne vollständige Begründung. Nur geforderte Fakten angeben — kein Ausformulieren nötig. Meist nur 1–3 Punkte.</div>
+      <div class="op-card-examples">z.B.: „Nennen Sie drei Passwort-Regeln", „Nennen Sie jeweils ein Produkt der Phase"</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MISS PROBABILITIES -->
+<div class="section">
+  <h2>Auslassungswahrscheinlichkeiten (pro Jahrgang)</h2>
+  <div class="section-desc">Beide Panels zeigen Anteile der 10 Jahrgänge</div>
+
+  <div class="miss-grid">
+
+    <div class="miss-panel">
+      <div class="miss-panel-title c-red">⚠ Thema in KEINEM Vorschlag des Jahrgangs enthalten</div>
+      <div class="miss-row"><span class="miss-topic">AWD erklären/beschreiben</span><span class="miss-val v40">40 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Threads &amp; Synchronisation</span><span class="miss-val v50">50 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Client-Server Klassen</span><span class="miss-val v50">50 %</span></div>
+      <div class="miss-row"><span class="miss-topic">OOP-Konzepte</span><span class="miss-val v50">50 %</span></div>
+      <div class="miss-row"><span class="miss-topic">KD &amp; Assoziationen</span><span class="miss-val v50">50 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Datenkapselung</span><span class="miss-val v80">80 %</span></div>
+      <div class="miss-row"><span class="miss-topic">SE-Prozess / Qualität</span><span class="miss-val v80">80 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Datenstrukturen</span><span class="miss-val v80">80 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Algorithmen erläutern</span><span class="miss-val v90">90 %</span></div>
+    </div>
+
+    <div class="miss-panel">
+      <div class="miss-panel-title c-yellow">⚠ Thema in MIND. 1 Vorschlag des Jahrgangs NICHT enthalten</div>
+      <div class="miss-row"><span class="miss-topic">AWD erklären/beschreiben</span><span class="miss-val v60">60 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Threads &amp; Synchronisation</span><span class="miss-val v60">60 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Client-Server Klassen</span><span class="miss-val v70">70 %</span></div>
+      <div class="miss-row"><span class="miss-topic">OOP-Konzepte</span><span class="miss-val v70">70 %</span></div>
+      <div class="miss-row"><span class="miss-topic">KD &amp; Assoziationen</span><span class="miss-val v80">80 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Datenkapselung</span><span class="miss-val v90">90 %</span></div>
+      <div class="miss-row"><span class="miss-topic">SE-Prozess / Qualität</span><span class="miss-val v90">90 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Datenstrukturen</span><span class="miss-val v90">90 %</span></div>
+      <div class="miss-row"><span class="miss-topic">Algorithmen erläutern</span><span class="miss-val v100">100 %</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- YEAR TABLE -->
+<div class="section">
+  <h2>Jahresübersicht — Ausarbeitungsthemen pro Vorschlag</h2>
+  <div class="section-desc">🟢 Thema als Ausarbeitungsaufgabe enthalten &nbsp;⚫ nicht enthalten &nbsp;· Tooltip mit Aufgabenform</div>
+
+  <div class="table-wrap">
+    <table class="ytable">
+      <thead>
+        <tr>
+          <th style="width:58px">Jahr</th>
+          <th style="width:70px">Vorschl.</th>
+          <th>AWD</th>
+          <th>Threads / Sync</th>
+          <th>Client-Server</th>
+          <th>OOP-Konzepte</th>
+          <th>KD &amp; Assoz.</th>
+          <th>Kapselung</th>
+          <th>SE-Proz.</th>
+          <th>Datenstr.</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- 2025 -->
+        <tr>
+          <td class="ytd-year">2025</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: UML-Diagramme allgemein (AWD-Anwendungsbereich) beschreiben — 6 BE"></span>
+            <span class="dn" title="B: kein AWD"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Thread"></span>
+            <span class="dn" title="B: kein Thread"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein Client-Server"></span>
+            <span class="dn" title="B: kein Client-Server"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein OOP-Konzept"></span>
+            <span class="dy" title="B: Assoziation allgemein + 4 Beziehungstypen erläutern — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Klassendiagramm am Beispiel (Patient) beschreiben — 5 BE"></span>
+            <span class="dy" title="B: Assoziationen im KD erläutern + Beispiel — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dp" title="B: Struktogramme — Verwendung und Vorteile erläutern — 3 BE"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2024 -->
+        <tr>
+          <td class="ytd-year">2024</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dn" title="B: kein AWD"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein klassisches OOP-Konzept"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Assoziationstypen (Navigierbarkeit, Multiplizität, Rolle) beschreiben — 4 BE; + neue Klasse Dirigent erklären — 5 BE"></span>
+            <span class="dn" title="B: kein KD-Beschreiben"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Lastenheft und Pflichtenheft erläutern — 4 BE; Sensoren/Aktoren beschreiben — 4 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2023 -->
+        <tr>
+          <td class="ytd-year">2023</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dy" title="B: AWD-Notationselemente, extend/include, inhaltliche Bedeutung — 5 BE"></span>
+            <span class="dn" title="C: kein AWD"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Socket-Klassen, Server, ServerThread erläutern — 4 BE"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Aggregation vs. Komposition benennen und erläutern — 3 BE"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Phasen der Softwareentwicklung beschreiben — 7 BE; 4 Qualitätskriterien beschreiben — 4 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dp" title="C: Quicksort-Vorgehensweise erklären — 5 BE; Schreibtischtest durchführen — 8 BE"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2022 -->
+        <tr>
+          <td class="ytd-year">2022</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dn" title="B: kein AWD"></span>
+            <span class="dy" title="C: AWD-Zweck beschreiben + Einordnung in Softwarelebenszyklus — 2 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Prozesse und Threads beschreiben, Synchronisationsproblem erläutern — 4 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Client-Server-Modell erläutern (Client, Server, Dienst, Protokoll) — 4 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: Vererbungsstruktur beschreiben (abstrakte Klassen, protected, Polymorphie, doppelt verk. Liste) — 6 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Datenkapselung beschreiben + Zugriffsmodifizierer — 4 BE"></span>
+            <span class="dy" title="B: Datenkapselung beschreiben + Geheimnisprinzip an pin/kontostand — 4 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2021 -->
+        <tr>
+          <td class="ytd-year">2021</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span><span class="ptag on">C</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dn" title="B: kein AWD"></span>
+            <span class="dy" title="C: AWD-Zweck, Notationselemente, extend/include erläutern — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Synchronisationsproblem (Mehrfachbelegung) erklären und Lösung beschreiben — 5 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Aufgaben von Client, Server und ServerThread erläutern — 4 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Vererbung, Aggregation, Komposition erläutern + Notation + Beispiel — 6 BE"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+            <span class="dy" title="C: Verkettete Liste, Stapel, Warteschlange beschreiben und Umsetzung erläutern — 6 BE"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2020 -->
+        <tr>
+          <td class="ytd-year">2020</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Funktionen der Klassen im KD (Server, ScanThread, HandelVerwaltung) beschreiben — 4 BE"></span>
+            <span class="dy" title="B: Aufgaben von ServicedeskClient, ServicedeskServer und AnfrageThread erläutern — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Beziehungen im KD beschreiben (Assoziation, Bidirektionalität, Multiplizität, Rolle) — 4 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2019 -->
+        <tr>
+          <td class="ytd-year">2019</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dy" title="B: AWD-Zweck, Notationselemente, extend/include, Akteursbeziehung — 4+2 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Thread-Eigenschaften, Synchronisationsproblem erklären, Lösung erläutern — 4 BE"></span>
+            <span class="dy" title="B: Synchronisationsprobleme erklären, Lösung beschreiben — 3 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Assoziationen (Komposition, bidirektional) erläutern + OOP-Umsetzung — 5 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Datenkapselung (Geheimhaltungsprinzip) beschreiben — 2 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2018 -->
+        <tr>
+          <td class="ytd-year">2018</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Aggregation vs. Komposition beschreiben und gegenüberstellen — 4 BE"></span>
+            <span class="dy" title="B: Vererbung allgemein erläutern + Vererbungsstruktur (abstrakte Klassen, protected, Polymorphie) beschreiben — 6 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2017 -->
+        <tr>
+          <td class="ytd-year">2017</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: AWD-Zweck, Notationselemente, extend/include — 4 BE"></span>
+            <span class="dy" title="B: Unvollständiges AWD beschreiben (Generalisierung zwischen Akteuren) — 4 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Thread-Begriff erklären, Blockade-Problem lösen — 4 BE"></span>
+            <span class="dy" title="B: Thread-Prinzip zeigen + Realisierung in Java beschreiben — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+        </tr>
+
+        <!-- 2016 -->
+        <tr>
+          <td class="ytd-year">2016</td>
+          <td class="ytd-props"><div class="ptags"><span class="ptag on">A</span><span class="ptag on">B</span></div></td>
+          <td><div class="dot-col">
+            <span class="dn" title="A: kein AWD"></span>
+            <span class="dn" title="B: kein AWD"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Synchronisationsprobleme beim gleichzeitigen Datenzugriff erläutern — 3 BE"></span>
+            <span class="dn" title="B: kein Thread"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dy" title="A: Client-Server-Klassen und ihre Aufgaben beschreiben (KundenClient, KundenServer, AnfrageThread) — 9 BE"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Klasse Lehrkraft beschreiben (Attribut, Konstruktor, Assoziation, Multiplizität, Rolle) — 5 BE"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dn"></span>
+          </div></td>
+          <td><div class="dot-col">
+            <span class="dn"></span>
+            <span class="dy" title="B: Arrays vs. verkettete Liste — Unterschiede und Aufwand beschreiben — 6 BE"></span>
+          </div></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DETAILED TOPIC TABLE -->
+<h2 style="margin-top:32px;">Themenkategorien — Details &amp; Lernhinweise</h2>
+<div class="section-desc" style="margin-bottom:16px;">Typische Aufgabenformen, Schlüsselwörter, Erwartungen und Prüfungstipps</div>
+
+<div class="table-wrap">
+  <table class="dtable">
+    <thead>
+      <tr>
+        <th style="width:200px">Thema</th>
+        <th style="width:140px">Häufigkeit</th>
+        <th style="width:110px">Einschätzung</th>
+        <th>Aufgabenformen, typische Muster &amp; Lernhinweise</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td>
+          <div class="dt-topic">AWD beschreiben/erklären</div>
+          <div class="dt-sub">Anwendungsfalldiagramm · Zweck · extend/include</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">7/23 Vorschl. · 6/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-g">SEHR HÄUFIG</span><br>
+          <small style="color:var(--text-muted)">Jeder zweite Jahrg.</small>
+        </td>
+        <td class="dt-note">
+          <strong>Drei Aufgabenvarianten:</strong><br>
+          <strong>① Zweck + Notationselemente + extend/include</strong> <span class="pill pill-y" style="font-size:10px">5/7</span> — Die häufigste Variante. Abgefragt in 2017A, 2019B, 2021C, 2023B. Immer dieselbe Struktur: Zweck des AWD → Notationselemente benennen → extend vs. include unterscheiden. Verlässlichstes Muster.<br>
+          <strong>② AWD inhaltlich beschreiben</strong> <span class="pill pill-y" style="font-size:10px">2/7</span> — Ein gegebenes Diagramm wird verbal beschrieben (2017B: Generalisierung zwischen Akteuren, 2023B: inhaltliche Bedeutung).<br>
+          <strong>③ Einordnung in Softwarelebenszyklus</strong> <span class="pill pill-b" style="font-size:10px">1/7</span> — AWD der Analysephase zuordnen (2022C). Zusatzwissen.<br><br>
+          <strong>Was immer erwartet wird:</strong>
+          <ul>
+            <li>Zweck: „modelliert Anforderungen aus Anwendersicht / Absprache zwischen Auftraggeber und Entwickler"</li>
+            <li>Akteur (Strichmännchen), Anwendungsfall (Ellipse), Systemgrenze (Rechteck)</li>
+            <li><code>&lt;&lt;include&gt;&gt;</code> = Muss-Beziehung; <code>&lt;&lt;extend&gt;&gt;</code> = Kann-Beziehung (mit Bedingung)</li>
+            <li>Gestrichelter Pfeil: bei include zeigt er auf den inkludierten AF; bei extend auf den erweiterten AF</li>
+            <li>Generalisierung zwischen Akteuren: Untergeordneter erbt alle AF des Übergeordneten</li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">Threads &amp; Synchronisation</div>
+          <div class="dt-sub">Nebenläufigkeit · Race Conditions · synchronized</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">7/23 Vorschl. · 5/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-g">SEHR HÄUFIG</span><br>
+          <small style="color:var(--text-muted)">Oft gemeinsam mit CS</small>
+        </td>
+        <td class="dt-note">
+          <strong>Drei Aufgabenvarianten:</strong><br>
+          <strong>① Thread erklären + Nutzen begründen</strong> <span class="pill pill-y" style="font-size:10px">4/7</span> — Was ist ein Thread? Warum ist er für das vorliegende System sinnvoll? Konkrete Anwendung im Szenario zeigen (2017A, 2017B, 2021B, 2022B).<br>
+          <strong>② Synchronisationsproblem erklären + Lösung</strong> <span class="pill pill-y" style="font-size:10px">5/7</span> — Konkurrierender Zugriff auf gemeinsame Daten → inkonsistente Zustände → Lösung: <code>synchronized</code> (2016A, 2019A, 2019B, 2021B, 2022B).<br>
+          <strong>③ Prozesse vs. Threads vergleichen</strong> <span class="pill pill-b" style="font-size:10px">1/7</span> — Eigener Speicherbereich bei Prozessen vs. gemeinsamer Adressraum bei Threads (2022B).<br><br>
+          <strong>Was immer erwartet wird:</strong>
+          <ul>
+            <li>Thread = leichtgewichtiger Prozess, teilt Adressraum mit anderen Threads im selben Prozess</li>
+            <li>Realisierung: Klasse erbt von <code>Thread</code>, <code>run()</code> überschreiben, mit <code>start()</code> starten</li>
+            <li>Race Condition: Thread A liest, wird unterbrochen; Thread B ändert; Thread A schreibt veralteten Wert</li>
+            <li>Lösung: Methode mit <code>synchronized</code> annotieren → exklusiver Zugriff, atomare Ausführung</li>
+          </ul>
+          <span class="trend-badge">⚠ WICHTIG</span> Threads und Synchronisation kommen fast immer gemeinsam mit Client-Server vor — beide Themen zusammen lernen!
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">Client-Server Klassen erläutern</div>
+          <div class="dt-sub">Client · Server · Thread · Socket · Dienst · Protokoll</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">6/23 Vorschl. · 5/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-g">SEHR HÄUFIG</span><br>
+          <small style="color:var(--text-muted)">Standardaufgabe</small>
+        </td>
+        <td class="dt-note">
+          <strong>Zwei Aufgabenvarianten:</strong><br>
+          <strong>① Aufgaben der drei CS-Klassen erläutern</strong> <span class="pill pill-y" style="font-size:10px">5/6</span> — <em>Die zentrale Standardaufgabe.</em> Meist gibt es ein Klassendiagramm mit <code>Client</code>, <code>Server</code> und <code>AnfrageThread/ServerThread</code>. Jede Klasse soll einzeln mit ihrer Rolle erläutert werden (2016A, 2020B, 2021B, 2023A).<br>
+          <strong>② Client-Server-Modell allgemein</strong> <span class="pill pill-b" style="font-size:10px">1/6</span> — Begriffe Client, Server, Dienst, Protokoll definieren und auf das konkrete System anwenden (2022B).<br><br>
+          <strong>Standardformulierung im Abitur (auswendig lernen!):</strong>
+          <ul>
+            <li><strong>Client:</strong> Verbindet sich mit dem Server. Sendet Anfragen, empfängt Antworten. Client ist aktiv.</li>
+            <li><strong>Server:</strong> Horcht an einem Port und nimmt Verbindungsanfragen entgegen. Erzeugt für jeden Client einen eigenen Thread, damit mehrere Clients parallel bedient werden können. Server ist passiv.</li>
+            <li><strong>AnfrageThread/ServerThread:</strong> Erbt von <code>Thread</code>. Überschreibt <code>run()</code>. Führt den Dialog mit dem Client nebenläufig aus. Kommuniziert über <code>Socket</code>. Hat Referenz auf das Verwaltungsobjekt (z.B. <code>KinoManager</code>).</li>
+          </ul>
+          <strong>Dienst</strong> = definierte Aufgabe des Servers · <strong>Protokoll</strong> = Regeln der Kommunikation (Kommandos, Datenformat)
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">OOP-Konzepte erläutern</div>
+          <div class="dt-sub">Vererbung · Aggregation · Komposition · Polymorphie</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">6/23 Vorschl. · 5/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-g">SEHR HÄUFIG</span><br>
+          <small style="color:var(--text-muted)">Alle 2 Jahre erwartet</small>
+        </td>
+        <td class="dt-note">
+          <strong>Drei Aufgabenvarianten:</strong><br>
+          <strong>① Vererbung allgemein + konkrete Struktur beschreiben</strong> <span class="pill pill-y" style="font-size:10px">3/6</span> — Stichworte <em>Spezialisierung, Generalisierung, abstrakte Klasse, protected, Polymorphie</em> sind fast immer explizit in der Aufgabenstellung genannt (2018B, 2022C, 2021A).<br>
+          <strong>② Aggregation vs. Komposition gegenüberstellen</strong> <span class="pill pill-y" style="font-size:10px">3/6</span> — UML-Notation, Lebensdauer der Teile, Bedeutung des Unterschieds (2018A, 2023A, 2025B).<br>
+          <strong>③ Alle drei Konzepte mit Beispiel</strong> <span class="pill pill-b" style="font-size:10px">1/6</span> — Vererbung, Aggregation, Komposition in einem Block mit je Beispiel aus dem Szenario (2021A).<br><br>
+          <strong>Was immer erwartet wird:</strong>
+          <ul>
+            <li><strong>Vererbung:</strong> Superklasse → Subklasse; Pfeil mit Dreieckspitze; erbt alle Attribute+Methoden; Polymorphie = gleiche Signatur, verschiedene Implementierung, Binden zur Laufzeit</li>
+            <li><strong>Komposition:</strong> Ausgefüllte Raute am Ganzen; Teile existieren nicht ohne das Ganze (starke Abhängigkeit)</li>
+            <li><strong>Aggregation:</strong> Offene Raute am Ganzen; Teile können unabhängig existieren (schwache Abhängigkeit)</li>
+            <li><strong>abstract:</strong> Von abstrakter Klasse können keine Objekte erzeugt werden; erzwingt Überschreiben abstrakter Methoden</li>
+            <li><strong>protected:</strong> Zugriff innerhalb der Klasse + Unterklassen + gleiches Paket</li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">KD &amp; Assoziationen beschreiben</div>
+          <div class="dt-sub">Klasse · Multiplizität · Navigierbarkeit · Rolle · Assoziation</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Mittel (3/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">6/23 Vorschl. · 5/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-g">SEHR HÄUFIG</span><br>
+          <small style="color:var(--text-muted)">↑ TREND 2024/2025</small>
+        </td>
+        <td class="dt-note">
+          <strong>Zwei Aufgabenvarianten:</strong><br>
+          <strong>① Klasse aus KD verbal beschreiben</strong> <span class="pill pill-y" style="font-size:10px">3/6</span> — Eine bestimmte Klasse soll unter Verwendung der Stichworte <em>Klasse, Objekt, Attribut, Methode, Beziehung, Multiplizität, Rolle</em> beschrieben werden (2016B, 2025A). Die Stichworte sind häufig explizit in der Aufgabe genannt.<br>
+          <strong>② Assoziationstypen beschreiben</strong> <span class="pill pill-y" style="font-size:10px">3/6</span> — Verschiedene Assoziationen im KD erläutern: bidirektional, unidirektional, Multiplizität, Rollenname, Navigierbarkeit (2020B, 2024A, 2025B).<br><br>
+          <strong>Was immer erwartet wird:</strong>
+          <ul>
+            <li>Klasse: Name, private/public Attribute mit Typ, öffentliche Methoden mit Parameter+Rückgabetyp</li>
+            <li>Assoziation: Richtung (Pfeil), Navigierbarkeit, beidseitig = bidirektional</li>
+            <li>Multiplizität: <code>1</code> = genau eine Muss-Beziehung; <code>0..1</code> = Kann-Beziehung; <code>*</code> = beliebig viele; <code>1..*</code> = mindestens eine</li>
+            <li>Rollenname: Name der Referenzvariable, die die Beziehung implementiert</li>
+            <li>Klassenattribut (static) vs. Instanzattribut (unterstrichen im UML)</li>
+          </ul>
+          <span class="trend-badge">↑ TREND</span> In 2024 und 2025 je zweimal vorgekommen — aktuell steigendes Gewicht!
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">Datenkapselung</div>
+          <div class="dt-sub">Geheimnisprinzip · private/public/protected · Schnittstellen</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Leicht (2/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">3/23 Vorschl. · 2/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-y">GELEGENTLICH</span><br>
+          <small style="color:var(--text-muted)">Zuletzt 2022</small>
+        </td>
+        <td class="dt-note">
+          Aufgabenform <strong>immer ähnlich</strong>: Datenkapselung/Geheimnisprinzip allgemein beschreiben → Zugriffsmodifizierer aus dem KD benennen → am konkreten Beispiel erläutern (z.B. warum <code>pin</code> private ist).<br><br>
+          <strong>Was erwartet wird:</strong>
+          <ul>
+            <li>Kapselung = kontrollierter Zugriff auf interne Daten; nur über definierte Schnittstellen (get/set-Methoden)</li>
+            <li><code>private (−)</code>: Nur innerhalb der eigenen Klasse zugänglich</li>
+            <li><code>public (+)</code>: Zugänglich von allen Klassen</li>
+            <li><code>protected (#)</code>: Zugänglich innerhalb der Klasse, Unterklassen und demselben Paket</li>
+            <li>Schutzziel: Verhindert unbeabsichtigte oder unkontrollierte Änderungen des internen Zustands</li>
+          </ul>
+          <strong>Tipp:</strong> Kapselung kann als Unteraufgabe bei OOP-Konzepten auftauchen. Immer zusammen mit Zugriffsmodifizierern lernen.
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">SE-Prozess &amp; Qualität</div>
+          <div class="dt-sub">Phasen · Lastenheft · Pflichtenheft · Qualitätskriterien</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Leicht (2/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">2/23 Vorschl. · 2/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-o">SELTEN</span><br>
+          <small style="color:var(--text-muted)">Nur 2023B + 2024B</small>
+        </td>
+        <td class="dt-note">
+          <strong>Zwei Aufgabenvarianten:</strong><br>
+          <strong>① Phasen der SE beschreiben</strong> <span class="pill pill-y" style="font-size:10px">2023B · 7 BE</span> — Alle 5 Phasen (Analyse, Entwurf, Implementierung, Integration/Test, Betrieb) mit Aufgaben und Produkten beschreiben. Höchste BE-Zahl einer Ausarbeitungsaufgabe im Datensatz.<br>
+          <strong>② Lastenheft vs. Pflichtenheft</strong> <span class="pill pill-y" style="font-size:10px">2024B · 4 BE</span> — Unterschied, Entstehung, Rollen (Auftraggeber → Lastenheft; Auftragnehmer → Pflichtenheft).<br>
+          <strong>③ Qualitätskriterien nennen</strong> <span class="pill pill-b" style="font-size:10px">2023B · 4 BE</span> — 4 Kriterien beschreiben: Funktionalität, Zuverlässigkeit, Benutzbarkeit, Wartbarkeit.<br><br>
+          <strong>Tipp:</strong> Dieses Thema taucht in zusammenhängenden Jahrgängen auf und hat 2023/24 an Gewicht gewonnen. Für 2026 als mögliche Prüfungskomponente vorbereiten — besonders Phasen + Produkte.
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="dt-topic">Datenstrukturen</div>
+          <div class="dt-sub">Verkettete Liste · Stapel · Warteschlange · Arrays</div>
+        </td>
+        <td>
+          <div class="pips"><div class="pip p1"></div><div class="pip p2"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">Leicht (2/5)</span><br>
+          <span style="font-size:11px;color:var(--text-dim)">2/23 Vorschl. · 2/10 J.</span>
+        </td>
+        <td>
+          <span class="pill pill-o">SELTEN</span><br>
+          <small style="color:var(--text-muted)">2016B + 2021C</small>
+        </td>
+        <td class="dt-note">
+          <strong>Zwei Aufgabenvarianten:</strong><br>
+          <strong>① Stapel &amp; Warteschlange beschreiben</strong> <span class="pill pill-y" style="font-size:10px">2021C</span> — Eigenschaften von verketteter Liste, Stapel (LIFO, push/pop) und Warteschlange (FIFO, enqueue/dequeue) beschreiben und OOP-Umsetzung erläutern.<br>
+          <strong>② Array vs. verkettete Liste vergleichen</strong> <span class="pill pill-y" style="font-size:10px">2016B</span> — Unterschiede und algorithmischen Aufwand für verschiedene Einfügeoperationen gegenüberstellen.<br><br>
+          <strong>Was erwartet wird:</strong>
+          <ul>
+            <li><strong>Verkettete Liste:</strong> Dynamisch; jedes Element enthält Referenz auf nächstes; kein direkter Index-Zugriff</li>
+            <li><strong>Array:</strong> Statische Größe; direkter Index-Zugriff; Einfügen in der Mitte erfordert Verschieben</li>
+            <li><strong>Stapel (LIFO):</strong> Nur Zugriff auf das oberste Element; push, pop, peek</li>
+            <li><strong>Warteschlange (FIFO):</strong> Einfügen am Ende, Entfernen am Anfang; enqueue, dequeue</li>
+          </ul>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<!-- LEARNING GUIDE -->
+<h2 style="margin-top:40px;">Lernleitfaden — Was genau lernen?</h2>
+<div class="section-desc" style="margin-bottom:16px;">Strukturierter Leitfaden, was für die Ausarbeitungsaufgaben vorbereitet werden muss</div>
+
+<div class="learn-grid">
+
+  <!-- CARD 1: AWD -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">AWD — Anwendungsfalldiagramm</div>
+        <div class="learn-card-subtitle">60 % der Jahrgänge · Prio: HOCH</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">Was auswendig lernen</div>
+        <ul>
+          <li><strong>Zweck:</strong> „Modelliert Anforderungen aus Benutzersicht. Dient der Absprache zwischen Auftraggeber (Kunde) und Auftragnehmer (Entwickler). Beschreibt das <em>Was</em>, nicht das <em>Wie</em>."</li>
+          <li><strong>Akteur:</strong> Externe Rolle (Person oder System), die mit dem System interagiert. Symbol: Strichmännchen.</li>
+          <li><strong>Anwendungsfall:</strong> Eine Hauptfunktion des Systems. Symbol: Ellipse innerhalb der Systemgrenze.</li>
+          <li><strong>Systemgrenze:</strong> Rechteck, das das System umschließt. System-Name steht innen.</li>
+          <li><strong>Linie (Assoziation):</strong> Verbindet Akteur mit Anwendungsfall; bedeutet Beteiligung oder Auslösung.</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">extend vs. include — die wichtigste Unterscheidung</div>
+        <ul>
+          <li><strong>&lt;&lt;include&gt;&gt; (Muss-Beziehung):</strong> AF A includet AF B → B wird <em>immer</em> ausgeführt, wenn A ausgeführt wird. Pfeil zeigt auf B (den inkludierten AF). Für gemeinsame Teilfunktionen.</li>
+          <li><strong>&lt;&lt;extend&gt;&gt; (Kann-Beziehung):</strong> AF B extended AF A → B wird <em>nur bei bestimmter Bedingung</em> ausgeführt. Pfeil zeigt auf A (den erweiterten AF). Für optionale Sonderfälle.</li>
+          <li><strong>Generalisierung:</strong> Akteur B ist Spezialisierung von Akteur A → B kann alles, was A kann + mehr.</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Schlüsselwörter (kommen im Text der Lösung vor)</div>
+        <div class="keyword-row">
+          <span class="kw hot">extend</span>
+          <span class="kw hot">include</span>
+          <span class="kw hot">Muss-Beziehung</span>
+          <span class="kw hot">Kann-Beziehung</span>
+          <span class="kw">Akteur</span>
+          <span class="kw">Anwendungsfall</span>
+          <span class="kw">Systemgrenze</span>
+          <span class="kw">Ellipse</span>
+          <span class="kw">Strichmännchen</span>
+          <span class="kw">Generalisierung</span>
+          <span class="kw">Analysephase</span>
+          <span class="kw">gestrichelter Pfeil</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CARD 2: Threads -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">Threads &amp; Synchronisation</div>
+        <div class="learn-card-subtitle">50 % der Jahrgänge · Prio: HOCH</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">Was auswendig lernen — Thread-Definition</div>
+        <p>„Threads sind leichtgewichtige Prozesse, die sich denselben Adressraum im Speicher teilen. Innerhalb eines Prozesses können mehrere Threads quasi-parallel ablaufen. Im Gegensatz zu Prozessen haben Threads keinen eigenen Speicherbereich, teilen aber Befehlszähler und Stack."</p>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Realisierung (Pflichtformulierung)</div>
+        <ul>
+          <li>Klasse erbt von <code>Thread</code> und überschreibt <code>run()</code></li>
+          <li>Starten mit <code>start()</code> → führt <code>run()</code> asynchron/nebenläufig aus</li>
+          <li>Thread endet, wenn <code>run()</code> vollständig ausgeführt ist</li>
+          <li>Im Server: pro Client-Verbindung wird ein neuer Thread erzeugt (<code>new ServerThread(socket, manager)</code>)</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Race Condition — immer gleiche Struktur</div>
+        <ul>
+          <li>Thread A liest Wert X aus gemeinsamem Objekt → wird unterbrochen</li>
+          <li>Thread B ändert denselben Wert X → schreibt neuen Wert</li>
+          <li>Thread A wird fortgesetzt → schreibt seinen veralteten Wert → inkonsistenter Zustand</li>
+          <li><strong>Lösung:</strong> Methode mit <code>synchronized</code> kennzeichnen → nur ein Thread kann sie gleichzeitig ausführen</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Schlüsselwörter</div>
+        <div class="keyword-row">
+          <span class="kw hot">synchronized</span>
+          <span class="kw hot">run()</span>
+          <span class="kw hot">start()</span>
+          <span class="kw hot">nebenläufig</span>
+          <span class="kw">leichtgewichtig</span>
+          <span class="kw">Adressraum</span>
+          <span class="kw">Prozess</span>
+          <span class="kw">inkonsistent</span>
+          <span class="kw">überschreiben</span>
+          <span class="kw">asynchron</span>
+          <span class="kw">kritischer Abschnitt</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CARD 3: Client-Server -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">Client-Server-Architektur</div>
+        <div class="learn-card-subtitle">50 % der Jahrgänge · Prio: HOCH</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">Standardformulierungen für die drei Klassen</div>
+        <ul>
+          <li><strong>Client:</strong> Baut Verbindung zum Server auf (über <code>Socket</code>). Sendet Anfragen, empfängt Antworten. Aktive Rolle. Nutzt die angebotenen Dienste.</li>
+          <li><strong>Server:</strong> Horcht an einem Port (<code>ServerSocket</code>). Nimmt Verbindungsanfragen entgegen. Erzeugt für jeden Client einen neuen Thread, damit mehrere Clients parallel bedient werden. Hat Referenz auf das Verwaltungsobjekt. Passive Rolle.</li>
+          <li><strong>AnfrageThread / ServerThread:</strong> Erbt von <code>Thread</code>. Überschreibt <code>run()</code>. Erhält Socket und Verwaltungsobjekt im Konstruktor. Führt den Dialog mit dem Client nebenläufig aus. Ruft Methoden des Verwaltungsobjekts auf und schickt Ergebnisse zurück.</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Begriffe Client-Server-Modell</div>
+        <ul>
+          <li><strong>Dienst:</strong> Festgelegte Aufgabe, die der Server anbietet und der Client nutzt</li>
+          <li><strong>Protokoll:</strong> Regeln der Kommunikation (Kommandos, Bedeutung der Daten, Formate)</li>
+          <li><strong>Socket:</strong> Endpunkt einer Verbindung; ermöglicht bidirektionales Lesen und Schreiben</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Schlüsselwörter</div>
+        <div class="keyword-row">
+          <span class="kw hot">horcht an Port</span>
+          <span class="kw hot">akzeptiert Verbindung</span>
+          <span class="kw hot">erzeugt Thread</span>
+          <span class="kw hot">Socket</span>
+          <span class="kw">Referenz übergeben</span>
+          <span class="kw">nebenläufig</span>
+          <span class="kw">Konstruktor</span>
+          <span class="kw">run()</span>
+          <span class="kw">passiv</span>
+          <span class="kw">aktiv</span>
+          <span class="kw">Dienst</span>
+          <span class="kw">Protokoll</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CARD 4: OOP -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">OOP-Konzepte</div>
+        <div class="learn-card-subtitle">50 % der Jahrgänge · Prio: HOCH</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">Vererbung — immer gleiche Stichworte</div>
+        <ul>
+          <li><strong>Generalisierung:</strong> Gemeinsame Attribute/Methoden werden in Superklasse ausgelagert</li>
+          <li><strong>Spezialisierung:</strong> Subklasse erbt alles von Superklasse und fügt eigenes hinzu</li>
+          <li><strong>Polymorphie:</strong> Gleiche Signatur, verschiedene Implementierung; Binden zur Laufzeit (dynamisches Binden)</li>
+          <li><strong>abstract:</strong> Keine Objekte erzeugbar; abstrakte Methoden müssen überschrieben werden</li>
+          <li><strong>protected:</strong> Zugriff innerhalb der Klasse, Subklassen und demselben Paket — kein get/set nötig</li>
+          <li><strong>UML:</strong> Hohlpfeil (Dreieckspitze) zeigt auf die Superklasse</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Komposition vs. Aggregation</div>
+        <ul>
+          <li><strong>Komposition (ausgefüllte Raute):</strong> Starke Abhängigkeit — Teile existieren nicht ohne das Ganze. „Strong ownership". Wird das Ganze gelöscht, werden die Teile mitgelöscht.</li>
+          <li><strong>Aggregation (offene Raute):</strong> Schwache Abhängigkeit — Teile können ohne das Ganze existieren. „Weak ownership". Wird das Ganze gelöscht, überleben die Teile.</li>
+          <li>Beide sind Ganzes-Teile-Beziehungen; Raute befindet sich am Ganzen.</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Schlüsselwörter</div>
+        <div class="keyword-row">
+          <span class="kw hot">Spezialisierung</span>
+          <span class="kw hot">Generalisierung</span>
+          <span class="kw hot">Polymorphie</span>
+          <span class="kw hot">abstract</span>
+          <span class="kw hot">protected</span>
+          <span class="kw">Superklasse</span>
+          <span class="kw">Subklasse</span>
+          <span class="kw">Vererbung</span>
+          <span class="kw">dynamisches Binden</span>
+          <span class="kw">Raute</span>
+          <span class="kw">Lebensdauer</span>
+          <span class="kw">überschreiben</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CARD 5: KD beschreiben -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">KD &amp; Assoziationen beschreiben</div>
+        <div class="learn-card-subtitle">50 % der Jahrgänge · Prio: HOCH</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">Klasse beschreiben — Strukturformel</div>
+        <p>„Die Klasse <em>X</em> besitzt die [Sichtbarkeit] Attribute <em>a, b</em> vom Typ <em>T</em>. [Ggf.: Das statische Attribut <em>c</em> dient dazu, …] Die Klasse verfügt über die Methode <em>m(p: T): R</em>, die als Parameter … erhält und … zurückliefert."</p>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Assoziationen beschreiben — Strukturformel</div>
+        <ul>
+          <li><strong>Unidirektional:</strong> „Klasse A kennt Klasse B (Rollenname <em>r</em>), aber nicht umgekehrt."</li>
+          <li><strong>Bidirektional:</strong> „Zwischen A und B besteht eine beidseitig navigierbare Assoziation."</li>
+          <li><strong>Multiplizität:</strong> „Ein A-Objekt kann zu <em>0..*</em> B-Objekten in Beziehung stehen (Kann-Beziehung). Ein B-Objekt gehört genau einem A (Muss-Beziehung, Multiplizität 1)."</li>
+          <li><strong>Muss vs. Kann:</strong> Multiplizität ≥ 1 (mind. 1) = Muss; Multiplizität 0..* = Kann</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Schlüsselwörter (oft explizit in Aufgabe vorgegeben)</div>
+        <div class="keyword-row">
+          <span class="kw hot">Multiplizität</span>
+          <span class="kw hot">Navigierbarkeit</span>
+          <span class="kw hot">Rollenname</span>
+          <span class="kw hot">Assoziation</span>
+          <span class="kw">Attribut</span>
+          <span class="kw">Methode</span>
+          <span class="kw">Konstruktor</span>
+          <span class="kw">bidirektional</span>
+          <span class="kw">unidirektional</span>
+          <span class="kw">Muss-Beziehung</span>
+          <span class="kw">Kann-Beziehung</span>
+          <span class="kw">statisches Attribut</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CARD 6: SE-Prozess -->
+  <div class="learn-card">
+    <div class="learn-card-header">
+      <div>
+        <div class="learn-card-title">SE-Prozess &amp; Qualität</div>
+        <div class="learn-card-subtitle">20 % der Jahrgänge · Prio: MITTEL</div>
+      </div>
+    </div>
+    <div class="learn-card-body">
+
+      <div class="learn-section">
+        <div class="learn-section-title">5 Phasen + Produkte (2023B, 7 BE)</div>
+        <ul>
+          <li><strong>Analyse:</strong> Anforderungen aufstellen → Lastenheft, AWD, Pflichtenheft</li>
+          <li><strong>Entwurf:</strong> Softwarearchitektur entwerfen → Klassendiagramm, Sequenzdiagramm</li>
+          <li><strong>Implementierung:</strong> Code schreiben und Einheiten testen → Programmcode, Testprotokolle</li>
+          <li><strong>Integration &amp; Systemtest:</strong> Einheiten zusammenführen und als Ganzes testen → Benutzerhandbuch, Dokumentation</li>
+          <li><strong>Betrieb &amp; Wartung:</strong> Auslieferung, Fehlerkorrektur, Verbesserung → Abnahmeprotokoll</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">Lastenheft vs. Pflichtenheft</div>
+        <ul>
+          <li><strong>Lastenheft (Auftraggeber):</strong> Was soll die Software leisten? IST-Zustand, SOLL-Zustand, funktionale Anforderungen. Nicht-technische Sprache.</li>
+          <li><strong>Pflichtenheft (Auftragnehmer):</strong> Wie wird das Lastenheft technisch umgesetzt? Beschreibt die Lösung detailliert.</li>
+        </ul>
+      </div>
+
+      <div class="learn-section">
+        <div class="learn-section-title">4 Qualitätskriterien (ISO 9126)</div>
+        <div class="keyword-row">
+          <span class="kw hot">Funktionalität</span>
+          <span class="kw hot">Zuverlässigkeit</span>
+          <span class="kw hot">Benutzbarkeit</span>
+          <span class="kw hot">Wartbarkeit</span>
+          <span class="kw">Effizienz</span>
+          <span class="kw">Übertragbarkeit</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ANALYSIS SUMMARY -->
+<h2 style="margin-top:40px;">Zusammenfassende Prüfungsanalyse</h2>
+<div class="section-desc" style="margin-bottom:16px;">Das Wesentliche auf einen Blick — Muster, Erwartungsniveau und Vorbereitung</div>
+
+<div class="analysis-grid">
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Kernmuster der Ausarbeitungsaufgaben</div>
+    <div class="analysis-card-body">
+      Ausarbeitungsaufgaben folgen in Hessen einem <strong>wiederkehrenden Trio</strong>: Fast jeder Vorschlag hat mindestens eine Aufgabe zu <strong>OOP-Struktur</strong> (Klasse/Assoziation/Konzept), eine zu <strong>Nebenläufigkeit</strong> (Thread/Synchronisation oder Client-Server) und in neueren Jahren eine zu <strong>AWD</strong>. Wer diese drei Bereiche sicher beherrscht, deckt die Mehrheit der Ausarbeitungspunkte ab.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Erwartetes Wissensniveau</div>
+    <div class="analysis-card-body">
+      Das Abitur erwartet <strong>konzeptionelles Verständnis</strong>, keine Detailimplementierungen. Es genügt, Begriffe korrekt zu definieren, Konzepte am Beispiel des Szenarios zu illustrieren und Standardformulierungen zu verwenden. Schemenhaft reproduzierte Musterlösungen werden meist voll bewertet — kreative Ausführlichkeit schadet nicht, ist aber nicht gefordert.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Signalwörter in der Aufgabenstellung</div>
+    <div class="analysis-card-body">
+      <strong>„Beschreiben Sie …"</strong> → vollständige Struktur, alle Merkmale aufzählen<br>
+      <strong>„Erläutern Sie …"</strong> → beschreiben + am Beispiel verdeutlichen<br>
+      <strong>„Erklären Sie …"</strong> → Ursache-Wirkung, Mechanismus darlegen<br>
+      <strong>„Nennen Sie …"</strong> → stichwortartig, kein Vollständigkeitsanspruch<br>
+      Aufgaben-Stichworte (<em>„unter Berücksichtigung von …"</em>) sind Pflichtbegriffe, die im Text vorkommen müssen.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Bearbeitungszeit &amp; Umfang</div>
+    <div class="analysis-card-body">
+      Ausarbeitungsaufgaben mit <strong>2–3 BE</strong>: 3–5 Sätze, ca. 3–5 Min.<br>
+      Mit <strong>4–5 BE</strong>: 1–2 strukturierte Absätze mit Beispiel, ca. 6–10 Min.<br>
+      Mit <strong>6–7 BE</strong>: vollständige mehrteilige Beschreibung, ca. 10–15 Min.<br>
+      Orientierung: <strong>1 BE ≈ 1 korrekte, inhaltlich relevante Aussage</strong>. Nie mehr schreiben als nötig — Fehler kosten Punkte.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Trends &amp; Prognose 2026</div>
+    <div class="analysis-card-body">
+      <strong>AWD</strong> war in 6 der letzten 10 Jahrgänge vertreten — sehr wahrscheinlich auch 2026.<br>
+      <strong>KD &amp; Assoziationen</strong> tauchen in 2024 und 2025 je zweimal auf — steigendes Gewicht.<br>
+      <strong>SE-Prozess</strong> (Phasen, Lastenheft) erschien 2023/24 neu und häuft sich.<br>
+      <strong>Threads + CS</strong> sind klassikergerecht — immer vorbereiten.<br>
+      <strong>Datenkapselung</strong> zuletzt 2022 — könnte 2026 wiederkehren.
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <div class="analysis-card-title">Optimale Vorbereitung (Priorität)</div>
+    <div class="analysis-card-body">
+      <strong>Prio 1 (immer lernen):</strong> AWD-Notationen + extend/include · Thread-Definition + Race Condition + synchronized · Client/Server/AnfrageThread-Standardformulierungen · Vererbung + Aggregation + Komposition<br><br>
+      <strong>Prio 2 (sehr wahrscheinlich):</strong> KD-Beschreibung (Multiplizität, Rolle, Navigierbarkeit) · Datenkapselung (private/public/protected)<br><br>
+      <strong>Prio 3 (möglich):</strong> SE-Phasen + Lastenheft/Pflichtenheft · Datenstrukturen (Stapel, Queue)
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Datengrundlage: Offizielle Prüfungsvorschläge des hessischen Landesabiturs im Fach Praktische Informatik (Java), Jahrgänge 2016–2025 · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">23 Vorschläge aus 10 Jahrgängen</a>
+</footer>
+
+</div>
+</body>
+</html>
