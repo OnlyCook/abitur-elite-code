@@ -4,6 +4,12 @@
   Abitur Elite Code
 </h1>
 
+<p align="center">
+  <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">
+    <img src="https://img.shields.io/badge/Wiki-Hilfestellungen-2ea44f?logo=github" alt="Wiki Button">
+  </a>
+</p>
+
 <p align="center"> 
   Eine Open-Source-Desktop-Anwendung zur gezielten Vorbereitung auf die Programmier- und Datenbankanteile (OOP & SQL) des Praktische-Informatik-Abiturs in Hessen.
 </p>
@@ -24,7 +30,6 @@
 Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von LeetCode, jedoch speziell auf die Anforderungen des hessischen Informatik-Abiturs ausgerichtet. Die Anwendung ermöglicht es Schülerinnen und Schülern, sowohl objektorientierte Programmierung (C#) als auch SQL (MySQL) praxisnah zu trainieren und ihre Kompetenzen systematisch auszubauen.
 
 ## Update-Anleitung (Windows)
-
 https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 
 ## Skip-Codes und Lösungen
