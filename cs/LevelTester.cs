@@ -1968,6 +1968,10 @@ namespace AbiturEliteCode.cs
             if (ctorPassagier == null)
                 throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");
 
+            // reset autowert to make sure it starts at 0 (for testing)
+            FieldInfo fAutowert = tPassagier.GetField("autowert", BindingFlags.NonPublic | BindingFlags.Static);
+            if (fAutowert != null) fAutowert.SetValue(null, 0);
+
             object pass1 = null;
             object pass2 = null;
             try
@@ -1997,7 +2001,8 @@ namespace AbiturEliteCode.cs
 
             int id1 = (int)fId.GetValue(pass1);
             int id2 = (int)fId.GetValue(pass2);
-            if (id1 < 1 || id2 != id1 + 1)
+
+            if (id1 != 1 || id2 != 2)
                 throw new Exception("ID-Vergabe fehlerhaft.");
 
             MethodInfo mGetPassId = tPassagier.GetMethod("GetPassagierID") ?? tPassagier.GetMethod("getPassagierID");
@@ -2021,6 +2026,8 @@ namespace AbiturEliteCode.cs
             object mockGepaeck1 = null;
             object mockGepaeck2 = null;
             object mockGepaeck3 = null;
+            object mockGepaeck4 = null;
+
             if (tKoffer != null)
             {
                 ConstructorInfo ctorKoffer = tKoffer.GetConstructors().FirstOrDefault();
@@ -2029,23 +2036,26 @@ namespace AbiturEliteCode.cs
                     mockGepaeck1 = ctorKoffer.Invoke(new object[] { "K1", 10.0, true });
                     mockGepaeck2 = ctorKoffer.Invoke(new object[] { "K2", 15.0, false });
                     mockGepaeck3 = ctorKoffer.Invoke(new object[] { "K3", 20.0, true });
+                    mockGepaeck4 = ctorKoffer.Invoke(new object[] { "K4", 25.0, false });
                 }
             }
 
             object wagen1 = ctorWagen.Invoke(new object[] { mockGepaeck1 });
             object wagen2 = ctorWagen.Invoke(new object[] { mockGepaeck2 });
             object wagen3 = ctorWagen.Invoke(new object[] { mockGepaeck3 });
+            object wagen4 = ctorWagen.Invoke(new object[] { mockGepaeck4 });
 
             try
             {
                 // utilizing InvokeWithTimeout to prevent infinite loops from circular references
                 InvokeWithTimeout(mAnhaengen, wagen1, new object[] { wagen2 }, 1000);
                 InvokeWithTimeout(mAnhaengen, wagen1, new object[] { wagen3 }, 1000);
+                InvokeWithTimeout(mAnhaengen, wagen1, new object[] { wagen4 }, 1000);
             }
             catch (Exception ex)
             {
                 if (ex.Message.Contains("Zeitüberschreitung") || ex is TimeoutException)
-                    throw new Exception("Laufzeitfehler: Mögliche Endlosschleife. Überprüfen Sie Ihre Abbruchbedingungen und Kontrollstrukturen.");
+                    throw new Exception("Laufzeitfehler: Mögliche Endlosschleife in anhaengen().");
 
                 throw new Exception($"Fehler bei der Ausführung der Methode anhaengen(): {ex.Message}");
             }
@@ -2056,8 +2066,9 @@ namespace AbiturEliteCode.cs
 
             object next1 = fNaechster.GetValue(wagen1);
             object next2 = next1 != null ? fNaechster.GetValue(next1) : null;
+            object next3 = next2 != null ? fNaechster.GetValue(next2) : null;
 
-            if (next1 != wagen2 || next2 != wagen3)
+            if (next1 != wagen2 || next2 != wagen3 || next3 != wagen4)
                 throw new Exception("Die Methode anhaengen() verknüpft die Elemente der Liste nicht wie erwartet am Ende.");
 
             feedback = "Klassen, Multiplizitäten und die einfach verkettete Liste wurden fehlerfrei umgesetzt.";
@@ -2100,6 +2111,15 @@ namespace AbiturEliteCode.cs
             if (!cleanSource.Contains("newserial(comport,9600,8,1,0)") && !cleanSource.Contains("new(comport,9600,8,1,0)"))
                 throw new Exception("Fehler mit serieller Schnitstelle.");
 
+            if (!cleanSource.Contains("thread.sleep") && !cleanSource.Contains("task.delay"))
+                throw new Exception("Fehler in 'Run()': Die Gepäckschleuse muss für eine gewisse Zeit geöffnet bleiben.");
+
+            if (!cleanSource.Contains("0x02") && !cleanSource.Contains("==2") && !cleanSource.Contains("!=2"))
+                throw new Exception("Fehler in 'ReadBarcode()'.");
+
+            if (!cleanSource.Contains("0x03") && !cleanSource.Contains("==3") && !cleanSource.Contains("!=3"))
+                throw new Exception("Fehler in 'ReadBarcode()'.");
+
             // 2. test: barcodescanner and calcchecksum
             ConstructorInfo ctorScanner = tScanner.GetConstructor(new[] { tSerial });
             if (ctorScanner == null)
@@ -2136,6 +2156,29 @@ namespace AbiturEliteCode.cs
             FieldInfo fScannerSerial = tScanner.GetField("serial", BindingFlags.NonPublic | BindingFlags.Instance);
             object serialInst = fScannerSerial.GetValue(scannerInst);
             MethodInfo mSetBytes = tSerial.GetMethod("SetTestBytes");
+
+            MethodInfo mReadBarcode = tScanner.GetMethod("ReadBarcode") ?? tScanner.GetMethod("readBarcode");
+            if (mReadBarcode == null) throw new Exception("Die Methode 'ReadBarcode()' fehlt.");
+
+            // invalid checksum
+            List<int> invalidPacket = new List<int> { 0x02 };
+            foreach (char c in testData) invalidPacket.Add(c);
+            invalidPacket.Add((char)(expectedXor + 1));
+            invalidPacket.Add(0x03);
+
+            mSetBytes.Invoke(serialInst, new object[] { invalidPacket.ToArray() });
+            try
+            {
+                string resultInvalid = (string)InvokeWithTimeout(mReadBarcode, scannerInst, null, 1000);
+                if (!string.IsNullOrEmpty(resultInvalid))
+                    throw new Exception("Fehler in 'ReadBarcode()'.");
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message.Contains("Zeitüberschreitung") || ex is TimeoutException)
+                    throw new Exception("Laufzeitfehler: Mögliche Endlosschleife in 'ReadBarcode()'.");
+                throw;
+            }
 
             // mock payload: <STX>14_23.5<ETX> 
             List<int> packet = new List<int> { 0x02 };
