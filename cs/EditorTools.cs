@@ -1,5 +1,4 @@
 ﻿using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
@@ -1703,6 +1702,46 @@ namespace AbiturEliteCode
                     drawingContext.DrawRectangle(_highlightBrush, null, rect);
                 }
                 index += _currentSelection.Length;
+            }
+        }
+    }
+
+    public class VimBlockCaretRenderer : IBackgroundRenderer
+    {
+        private readonly TextEditor _editor;
+        private readonly SolidColorBrush _brush;
+        public bool IsEnabled { get; set; } = false;
+
+        public VimBlockCaretRenderer(TextEditor editor)
+        {
+            _editor = editor;
+            _brush = new SolidColorBrush(Color.Parse("#88FFFFFF"));
+        }
+
+        public KnownLayer Layer => KnownLayer.Caret;
+
+        public void Draw(TextView textView, DrawingContext drawingContext)
+        {
+            if (!IsEnabled || _editor.Document == null) return;
+
+            int offset = _editor.CaretOffset;
+            if (offset > _editor.Document.TextLength) return;
+
+            var segment = new TextSegment { StartOffset = offset, Length = 1 };
+            // draw block caret (with space width cuz mono space)
+            char c = offset < _editor.Document.TextLength ? _editor.Document.GetCharAt(offset) : '\n';
+
+            var rect = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment).FirstOrDefault();
+            if (rect != default)
+            {
+                var drawRect = rect;
+                if (c == '\n' || c == '\r' || rect.Width == 0)
+                {
+                    double charWidth = textView.WideSpaceWidth;
+                    if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2.0;
+                    drawRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
+                }
+                drawingContext.DrawRectangle(_brush, null, drawRect);
             }
         }
     }

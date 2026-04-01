@@ -490,21 +490,61 @@
 
 						<TabItem Header="Vim Hilfe" Name="TabVim" IsVisible="False">
 							<Border Background="#202124" CornerRadius="8" Padding="0" Margin="0" ClipToBounds="True">
-								<ScrollViewer>
-									<StackPanel Name="PnlVimCheatSheet" Spacing="10" Margin="20">
-										<TextBlock Text="Vim Cheat Sheet"
-												   FontSize="20" FontWeight="Bold" Foreground="#32A852"
-												   Margin="0,0,0,20"/>
+								<Grid>
+									<ScrollViewer Name="PnlVimCheatSheet">
+										<StackPanel Spacing="10" Margin="20">
+											<Grid ColumnDefinitions="*, Auto">
+												<TextBlock Text="Vim Cheat Sheet"
+														   FontSize="20" FontWeight="Bold" Foreground="#32A852"
+														   VerticalAlignment="Center"/>
+												<Button Grid.Column="1" Name="BtnStartTutorial" Content="Starte Vim Tutorial"
+														Background="#007ACC" Foreground="White" CornerRadius="4"
+														Padding="10,5" FontWeight="Bold" Cursor="Hand" Click="BtnStartTutorial_Click"/>
+											</Grid>
 
-										<Grid ColumnDefinitions="*, 20, *" RowDefinitions="Auto">
-											<StackPanel Grid.Column="0" Name="VimCol1" Spacing="20"/>
-											<StackPanel Grid.Column="2" Name="VimCol2" Spacing="20"/>
+											<Grid ColumnDefinitions="*, 20, *" RowDefinitions="Auto" Margin="0,20,0,0">
+												<StackPanel Grid.Column="0" Name="VimCol1" Spacing="20"/>
+												<StackPanel Grid.Column="2" Name="VimCol2" Spacing="20"/>
+											</Grid>
+
+											<TextBlock Text="Hinweis: Dies ist eine vereinfachte Simulation."
+													   Foreground="#666" FontSize="12" Margin="0,30,0,0" HorizontalAlignment="Center"/>
+										</StackPanel>
+									</ScrollViewer>
+
+									<Panel Name="PnlVimTutorial" IsVisible="False" Margin="20">
+										<Grid RowDefinitions="Auto, *, Auto">
+											<StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,15">
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="Vim Tutorial" FontSize="20" FontWeight="Bold" Foreground="#32A852" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Name="BtnExitTutorial" Content="Tutorial Beenden"
+															Background="#B43232" Foreground="White" CornerRadius="4"
+															Padding="10,5" FontWeight="Bold" Cursor="Hand" Click="BtnExitTutorial_Click"/>
+												</Grid>
+												<SelectableTextBlock Name="TxtTutorialTask" FontSize="16" Foreground="White" TextWrapping="Wrap" VerticalAlignment="Center"/>
+											</StackPanel>
+
+											<Border Grid.Row="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#333" BorderThickness="1" Background="#1E1E1E">
+												<Grid RowDefinitions="*, Auto">
+													<ae:TextEditor Name="TutorialEditor"
+																   Grid.Row="0"
+																   HorizontalScrollBarVisibility="Auto"
+																   VerticalScrollBarVisibility="Auto"
+																   ShowLineNumbers="True"
+																   Padding="0,0,18,0"/>
+
+													<Border Grid.Row="1" Background="#007ACC" Name="TutorialVimStatusBorder" Padding="5,2">
+														<TextBlock Name="TutorialVimStatusBar" Text="-- NORMAL --" FontFamily="Consolas" FontSize="12" Foreground="White" FontWeight="Bold"/>
+													</Border>
+												</Grid>
+											</Border>
+
+											<Border Grid.Row="2" Name="PnlTutorialStats" IsVisible="False" Background="#2D2D30" CornerRadius="8" Padding="15" Margin="0,15,0,0">
+												<StackPanel Name="PnlTutorialStatsContent" HorizontalAlignment="Center" Spacing="10"/>
+											</Border>
 										</Grid>
-
-										<TextBlock Text="Hinweis: Dies ist eine vereinfachte Simulation."
-												   Foreground="#666" FontSize="12" Margin="0,30,0,0" HorizontalAlignment="Center"/>
-									</StackPanel>
-								</ScrollViewer>
+									</Panel>
+								</Grid>
 							</Border>
 						</TabItem>
 
