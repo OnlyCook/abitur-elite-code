@@ -6145,22 +6145,24 @@ namespace AbiturEliteCode
             );
 
             AddCategory(
-                VimCol1,
-                "Bewegung (Normal/Visual)",
-                new[]
-                {
+                 VimCol1,
+                 "Bewegung (Normal/Visual)",
+                 new[]
+                 {
                     ("h", "Links"),
                     ("j", "Unten"),
                     ("k", "Oben"),
                     ("l", "Rechts"),
                     ("w", "Wortanfang vorwärts"),
                     ("b", "Wortanfang rückwärts"),
+                    ("e", "Wortende vorwärts"),
+                    ("W / B", "Wort vor/zurück (nur Leer)"),
                     ("0", "Zeilenanfang"),
                     ("$", "Zeilenende"),
                     ("gg", "Dateianfang"),
                     ("G", "Dateiende")
-                }
-            );
+                 }
+             );
 
             AddCategory(
                 VimCol2,
@@ -6273,6 +6275,8 @@ namespace AbiturEliteCode
             if (e.Key == Key.G && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "G";
             else if (e.Key == Key.D && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "D";
             else if (e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "V";
+            else if (e.Key == Key.W && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "W";
+            else if (e.Key == Key.B && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "B";
             else if (e.Key == Key.D4 && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "$"; // for linux
 
             // redo (ctrl + r)
@@ -6411,14 +6415,107 @@ namespace AbiturEliteCode
                     }
                     ActiveEditor.TextArea.Caret.BringCaretToView();
                     break;
-                case "w": // simple word forward
-                    int nextSpace = ActiveEditor.Text.IndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, ActiveEditor.CaretOffset + 1);
-                    if (nextSpace != -1) ActiveEditor.CaretOffset = nextSpace + 1;
+                case "w": // word forward (stop at punctuation)
+                    {
+                        int off = ActiveEditor.CaretOffset;
+                        string text = ActiveEditor.Text;
+                        char[] delims = new[] { '.', '(', ')', ';', ',', '{', '}', '[', ']' };
+                        if (off < text.Length)
+                        {
+                            bool startIsSpace = char.IsWhiteSpace(text[off]);
+                            bool startIsDelim = delims.Contains(text[off]);
+
+                            // skip current word
+                            while (off < text.Length)
+                            {
+                                bool isSpace = char.IsWhiteSpace(text[off]);
+                                bool isDelim = delims.Contains(text[off]);
+
+                                if (startIsSpace && !isSpace) break;
+                                if (startIsDelim && !isDelim) break;
+                                if (!startIsSpace && !startIsDelim && (isSpace || isDelim)) break;
+                                off++;
+                            }
+                            // skip trailing whitespaces til next word
+                            while (off < text.Length && char.IsWhiteSpace(text[off])) off++;
+                        }
+                        ActiveEditor.CaretOffset = off;
+                    }
                     break;
-                case "b": // simple word backward
-                    int prevSpace = ActiveEditor.Text.LastIndexOfAny(new[] { ' ', '\n', '\t', '.', '(', ')', ';' }, Math.Max(0, ActiveEditor.CaretOffset - 2));
-                    if (prevSpace != -1) ActiveEditor.CaretOffset = prevSpace + 1;
-                    else ActiveEditor.CaretOffset = 0;
+                case "b": // word backward (stop at punctuation)
+                    {
+                        int off = ActiveEditor.CaretOffset;
+                        string text = ActiveEditor.Text;
+                        char[] delims = new[] { '.', '(', ')', ';', ',', '{', '}', '[', ']' };
+                        if (off > 0)
+                        {
+                            off--;
+                            // skip previous whitespaces
+                            while (off > 0 && char.IsWhiteSpace(text[off])) off--;
+
+                            bool isDelim = delims.Contains(text[off]);
+                            // jump to beginning of word
+                            while (off > 0)
+                            {
+                                char prev = text[off - 1];
+                                if (char.IsWhiteSpace(prev) || delims.Contains(prev) != isDelim) break;
+                                off--;
+                            }
+                        }
+                        ActiveEditor.CaretOffset = off;
+                    }
+                    break;
+                case "e": // end of word
+                    {
+                        int off = ActiveEditor.CaretOffset;
+                        string text = ActiveEditor.Text;
+                        char[] delims = new[] { '.', '(', ')', ';', ',', '{', '}', '[', ']' };
+                        if (off < text.Length - 1)
+                        {
+                            off++;
+                            // skip whitespaces til next word
+                            while (off < text.Length && char.IsWhiteSpace(text[off])) off++;
+
+                            if (off < text.Length)
+                            {
+                                bool isDelim = delims.Contains(text[off]);
+                                // jump to last char of word
+                                while (off < text.Length - 1)
+                                {
+                                    char next = text[off + 1];
+                                    if (char.IsWhiteSpace(next) || delims.Contains(next) != isDelim) break;
+                                    off++;
+                                }
+                            }
+                        }
+                        ActiveEditor.CaretOffset = Math.Min(off, text.Length > 0 ? text.Length - 1 : 0);
+                    }
+                    break;
+                case "W": // word forward (ignore punctuation, only space as boundary)
+                    {
+                        int off = ActiveEditor.CaretOffset;
+                        string text = ActiveEditor.Text;
+                        if (off < text.Length)
+                        {
+                            bool startIsSpace = char.IsWhiteSpace(text[off]);
+                            while (off < text.Length && char.IsWhiteSpace(text[off]) == startIsSpace) off++;
+                            while (off < text.Length && char.IsWhiteSpace(text[off])) off++;
+                        }
+                        ActiveEditor.CaretOffset = off;
+                    }
+                    break;
+                case "B": // word backward (ignore punctuation, only space as boundary)
+                    {
+                        int off = ActiveEditor.CaretOffset;
+                        string text = ActiveEditor.Text;
+                        if (off > 0)
+                        {
+                            off--;
+                            while (off > 0 && char.IsWhiteSpace(text[off])) off--;
+                            while (off > 0 && !char.IsWhiteSpace(text[off - 1])) off--;
+                        }
+                        ActiveEditor.CaretOffset = off;
+                    }
                     break;
                 case "0": // line start
                     var line0 = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
