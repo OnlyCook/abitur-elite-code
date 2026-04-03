@@ -6273,6 +6273,7 @@ namespace AbiturEliteCode
             if (e.Key == Key.G && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "G";
             else if (e.Key == Key.D && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "D";
             else if (e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "V";
+            else if (e.Key == Key.D4 && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) keyChar = "$"; // for linux
 
             // redo (ctrl + r)
             if (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Control))
@@ -6696,6 +6697,14 @@ namespace AbiturEliteCode
             }
             else if (cmd.StartsWith(":q"))
             {
+                if (_isTutorialMode && _tutorialStep == 7)
+                {
+                    _tutorialStep++;
+                    UpdateTutorialInstructions();
+                    return;
+                }
+                if (_isTutorialMode) return; // fix actually quitting during tutorial loop 
+
                 AddToConsole("\n> :q (Wichtig zu testen!)", Brushes.LightGray);
             }
             else if (cmd.StartsWith(":wq"))
@@ -6840,14 +6849,22 @@ namespace AbiturEliteCode
             };
 
             TutorialEditor.TextChanged += (s, e) => {
-                _tutorialKeystrokes++;
                 CheckTutorialProgress();
             };
         }
 
         private void TutorialEditor_KeyDown(object sender, KeyEventArgs e)
         {
-            _tutorialKeystrokes++;
+            // ignore standalone modifier keys
+            bool isModifier = e.Key == Key.LeftShift || e.Key == Key.RightShift ||
+                              e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+                              e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+                              e.Key == Key.LWin || e.Key == Key.RWin;
+
+            if (!isModifier)
+            {
+                _tutorialKeystrokes++;
+            }
 
             if (e.Key == Key.Escape)
             {
@@ -7044,13 +7061,13 @@ namespace AbiturEliteCode
             switch (_tutorialStep)
             {
                 case 1:
-                    RenderTutorialTask("Aufgabe 1/6 (Navigation & Modi): Vim startet im NORMAL-Modus. Nutze ((h)) (links), ((j)) (runter), ((k)) (hoch), ((l)) (rechts) zur Navigation. Gehe zu [change_me_to_insert], lösche die Zeile mit ((d))((d)), drücke ((i)) (Insert), tippe [//erledigt] und beende mit ((ESC)).");
+                    RenderTutorialTask("Aufgabe 1/7 (Navigation & Modi): Vim startet im NORMAL-Modus. Nutze ((h)) (links), ((j)) (runter), ((k)) (hoch), ((l)) (rechts) zur Navigation. Gehe zu [change_me_to_insert], lösche die Zeile mit ((d))((d)), drücke ((i)) (Insert), tippe [//erledigt] und beende mit ((ESC)).");
                     break;
                 case 2:
-                    RenderTutorialTask("Aufgabe 2/6 (Insert vs Append): Setze den Cursor bei [ng] auf das [n], drücke ((i)) (Insert VOR Cursor), tippe [i] und drücke ((ESC)). Gehe dann bei [in] auf das [n], drücke ((a)) (Append NACH Cursor), tippe [g] und drücke ((ESC)).");
+                    RenderTutorialTask("Aufgabe 2/7 (Insert vs Append): Setze den Cursor bei [ng] auf das [n], drücke ((i)) (Insert VOR Cursor), tippe [i] und drücke ((ESC)). Gehe dann bei [in] auf das [n], drücke ((a)) (Append NACH Cursor), tippe [g] und drücke ((ESC)).");
                     break;
                 case 3:
-                    RenderTutorialTask("Aufgabe 3/6 (Schnelle Navigation & Löschen): Gehe in die [404X]-Zeile. Drücke (($)) um ans Zeilenende zu springen, lösche [X] mit ((x)). Gehe eine Zeile tiefer, drücke ((0)) für den Zeilenanfang, gehe zu [//] und lösche nur den Kommentar mit ((D)).");
+                    RenderTutorialTask("Aufgabe 3/7 (Schnelle Navigation & Löschen): Gehe in die [404X]-Zeile. Drücke (($)) um ans Zeilenende zu springen, lösche [X] mit ((x)). Gehe eine Zeile tiefer, drücke ((0)) für den Zeilenanfang, gehe zu [//] und lösche nur den Kommentar mit ((D)).");
                     break;
                 case 4:
                     // dynamically find target line
@@ -7067,20 +7084,23 @@ namespace AbiturEliteCode
                     string lineStr = targetLine.ToString();
                     string keys = string.Join("", lineStr.Select(c => $"(({c}))"));
 
-                    RenderTutorialTask($"Aufgabe 4/6 (Springen & Kopieren): Tippe ((:)){keys} und ((Enter)) um exakt zu Zeile {targetLine} zu springen. Kopiere die Zeile mit ((y))((y)) (Yank) und füge sie mit ((p)) (Paste) darunter ein.");
+                    RenderTutorialTask($"Aufgabe 4/7 (Springen & Kopieren): Tippe ((:)){keys} und ((Enter)) um exakt zu Zeile {targetLine} zu springen. Kopiere die Zeile mit ((y))((y)) (Yank) und füge sie mit ((p)) (Paste) darunter ein.");
                     break;
                 case 5:
-                    RenderTutorialTask("Aufgabe 5/6 (Suchen): Drücke ((/)), tippe [Schatz] und drücke ((Enter)) um das Wort zu finden. Lösche es, wechsle in den Insert-Modus ((i)), tippe [Gold] und drücke ((ESC)).");
+                    RenderTutorialTask("Aufgabe 5/7 (Suchen): Drücke ((/)), tippe [Schatz] und drücke ((Enter)) um das Wort zu finden. Lösche es, wechsle in den Insert-Modus ((i)), tippe [Gold] und drücke ((ESC)).");
                     break;
                 case 6:
-                    RenderTutorialTask("Aufgabe 6/6 (Speichern): Du hast die wichtigsten Befehle gelernt! Speichere das Dokument im Normal-Modus, indem du ((:))((w)) tippst und mit ((Enter)) bestätigst.");
+                    RenderTutorialTask("Aufgabe 6/7 (Speichern): Fast geschafft! Speichere das Dokument im Normal-Modus, indem du ((:))((w)) (write) tippst und mit ((Enter)) bestätigst.");
                     break;
                 case 7:
+                    RenderTutorialTask("Aufgabe 7/7 (Beenden): Das Wichtigste zum Schluss: Wie verlässt man Vim? Tippe im Normal-Modus ((:))((q)) (quit) und drücke ((Enter)).\nNotiz: In dieser App ist das Verlassen von Vim nicht nötig, jedoch ist es sehr wichtig zu wissen.");
+                    break;
+                case 8:
                     EndVimTutorial();
                     break;
                 default:
                     break;
-            }           
+            }
         }
 
         private void EndVimTutorial()
@@ -7210,45 +7230,45 @@ namespace AbiturEliteCode
             if (!_isTutorialMode) return;
             string t = TutorialEditor.Text;
 
-            if (_tutorialStep == 1)
+            switch (_tutorialStep)
             {
-                if (_vimMode == VimMode.Normal && (t.Contains("// erledigt") || t.Contains("//erledigt")) && !t.Contains("change_me_to_insert"))
-                {
-                    _tutorialStep++;
-                    UpdateTutorialInstructions();
-                }
-            }
-            else if (_tutorialStep == 2)
-            {
-                if (_vimMode == VimMode.Normal && Regex.Matches(t, "\"ing\"").Count >= 2)
-                {
-                    _tutorialStep++;
-                    UpdateTutorialInstructions();
-                }
-            }
-            else if (_tutorialStep == 3)
-            {
-                if (_vimMode == VimMode.Normal && t.Contains("404;") && !t.Contains("404X") && t.Contains("char c;") && !t.Contains("// loesche_nur_mich"))
-                {
-                    _tutorialStep++;
-                    UpdateTutorialInstructions();
-                }
-            }
-            else if (_tutorialStep == 4)
-            {
-                if (_vimMode == VimMode.Normal && Regex.Matches(t, "// jump_here_and_copy").Count >= 2)
-                {
-                    _tutorialStep++;
-                    UpdateTutorialInstructions();
-                }
-            }
-            else if (_tutorialStep == 5)
-            {
-                if (_vimMode == VimMode.Normal && t.Contains("\"Gold\"") && !t.Contains("\"Schatz\""))
-                {
-                    _tutorialStep++;
-                    UpdateTutorialInstructions();
-                }
+                case 1:
+                    if (_vimMode == VimMode.Normal && (t.Contains("// erledigt") || t.Contains("//erledigt")) && !t.Contains("change_me_to_insert"))
+                    {
+                        _tutorialStep++;
+                        UpdateTutorialInstructions();
+                    }
+                    break;
+                case 2:
+                    if (_vimMode == VimMode.Normal && Regex.Matches(t, "\"ing\"").Count >= 2)
+                    {
+                        _tutorialStep++;
+                        UpdateTutorialInstructions();
+                    }
+                    break;
+                case 3:
+                    if (_vimMode == VimMode.Normal && t.Contains("404;") && !t.Contains("404X") && t.Contains("char c;") && !t.Contains("// loesche_nur_mich"))
+                    {
+                        _tutorialStep++;
+                        UpdateTutorialInstructions();
+                    }
+                    break;
+                case 4:
+                    if (_vimMode == VimMode.Normal && Regex.Matches(t, "// jump_here_and_copy").Count >= 2)
+                    {
+                        _tutorialStep++;
+                        UpdateTutorialInstructions();
+                    }
+                    break;
+                case 5:
+                    if (_vimMode == VimMode.Normal && t.Contains("\"Gold\"") && !t.Contains("\"Schatz\""))
+                    {
+                        _tutorialStep++;
+                        UpdateTutorialInstructions();
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
