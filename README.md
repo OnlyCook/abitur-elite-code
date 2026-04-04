@@ -29,6 +29,50 @@
 ## Über das Projekt
 Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von LeetCode, jedoch speziell auf die Anforderungen des hessischen Informatik-Abiturs ausgerichtet. Die Anwendung ermöglicht es Schülerinnen und Schülern, sowohl objektorientierte Programmierung (C#) als auch SQL (MySQL) praxisnah zu trainieren und ihre Kompetenzen systematisch auszubauen.
 
+## Installation & Start
+
+<h3>
+  <img src="docs/github-images/ic_windows.svg" alt="Windows Icon" width="24" height="24">
+  Windows
+</h3>
+
+1. `AbiturEliteCode-win.zip` entpacken
+2. Den Ordner `AbiturEliteCode` öffnen
+3. `AbiturEliteCode.exe` doppelklicken – fertig!
+
+> **SmartScreen-Warnung?** „Weitere Informationen" → „Trotzdem ausführen" klicken.  
+> Die Warnung erscheint, weil die App kein kostenpflichtiges Code-Signing-Zertifikat besitzt.  
+
+---
+
+<h3>
+  <img src="docs/github-images/ic_linux.svg" alt="Windows Icon" width="24" height="24">
+  Linux
+</h3>
+
+1. `AbiturEliteCode-linux.zip` entpacken
+2. Ein Terminal im entpackten Ordner öffnen und ausführen:
+```bash
+   chmod +x AbiturEliteCode
+   ./AbiturEliteCode
+```
+
+---
+
+<h3>
+  <img src="docs/github-images/ic_macos.svg" alt="Windows Icon" width="24" height="24">
+  macOS
+</h3>
+
+1. `AbiturEliteCode-mac.zip` entpacken
+2. `AbiturEliteCode.app` per Doppelklick starten
+
+> **Sicherheitswarnung beim ersten Start?**  
+> Da die App nicht aus dem App Store stammt, blockiert macOS sie zunächst.  
+> **Lösung:** Rechtsklick auf `AbiturEliteCode.app` → **„Öffnen"** → im erscheinenden Dialog erneut **„Öffnen"** klicken.  
+> Dieser Schritt ist nur **einmalig** beim allerersten Start nötig.  
+> **Alternative:** Falls dies nicht funktioniert, kann dieses Video weiterhelfen: https://youtu.be/zZEBE4b_xiQ
+
 ## Update-Anleitung (Windows)
 https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 
