@@ -38,7 +38,7 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von Le
 
 1. `AbiturEliteCode-win.zip` entpacken
 2. Den Ordner `AbiturEliteCode` öffnen
-3. `AbiturEliteCode.exe` doppelklicken – fertig!
+3. `AbiturEliteCode.exe` doppelklicken und fertig!
 
 > **SmartScreen-Warnung?** „Weitere Informationen" → „Trotzdem ausführen" klicken.  
 > Die Warnung erscheint, weil die App kein kostenpflichtiges Code-Signing-Zertifikat besitzt.  
@@ -65,7 +65,13 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von Le
 </h3>
 
 1. `AbiturEliteCode-mac.zip` entpacken
-2. `AbiturEliteCode.app` per Doppelklick starten
+2. Ein Terminal im entpackten Ordner öffnen und ausführen:
+```bash
+   chmod +x AbiturEliteCode
+   ./AbiturEliteCode
+```
+
+> **Tipp:** Um ein Terminal im richtigen Ordner zu öffnen, den Ordner im Finder öffnen, dann **Rechtsklick auf einen leeren Bereich** → „Neues Terminal im Ordner" (macOS Sequoia) oder per **Finder → Dienste → Neues Terminal im Ordner**. 
 
 > **Sicherheitswarnung beim ersten Start?**  
 > Da die App nicht aus dem App Store stammt, blockiert macOS sie zunächst.  
