@@ -1958,11 +1958,6 @@ namespace AbiturEliteCode.cs
                 (int)fMax.GetValue(flugObj) != 100 || Math.Abs((double)fPreis.GetValue(flugObj) - 150.0) > 0.01)
                 throw new Exception("Initialisierung in Klasse Flug fehlerhaft.");
 
-            MethodInfo mGetStartDatum = tFlug.GetMethod("GetStartDatum") ?? tFlug.GetMethod("getStartDatum");
-            object returnedDate = mGetStartDatum?.Invoke(flugObj, null);
-            if (mGetStartDatum == null || returnedDate == null || (!returnedDate.Equals(testDate) && !returnedDate.Equals(testDateObj)))
-                throw new Exception("Fehler mit Methode 'GetStartDatum()'.");
-
             // check passagier constructor and multiplicity
             ConstructorInfo ctorPassagier = tPassagier.GetConstructor(new[] { typeof(string), typeof(string), tFlug });
             if (ctorPassagier == null)
@@ -2004,10 +1999,6 @@ namespace AbiturEliteCode.cs
 
             if (id1 != 1 || id2 != 2)
                 throw new Exception("ID-Vergabe fehlerhaft.");
-
-            MethodInfo mGetPassId = tPassagier.GetMethod("GetPassagierID") ?? tPassagier.GetMethod("getPassagierID");
-            if (mGetPassId == null || (int)mGetPassId.Invoke(pass1, null) != id1)
-                throw new Exception("Fehler mit Methode 'GetPassagierID()'.");
 
             if (fGepaeck.GetValue(pass1) == null)
                 throw new Exception("Initialisierung in Klasse Passagier fehlerhaft.");

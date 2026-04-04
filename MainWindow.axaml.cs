@@ -713,6 +713,8 @@ namespace AbiturEliteCode
             SqlQueryEditor.TextArea.TextEntering += SqlEditor_TextEntering;
             SqlQueryEditor.AddHandler(InputElement.KeyDownEvent, SqlQueryEditor_KeyDown, RoutingStrategies.Tunnel);
 
+            SqlQueryEditor.AddHandler(InputElement.PointerWheelChangedEvent, SqlQueryEditor_PointerWheelChanged, RoutingStrategies.Tunnel);
+
             // clear relational model focus tracking when the sql editor is focused manually
             SqlQueryEditor.GotFocus += (s, e) =>
             {
@@ -753,6 +755,25 @@ namespace AbiturEliteCode
                 SqlQueryEditor.TextArea.TextView.Redraw();
                 e.Handled = true;
                 return;
+            }
+
+            // ctrl/cmd + +/- => zoom
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                {
+                    AppSettings.SqlEditorFontSize = Math.Min(48, AppSettings.SqlEditorFontSize + 1);
+                    SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                {
+                    AppSettings.SqlEditorFontSize = Math.Max(8, AppSettings.SqlEditorFontSize - 1);
+                    SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
             }
 
             // ctrl/cmd + shift + z => redo
@@ -907,6 +928,24 @@ namespace AbiturEliteCode
             HandleVimNormalInput(e);
         }
 
+        private void SqlQueryEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+        {
+            // zoom via ctrl + mwheel
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                if (e.Delta.Y > 0)
+                {
+                    AppSettings.SqlEditorFontSize = Math.Min(48, AppSettings.SqlEditorFontSize + 1);
+                }
+                else if (e.Delta.Y < 0)
+                {
+                    AppSettings.SqlEditorFontSize = Math.Max(8, AppSettings.SqlEditorFontSize - 1);
+                }
+                SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
+                e.Handled = true;
+            }
+        }
+
         private void SqlEditor_TextEntering(object sender, TextInputEventArgs e)
         {
             if (string.IsNullOrEmpty(e.Text))
@@ -1048,6 +1087,8 @@ namespace AbiturEliteCode
             CodeEditor.TextArea.TextEntering += Editor_TextEntering;
             CodeEditor.AddHandler(InputElement.KeyDownEvent, CodeEditor_KeyDown, RoutingStrategies.Tunnel);
 
+            CodeEditor.AddHandler(InputElement.PointerWheelChangedEvent, CodeEditor_PointerWheelChanged, RoutingStrategies.Tunnel);
+
             CodeEditor.PointerMoved += CodeEditor_PointerMoved;
 
             CodeEditor.TextChanged += (s, e) =>
@@ -1184,6 +1225,25 @@ namespace AbiturEliteCode
                 CodeEditor.TextArea.TextView.Redraw();
                 e.Handled = true;
                 return;
+            }
+
+            // ctrl/cmd + +/- => zoom
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                {
+                    AppSettings.EditorFontSize = Math.Min(48, AppSettings.EditorFontSize + 1);
+                    CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                {
+                    AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
+                    CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
             }
 
             // ctrl/cmd + shift + z => redo
@@ -1361,6 +1421,24 @@ namespace AbiturEliteCode
             // normal or commandpending mode -> intercept all
             e.Handled = true;
             HandleVimNormalInput(e);
+        }
+
+        private void CodeEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+        {
+            // zoom via ctrl + mwheel
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                if (e.Delta.Y > 0)
+                {
+                    AppSettings.EditorFontSize = Math.Min(48, AppSettings.EditorFontSize + 1);
+                }
+                else if (e.Delta.Y < 0)
+                {
+                    AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
+                }
+                CodeEditor.FontSize = AppSettings.EditorFontSize;
+                e.Handled = true;
+            }
         }
 
         private void Editor_TextEntering(object sender, TextInputEventArgs e)
@@ -6145,24 +6223,24 @@ namespace AbiturEliteCode
             );
 
             AddCategory(
-                 VimCol1,
-                 "Bewegung (Normal/Visual)",
-                 new[]
-                 {
-                    ("h", "Links"),
-                    ("j", "Unten"),
-                    ("k", "Oben"),
-                    ("l", "Rechts"),
-                    ("w", "Wortanfang vorwärts"),
-                    ("b", "Wortanfang rückwärts"),
-                    ("e", "Wortende vorwärts"),
-                    ("W / B", "Wort vor/zurück (nur Leer)"),
-                    ("0", "Zeilenanfang"),
-                    ("$", "Zeilenende"),
-                    ("gg", "Dateianfang"),
-                    ("G", "Dateiende")
-                 }
-             );
+                VimCol1,
+                "Bewegung (Normal/Visual)",
+                new[]
+                {
+                ("h", "Links"),
+                ("j", "Unten"),
+                ("k", "Oben"),
+                ("l", "Rechts"),
+                ("w", "Wortanfang vorwärts"),
+                ("b", "Wortanfang rückwärts"),
+                ("e", "Wortende vorwärts"),
+                ("W / B", "Wort vor/zurück (nur Leer)"),
+                ("0", "Zeilenanfang"),
+                ("$", "Zeilenende"),
+                ("gg", "Dateianfang"),
+                ("G", "Dateiende")
+                }
+            );
 
             AddCategory(
                 VimCol2,
