@@ -51,6 +51,7 @@ namespace AbiturEliteCode
         public static bool IsSqlAutocompleteEnabled { get; set; } = false;
         public static bool IsErrorHighlightingEnabled { get; set; } = false;
         public static bool IsErrorExplanationEnabled { get; set; } = false;
+        public static bool AutoCheckForUpdates { get; set; } = false;
     }
 
     public static class CodeGuard
@@ -192,6 +193,10 @@ namespace AbiturEliteCode
             public bool QuickGenerate { get; set; }
         }
 
+        private bool _updateAvailable = false;
+        private string _latestVersion = "";
+        private string _updateDownloadUrl = "";
+
         public MainWindow()
         {
             InitializeComponent();
@@ -216,6 +221,12 @@ namespace AbiturEliteCode
             AppSettings.EditorFontSize = playerData.Settings.EditorFontSize;
             AppSettings.SqlEditorFontSize = playerData.Settings.SqlEditorFontSize;
             AppSettings.UiScale = playerData.Settings.UiScale;
+            AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
+
+            if (AppSettings.AutoCheckForUpdates)
+            {
+                CheckForUpdatesBackground();
+            }
 
             ApplyUiScale();
             ApplySyntaxHighlighting();
@@ -2551,7 +2562,11 @@ namespace AbiturEliteCode
 
                         string capturedTitle = currentHintTitle;
 
-                        var btnText = new TextBlock { Text = "▶ " + capturedTitle, VerticalAlignment = VerticalAlignment.Center };
+                        var btnText = new TextBlock
+                        {
+                            Text = "▶ " + capturedTitle,
+                            VerticalAlignment = VerticalAlignment.Center
+                        };
 
                         var btn = new Button
                         {
@@ -3617,8 +3632,7 @@ namespace AbiturEliteCode
                 Padding = new Thickness(30, 10),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(0, 20, 0, 0),
-                Cursor = Cursor.Parse("Hand")
+                Margin = new Thickness(0, 20, 0, 0)
             };
             btnClose.Click += (_, __) => dialog.Close();
 
@@ -3702,8 +3716,7 @@ namespace AbiturEliteCode
                 Padding = new Thickness(30, 10),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(0, 20, 0, 0),
-                Cursor = Cursor.Parse("Hand")
+                Margin = new Thickness(0, 20, 0, 0)
             };
             btnClose.Click += (_, __) => dialog.Close();
 
@@ -5416,6 +5429,7 @@ namespace AbiturEliteCode
             double originalEditorFontSize = AppSettings.EditorFontSize;
             double originalSqlFontSize = AppSettings.SqlEditorFontSize;
             double originalUiScale = AppSettings.UiScale;
+            bool originalAutoUpdateEnabled = AppSettings.AutoCheckForUpdates;
             bool isPortable = SaveSystem.IsPortableModeEnabled();
             bool originalPortableState = isPortable;
 
@@ -5463,11 +5477,10 @@ namespace AbiturEliteCode
                 }
             );
 
-            Button CreateCatBtn(string text)
+            Button CreateCatBtn(string text, bool showBadge = false)
             {
-                return new Button
+                var btn = new Button
                 {
-                    Content = text,
                     Background = Brushes.Transparent,
                     Foreground = Brushes.White,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -5476,15 +5489,47 @@ namespace AbiturEliteCode
                     Margin = new Thickness(2),
                     HorizontalContentAlignment = HorizontalAlignment.Left
                 };
+
+                if (showBadge)
+                {
+                    var grid = new Grid
+                    {
+                        ColumnDefinitions = new ColumnDefinitions("*, Auto")
+                    };
+                    grid.Children.Add(new TextBlock
+                    {
+                        Text = text,
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    var badge = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#B43232"),
+                        Width = 8,
+                        Height = 8,
+                        CornerRadius = new CornerRadius(4),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(5, 0, 0, 0)
+                    };
+                    Grid.SetColumn(badge, 1);
+                    grid.Children.Add(badge);
+                    btn.Content = grid;
+                }
+                else
+                {
+                    btn.Content = text;
+                }
+                return btn;
             }
 
             var btnCatEditor = CreateCatBtn("Editor");
             var btnCatDisplay = CreateCatBtn("Darstellung");
             var btnCatData = CreateCatBtn("Daten");
+            var btnCatUpdates = CreateCatBtn("Updates", _updateAvailable);
 
             categoriesPanel.Children.Add(btnCatEditor);
             categoriesPanel.Children.Add(btnCatDisplay);
             categoriesPanel.Children.Add(btnCatData);
+            categoriesPanel.Children.Add(btnCatUpdates);
 
             leftPanelGrid.Children.Add(categoriesPanel);
 
@@ -5642,6 +5687,164 @@ namespace AbiturEliteCode
                 txtPortableInfo.Text = "Portable Mode ist hier nicht verfügbar, da keine Schreibrechte im Programmordner bestehen.";
                 txtPortableInfo.Foreground = Brushes.Red;
             }
+            
+            // update settings panel
+            var updatesSettingsPanel = new StackPanel { Spacing = 15 };
+            updatesSettingsPanel.Children.Add(new TextBlock
+            {
+                Text = "Updates",
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+
+            var chkAutoUpdate = new CheckBox
+            {
+                Content = "Beim Start automatisch nach Updates suchen",
+                IsChecked = AppSettings.AutoCheckForUpdates,
+                Foreground = Brushes.White
+            };
+
+            var txtVersionInfo = new TextBlock
+            {
+                Text = _updateAvailable
+                    ? $"Eine neue Version ist verfügbar: {_latestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}"
+                    : $"Aktuelle Version: {UpdateManager.CurrentVersion}",
+                Foreground = _updateAvailable ? SolidColorBrush.Parse("#32A852") : Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 10, 0, 10)
+            };
+
+            var btnCheckUpdate = new Button
+            {
+                Content = "Nach Updates suchen",
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Foreground = Brushes.White,
+                Padding = new Thickness(15, 8),
+                CornerRadius = new CornerRadius(4),
+                MinWidth = 180,
+                HorizontalContentAlignment = HorizontalAlignment.Center
+            };
+
+            var btnUpdateApp = new Button
+            {
+                Content = "App aktualisieren",
+                Background = SolidColorBrush.Parse("#007ACC"),
+                Foreground = Brushes.White,
+                Padding = new Thickness(15, 8),
+                CornerRadius = new CornerRadius(4),
+                IsEnabled = _updateAvailable
+            };
+
+            var updateProgressBar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Foreground = SolidColorBrush.Parse("#32A852"),
+                Background = SolidColorBrush.Parse("#1A1A1A"),
+                IsVisible = false,
+                Margin = new Thickness(0, 5, 0, 15)
+            };
+
+            var updatesActionRow = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 10
+            };
+            updatesActionRow.Children.Add(btnCheckUpdate);
+            updatesActionRow.Children.Add(btnUpdateApp);
+
+            updatesSettingsPanel.Children.Add(chkAutoUpdate);
+            updatesSettingsPanel.Children.Add(txtVersionInfo);
+            updatesSettingsPanel.Children.Add(updateProgressBar);
+            updatesSettingsPanel.Children.Add(updatesActionRow);
+
+            btnCheckUpdate.Click += async (s, ev) =>
+            {
+                btnCheckUpdate.Content = "Suche...";
+                btnCheckUpdate.IsEnabled = false;
+
+                var result = await UpdateManager.CheckForUpdatesAsync();
+                if (result.UpdateAvailable)
+                {
+                    _updateAvailable = true;
+                    _latestVersion = result.LatestVersion;
+                    _updateDownloadUrl = result.DownloadUrl;
+                    BadgeSettings.IsVisible = true;
+
+                    txtVersionInfo.Text = $"Eine neue Version ist verfügbar: {_latestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}";
+                    txtVersionInfo.Foreground = SolidColorBrush.Parse("#32A852");
+                    btnUpdateApp.IsEnabled = true;
+
+                    // add badge to category button dynamically if it doesnt have it
+                    if (btnCatUpdates.Content is string)
+                    {
+                        var grid = new Grid
+                        {
+                            ColumnDefinitions = new ColumnDefinitions("*, Auto")
+                        };
+                        grid.Children.Add(new TextBlock
+                        {
+                            Text = "Updates",
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+                        var badge = new Border
+                        {
+                            Background = SolidColorBrush.Parse("#B43232"),
+                            Width = 8,
+                            Height = 8,
+                            CornerRadius = new CornerRadius(4),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(5, 0, 0, 0)
+                        };
+                        Grid.SetColumn(badge, 1);
+                        grid.Children.Add(badge);
+                        btnCatUpdates.Content = grid;
+                    }
+                }
+                else
+                {
+                    txtVersionInfo.Text = $"Du bist auf dem neusten Stand.\nAktuelle Version: {UpdateManager.CurrentVersion}";
+                    txtVersionInfo.Foreground = Brushes.Gray;
+                }
+
+                btnCheckUpdate.Content = "Nach Updates suchen";
+                btnCheckUpdate.IsEnabled = true;
+            };
+
+            btnUpdateApp.Click += async (s, ev) =>
+            {
+                btnUpdateApp.Content = "Bereite Update vor...";
+                btnUpdateApp.IsEnabled = false;
+                btnCheckUpdate.IsEnabled = false;
+                updateProgressBar.IsVisible = true;
+                updateProgressBar.Value = 0;
+
+                // progress reporter to get update state
+                var progress = new Progress<(string message, double percentage)>(p =>
+                {
+                    btnUpdateApp.Content = p.message;
+                    updateProgressBar.Value = p.percentage;
+                });
+
+                var updateResult = await UpdateManager.PerformUpdateAsync(_updateDownloadUrl, progress);
+
+                if (updateResult != UpdateManager.UpdateStatus.Success)
+                {
+                    // reset ui
+                    btnUpdateApp.Content = "App aktualisieren";
+                    btnUpdateApp.IsEnabled = true;
+                    btnCheckUpdate.IsEnabled = true;
+                    updateProgressBar.IsVisible = false;
+
+                    // show manual update dialog
+                    await ShowManualUpdateDialog(updateResult, _updateDownloadUrl, settingsWin);
+                }
+            };
 
             void CheckChanges()
             {
@@ -5657,6 +5860,7 @@ namespace AbiturEliteCode
                     (Math.Abs(sliderFontSize.Value - originalEditorFontSize) > 0.004) ||
                     (Math.Abs(sliderSqlFontSize.Value - originalSqlFontSize) > 0.004) ||
                     (chkPortable.IsChecked != isPortable) ||
+                    (chkAutoUpdate.IsChecked != originalAutoUpdateEnabled) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
                 btnSave.IsEnabled = hasChanges;
@@ -5715,6 +5919,7 @@ namespace AbiturEliteCode
                     sliderSqlFontSize.Value = 16.0;
                     chkPortable.IsChecked = false;
                     sliderScale.Value = 1.0;
+                    chkAutoUpdate.IsChecked = false;
 
                     confirmDialog.Close();
                 };
@@ -5825,7 +6030,10 @@ namespace AbiturEliteCode
                 UpdateVimState();
                 CheckChanges();
             };
-            chkPortable.IsCheckedChanged += (s, ev) => { CheckChanges(); };
+            chkPortable.IsCheckedChanged += (s, ev) =>
+            {
+                CheckChanges();
+            };
 
             sliderScale.ValueChanged += (s, ev) =>
             {
@@ -5848,6 +6056,12 @@ namespace AbiturEliteCode
                 AppSettings.SqlEditorFontSize = ev.NewValue;
                 txtSqlFontSizeVal.Text = $"{ev.NewValue:F0}px";
                 SqlQueryEditor.FontSize = ev.NewValue;
+                CheckChanges();
+            };
+
+            chkAutoUpdate.IsCheckedChanged += (s, ev) =>
+            {
+                AppSettings.AutoCheckForUpdates = chkAutoUpdate.IsChecked ?? false;
                 CheckChanges();
             };
 
@@ -5894,6 +6108,7 @@ namespace AbiturEliteCode
                 btnCatEditor.Background = Brushes.Transparent;
                 btnCatDisplay.Background = Brushes.Transparent;
                 btnCatData.Background = Brushes.Transparent;
+                btnCatUpdates.Background = Brushes.Transparent;
 
                 activeBtn.Background = SolidColorBrush.Parse("#3E3E42");
                 rightPanel.Child = content;
@@ -5902,6 +6117,7 @@ namespace AbiturEliteCode
             btnCatEditor.Click += (s, ev) => ShowCategory(btnCatEditor, editorSettings);
             btnCatDisplay.Click += (s, ev) => ShowCategory(btnCatDisplay, displaySettings);
             btnCatData.Click += (s, ev) => ShowCategory(btnCatData, dataSettingsPanel);
+            btnCatUpdates.Click += (s, ev) => ShowCategory(btnCatUpdates, updatesSettingsPanel);
 
             ShowCategory(btnCatEditor, editorSettings);
 
@@ -5936,6 +6152,7 @@ namespace AbiturEliteCode
                 playerData.Settings.EditorFontSize = AppSettings.EditorFontSize;
                 playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
                 playerData.Settings.UiScale = AppSettings.UiScale;
+                playerData.Settings.AutoCheckForUpdates = AppSettings.AutoCheckForUpdates;
 
                 SaveSystem.Save(playerData);
 
@@ -6042,6 +6259,7 @@ namespace AbiturEliteCode
                     CodeEditor.FontSize = originalEditorFontSize;
                     SqlQueryEditor.FontSize = originalSqlFontSize;
                     AppSettings.UiScale = originalUiScale;
+                    AppSettings.AutoCheckForUpdates = originalAutoUpdateEnabled;
 
                     UpdateVimState();
                     ApplySyntaxHighlighting();
@@ -8828,8 +9046,7 @@ namespace AbiturEliteCode
                 Foreground = Brushes.White,
                 Padding = new Thickness(20, 8),
                 HorizontalAlignment = HorizontalAlignment.Center,
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
             btnClose.Click += (_, __) => dialog.Close();
 
@@ -10159,9 +10376,29 @@ namespace AbiturEliteCode
                 targetPanel.Children.Add(rowPanel);
             }
 
-            var btnAddTable = new Button { Content = "+ Tabelle", Background = SolidColorBrush.Parse("#2D2D30"), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(4), Cursor = Cursor.Parse("Hand"), Margin = new Thickness(0, 10, 0, 0) };
+            var btnAddTable = new Button
+            {
+                Content = "+ Tabelle",
+                Background = SolidColorBrush.Parse("#2D2D30"),
+                Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand"),
+                Margin = new Thickness(0, 10, 0, 0)
+            };
             btnAddTable.Click += (s, e) => {
-                var newTable = new RTable { Name = "", Columns = new List<RColumn> { new RColumn { Name = "id", IsPk = true } } };
+                var newTable = new RTable
+                {
+                    Name = "",
+                    Columns = new List<RColumn>
+                    {
+                        new RColumn
+                        {
+                            Name = "id",
+                            IsPk = true
+                        }
+                    }
+                };
                 _currentRelationalModel.Add(newTable);
 
                 // set focus to the newly created table
@@ -10455,6 +10692,117 @@ namespace AbiturEliteCode
         private void BtnEditSqlSample_Click(object sender, RoutedEventArgs e)
         {
             SwitchDesignerMode(DesignerSource.SqlSample, TxtDesignSqlSample, "> Editor: Musterlösung geladen. 'Ausführen' verifiziert nun das Level.");
+        }
+
+        private async void CheckForUpdatesBackground()
+        {
+            var result = await UpdateManager.CheckForUpdatesAsync();
+            if (result.UpdateAvailable)
+            {
+                _updateAvailable = true;
+                _latestVersion = result.LatestVersion;
+                _updateDownloadUrl = result.DownloadUrl;
+                Dispatcher.UIThread.Post(() => BadgeSettings.IsVisible = true);
+            }
+        }
+
+        private async Task ShowManualUpdateDialog(UpdateManager.UpdateStatus status, string downloadUrl, Window owner)
+        {
+            var dialog = new Window
+            {
+                Title = "Manuelles Update erforderlich",
+                Width = 520,
+                Height = 250,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            string msg = status switch
+            {
+                UpdateManager.UpdateStatus.UnsupportedOS => "Auto-Updates werden auf macOS und Linux nicht unterstützt.\n\nBitte lade die neue Version manuell herunter und lösche die alten Dateien gegebenenfalls.",
+                UpdateManager.UpdateStatus.NoWritePermission => "Abitur Elite Code hat keine Schreibrechte in diesem Ordner.\n\nBitte lade das Update manuell herunter oder verschiebe das Programm in einen anderen Ordner.",
+                UpdateManager.UpdateStatus.NetworkError => "Fehler beim Herunterladen des Updates.\n\nMöglicherweise ist GitHub nicht erreichbar oder deine Internetverbindung ist unterbrochen.",
+                _ => "",
+            };
+            var rootGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*, Auto"),
+                Margin = new Thickness(20)
+            };
+
+            var contentPanel = new StackPanel
+            {
+                Spacing = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            contentPanel.Children.Add(new TextBlock
+            {
+                Text = "Manuelles Update erforderlich",
+                FontWeight = FontWeight.Bold,
+                Foreground = BrushTextHighlight,
+                FontSize = 18
+            });
+            contentPanel.Children.Add(new TextBlock
+            {
+                Text = msg,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.White,
+                LineHeight = 20
+            });
+            rootGrid.Children.Add(contentPanel);
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+            Grid.SetRow(btnPanel, 1);
+
+            var btnGuide = new Button
+            {
+                Content = "Guide öffnen",
+                Background = SolidColorBrush.Parse("#007ACC"),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(4)
+            };
+            btnGuide.Click += (_, __) =>
+            {
+                string url = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "https://github.com/OnlyCook/abitur-elite-code?tab=readme-ov-file#----windows-auto-update"
+                    : "https://github.com/OnlyCook/abitur-elite-code?tab=readme-ov-file#------linux--macos";
+                UpdateManager.OpenBrowser(url);
+            };
+
+            var btnDownload = new Button
+            {
+                Content = "Im Browser herunterladen",
+                Background = SolidColorBrush.Parse("#32A852"),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(4)
+            };
+            btnDownload.Click += (_, __) => UpdateManager.OpenBrowser(downloadUrl);
+
+            var btnClose = new Button
+            {
+                Content = "Schließen",
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(4)
+            };
+            btnClose.Click += (_, __) => dialog.Close();
+
+            btnPanel.Children.Add(btnGuide);
+            btnPanel.Children.Add(btnDownload);
+            btnPanel.Children.Add(btnClose);
+
+            rootGrid.Children.Add(btnPanel);
+            dialog.Content = rootGrid;
+
+            await dialog.ShowDialog(owner);
         }
     }
 }

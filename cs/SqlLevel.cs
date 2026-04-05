@@ -633,7 +633,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schulerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,m)- ausleihe\nausleihe -(0,n)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schuelerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,m)- ausleihe\nausleihe -(0,n)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "Ausführungsreihenfolge von SQL-Klauseln" },
                     OptionalPrerequisites = new List<string> { "Aliase (AS)" }
@@ -682,7 +682,7 @@ namespace AbiturEliteCode.cs
                     },
                     PlantUMLSources = new List<string>
                     {
-                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n    klasse\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schulerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,n)- ausleihe\nausleihe -(0,m)- Buch\n@endchen"
+                        "@startchen\nentity Schueler {\n    id <<key>>\n    name\n    klasse\n}\nentity Buch {\n    id <<key>>\n    titel\n}\nrelationship ausleihe {\n    schuelerid_FK <<key>>\n    buchid_FK <<key>>\n    datum\n}\nSchueler -(0,n)- ausleihe\nausleihe -(0,m)- Buch\n@endchen"
                     },
                     Prerequisites = new List<string> { "ER-Diagramm lesen (Chen-Notation)", "Relationales Schema aus ER-Diagramm ableiten" },
                     OptionalPrerequisites = new List<string> { }
