@@ -1,4 +1,5 @@
 import tkinter as tk
+import webbrowser
 
 PLANT_MARK = "__PLANTUML_N__"
 
@@ -41,6 +42,9 @@ def copy_one():
     root.clipboard_clear()
     root.clipboard_append(txt)
 
+def open_planttext():
+    webbrowser.open("https://www.planttext.com/")
+
 
 root = tk.Tk()
 root.title("Plantuml Oneliner Converter")
@@ -68,5 +72,9 @@ btns_one = tk.Frame(frame)
 btns_one.grid(row=2, column=1, pady=(0, 10))
 tk.Button(btns_one, text="Paste Oneliner", command=paste_one).pack(side="left", padx=5)
 tk.Button(btns_one, text="Copy Oneliner", command=copy_one).pack(side="left", padx=5)
+
+# planttext
+open_btn = tk.Button(root, text="Open PlantText", command=open_planttext)
+open_btn.pack(pady=(0, 10))
 
 root.mainloop()

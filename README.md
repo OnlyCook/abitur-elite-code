@@ -93,10 +93,10 @@ Windows-Nutzer können die App bequem per Knopfdruck in den Einstellungen automa
 **Wichtig:** Damit das Auto-Update reibungslos funktioniert, muss sich die App an einem Ort befinden, für den **keine Administratorrechte** benötigt werden (z. B. auf dem Desktop, in den Dokumenten oder einem eigenen Ordner). Liegt die App in geschützten System-Verzeichnissen wie `C:\Programme`, wird das automatische Update aus Sicherheitsgründen blockiert.
 
 **Manuelles Update (Fallback):**
-Sollte das Auto-Update fehlschlagen (z.B. wegen fehlender Berechtigungen), öffnet sich stattdessen dein Browser und lädt die neue `.zip`-Datei herunter. In diesem Fall musst du das Update manuell durchführen. Entpacke dazu einfach die neue Version und ersetze die alten Dateien durch die neuen. 
+Sollte das Auto-Update fehlschlagen (z.B. wegen fehlender Berechtigungen), öffnet sich stattdessen ein Pop-Up-Dialog welcher durch deinen Browser die neue `.zip`-Datei herunterladen kann. In diesem Fall musst du das Update manuell durchführen. Entpacke dazu einfach die neue Version und ersetze die alten Dateien durch die neuen. 
 
-Hier ist ein kurzes Video, das den manuellen Update-Prozess auf Windows zeigt:
-https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
+> Hier ist ein kurzes Video, das den manuellen Update-Prozess auf Windows zeigt:
+> https://github.com/user-attachments/assets/9e1c55fc-e0a7-4467-b5c8-9cabe17c4d52
 
 ---
 
@@ -111,7 +111,7 @@ Auf Linux und macOS ist die Update-Benachrichtigung ebenfalls aktiv. Wenn du auf
 1. Lade die neue Version herunter und entpacke sie.
 2. Du kannst die alte App/den alten Ordner löschen und stattdessen die neue Version an einen beliebigen Ort verschieben.
 
-**Keine Sorge um deine Speicherstände!** Auf Linux und macOS ist der "Portable Mode" standardmäßig deaktiviert. Das bedeutet, deine Fortschritte werden sicher in einem versteckten System-Verzeichnis abgelegt. Wenn du die neue Version der App öffnest (egal von wo), wird dein kompletter Fortschritt automatisch geladen (falls du den "Portable Mode" nicht aktiviert hast).
+> **Keine Sorge um deine Speicherstände!** Auf Linux und macOS ist der "Portable Mode" standardmäßig deaktiviert. Das bedeutet, deine Fortschritte werden sicher in einem versteckten System-Verzeichnis abgelegt. Wenn du die neue Version der App öffnest (egal von wo), wird dein kompletter Fortschritt automatisch geladen (falls du den "Portable Mode" nicht aktiviert hast).
 
 ## Skip-Codes & Lösungen
 Eine Übersicht aller Level-Codes sowie der Lösungen zu den jeweiligen Levels findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).

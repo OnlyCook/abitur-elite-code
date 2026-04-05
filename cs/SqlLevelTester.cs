@@ -244,18 +244,50 @@ namespace AbiturEliteCode.cs
 
             // -- mysql emulation additions --
 
+            // remove aliases from update
+            var updateAliasMatch = Regex.Match(q, @"^\s*UPDATE\s+([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)\s+SET", RegexOptions.IgnoreCase);
+            if (updateAliasMatch.Success)
+            {
+                string alias = updateAliasMatch.Groups[2].Value;
+                if (!alias.Equals("SET", StringComparison.OrdinalIgnoreCase))
+                {
+                    string tableName = updateAliasMatch.Groups[1].Value;
+                    q = Regex.Replace(q, $@"^\s*UPDATE\s+{tableName}\s+{alias}\s+SET", $"UPDATE {tableName} SET", RegexOptions.IgnoreCase);
+                    q = Regex.Replace(q, $@"\b{alias}\.", "", RegexOptions.IgnoreCase);
+                }
+            }
+
+            // remove aliases from delete
+            var deleteAliasMatch = Regex.Match(q, @"^\s*DELETE\s+FROM\s+([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)\s+WHERE", RegexOptions.IgnoreCase);
+            if (deleteAliasMatch.Success)
+            {
+                string alias = deleteAliasMatch.Groups[2].Value;
+                if (!alias.Equals("WHERE", StringComparison.OrdinalIgnoreCase))
+                {
+                    string tableName = deleteAliasMatch.Groups[1].Value;
+                    q = Regex.Replace(q, $@"^\s*DELETE\s+FROM\s+{tableName}\s+{alias}\s+WHERE", $"DELETE FROM {tableName} WHERE", RegexOptions.IgnoreCase);
+                    q = Regex.Replace(q, $@"\b{alias}\.", "", RegexOptions.IgnoreCase);
+                }
+            }
+
             // transforms "INSERT INTO table SET col1=val1, col2=val2" -> "INSERT INTO table (col1, col2) VALUES (val1, val2)"
-            var insertSetMatch = Regex.Match(q, @"^\s*INSERT\s+INTO\s+(\w+)\s+SET\s+(.+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            // also supports optional aliases
+            var insertSetMatch = Regex.Match(q, @"^\s*INSERT\s+INTO\s+(\w+)(?:\s+(\w+))?\s+SET\s+(.+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
             if (insertSetMatch.Success)
             {
                 string tableName = insertSetMatch.Groups[1].Value;
-                string assignments = insertSetMatch.Groups[2].Value;
+                string alias = insertSetMatch.Groups[2].Success ? insertSetMatch.Groups[2].Value : null;
+                string assignments = insertSetMatch.Groups[3].Value;
+
+                if (!string.IsNullOrEmpty(alias) && !alias.Equals("SET", StringComparison.OrdinalIgnoreCase))
+                {
+                    assignments = Regex.Replace(assignments, $@"\b{alias}\.", "", RegexOptions.IgnoreCase);
+                }
 
                 var columns = new List<string>();
                 var values = new List<string>();
 
                 // regex to capture "col = val" pairs
-                // captures the column name and the value (handling quoted strings vs raw numbers/functions)
                 var pairs = Regex.Matches(assignments, @"(\w+)\s*=\s*('[^']*'|[^,]+)");
 
                 foreach (Match m in pairs)

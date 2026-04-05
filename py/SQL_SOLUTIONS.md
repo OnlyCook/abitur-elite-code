@@ -35,7 +35,7 @@ Eine Liste aller Lösungen zu den SQL-Levels.
 - Level S24: [Die Hochsaison (BETWEEN)](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_24_SOLUTION)
 - Level S25: [Überfällig (NOW / Datumsvergleich)](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_25_SOLUTION)
 - Level S26: [Aufenthaltsdauer (DATEDIFF)](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_26_SOLUTION)
-- Level S27: [Feedback-Mails & Limit (DATE_ADD)](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_27_SOLUTION)
+- Level S27: [Feedback-Mails (DATE_ADD & LIMIT)](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_27_SOLUTION)
 - Level S28: [Die Hotel-Bilanz](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_28_SOLUTION)
 
 ## Sektion 6: Subqueries & Komplexes

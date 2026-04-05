@@ -51,7 +51,8 @@ namespace AbiturEliteCode
         public static bool IsSqlAutocompleteEnabled { get; set; } = false;
         public static bool IsErrorHighlightingEnabled { get; set; } = false;
         public static bool IsErrorExplanationEnabled { get; set; } = false;
-        public static bool AutoCheckForUpdates { get; set; } = false;
+        public static bool AutoCheckForUpdates { get; set; } = true;
+        public static bool IsSqlAntiSpoilerEnabled { get; set; } = false;
     }
 
     public static class CodeGuard
@@ -222,6 +223,7 @@ namespace AbiturEliteCode
             AppSettings.SqlEditorFontSize = playerData.Settings.SqlEditorFontSize;
             AppSettings.UiScale = playerData.Settings.UiScale;
             AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
+            AppSettings.IsSqlAntiSpoilerEnabled = playerData.Settings.IsSqlAntiSpoilerEnabled;
 
             if (AppSettings.AutoCheckForUpdates)
             {
@@ -239,13 +241,22 @@ namespace AbiturEliteCode
             ConfigureTutorialEditor();
             UpdateShortcutsAndTooltips();
 
-            autoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
+            autoSaveTimer = new System.Timers.Timer(2000)
+            {
+                AutoReset = false
+            };
             autoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
 
-            _relationalAutoSaveTimer = new System.Timers.Timer(2000) { AutoReset = false };
+            _relationalAutoSaveTimer = new System.Timers.Timer(2000)
+            {
+                AutoReset = false
+            };
             _relationalAutoSaveTimer.Elapsed += (s, e) => Dispatcher.UIThread.InvokeAsync(SaveCurrentProgress);
 
-            _designerSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            _designerSyncTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(600)
+            };
             _designerSyncTimer.Tick += (s, e) =>
             {
                 _designerSyncTimer.Stop();
@@ -288,11 +299,41 @@ namespace AbiturEliteCode
             var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
             LoadLevel(startLevel);
 
-            this.Opened += (s, e) => CodeEditor.Focus();
+            this.Opened += (s, e) =>
+            {
+                CodeEditor.Focus(); // fix unscaled window for certain aspect ratios
+                this.UpdateLayout();
+            };
 
             // global shortcuts
             this.AddHandler(KeyDownEvent, (s, e) =>
             {
+                // global ui scaling via ctrl +/- (only outside of editors)
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+                {
+                    bool isEditorFocused = (CodeEditor?.IsFocused == true || CodeEditor?.TextArea?.IsFocused == true) ||
+                                           (SqlQueryEditor?.IsFocused == true || SqlQueryEditor?.TextArea?.IsFocused == true) ||
+                                           (TutorialEditor?.IsFocused == true || TutorialEditor?.TextArea?.IsFocused == true);
+
+                    if (!isEditorFocused)
+                    {
+                        if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                        {
+                            AppSettings.UiScale = Math.Min(2.0, Math.Round(AppSettings.UiScale + 0.1, 1));
+                            ApplyUiScale();
+                            e.Handled = true;
+                            return;
+                        }
+                        else if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                        {
+                            AppSettings.UiScale = Math.Max(0.5, Math.Round(AppSettings.UiScale - 0.1, 1));
+                            ApplyUiScale();
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                }
+
                 if (e.Key == Key.F1)
                 {
                     _isKeyboardTabSwitch = true;
@@ -1245,6 +1286,7 @@ namespace AbiturEliteCode
                 {
                     AppSettings.EditorFontSize = Math.Min(48, AppSettings.EditorFontSize + 1);
                     CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    TutorialEditor?.FontSize = AppSettings.EditorFontSize;
                     e.Handled = true;
                     return;
                 }
@@ -1252,6 +1294,7 @@ namespace AbiturEliteCode
                 {
                     AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
                     CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    TutorialEditor?.FontSize = AppSettings.EditorFontSize;
                     e.Handled = true;
                     return;
                 }
@@ -1448,6 +1491,7 @@ namespace AbiturEliteCode
                     AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
                 }
                 CodeEditor.FontSize = AppSettings.EditorFontSize;
+                if (TutorialEditor != null) TutorialEditor.FontSize = AppSettings.EditorFontSize;
                 e.Handled = true;
             }
         }
@@ -4188,7 +4232,11 @@ namespace AbiturEliteCode
                         {
                             bool isSectionComplete = group.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
 
-                            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                            var headerPanel = new StackPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Spacing = 10
+                            };
                             headerPanel.Children.Add(new TextBlock
                             {
                                 Text = group.Key,
@@ -4198,17 +4246,29 @@ namespace AbiturEliteCode
                             });
                             if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
 
-                            var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+                            var sectionContent = new StackPanel
+                            {
+                                Spacing = 5,
+                                Margin = new Thickness(0, 5, 0, 0)
+                            };
 
                             foreach (var lvl in group)
                             {
                                 bool unlocked = playerData.UnlockedSqlLevelIds.Contains(lvl.Id);
                                 bool completed = playerData.CompletedSqlLevelIds.Contains(lvl.Id);
 
-                                var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                                var btnContent = new StackPanel
+                                {
+                                    Orientation = Orientation.Horizontal,
+                                    Spacing = 10
+                                };
                                 string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
                                 btnContent.Children.Add(LoadIcon(iconPath, 16));
-                                btnContent.Children.Add(new TextBlock { Text = $"S{lvl.Id}. {lvl.Title}", VerticalAlignment = VerticalAlignment.Center });
+                                btnContent.Children.Add(new TextBlock
+                                {
+                                    Text = $"S{lvl.Id}. {lvl.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)}",
+                                    VerticalAlignment = VerticalAlignment.Center
+                                });
 
                                 var btn = new Button
                                 {
@@ -4221,7 +4281,11 @@ namespace AbiturEliteCode
                                     Foreground = unlocked ? Brushes.White : Brushes.Gray,
                                     CornerRadius = new CornerRadius(4)
                                 };
-                                btn.Click += (_, __) => { LoadSqlLevel(lvl); win.Close(); };
+                                btn.Click += (_, __) =>
+                                {
+                                    LoadSqlLevel(lvl);
+                                    win.Close();
+                                };
                                 sectionContent.Children.Add(btn);
                             }
 
@@ -4244,7 +4308,11 @@ namespace AbiturEliteCode
                         {
                             bool isSectionComplete = group.All(l => playerData.CompletedLevelIds.Contains(l.Id));
 
-                            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                            var headerPanel = new StackPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Spacing = 10
+                            };
                             headerPanel.Children.Add(new TextBlock
                             {
                                 Text = group.Key,
@@ -4254,17 +4322,29 @@ namespace AbiturEliteCode
                             });
                             if (isSectionComplete) headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
 
-                            var sectionContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
+                            var sectionContent = new StackPanel
+                            {
+                                Spacing = 5,
+                                Margin = new Thickness(0, 5, 0, 0)
+                            };
 
                             foreach (var lvl in group)
                             {
                                 bool unlocked = playerData.UnlockedLevelIds.Contains(lvl.Id);
                                 bool completed = playerData.CompletedLevelIds.Contains(lvl.Id);
 
-                                var btnContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                                var btnContent = new StackPanel
+                                {
+                                    Orientation = Orientation.Horizontal,
+                                    Spacing = 10
+                                };
                                 string iconPath = completed ? "assets/icons/ic_check.svg" : (unlocked ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_lock.svg");
                                 btnContent.Children.Add(LoadIcon(iconPath, 16));
-                                btnContent.Children.Add(new TextBlock { Text = $"{lvl.Id}. {lvl.Title}", VerticalAlignment = VerticalAlignment.Center });
+                                btnContent.Children.Add(new TextBlock
+                                {
+                                    Text = $"{lvl.Id}. {lvl.Title}",
+                                    VerticalAlignment = VerticalAlignment.Center
+                                });
 
                                 var btn = new Button
                                 {
@@ -4277,7 +4357,11 @@ namespace AbiturEliteCode
                                     Foreground = unlocked ? Brushes.White : Brushes.Gray,
                                     CornerRadius = new CornerRadius(4)
                                 };
-                                btn.Click += (_, __) => { LoadLevel(lvl); win.Close(); };
+                                btn.Click += (_, __) =>
+                                {
+                                    LoadLevel(lvl);
+                                    win.Close();
+                                };
                                 sectionContent.Children.Add(btn);
                             }
 
@@ -4410,14 +4494,24 @@ namespace AbiturEliteCode
                             iconImage.Margin = new Thickness(0, 0, 10, 0);
                             iconImage.VerticalAlignment = VerticalAlignment.Center;
 
-                            var btnContentGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *") };
+                            var btnContentGrid = new Grid
+                            {
+                                ColumnDefinitions = new ColumnDefinitions("Auto, *")
+                            };
                             btnContentGrid.Children.Add(iconImage);
 
                             var textStack = new StackPanel { Spacing = 2 };
                             Grid.SetColumn(textStack, 1);
+
+                            string displayName = cl.Name;
+                            if (_isSqlMode && AppSettings.IsSqlAntiSpoilerEnabled && cl.Section != null && !cl.Section.StartsWith("Sektion 7"))
+                            {
+                                displayName = Regex.Replace(cl.Name, @"\s*\(.*?\)", "").Trim();
+                            }
+
                             textStack.Children.Add(new TextBlock
                             {
-                                Text = cl.Name + (cl.IsDraft ? " (Entwurf)" : ""),
+                                Text = displayName + (cl.IsDraft ? " (Entwurf)" : ""),
                                 Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White,
                                 TextTrimming = TextTrimming.CharacterEllipsis
                             });
@@ -5432,6 +5526,7 @@ namespace AbiturEliteCode
             bool originalAutoUpdateEnabled = AppSettings.AutoCheckForUpdates;
             bool isPortable = SaveSystem.IsPortableModeEnabled();
             bool originalPortableState = isPortable;
+            bool originalSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
 
             var settingsWin = new Window
             {
@@ -5525,11 +5620,13 @@ namespace AbiturEliteCode
             var btnCatDisplay = CreateCatBtn("Darstellung");
             var btnCatData = CreateCatBtn("Daten");
             var btnCatUpdates = CreateCatBtn("Updates", _updateAvailable);
+            var btnCatMisc = CreateCatBtn("Sonstiges");
 
             categoriesPanel.Children.Add(btnCatEditor);
             categoriesPanel.Children.Add(btnCatDisplay);
             categoriesPanel.Children.Add(btnCatData);
             categoriesPanel.Children.Add(btnCatUpdates);
+            categoriesPanel.Children.Add(btnCatMisc);
 
             leftPanelGrid.Children.Add(categoriesPanel);
 
@@ -5572,7 +5669,11 @@ namespace AbiturEliteCode
             Grid.SetRowSpan(leftPanelGrid, 2);
             mainGrid.Children.Add(leftPanelGrid);
 
-            var rightPanel = new Border { Padding = new Thickness(20), Background = BrushBgPanel };
+            var rightPanel = new Border
+            {
+                Padding = new Thickness(20),
+                Background = BrushBgPanel
+            };
             Grid.SetColumn(rightPanel, 1);
             mainGrid.Children.Add(rightPanel);
 
@@ -5637,7 +5738,12 @@ namespace AbiturEliteCode
                 Width = 200,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            var txtScaleVal = new TextBlock { Text = $"{AppSettings.UiScale:P0}", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+            var txtScaleVal = new TextBlock
+            {
+                Text = $"{AppSettings.UiScale:P0}",
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
             // editor font size
             var sliderFontSize = new Slider
@@ -5648,7 +5754,12 @@ namespace AbiturEliteCode
                 Width = 200,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            var txtFontSizeVal = new TextBlock { Text = $"{AppSettings.EditorFontSize:F0}px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+            var txtFontSizeVal = new TextBlock
+            {
+                Text = $"{AppSettings.EditorFontSize:F0}px",
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
             // sql font size
             var sliderSqlFontSize = new Slider
@@ -5659,7 +5770,12 @@ namespace AbiturEliteCode
                 Width = 200,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            var txtSqlFontSizeVal = new TextBlock { Text = $"{AppSettings.SqlEditorFontSize:F0}px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+            var txtSqlFontSizeVal = new TextBlock
+            {
+                Text = $"{AppSettings.SqlEditorFontSize:F0}px",
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
             // data settings
             var chkPortable = new CheckBox
@@ -5846,6 +5962,33 @@ namespace AbiturEliteCode
                 }
             };
 
+            // misc
+            var miscSettingsPanel = new StackPanel { Spacing = 15 };
+            miscSettingsPanel.Children.Add(new TextBlock
+            {
+                Text = "Sonstiges",
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+
+            var chkSqlAntiSpoiler = new CheckBox
+            {
+                Content = "SQL Anti-Spoiler Modus",
+                IsChecked = AppSettings.IsSqlAntiSpoilerEnabled,
+                Foreground = Brushes.White
+            };
+            ToolTip.SetTip(chkSqlAntiSpoiler, "Mögliche Lösungsansätze aus den Levelnamen verbergen");
+
+            chkSqlAntiSpoiler.IsCheckedChanged += (s, ev) =>
+            {
+                AppSettings.IsSqlAntiSpoilerEnabled = chkSqlAntiSpoiler.IsChecked ?? false;
+                CheckChanges();
+            };
+
+            miscSettingsPanel.Children.Add(chkSqlAntiSpoiler);
+
             void CheckChanges()
             {
                 bool hasChanges =
@@ -5861,6 +6004,7 @@ namespace AbiturEliteCode
                     (Math.Abs(sliderSqlFontSize.Value - originalSqlFontSize) > 0.004) ||
                     (chkPortable.IsChecked != isPortable) ||
                     (chkAutoUpdate.IsChecked != originalAutoUpdateEnabled) ||
+                    (chkSqlAntiSpoiler.IsChecked != originalSqlAntiSpoilerEnabled) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
                 btnSave.IsEnabled = hasChanges;
@@ -6048,6 +6192,7 @@ namespace AbiturEliteCode
                 AppSettings.EditorFontSize = ev.NewValue;
                 txtFontSizeVal.Text = $"{ev.NewValue:F0}px";
                 CodeEditor.FontSize = ev.NewValue;
+                TutorialEditor.FontSize = ev.NewValue;
                 CheckChanges();
             };
 
@@ -6070,7 +6215,14 @@ namespace AbiturEliteCode
             // editor
             var editorSettings = new StackPanel { Spacing = 15 };
             string editorTitle = _isSqlMode ? "SQL Query Editor" : "C# Code Editor";
-            editorSettings.Children.Add(new TextBlock { Text = editorTitle, FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
+            editorSettings.Children.Add(new TextBlock
+            {
+                Text = editorTitle,
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
             editorSettings.Children.Add(chkSyntax);
             editorSettings.Children.Add(chkAutocomplete);
             editorSettings.Children.Add(chkError);
@@ -6079,27 +6231,65 @@ namespace AbiturEliteCode
 
             // display
             var displaySettings = new StackPanel { Spacing = 15 };
-            var scalePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-            var fontPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            var scalePanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10
+            };
+            var fontPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10
+            };
             fontPanel.Children.Add(sliderFontSize);
             fontPanel.Children.Add(txtFontSizeVal);
-            var sqlFontPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            var sqlFontPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10
+            };
             sqlFontPanel.Children.Add(sliderSqlFontSize);
             sqlFontPanel.Children.Add(txtSqlFontSizeVal);
 
             scalePanel.Children.Add(sliderScale);
             scalePanel.Children.Add(txtScaleVal);
-            displaySettings.Children.Add(new TextBlock { Text = "Darstellung", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
-            displaySettings.Children.Add(new TextBlock { Text = "UI Skalierung", Foreground = Brushes.LightGray });
+            displaySettings.Children.Add(new TextBlock
+            {
+                Text = "Darstellung",
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+            displaySettings.Children.Add(new TextBlock
+            {
+                Text = "UI Skalierung",
+                Foreground = Brushes.LightGray
+            });
             displaySettings.Children.Add(scalePanel);
-            displaySettings.Children.Add(new TextBlock { Text = "C# Editor Schriftgröße", Foreground = Brushes.LightGray });
+            displaySettings.Children.Add(new TextBlock
+            {
+                Text = "C# Editor Schriftgröße",
+                Foreground = Brushes.LightGray
+            });
             displaySettings.Children.Add(fontPanel);
-            displaySettings.Children.Add(new TextBlock { Text = "SQL Editor Schriftgröße", Foreground = Brushes.LightGray });
+            displaySettings.Children.Add(new TextBlock
+            {
+                Text = "SQL Editor Schriftgröße",
+                Foreground = Brushes.LightGray
+            });
             displaySettings.Children.Add(sqlFontPanel);
 
             // data
             var dataSettingsPanel = new StackPanel { Spacing = 15 };
-            dataSettingsPanel.Children.Add(new TextBlock { Text = "Daten & Speicher", FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 10) });
+            dataSettingsPanel.Children.Add(new TextBlock
+            {
+                Text = "Daten & Speicher",
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
             dataSettingsPanel.Children.Add(chkPortable);
             dataSettingsPanel.Children.Add(txtPortableInfo);
 
@@ -6109,6 +6299,7 @@ namespace AbiturEliteCode
                 btnCatDisplay.Background = Brushes.Transparent;
                 btnCatData.Background = Brushes.Transparent;
                 btnCatUpdates.Background = Brushes.Transparent;
+                btnCatMisc.Background = Brushes.Transparent;
 
                 activeBtn.Background = SolidColorBrush.Parse("#3E3E42");
                 rightPanel.Child = content;
@@ -6118,6 +6309,7 @@ namespace AbiturEliteCode
             btnCatDisplay.Click += (s, ev) => ShowCategory(btnCatDisplay, displaySettings);
             btnCatData.Click += (s, ev) => ShowCategory(btnCatData, dataSettingsPanel);
             btnCatUpdates.Click += (s, ev) => ShowCategory(btnCatUpdates, updatesSettingsPanel);
+            btnCatMisc.Click += (s, ev) => ShowCategory(btnCatMisc, miscSettingsPanel);
 
             ShowCategory(btnCatEditor, editorSettings);
 
@@ -6153,6 +6345,7 @@ namespace AbiturEliteCode
                 playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
                 playerData.Settings.UiScale = AppSettings.UiScale;
                 playerData.Settings.AutoCheckForUpdates = AppSettings.AutoCheckForUpdates;
+                playerData.Settings.IsSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
 
                 SaveSystem.Save(playerData);
 
@@ -6260,6 +6453,7 @@ namespace AbiturEliteCode
                     SqlQueryEditor.FontSize = originalSqlFontSize;
                     AppSettings.UiScale = originalUiScale;
                     AppSettings.AutoCheckForUpdates = originalAutoUpdateEnabled;
+                    AppSettings.IsSqlAntiSpoilerEnabled = originalSqlAntiSpoilerEnabled;
 
                     UpdateVimState();
                     ApplySyntaxHighlighting();
@@ -7226,6 +7420,7 @@ namespace AbiturEliteCode
 
             TutorialEditor.AddHandler(InputElement.KeyDownEvent, TutorialEditor_KeyDown, RoutingStrategies.Tunnel);
             TutorialEditor.AddHandler(InputElement.PointerPressedEvent, TutorialEditor_PointerPressed, RoutingStrategies.Tunnel);
+            TutorialEditor.AddHandler(InputElement.PointerWheelChangedEvent, TutorialEditor_PointerWheelChanged, RoutingStrategies.Tunnel);
             TutorialEditor.TextArea.TextEntering += Editor_TextEntering;
 
             TutorialEditor.TextArea.Caret.PositionChanged += (s, e) =>
@@ -7297,6 +7492,24 @@ namespace AbiturEliteCode
 
             if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
             {
+                // zoom via ctrl + +/-
+                if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                {
+                    AppSettings.EditorFontSize = Math.Min(48, AppSettings.EditorFontSize + 1);
+                    TutorialEditor.FontSize = AppSettings.EditorFontSize;
+                    CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                {
+                    AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
+                    TutorialEditor.FontSize = AppSettings.EditorFontSize;
+                    CodeEditor.FontSize = AppSettings.EditorFontSize;
+                    e.Handled = true;
+                    return;
+                }
+
                 if (e.Key == Key.V)
                 {
                     // catch those cheaters
@@ -7319,6 +7532,25 @@ namespace AbiturEliteCode
         private void TutorialEditor_PointerPressed(object sender, PointerPressedEventArgs e)
         {
             _tutorialMouseClicks++;
+        }
+
+        private void TutorialEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+        {
+            // zoom via ctrl + mwheel
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                if (e.Delta.Y > 0)
+                {
+                    AppSettings.EditorFontSize = Math.Min(48, AppSettings.EditorFontSize + 1);
+                }
+                else if (e.Delta.Y < 0)
+                {
+                    AppSettings.EditorFontSize = Math.Max(8, AppSettings.EditorFontSize - 1);
+                }
+                TutorialEditor.FontSize = AppSettings.EditorFontSize;
+                CodeEditor.FontSize = AppSettings.EditorFontSize;
+                e.Handled = true;
+            }
         }
 
         private void BtnStartTutorial_Click(object sender, RoutedEventArgs e)
@@ -9100,7 +9332,7 @@ namespace AbiturEliteCode
             {
                 PnlTask.Children.Add(new SelectableTextBlock
                 {
-                    Text = level.Title,
+                    Text = level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled),
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
                     Foreground = BrushTextNormal,
@@ -9111,10 +9343,11 @@ namespace AbiturEliteCode
                 {
                     PnlTask.Children.Add(new SelectableTextBlock
                     {
-                        Text = $"von {_currentCustomAuthor}",
-                        FontSize = 14,
-                        Foreground = Brushes.Gray,
-                        Margin = new Thickness(0, 0, 0, 20)
+                        Text = $"S{level.Id}. {level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)}",
+                        FontSize = 20,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = BrushTextNormal,
+                        Margin = new Thickness(0, 0, 0, 15)
                     });
                 }
                 else
@@ -9124,9 +9357,10 @@ namespace AbiturEliteCode
             }
             else
             {
+                // standard level header
                 PnlTask.Children.Add(new SelectableTextBlock
                 {
-                    Text = $"S{level.Id}. {level.Title}",
+                    Text = $"S{level.Id}. {level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)}",
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
                     Foreground = BrushTextNormal,

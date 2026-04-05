@@ -12,7 +12,7 @@
         Background="#121212"
         RequestedThemeVariant="Dark">
 
-	<LayoutTransformControl Name="RootScaleTransform">
+	<LayoutTransformControl Name="RootScaleTransform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 		<Grid Name="RootGrid" RowDefinitions="60,*">
 
 			<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">

@@ -43,6 +43,12 @@ namespace AbiturEliteCode.cs
         public string SkipCode { get; set; }
         public string NextLevelCode { get; set; }
         public string Title { get; set; }
+        public string GetDisplayTitle(bool antiSpoilerEnabled)
+        {
+            if (!antiSpoilerEnabled) return Title;
+            if (!string.IsNullOrEmpty(Section) && Section.StartsWith("Sektion 7")) return Title; // ignore section 7
+            return System.Text.RegularExpressions.Regex.Replace(Title ?? "", @"\s*\(.*?\)\s*", "").Trim(); // remove braces including its contents
+        }
         public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
         public List<string> DiagramTags { get; set; } = new List<string>(); // "ER"
         public string Description { get; set; }
@@ -1335,7 +1341,7 @@ namespace AbiturEliteCode.cs
                     Section = "Sektion 5: Datumsfunktionen",
                     SkipCode = SqlLevelCodes.CodesList[26],
                     NextLevelCode = SqlLevelCodes.CodesList[27],
-                    Title = "Feedback-Mails & Limit (DATE_ADD)",
+                    Title = "Feedback-Mails (DATE_ADD & LIMIT)",
                     Description = "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
                                   "**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.\n\n" +
                                   "**Aufgabe:**\n" +

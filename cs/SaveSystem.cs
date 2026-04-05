@@ -16,7 +16,8 @@ public class PlayerSettings
     public double UiScale { get; set; } = 1.0;
     public int TabTipShownCount { get; set; } = 0;
     public int VimTutorialHighscore { get; set; } = 0;
-    public bool AutoCheckForUpdates { get; set; } = false;
+    public bool AutoCheckForUpdates { get; set; } = true;
+    public bool IsSqlAntiSpoilerEnabled { get; set; } = false;
 }
 
 public class PlayerData
@@ -28,7 +29,7 @@ public class PlayerData
     public List<int> CompletedSqlLevelIds { get; set; } = new List<int>();
 
     public Dictionary<int, string> UserSqlCode { get; set; } = new Dictionary<int, string>();
-    public Dictionary<int, string> UserSqlModels { get; set; } = new Dictionary<int, string>(); // new
+    public Dictionary<int, string> UserSqlModels { get; set; } = new Dictionary<int, string>();
     public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
     public PlayerSettings Settings { get; set; } = new PlayerSettings();
 }
@@ -122,7 +123,7 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -175,18 +176,23 @@ public static class SaveSystem
                     var kv = s.Split(':');
                     if (kv.Length != 2) continue;
 
-                    if (kv[0] == "vim") data.Settings.IsVimEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "sqlvim") data.Settings.IsSqlVimEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "syntax") data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "sqlsyntax") data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "sqlautocomplete") data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "autocomplete") data.Settings.IsAutocompleteEnabled = bool.Parse(kv[1]);
-                    else if (kv[0] == "fontsize") data.Settings.EditorFontSize = double.Parse(kv[1]);
-                    else if (kv[0] == "sqlfontsize") data.Settings.SqlEditorFontSize = double.Parse(kv[1]);
-                    else if (kv[0] == "scale") data.Settings.UiScale = double.Parse(kv[1]);
-                    else if (kv[0] == "tabtips") data.Settings.TabTipShownCount = int.Parse(kv[1]);
-                    else if (kv[0] == "vimscore") data.Settings.VimTutorialHighscore = int.Parse(kv[1]);
-                    else if (kv[0] == "autoupdate") data.Settings.AutoCheckForUpdates = bool.Parse(kv[1]);
+                    switch (kv[0])
+                    {
+                        case "vim": data.Settings.IsVimEnabled = bool.Parse(kv[1]); break;
+                        case "sqlvim": data.Settings.IsSqlVimEnabled = bool.Parse(kv[1]); break;
+                        case "syntax": data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]); break;
+                        case "sqlsyntax": data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]); break;
+                        case "sqlautocomplete": data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]); break;
+                        case "autocomplete": data.Settings.IsAutocompleteEnabled = bool.Parse(kv[1]); break;
+                        case "fontsize": data.Settings.EditorFontSize = double.Parse(kv[1]); break;
+                        case "sqlfontsize": data.Settings.SqlEditorFontSize = double.Parse(kv[1]); break;
+                        case "scale": data.Settings.UiScale = double.Parse(kv[1]); break;
+                        case "tabtips": data.Settings.TabTipShownCount = int.Parse(kv[1]); break;
+                        case "vimscore": data.Settings.VimTutorialHighscore = int.Parse(kv[1]); break;
+                        case "autoupdate": data.Settings.AutoCheckForUpdates = bool.Parse(kv[1]); break;
+                        case "sqlantispoiler": data.Settings.IsSqlAntiSpoilerEnabled = bool.Parse(kv[1]); break;
+                        default: break;
+                    }
                 }
             }
 

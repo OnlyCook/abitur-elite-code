@@ -113,7 +113,7 @@ Die Links zu den Lösungen aller Levels und ihrer Erklärungen findest du hier e
 | S24 | `BTW` | Die Hochsaison (BETWEEN) | [➤ S24](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_24_SOLUTION) |
 | S25 | `NOW` | Überfällig (NOW / Datumsvergleich) | [➤ S25](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_25_SOLUTION) |
 | S26 | `DIF` | Aufenthaltsdauer (DATEDIFF) | [➤ S26](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_26_SOLUTION) |
-| S27 | `ADD` | Feedback-Mails & Limit (DATE_ADD) | [➤ S27](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_27_SOLUTION) |
+| S27 | `ADD` | Feedback-Mails (DATE_ADD & LIMIT) | [➤ S27](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_27_SOLUTION) |
 | S28 | `HOT` | Die Hotel-Bilanz | [➤ S28](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_28_SOLUTION) |
 
 ## Sektion 6: Subqueries & Komplexes
