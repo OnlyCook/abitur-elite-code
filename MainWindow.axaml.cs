@@ -53,6 +53,7 @@ namespace AbiturEliteCode
         public static bool IsErrorExplanationEnabled { get; set; } = false;
         public static bool AutoCheckForUpdates { get; set; } = true;
         public static bool IsSqlAntiSpoilerEnabled { get; set; } = false;
+        public static bool IsDiscordRpcEnabled { get; set; } = false;
     }
 
     public static class CodeGuard
@@ -232,6 +233,7 @@ namespace AbiturEliteCode
             AppSettings.UiScale = playerData.Settings.UiScale;
             AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
             AppSettings.IsSqlAntiSpoilerEnabled = playerData.Settings.IsSqlAntiSpoilerEnabled;
+            AppSettings.IsDiscordRpcEnabled = playerData.Settings.IsDiscordRpcEnabled;
 
             // check if display is too small and scale down automatically
             var screen = this.Screens?.Primary;
@@ -282,6 +284,11 @@ namespace AbiturEliteCode
             if (AppSettings.AutoCheckForUpdates)
             {
                 CheckForUpdatesBackground();
+            }
+
+            if (AppSettings.IsDiscordRpcEnabled)
+            {
+                DiscordRpcManager.Initialize();
             }
 
             ApplyUiScale();
@@ -633,6 +640,8 @@ namespace AbiturEliteCode
                 PnlDesignSqlVerify.IsVisible = _currentSqlDraft.IsDmlMode;
                 _designerAutoSaveTimer.Stop(); _designerAutoSaveTimer.Start();
             };
+
+            this.Closed += (s, e) => DiscordRpcManager.Deinitialize();
         }
 
         private void UpdateTabStyles()
@@ -2084,6 +2093,16 @@ namespace AbiturEliteCode
             else
             {
                 AddToConsole("> System initialisiert.", Brushes.LightGray);
+            }
+
+            DiscordRpcManager.ResetTimer();
+            if (_isCustomLevelMode)
+            {
+                DiscordRpcManager.UpdatePresence("C# Custom Level", "Solving a custom level", "aec_app_icon", "Custom");
+            }
+            else
+            {
+                DiscordRpcManager.UpdatePresence($"C# Level {level.Id}", "Coding greatness", "chsarp_icon", "C#");
             }
 
             UpdateSemanticHighlighting(); // init scan
@@ -3992,6 +4011,7 @@ namespace AbiturEliteCode
         private void BtnModeSwitch_Click(object sender, RoutedEventArgs e)
         {
             _isSqlMode = !_isSqlMode;
+            _isCustomLevelMode = false;
 
             BtnNextLevel.IsVisible = false;
 
@@ -4035,7 +4055,7 @@ namespace AbiturEliteCode
 
                 ApplySqlSyntaxHighlighting();
 
-                if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
+                sqlLevels ??= SqlCurriculum.GetLevels();
                 int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
                 var startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
                 LoadSqlLevel(startLevel);
@@ -4074,6 +4094,13 @@ namespace AbiturEliteCode
                 UpdateShortcutsAndTooltips();
 
                 ApplySyntaxHighlighting();
+
+                levels ??= Curriculum.GetLevels();
+                if (currentLevel == null || currentLevel.Id < 0)
+                {
+                    int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
+                    currentLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
+                }
 
                 LoadLevel(currentLevel);
                 UpdateVimState();
@@ -5645,6 +5672,7 @@ namespace AbiturEliteCode
             bool isPortable = SaveSystem.IsPortableModeEnabled();
             bool originalPortableState = isPortable;
             bool originalSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
+            bool originalDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
 
             var settingsWin = new Window
             {
@@ -6099,13 +6127,16 @@ namespace AbiturEliteCode
             };
             ToolTip.SetTip(chkSqlAntiSpoiler, "Mögliche Lösungsansätze aus den Levelnamen verbergen");
 
-            chkSqlAntiSpoiler.IsCheckedChanged += (s, ev) =>
+            var chkDiscordRpc = new CheckBox
             {
-                AppSettings.IsSqlAntiSpoilerEnabled = chkSqlAntiSpoiler.IsChecked ?? false;
-                CheckChanges();
+                Content = "Discord Rich Presence",
+                IsChecked = AppSettings.IsDiscordRpcEnabled,
+                Foreground = Brushes.White
             };
+            ToolTip.SetTip(chkDiscordRpc, "Zeige deinen Status auf Discord an");
 
             miscSettingsPanel.Children.Add(chkSqlAntiSpoiler);
+            miscSettingsPanel.Children.Add(chkDiscordRpc);
 
             void CheckChanges()
             {
@@ -6123,6 +6154,7 @@ namespace AbiturEliteCode
                     (chkPortable.IsChecked != isPortable) ||
                     (chkAutoUpdate.IsChecked != originalAutoUpdateEnabled) ||
                     (chkSqlAntiSpoiler.IsChecked != originalSqlAntiSpoilerEnabled) ||
+                    (chkDiscordRpc.IsChecked != originalDiscordRpcEnabled) ||
                     (Math.Abs(sliderScale.Value - originalUiScale) > 0.004);
 
                 btnSave.IsEnabled = hasChanges;
@@ -6156,8 +6188,20 @@ namespace AbiturEliteCode
                 var cBtnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10 };
                 Grid.SetRow(cBtnPanel, 1);
 
-                var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
-                var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+                var btnYes = new Button
+                {
+                    Content = "Ja, zurücksetzen",
+                    Background = SolidColorBrush.Parse("#B43232"),
+                    Foreground = Brushes.White,
+                    CornerRadius = new CornerRadius(4)
+                };
+                var btnNo = new Button
+                {
+                    Content = "Abbrechen",
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
+                    CornerRadius = new CornerRadius(4)
+                };
 
                 btnYes.Click += (_, __) =>
                 {
@@ -6181,7 +6225,9 @@ namespace AbiturEliteCode
                     sliderSqlFontSize.Value = 16.0;
                     chkPortable.IsChecked = false;
                     sliderScale.Value = 1.0;
-                    chkAutoUpdate.IsChecked = false;
+                    chkAutoUpdate.IsChecked = true;
+                    chkSqlAntiSpoiler.IsChecked = false;
+                    chkDiscordRpc.IsChecked = false;
 
                     confirmDialog.Close();
                 };
@@ -6328,6 +6374,18 @@ namespace AbiturEliteCode
                 CheckChanges();
             };
 
+            chkDiscordRpc.IsCheckedChanged += (s, ev) =>
+            {
+                AppSettings.IsDiscordRpcEnabled = chkDiscordRpc.IsChecked ?? false;
+                CheckChanges();
+            };
+
+            chkSqlAntiSpoiler.IsCheckedChanged += (s, ev) =>
+            {
+                AppSettings.IsSqlAntiSpoilerEnabled = chkSqlAntiSpoiler.IsChecked ?? false;
+                CheckChanges();
+            };
+
             // --- LAYOUT ASSEMBLY ---
 
             // editor
@@ -6464,6 +6522,19 @@ namespace AbiturEliteCode
                 playerData.Settings.UiScale = AppSettings.UiScale;
                 playerData.Settings.AutoCheckForUpdates = AppSettings.AutoCheckForUpdates;
                 playerData.Settings.IsSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
+                playerData.Settings.IsDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
+
+                if (AppSettings.IsDiscordRpcEnabled)
+                {
+                    DiscordRpcManager.Initialize();
+                    if (_isDesignerMode) DiscordRpcManager.UpdatePresence("C# Level Designer", "Creating their own level", "aec_app_icon", "Custom");
+                    else if (_isSqlMode) DiscordRpcManager.UpdatePresence($"SQL Level {currentSqlLevel?.Id}", "Querying greatness", "mysql_icon", "MySQL");
+                    else DiscordRpcManager.UpdatePresence($"C# Level {currentLevel?.Id}", "Coding greatness", "chsarp_icon", "C#");
+                }
+                else
+                {
+                    DiscordRpcManager.Deinitialize();
+                }
 
                 SaveSystem.Save(playerData);
 
@@ -6483,6 +6554,22 @@ namespace AbiturEliteCode
                         AddToConsole($"\n> Fehler beim Ändern des Speicherorts: {ex.Message}", Brushes.Red);
                     }
                 }
+
+                // update original state references (allow subsequent saves)
+                originalVimEnabled = AppSettings.IsVimEnabled;
+                originalSqlVimEnabled = AppSettings.IsSqlVimEnabled;
+                originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
+                originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
+                originalAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
+                originalSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
+                originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
+                originalErrorExplanation = AppSettings.IsErrorExplanationEnabled;
+                originalEditorFontSize = AppSettings.EditorFontSize;
+                originalSqlFontSize = AppSettings.SqlEditorFontSize;
+                originalUiScale = AppSettings.UiScale;
+                originalAutoUpdateEnabled = AppSettings.AutoCheckForUpdates;
+                originalSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
+                originalDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
 
                 btnSave.IsEnabled = false;
                 btnSave.Opacity = 0.5;
@@ -6572,6 +6659,7 @@ namespace AbiturEliteCode
                     AppSettings.UiScale = originalUiScale;
                     AppSettings.AutoCheckForUpdates = originalAutoUpdateEnabled;
                     AppSettings.IsSqlAntiSpoilerEnabled = originalSqlAntiSpoilerEnabled;
+                    AppSettings.IsDiscordRpcEnabled = originalDiscordRpcEnabled;
 
                     UpdateVimState();
                     ApplySyntaxHighlighting();
@@ -8205,6 +8293,9 @@ namespace AbiturEliteCode
                     TxtDesignPrereqInput.Watermark = "z.B. If statements...";
                 }
 
+                DiscordRpcManager.ResetTimer();
+                DiscordRpcManager.UpdatePresence("C# Level Designer", "Creating their own level", "aec_app_icon", "Custom");
+
                 LoadDiagramContentToUI();
                 RenderDesignerPrereqList();
 
@@ -9411,6 +9502,14 @@ namespace AbiturEliteCode
 
         private void LoadSqlLevel(SqlLevel level)
         {
+            // reset custom variables if its a standard level
+            if (level.Id > 0)
+            {
+                _isCustomLevelMode = false;
+                _currentCustomAuthor = "";
+                _nextCustomLevelPath = null;
+            }
+
             // check if leaving level 4 unresolved (completes the mission to not annoy user)
             if (currentSqlLevel?.Id == 4 && !playerData.Settings.SqlSpoilerHintDismissed)
             {
@@ -9599,6 +9698,16 @@ namespace AbiturEliteCode
                 {
                     _spoilerDelayTimer.Start();
                 }
+            }
+
+            DiscordRpcManager.ResetTimer();
+            if (_isCustomLevelMode)
+            {
+                DiscordRpcManager.UpdatePresence("SQL Custom Level", "Solving a custom level", "aec_app_icon", "Custom");
+            }
+            else
+            {
+                DiscordRpcManager.UpdatePresence($"SQL Level {level.Id}", "Querying greatness", "mysql_icon", "MySQL");
             }
         }
 
