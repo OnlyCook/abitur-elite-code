@@ -119,6 +119,13 @@ namespace AbiturEliteCode
         private int _mouseTabSwitchCount = 0;
         private bool _isKeyboardTabSwitch = false;
 
+        private DispatcherTimer _spoilerDelayTimer;
+        private DispatcherTimer _spoilerActiveTimer;
+        private bool _spoilerDelayMet = false;
+
+        private DispatcherTimer _relationalTipDelayTimer;
+        private DispatcherTimer _relationalTipDisplayTimer;
+
         private string _currentCustomValidationCode = null;
         private bool _isCustomLevelMode = false;
         private CustomPlayerData customPlayerData;
@@ -225,6 +232,52 @@ namespace AbiturEliteCode
             AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
             AppSettings.IsSqlAntiSpoilerEnabled = playerData.Settings.IsSqlAntiSpoilerEnabled;
 
+            // check if display is too small and scale down automatically
+            var screen = this.Screens?.Primary;
+            if (screen != null)
+            {
+                double screenWidth = screen.WorkingArea.Width;
+                double screenHeight = screen.WorkingArea.Height;
+
+                double baseWidth = 1250.0;
+                double baseHeight = 850.0;
+
+                bool resolutionChanged = Math.Abs(playerData.Settings.LastScreenWidth - screenWidth) > 1 || Math.Abs(playerData.Settings.LastScreenHeight - screenHeight) > 1;
+
+                if (resolutionChanged)
+                {
+                    playerData.Settings.LastScreenWidth = screenWidth;
+                    playerData.Settings.LastScreenHeight = screenHeight;
+                }
+
+                // only resize window if screen is actually smaller than base design size
+                if (screenWidth < baseWidth || screenHeight < baseHeight)
+                {
+                    double scaleX = screenWidth / baseWidth;
+                    double scaleY = screenHeight / baseHeight;
+                    double targetScale = Math.Min(scaleX, scaleY);
+
+                    // scale ui correspondingly (if resolution changed)
+                    if (resolutionChanged && AppSettings.UiScale > targetScale)
+                    {
+                        AppSettings.UiScale = Math.Max(0.5, Math.Round(targetScale, 1));
+                    }
+
+                    this.Width = screenWidth;
+                    this.Height = screenHeight - 50; // buffer for taskbar/header
+                }
+                else // standard behavior (monitor size >= 1300x900)
+                {
+                    this.Width = baseWidth;
+                    this.Height = baseHeight;
+                }
+            }
+            else // fallback (no screen detected)
+            {
+                this.Width = 1250;
+                this.Height = 850;
+            }
+
             if (AppSettings.AutoCheckForUpdates)
             {
                 CheckForUpdatesBackground();
@@ -263,9 +316,66 @@ namespace AbiturEliteCode
                 SyncEditorToDesigner();
             };
 
+            _relationalTipDelayTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2)
+            };
+            _relationalTipDelayTimer.Tick += (s, e) =>
+            {
+                _relationalTipDelayTimer.Stop();
+                if (MainTabs.SelectedIndex == 0 || MainTabs.SelectedIndex == 1)
+                {
+                    ShowRelationalTip();
+                }
+            };
+
+            _relationalTipDisplayTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(12)
+            };
+            _relationalTipDisplayTimer.Tick += (s, e) =>
+            {
+                _relationalTipDisplayTimer.Stop();
+                PnlRelationalTip.IsVisible = false;
+            };
+
+            BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
+            BtnCloseRelationalTip.Click += (s, e) =>
+            {
+                _relationalTipDisplayTimer.Stop();
+                PnlRelationalTip.IsVisible = false;
+            };
+
             BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
             MainTabs.SelectionChanged += OnMainTabChanged;
             MainTabs.LayoutUpdated += (s, e) => UpdateTabStyles();
+
+            _spoilerDelayTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(3)
+            };
+            _spoilerDelayTimer.Tick += (s, e) =>
+            {
+                _spoilerDelayTimer.Stop();
+                _spoilerDelayMet = true;
+                EvaluateSpoilerHintVisibility();
+            };
+
+            _spoilerActiveTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(500)
+            };
+            _spoilerActiveTimer.Tick += (s, e) =>
+            {
+                if (playerData.Settings.SqlSpoilerHintDismissed) return;
+
+                playerData.Settings.SqlSpoilerHintTotalSeconds += 0.5;
+                if (playerData.Settings.SqlSpoilerHintTotalSeconds >= 4.0)
+                {
+                    playerData.Settings.SqlSpoilerHintDismissed = true;
+                    SaveSystem.Save(playerData);
+                }
+            };
 
             CodeEditor.TextChanged += (s, e) =>
             {
@@ -301,8 +411,13 @@ namespace AbiturEliteCode
 
             this.Opened += (s, e) =>
             {
-                CodeEditor.Focus(); // fix unscaled window for certain aspect ratios
-                this.UpdateLayout();
+                CodeEditor.Focus();
+                // fix unscaled window for certain aspect ratios
+                Dispatcher.UIThread.Post(() =>
+                {
+                    this.InvalidateMeasure();
+                    RootScaleTransform?.InvalidateMeasure();
+                }, DispatcherPriority.Render);
             };
 
             // global shortcuts
@@ -595,6 +710,8 @@ namespace AbiturEliteCode
             {
                 ShowTabTip();
             }
+
+            EvaluateSpoilerHintVisibility();
         }
 
         private void UpdateSqlAutocompleteSchema()
@@ -9293,6 +9410,13 @@ namespace AbiturEliteCode
 
         private void LoadSqlLevel(SqlLevel level)
         {
+            // check if leaving level 4 unresolved (completes the mission to not annoy user)
+            if (currentSqlLevel?.Id == 4 && !playerData.Settings.SqlSpoilerHintDismissed)
+            {
+                playerData.Settings.SqlSpoilerHintDismissed = true;
+                SaveSystem.Save(playerData);
+            }
+
             SaveCurrentProgress();
 
             UpdateFocusedColumn(null, null);
@@ -9460,6 +9584,18 @@ namespace AbiturEliteCode
             else
             {
                 AddSqlOutput("System", $"Level S{level.Id} (Code: {level.SkipCode}) geladen.\nDatenbank zurückgesetzt.", Brushes.Gray);
+            }
+
+            HideSpoilerHint();
+            _spoilerDelayMet = false;
+            _spoilerDelayTimer.Stop();
+
+            if (!AppSettings.IsSqlAntiSpoilerEnabled && !playerData.Settings.SqlSpoilerHintDismissed)
+            {
+                if (level.Id == 3 || level.Id == 4)
+                {
+                    _spoilerDelayTimer.Start();
+                }
             }
         }
 
@@ -9960,6 +10096,15 @@ namespace AbiturEliteCode
             UpdateRelationalValidationIcon();
             _relationalAutoSaveTimer.Stop();
             _relationalAutoSaveTimer.Start();
+
+            // show tip for sql level 13 (if unseen)
+            if (_isSqlMode && currentSqlLevel?.Id == 13 && !playerData.Settings.RelationalModelTipShown)
+            {
+                if (!PnlRelationalTip.IsVisible && !_relationalTipDelayTimer.IsEnabled)
+                {
+                    _relationalTipDelayTimer.Start();
+                }
+            }
         }
 
         private bool CheckRelationalModel(int levelId)
@@ -11037,6 +11182,64 @@ namespace AbiturEliteCode
             dialog.Content = rootGrid;
 
             await dialog.ShowDialog(owner);
+        }
+
+        private void EvaluateSpoilerHintVisibility()
+        {
+            if (!_isSqlMode || currentSqlLevel == null || AppSettings.IsSqlAntiSpoilerEnabled)
+            {
+                HideSpoilerHint();
+                return;
+            }
+
+            // only show in level 3 or 4 if tab is on "Aufgabe" tab and 4 seconds passed
+            if ((currentSqlLevel.Id == 3 || currentSqlLevel.Id == 4) && _spoilerDelayMet && MainTabs.SelectedIndex == 0)
+            {
+                PnlSpoilerTip.IsVisible = true;
+                if (!_spoilerActiveTimer.IsEnabled) _spoilerActiveTimer.Start();
+            }
+            else
+            {
+                HideSpoilerHint();
+            }
+        }
+
+        private void HideSpoilerHint()
+        {
+            PnlSpoilerTip?.IsVisible = false;
+            _spoilerActiveTimer?.Stop();
+        }
+
+        private void BtnEnableSpoilerMode_Click(object sender, RoutedEventArgs e)
+        {
+            AppSettings.IsSqlAntiSpoilerEnabled = true;
+            playerData.Settings.SqlSpoilerHintDismissed = true;
+            SaveSystem.Save(playerData);
+
+            HideSpoilerHint();
+
+            if (currentSqlLevel != null)
+            {
+                LoadSqlLevel(currentSqlLevel);
+            }
+        }
+
+        private void BtnCloseSpoilerTip_Click(object sender, RoutedEventArgs e)
+        {
+            playerData.Settings.SqlSpoilerHintDismissed = true;
+            SaveSystem.Save(playerData);
+            _spoilerDelayMet = false;
+            HideSpoilerHint();
+        }
+
+        private void ShowRelationalTip()
+        {
+            PnlRelationalTip.IsVisible = true;
+            _relationalTipDisplayTimer.Stop();
+            _relationalTipDisplayTimer.Start();
+
+            playerData.Settings.RelationalModelTipShown = true;
+            SaveSystem.Save(playerData);
         }
     }
 }

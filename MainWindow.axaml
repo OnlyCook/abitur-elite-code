@@ -555,8 +555,22 @@
 							BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100">
 						<StackPanel Orientation="Horizontal" Spacing="8">
 							<TextBlock Text="Tipp: Nutze F1 - F4 zum Wechseln der Tabs" Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
-							<Button Name="BtnCloseTip" Content="×" Background="Transparent" Foreground="White"
-									Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"/>
+							<Button Name="BtnCloseTip" Background="Transparent" Foreground="White"
+									Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand">
+								<svg:Svg Path="/assets/icons/ic_close.svg" Width="16" Height="16"/>
+							</Button>
+						</StackPanel>
+					</Border>
+
+					<Border Name="PnlRelationalTip" IsVisible="False" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+							Margin="50,0,0,30" Background="#32A852" CornerRadius="4" Padding="10,5"
+							BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100">
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="Tipp: Nutze '(' für Spalten, ',' für nächste Spalte, ')' für neue Tabelle, sowie '_PK' oder '_FK'." Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400"/>
+							<Button Name="BtnCloseRelationalTip" Background="Transparent" Foreground="White"
+									Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand">
+								<svg:Svg Path="/assets/icons/ic_close.svg" Width="16" Height="16"/>
+							</Button>
 						</StackPanel>
 					</Border>
 				</Panel>
@@ -611,6 +625,26 @@
 
 				<Grid Grid.Column="2" RowDefinitions="Auto, *, 8, 180" Margin="0,10,10,10">
 
+					<Border Name="PnlSpoilerTip" IsVisible="False"
+							Grid.RowSpan="4"
+							VerticalAlignment="Top" HorizontalAlignment="Center"
+							Margin="-100,-50,100,20"
+							Background="#3C3C41" CornerRadius="4" Padding="12,8"
+							BorderBrush="#FFD700" BorderThickness="1" ZIndex="100">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="Tipp: Die Level-Namen können Lösungsansätze verraten.&#x0a;Möchtest du diese verbergen? (Zurücksetzbar)"
+									   Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+							<Button Name="BtnEnableSpoilerMode" Content="Ja" Background="#32A852" Foreground="White"
+									Padding="10,5" Margin="5,0,0,0" CornerRadius="4" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"
+									Click="BtnEnableSpoilerMode_Click"/>
+							<Button Name="BtnCloseSpoilerTip" Background="Transparent" Foreground="White"
+									Padding="5,0" Margin="0" VerticalAlignment="Center" FontWeight="Bold" Cursor="Hand"
+									Click="BtnCloseSpoilerTip_Click">
+								<svg:Svg Path="/assets/icons/ic_close.svg" Width="16" Height="16"/>
+							</Button>
+						</StackPanel>
+					</Border>
+					
 					<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,10">
 						<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 

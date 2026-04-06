@@ -18,6 +18,11 @@ public class PlayerSettings
     public int VimTutorialHighscore { get; set; } = 0;
     public bool AutoCheckForUpdates { get; set; } = true;
     public bool IsSqlAntiSpoilerEnabled { get; set; } = false;
+    public double LastScreenWidth { get; set; } = 0;
+    public double LastScreenHeight { get; set; } = 0;
+    public bool SqlSpoilerHintDismissed { get; set; } = false;
+    public double SqlSpoilerHintTotalSeconds { get; set; } = 0;
+    public bool RelationalModelTipShown { get; set; } = false;
 }
 
 public class PlayerData
@@ -123,7 +128,7 @@ public static class SaveSystem
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled}";
+        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled};lastscreenwidth:{data.Settings.LastScreenWidth};lastscreenheight:{data.Settings.LastScreenHeight};sqlspoilerdismissed:{data.Settings.SqlSpoilerHintDismissed};sqlspoilertime:{data.Settings.SqlSpoilerHintTotalSeconds};relationaltip:{data.Settings.RelationalModelTipShown}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -191,6 +196,11 @@ public static class SaveSystem
                         case "vimscore": data.Settings.VimTutorialHighscore = int.Parse(kv[1]); break;
                         case "autoupdate": data.Settings.AutoCheckForUpdates = bool.Parse(kv[1]); break;
                         case "sqlantispoiler": data.Settings.IsSqlAntiSpoilerEnabled = bool.Parse(kv[1]); break;
+                        case "lastscreenwidth": data.Settings.LastScreenWidth = double.Parse(kv[1]); break;
+                        case "lastscreenheight": data.Settings.LastScreenHeight = double.Parse(kv[1]); break;
+                        case "sqlspoilerdismissed": data.Settings.SqlSpoilerHintDismissed = bool.Parse(kv[1]); break;
+                        case "sqlspoilertime": data.Settings.SqlSpoilerHintTotalSeconds = double.Parse(kv[1]); break;
+                        case "relationaltip": data.Settings.RelationalModelTipShown = bool.Parse(kv[1]); break;
                         default: break;
                     }
                 }

@@ -90,7 +90,7 @@ Abitur Elite Code bietet eine integrierte Update-Funktion, die dich benachrichti
 
 Windows-Nutzer können die App bequem per Knopfdruck in den Einstellungen automatisch aktualisieren lassen. 
 
-**Wichtig:** Damit das Auto-Update reibungslos funktioniert, muss sich die App an einem Ort befinden, für den **keine Administratorrechte** benötigt werden (z. B. auf dem Desktop, in den Dokumenten oder einem eigenen Ordner). Liegt die App in geschützten System-Verzeichnissen wie `C:\Programme`, wird das automatische Update aus Sicherheitsgründen blockiert.
+**Wichtig:** Damit das Auto-Update reibungslos funktioniert, muss sich die App an einem Ort befinden, für den **keine Administratorrechte** benötigt werden (z. B. auf dem Desktop, in den Dokumenten oder einem eigenen Ordner). Liegt die App in geschützten System-Verzeichnissen wie `C:\Program Files`, wird das automatische Update aus Sicherheitsgründen blockiert.
 
 **Manuelles Update (Fallback):**
 Sollte das Auto-Update fehlschlagen (z.B. wegen fehlender Berechtigungen), öffnet sich stattdessen ein Pop-Up-Dialog welcher durch deinen Browser die neue `.zip`-Datei herunterladen kann. In diesem Fall musst du das Update manuell durchführen. Entpacke dazu einfach die neue Version und ersetze die alten Dateien durch die neuen. 
@@ -106,7 +106,8 @@ Sollte das Auto-Update fehlschlagen (z.B. wegen fehlender Berechtigungen), öffn
   Linux & macOS
 </h3>
 
-Auf Linux und macOS ist die Update-Benachrichtigung ebenfalls aktiv. Wenn du auf "App aktualisieren" klickst, öffnet sich dein Browser und lädt die neueste Version herunter. Aufgrund von Betriebssystem-Restriktionen gibt es hier keinen direkten Auto-Installer.
+Auf Linux und macOS ist die Update-Benachrichtigung ebenfalls aktiv. Wenn du auf "App aktualisieren" klickst, öffnet sich ein Pop-Up-Dialog welcher die neueste Version durch einen Browser herunterladen kann.  
+> Aufgrund von Betriebssystem-Restriktionen gibt es hier **keinen** direkten Auto-Installer.
 
 1. Lade die neue Version herunter und entpacke sie.
 2. Du kannst die alte App/den alten Ordner löschen und stattdessen die neue Version an einen beliebigen Ort verschieben.
