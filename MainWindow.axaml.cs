@@ -125,6 +125,7 @@ namespace AbiturEliteCode
 
         private DispatcherTimer _relationalTipDelayTimer;
         private DispatcherTimer _relationalTipDisplayTimer;
+        private string _initialRelationalModelJson = "";
 
         private string _currentCustomValidationCode = null;
         private bool _isCustomLevelMode = false;
@@ -318,7 +319,7 @@ namespace AbiturEliteCode
 
             _relationalTipDelayTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(2)
+                Interval = TimeSpan.FromSeconds(2),
             };
             _relationalTipDelayTimer.Tick += (s, e) =>
             {
@@ -9527,6 +9528,8 @@ namespace AbiturEliteCode
                 _currentRelationalModel = JsonSerializer.Deserialize<List<RTable>>(json);
             }
 
+            _initialRelationalModelJson = JsonSerializer.Serialize(_currentRelationalModel);
+
             UpdateSqlAutocompleteSchema();
 
             // initial rendering for active tab
@@ -10100,9 +10103,15 @@ namespace AbiturEliteCode
             // show tip for sql level 13 (if unseen)
             if (_isSqlMode && currentSqlLevel?.Id == 13 && !playerData.Settings.RelationalModelTipShown)
             {
-                if (!PnlRelationalTip.IsVisible && !_relationalTipDelayTimer.IsEnabled)
+                string currentJson = JsonSerializer.Serialize(_currentRelationalModel);
+
+                if (currentJson != _initialRelationalModelJson)
                 {
-                    _relationalTipDelayTimer.Start();
+                    if (!PnlRelationalTip.IsVisible)
+                    {
+                        _relationalTipDelayTimer.Stop();
+                        _relationalTipDelayTimer.Start();
+                    }
                 }
             }
         }
