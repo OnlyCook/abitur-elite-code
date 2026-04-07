@@ -653,6 +653,10 @@
   }
   .footer a { color: var(--link); text-decoration: none; }
   .footer a:hover { text-decoration: underline; }
+
+  a {
+    color: #b388ff !important;
+  }
 </style>
 </head>
 <body>
@@ -726,7 +730,7 @@
       <div class="bar-row"><div class="bar-label">AWD beschreiben/erklären</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">30,4 %</div></div>
       <div class="bar-row"><div class="bar-label">Threads &amp; Synchronisation</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">30,4 %</div></div>
       <div class="bar-row"><div class="bar-label">Client-Server Klassen</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
-      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Verb./Aggr.)</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
+      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Erb./Aggr.)</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
       <div class="bar-row"><div class="bar-label">KD &amp; Assoziationen beschr.</div><div class="bar-track"><div class="bar-fill tb" style="width:87%"></div></div><div class="bar-pct" style="color:var(--yellow)">26,1 %</div></div>
       <div class="bar-row"><div class="bar-label">Datenkapselung</div><div class="bar-track"><div class="bar-fill tc" style="width:43%"></div></div><div class="bar-pct" style="color:var(--orange)">13,0 %</div></div>
       <div class="bar-row"><div class="bar-label">SE-Prozess / Qualität</div><div class="bar-track"><div class="bar-fill td" style="width:29%"></div></div><div class="bar-pct" style="color:var(--red)">8,7 %</div></div>
@@ -739,7 +743,7 @@
       <div class="bar-row"><div class="bar-label">AWD beschreiben/erklären</div><div class="bar-track"><div class="bar-fill ta" style="width:100%"></div></div><div class="bar-pct" style="color:var(--green)">60 %</div></div>
       <div class="bar-row"><div class="bar-label">Threads &amp; Synchronisation</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
       <div class="bar-row"><div class="bar-label">Client-Server Klassen</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
-      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Verb./Aggr.)</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
+      <div class="bar-row"><div class="bar-label">OOP-Konzepte (Erb./Aggr.)</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
       <div class="bar-row"><div class="bar-label">KD &amp; Assoziationen beschr.</div><div class="bar-track"><div class="bar-fill ta" style="width:83%"></div></div><div class="bar-pct" style="color:var(--green)">50 %</div></div>
       <div class="bar-row"><div class="bar-label">Datenkapselung</div><div class="bar-track"><div class="bar-fill td" style="width:33%"></div></div><div class="bar-pct" style="color:var(--red)">20 %</div></div>
       <div class="bar-row"><div class="bar-label">SE-Prozess / Qualität</div><div class="bar-track"><div class="bar-fill td" style="width:33%"></div></div><div class="bar-pct" style="color:var(--red)">20 %</div></div>
@@ -1287,7 +1291,7 @@
         </td>
         <td class="dt-note">
           <strong>Drei Aufgabenvarianten:</strong><br>
-          <strong>① Zweck + Notationselemente + extend/include</strong> <span class="pill pill-y" style="font-size:10px">5/7</span> — Die häufigste Variante. Abgefragt in 2017A, 2019B, 2021C, 2023B. Immer dieselbe Struktur: Zweck des AWD → Notationselemente benennen → extend vs. include unterscheiden. Verlässlichstes Muster.<br>
+          <strong>① Zweck + Notationselemente + extend/include</strong> <span class="pill pill-y" style="font-size:10px">4/7</span> — Die häufigste Variante. Abgefragt in 2017A, 2019B, 2021C, 2023B. Immer dieselbe Struktur: Zweck des AWD → Notationselemente benennen → extend vs. include unterscheiden. Verlässlichstes Muster.<br>
           <strong>② AWD inhaltlich beschreiben</strong> <span class="pill pill-y" style="font-size:10px">2/7</span> — Ein gegebenes Diagramm wird verbal beschrieben (2017B: Generalisierung zwischen Akteuren, 2023B: inhaltliche Bedeutung).<br>
           <strong>③ Einordnung in Softwarelebenszyklus</strong> <span class="pill pill-b" style="font-size:10px">1/7</span> — AWD der Analysephase zuordnen (2022C). Zusatzwissen.<br><br>
           <strong>Was immer erwartet wird:</strong>
@@ -1504,7 +1508,7 @@
 
 <!-- LEARNING GUIDE -->
 <h2 style="margin-top:40px;">Lernleitfaden — Was genau lernen?</h2>
-<div class="section-desc" style="margin-bottom:16px;">Strukturierter Leitfaden, was für die Ausarbeitungsaufgaben vorbereitet werden muss</div>
+<div class="section-desc" style="margin-bottom:16px;">Strukturierter Leitfaden, was für die Ausarbeitungsaufgaben vorbereitet werden muss <a href="https://github.com/OnlyCook/abitur-elite-code/wiki/OOP_STUDY_NOTES">(ausführlicher Lernzettel)</a></div>
 
 <div class="learn-grid">
 
