@@ -1,0 +1,4001 @@
+--- [ABI 2016 A] ---
+
+# OOP
+
+2. Client-Server-Systementwicklung zur Abfrage intelligenter Stromzähler
+Intelligente Stromzähler messen den verbrauchten Strom in kWh und speichern ihn stundenweise,
+also 24 Werte pro Tag. Sind mehrere Stromzähler vorhanden, werden sie über eine serielle
+Schnittstelle mit einem Controller verbunden. Jeden Tag, um Mitternacht, ermittelt der Controller
+den Tagesverbrauch über alle Zähler nach Stunden und sendet diese 24 Werte an den Server des
+Energieversorgers. In Material 2 ist ein Klassendiagramm mit Hinweisen zur Implementierung
+dargestellt.
+
+2.1 Die Daten eines Zählers werden von der Methode der
+ablesenZaehler(nr: int): int[]
+Klasse nach folgendem Protokoll von der Schnittstelle gelesen, zunächst
+Controller
+beispielhaft für den Zähler Nr. 1 dargestellt, dann allgemein:
+Auftrag an die serielle Schnittstelle: Antwort von der Schnittstelle:
+SOH "READ“ STX 1 ETX STX "0; 0; 0; 2; 3; 4; 5; … 5; 6; 6; 2; 1; 1; 0" ETX
+Lies Werte des Zählers Nr. 1 24 Werte, 1 pro Stunde mit dem Verbrauch in kWh
+Allgemein:
+SOH "READ“ STX nr ETX STX v0; v1; v2; v3; … v20; v21; v22; v23 ETX
+Lies Werte des Zählers Nr. 24 Werte, 1 pro Stunde mit dem Verbrauch in kWh
+nr
+Das Zeichen SOH bedeutet Start of Header, STX bedeutet Start of Text, ETX bedeutet End of
+Text. Diese Zeichen sind in der Klasse definiert. "READ" ist das Lese-
+Controller
+Kommando. Im Fehlerfall (beispielsweise fehlerhafte Zählernummer) liefert der Controller den
+Text "ERROR" und die Methode den Wert zurück.
+null
+Auftrag an die serielle Schnittstelle: Antwort von der Schnittstelle:
+SOH "READ“ STX 99 ETX STX "ERROR" ETX
+Lies Werte des Zählers Nr. 99 Text "ERROR"
+Implementieren Sie die Methode der Klasse
+ablesenZaehler(nr: int): int[]
+, welche die stündlichen Verbrauchswerte des mit angegebenen Zählers in
+Controller nr
+einem Feld mit 24 Elementen liefert (Material 2).
+(8 BE)
+
+## Loesung 2.1
+Methode ablesenZaehler(int nr) der Klasse Controller
+private int[] ablesenZaehler (int nr){
+serial.write(""+SOH+"READ"+STX+nr+ETX+'\n');
+String temp = serial.readLine();
+temp = temp.substring(1,temp.length()-1);
+int []werte = new int[24];
+if (!temp.equals("ERROR")) {
+// Antwort von Schnittstelle in Teile zerlegen
+String[] werteString = temp.split(";");
+// Teile in Zahlen umwandeln und ablegen
+for (int i=0; i<24; i++) {
+werte[i] = Integer.parseInt(werteString[i]);
+}
+} else {
+werte = null;
+}
+return werte;
+}
+
+2.3 Folgender Entwurf der Methode der Klasse ist
+sendeTagesverbrauch() Controller
+vorgegeben:
+– Erzeugen und Öffnen des seriellen Schnittstellen-Objekts; die Schnittstelle wird mit 2400
+baud, 8 Daten-, einem Stoppbit und ohne Paritätsbit betrieben; kann die Schnittstelle nicht
+geöffnet werden, liefert die Methode zurück
+false
+– für jeden vorhandenen Stromzähler:
+24 stündliche Verbrauchswerte mithilfe der Methode ermitteln
+ablesenZaehler(nr: int)
+(Aufgabe 2.1) und Aufsummieren dieser Verbrauchswerte in einem Feld mit 24 Elementen,
+das den Verbrauch aller Stromzähler nach Stunden enthält
+– Schließen der seriellen Schnittstelle
+– Verbindung zum Server aufnehmen mithilfe eines Objekts der Klasse wenn keine
+Socket;
+Verbindung aufgenommen werden kann, liefert die Methode den Wert zurück
+false
+– Senden des Tagesverbrauchs an den Server; dem Kommando folgen die Kunden-
+sende
+nummer, die Nr. des Tages im Monat, die 24 durch Semikolon getrennten Verbrauchswerte
+und zuletzt die Prüfziffer
+Beispiel:
+sende 4711 15 0;0;0;4;5;7;9;9;5;4;3;2;2;2;2;4;4;5;6;6;4;2;2;0 9
+– Schließen des Controller-Sockets
+Implementieren Sie die Methode der Klasse
+sendeTagesverbrauch() Controller
+Beispiel:
+liefert:
+ablesenZaehler(1) 0;0;0;2;3;4;5;6;4;2; … ;1;2;1;1;0
+liefert:
+ablesenZaehler(2) 0;0;0;1;1;2;2;2;1;1; … ;3;1;0;0;0
+liefert:
+ablesenZaehler(3) 0;0;0;1;1;1;2;1;2;2; … ;2;1;1;1;0
+Summe:
+0;0;0;4;5;7;9;9;7;5; … ;6;4;2;2;0
+Hinweise: Die aufsummierten Verbrauchswerte werden im sende-Kommando an den Server
+übermittelt. Die Klassen und aus Material 4 sind zur Implementierung zu ver-
+Date Socket
+wenden.
+(12 BE)
+
+## Loesung 2.3
+Methode sendeTagesverbrauch()der Klasse Controller
+public boolean sendeTagesverbrauch(){
+ String zeile = "";
+ boolean ergebnis = false;
+ serial = new Serial("COM1", 2400, 8, 1, 0);
+ if (serial.open()) {
+ int[] verbrauchHeute = new int[24];
+ int[] temp;
+ // für alle Zähler:
+ // Verbrauchswerte von der Schnittstelle lesen
+ // und in verbrauchHeute stundenweise aufsummieren
+ for (int i=1; i<=anzZaehler; i++) {
+ temp = ablesenZaehler(i);
+ for (int j=0; j<temp.length; j++) {
+ verbrauchHeute[i] += temp[j];
+ }
+ }
+ serial.close(); 
+// Verbindung zum Server aufnehmen
+Socket controllerSocket = new Socket(host, port);
+if (controllerSocket.connect()){
+zeile// Werte= "sendeserialisieren" + kdNrund+ "anhängen"+ new Date().getDay();
+int i;
+for (i=0; i<verbrauchHeute.length-1; i++) {
+zeile = zeile + verbrauchHeute[i] + ';';
+}
+zeile = zeile + verbrauchHeute[i] + " "
+// Kommando senden+ berechnePruefziffer(verbrauchHeute);
+controllerSocket.write(zeile + '\n');
+controllerSocket.close();
+ergebnis = true;
+}
+}
+return ergebnis;
+}
+
+2.5 Überführen Sie die im Klassendiagramm dargestellten Klassen und in
+Server Kunde
+entsprechende Anweisungen einer objektorientierten Programmiersprache. Implementieren Sie
+die Klassen und ohne die Methoden ,
+Server Kunde empfangeVonController()
+und ohne die get- und set-Methoden.
+eintragenVerbrauch()
+(10 BE)
+
+## Loesung 2.5
+public class Server {
+private ServerSocket serverSocket;
+private List<Kunde> kunden;
+public Server(int port)
+kunden = new List<Kunde>();
+serverSocket = new ServerSocket(port);
+}
+public Kunde findeKunde(int kdNr) {
+for (Kunde k: kunden) {
+if (k.getKdNr() == kdNr) {
+return k;
+}
+}
+return null;
+}
+…
+} 7
+public class Kunde {
+private static int autonr=0;
+private int kdNr;
+private String name;
+private int [][]verbrauchAktuellerMonat;
+private int [] verbrauchVormonat;
+public Kunde(String name) {
+this.kdNr = ++autonr;
+this.name = name;
+this.verbrauchAktuellerMonat = new int[31][24];
+this.verbrauchVormonat = new int[31];
+}
+…
+}
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+# OOP
+
+1. Entwicklung eines Client-Server-Systems
+Ein Klassendiagramm der Anwendung wurde erstellt (Material 1).
+
+1.3 Die Methode
+sucheVertretungslehrer (d: Date, stunde: int, l: Lehrkraft)
+der Klasse sucht für eine Lehrkraft zu einem gegebenen Datum
+Stundenplanverwaltung
+und gegebener Stunde mögliche Vertretungslehrer.
+Zunächst werden alle Lehrkräfte ermittelt, die in der betreffenden Stunde keinen Unterricht und
+keine Vertretung haben. Von diesen werden die Lehrkräfte gesucht, die in der betreffenden Klasse
+unterrichten. Falls Lehrkräfte hier verfügbar sind, werden diese zurückgegeben. Sind keine ver-
+fügbar, werden die Vertretungslehrer ermittelt, welche das betreffende Fach unterrichten und
+zurückgegeben. Wenn auch hier keine Lehrkraft verfügbar ist, werden all jene Lehrer zurück-
+gegeben, die zu dieser Zeit frei sind.
+Implementieren Sie diese Methode.
+Hinweis: Die privaten Methoden der Klasse sind zu beachten. Die
+Stundenplanverwaltung
+Klassen und in Material 5 sind zu verwenden.
+Date List
+(12 BE)
+
+## Loesung 1.3
+Implementation der Methode sucheVertretungslehrer(d: Date,
+stunde: int, l: Lehrkraft)
+public List<Lehrkraft> sucheVertretungslehrer(Date d,
+int stunde, Lehrkraft l) {
+List<Lehrkraft> vertretungsLehrer = new List<Lehrkraft>();
+// betroffene Unterrichtsstunde ermitteln
+Unterrichtsstunde uStunde =
+sucheUnterrichtsstunde(d, stunde, l);
+// alle Lehrkräfte ermitteln, die in an diesem Tag
+// und in dieser Stunde keinen Unterricht und keine
+// Vertretung haben
+for (Lehrkraft lehrkraft: lehrkraefte) {
+if (! lehrkraft.hatUnterricht(d, stunde) &&
+! lehrkraft.hatVertretung(d, stunde)) {
+vertretungsLehrer.add(lehrkraft);
+}
+}
+// alle Lehrkräfte ermitteln, die an diesem Tag und in
+// dieser Stunde keinen Unterricht haben und in der Klasse
+// unterrichten
+if (vertretungsLehrer.size() > 1) {
+Klasse klasse = uStunde.getKlasse();
+List<Lehrkraft> ersteWahl =
+sucheVertretungslehrer(vertretungsLehrer, klasse);
+if (ersteWahl.size() > 0) {
+vertretungsLehrer = ersteWahl;
+} else {
+// alle Lehrkräfte ermitteln, die in an diesem Tag und
+// in dieser Stunde keinen Unterricht haben und das
+// Fach unterrichten
+Fach fach = uStunde.getFach();
+List<Lehrkraft> zweiteWahl =
+sucheVertretungslehrer(vertretungsLehrer, fach);
+if (zweiteWahl.size() > 0 )
+vertretungsLehrer = zweiteWahl;
+}
+}
+return vertretungsLehrer;
+}
+
+1.4.2 Implementieren Sie die Methode
+hinzufuegenVertretung(d: Date, s:
+der Klasse .
+Unterrichtsstunde) Lehrkraft
+Hinweis: Die Klassen und in Material 5 sind zu verwenden.
+Date List
+(10 BE)
+
+## Loesung 1.4.2
+Implementation der Methode hinzufuegenVertretung(d: Date,
+s: Unterrichtsstunde)
+public void hinzufuegenVertretung(Date d,
+Unterrichtsstunde s) {
+boolean positionGefunden = false;
+int index = 0;
+for (; index < vertretungen.size() && !positionGefunden;
+index++) {
+Vertretung v = vertretungen.get(index);
+if (v.getDatum().compareTo(d) >
+|| ((v.getDatum().compareTo(d) == 0)
+&& (v.getVertretungsstunde().getStunde() >
+s.getStunde()))) {
+positionGefunden = true;
+}
+}
+if (positionGefunden)
+index--;
+vertretungen.add(index, new Vertretung(d, this, s));
+}
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Quizduell-Spiels als Client/Server-System
+Quiz Duell light Quiz Duell light
+Frage Nr. 5: Frage Nr. 5:
+In welchem Jahr ging Facebook an In welchem Jahr ging Facebook an
+die Börse? die Börse?
+1: 2005 2: 2010 1: 2005 2: 2010
+3: 2012 4: 2014 3: 2012 4: 2014
+Ihre Eingabe: Ihre Eingabe: 2 ist leider falsch
+Richtig ist 3.
+Dialogfenster vor Eingabe der Lösung Dialogfenster nach Eingabe der Lösung,
+mit Reaktion des Systems
+Das zu entwickelnde Spiel ist eine vereinfachte Version des aus der App "QuizDuell" bekannten
+Quizspiels. Zwei Spielerinnen oder Spieler (in der Folge Spieler genannt) spielen in einem Spiel
+gegeneinander und beantworten abwechselnd zehn Fragen. Eine Frage bietet vier Antwort-
+möglichkeiten, nur eine ist die richtige Antwort (Lösung). Für jede richtig beantwortete Frage
+gibt es einen Punkt. Gewonnen hat der Spieler mit den meisten Punkten. Ein Spieler kann
+mehrere Spiele nacheinander spielen, die Anzahl der Siege wird mitgezählt.
+
+1.2 Ein Klassendiagramm liegt in Material 2 vor.
+Überführen Sie die Klasse in entsprechende Anweisungen einer objektorientierten
+Spieler
+Programmiersprache und implementieren Sie die Methoden.
+(6 BE)
+
+## Loesung 1.2
+Klasse Spieler überführen und implementieren
+public class Spieler {
+private String name;
+private String passwort;
+private Socket socket;
+private int anzahlSiege;
+public Spieler(String name, String passwort) {
+this.name = name;
+this.passwort = passwort;
+this.socket = null;
+this.anzahlSiege = 0;
+}
+public void erhoeheAnzahlSiege() {
+this.anzahlSiege++;
+}
+public boolean pruefePasswort(String passwort) {
+boolean ergebnis = false;
+if (this.passwort.equals(passwort) {
+ergebnis = true;
+}
+return ergebnis;
+}
+public void setSocket(Socket socket) {
+this.socket = socket;
+}
+}
+
+1.3.1 Die Methode anmelden(name: String, passwort: String) der Klasse Server liefert
+den registrierten Spieler mit dem angegebenen Namen und Passwort, sofern es ihn gibt,
+andernfalls null.
+Implementieren Sie die Methode anmelden(name: String, passwort:
+String):Spieler.
+(3 BE)
+
+## Loesung 1.3.1
+Methode implementieren
+private Spieler anmelden(String name, String passwort) {
+Spieler spieler = sucheSpieler(name);
+if (spieler!=null && !spieler.pruefePasswort(passwort)) {
+spieler = null;
+}
+return spieler;
+}
+
+1.4 In der ()-Methode der Klasse werden die Fragen gestellt und die Antworten der
+run Spiel
+Spieler ausgewertet.
+run()
+wiederhole für jede Frage
+sende Frage mit möglichen Antworten an Spieler 1
+lies Antwort von Spieler 1
+Antwort ist richtig?
+J N
+erhöhe Punktzahl von Spieler 1 a = korrekte Antwort der Frage
+sende "richtig" an Spieler 1 sende "leider falsch, richtig ist a" an Spieler 1
+sende Frage an Spieler 2 ... <-- muss nicht implementiert werden
+Spieler 1 hat mehr Punkte als Spieler 2
+J N
+zähle den Sieg bei Spieler 1 Spieler 2 hat mehr Punkte als Spieler 1
+sende entsprechende Nachricht an Spieler 1 J N
+sende entsprechende Nachricht an Spieler 2 zähle den Sieg bei Spieler 2 sende Unentschieden-Nachricht an Spieler 1
+sende entsprechende Nachricht an Spieler 2sende Unentschieden-Nachricht an Spieler 2
+sende entsprechende Nachricht an Spieler 1
+Implementieren Sie die ()-Methode nach obigen Ablauf:
+run
+(12 BE)
+
+## Loesung 1.4
+Methode implementieren
+public void run() {
+String antwortStr = null;
+int antwort = 0;
+int punkte1 = 0;
+int punkte2 = 0;
+Socket clientSocket1 = spieler1.getSocket();
+Socket clientSocket2 = spieler2.getSocket();
+for (Frage f: fragen) {
+clientSocket1.write(f.getFrageMitAntworten()+'\n') ;
+antwortStr = clientSocket1.readLine();
+antwort = Integer.parseInt(antwortStr);
+if (f.istRichtig(antwort)) {
+punkte1++;
+clientSocket1.write("richtig" + '\n') ;
+} else {
+clientSocket1.write("leider falsch, " +
+"richtig ist " + f.getLoesung() + '\n');
+}
+}
+// alle Fragen gestellt, Spielstand auswerten
+if (punkte1 > punkte2) {
+spieler1.erhoeheAnzahlSiege();
+clientSocket1.write("Du hast gewonnen.\n");
+clientSocket2.write("Du hast verloren.\n");
+} else {
+if (punkte2 > punkte1) {
+spieler2. erhoeheAnzahlSiege();
+clientSocket2.write("Du hast gewonnen.\n");
+clientSocket1.write("Du hast verloren.\n");
+} else {
+clientSocket1.write("Unentschieden.\n");
+clientSocket2.write("Unentschieden.\n");
+}
+}
+}
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Software-Systems
+Sie haben die Aufgabe ein Software-System für ein Carsharing-Unternehmen zu entwickeln.
+
+1.3 Überführen Sie die Klassen und (Material 2) in entsprechende An-
+Mitglied Buchung
+weisungen einer objektorientierten Programmiersprache und implementieren Sie die angegebenen
+Methoden.
+Hinweise: Die Methode der Klasse kann das gewünschte
+bucheFahrzeug() Mitglied
+Fahrzeug nur dann buchen, wenn es im angegebenen Zeitraum auch frei ist. Die Methode
+ermittelt den Preis in €. get- und set-Methoden müssen nicht implementiert
+berechnePreis()
+werden, sind aber vorhanden und können benutzt werden.
+Die Klasse ist in Material 6 dokumentiert.
+DateTime
+(10 BE)
+
+## Loesung 1.3
+Klassen aus UML-Klassendiagramm in eine Programmiersprache überführen und
+Methoden implementieren
+public class Mitglied {
+private static int autowert = 1;
+private int mitgliedsNr;
+private String name;
+private String vorname;
+private int pin;
+private List<Buchung> buchungen;
+public Mitglied(String name, String vorname) {
+mitgliedsNr = autowert++;
+this.name = name;
+this.vorname = vorname;
+buchungen = new List<Buchung>();
+}
+public Buchung bucheFahrzeug(Fahrzeug fahrzeug,
+DateTime von, DateTime bis) {
+Buchung buchung = null;
+if (fahrzeug.istFrei(von, bis)) {
+buchung = new Buchung(this, fahrzeug, von, bis);
+buchungen.add(buchung);
+}
+return buchung;
+}
+public class Buchung {
+private static int autowert = 1;
+private int buchungsNr; 4
+private Date buchungsDatum;
+private DateTime nutzungsBeginn;
+private DateTime nutzungsEnde;
+private Mitglied mitglied;
+private Fahrzeug fahrzeug;
+public Buchung(Mitglied mitglied, Fahrzeug fahrzeug,
+DateTime von, DateTime bis) {
+buchungsNr = autowert++;
+nutzungsBeginn = von;
+nutzungsEnde = bis;
+this.mitglied = mitglied;
+this.fahrzeug = fahrzeug;
+fahrzeug.hinzufuegenBuchung(buchung);
+}
+public double berechnePreis() {
+long nutzungsdauer = nutzungsdauerInMinuten();
+double preis = nutzungsdauer * fahrzeug.getPreisProMin();
+return preis;
+}
+public long nutzungsdauerInMinuten() {
+long diff = (nutzungsBeginn.inMillis() –
+nutzungsEnde.inMillis()) / 1000 / 60;
+return diff;
+}
+}
+
+1.5.2 Implementieren Sie anhand des UML-Sequenzdiagramms (Material 4) die Methode
+.
+fetchCar()
+(10 BE)
+
+## Loesung 1.5.2
+Methode nach UML-Sequenzdiagramm implementieren
+public void fetchCar() {
+// prüfe, ob eine Kundenkarte vorhanden ist
+if (rr.isCardAvailable()) {
+// lies die Daten der Karte
+String s = rr.readCard();
+// prüfe (über Funk), ob die Kundenkarte gültig ist
+if (isCardValid(s)) {
+// prüfe (über Funk), ob die Buchung erfolgt ist
+if (getOrderState(s)) {
+// gib Zentralverriegelung frei
+openDoor();
+// Zeitüberwachung aktivieren
+startTimer();
+long wartezeit = 0;
+int versuche = 0;
+boolean freigabeOK = false;
+do {
+// lies Pin über die Tastatur ein
+String t = td.readLine();
+int pin = Integer.parseInt(t);
+// prüfe (über Funk), ob die Pin gültig ist
+if (checkPin(pin))
+freigabeOK = true;
+else
+versuche++;
+wartezeit = getTimer();
+} while (versuche < 3 && !freigabeOK &&
+wartezeit <= 5 * 60);
+if (freigabeOK) {
+// Wegfahrsperre deaktivieren
+enable();
+td.printLine("Fahrzeug freigegeben.");
+rm.sendData("Fahrzeug abgeholt.");
+} else {
+// Wegfahrsperre bleibt aktiviert
+td.printLine("Freigabe verweigert.");
+// Buchungszentrale verständigen
+rm.sendData("Unberechtigter Nutzungsversuch.");
+}
+}
+}
+}
+}
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Lagerhaltungssystems
+Sie finden ein Klassendiagramm in Material 1.
+
+1.2 Überführen Sie die Klasse in Anweisungen einer objektorientierten Programmier-
+Segment
+sprache und implementieren Sie alle angegebenen Methoden.
+Hinweise: Im Konstruktor werden die Fach-Objekte erzeugt.
+Die Methode lagert den Karton in einem Fach
+einlagern(karton: Karton): boolean
+des Segments nach folgendem Algorithmus ein:
+– Gibt es zu dem Artikel bereits einen Vorrat in den Fächern 1 - 4, wird der Karton auf einen
+freien Platz in einem dieser Vorratsfächer eingelagert. Gibt es keinen freien Platz im Vorrat,
+kann der Karton nicht eingelagert werden.
+– Gibt es keinen Vorrat in den Fächern 1 - 4, wird versucht, den Karton in das Verkaufsfach,
+Fach 0, zu platzieren. Sollte das Fach 0 voll sein, wird der Karton in das Fach 1 platziert.
+– Konnte der Karton eingelagert werden, gibt die Methode zurück, ansonsten .
+true false
+Weitere set- und get-Methoden müssen nicht implementiert werden.
+Die statischen Konstanten der Klasse sind zu verwenden.
+Lagermanager
+(12 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public class Segment {
+private int regalnr;
+private int segmentnr;
+private Fach[] faecher;
+private Artikel artikel;
+public Segment(int regalnr, int segmentnr) {
+this.regalnr = regalnr;
+this.segmentnr = segmentnr;
+this.artikel = null;
+faecher =
+new Fach[Lagermanager.ANZAHL_FAECHER_PRO_SEGMENT];
+// Fächer im Regalsegment erzeugen
+for (int i = 0;i
+< Lagermanager.ANZAHL_FAECHER_PRO_SEGMENT; i++){
+faecher[i] = new Fach(i);
+}
+}
+public boolean einlagern(Karton k) {
+boolean eingelagert = false;
+// gibt es einen Vorrat?
+int fachnr = 1;
+boolean vorrat = false;
+while (!vorrat &&
+fachnr < Lagermanager.ANZAHL_FAECHER_PRO_SEGMENT)
+{
+if (!faecher[fachnr].istLeer()) {
+vorrat = true;
+}
+fachnr++;
+}
+if (vorrat) {
+fachnr = 1;
+} else {
+fachnr = 0;
+}
+while (!eingelagert && fachnr
+< Lagermanager.ANZAHL_FAECHER_PRO_SEGMENT) {
+if (!faecher[fachnr].istVoll()) {
+this.faecher[fachnr].hinzufuegen(k);
+eingelagert = true;
+}
+fachnr++;
+}
+return eingelagert;
+}
+public Fach getFach(int fachnr) {
+return faecher[fachnr];
+}
+public void setArtikel(Artikel artikel) {
+this.artikel = artikel;
+}
+}
+
+1.3 Die Methode der Klasse scannt das Etikett eines Kartons
+scanneKarton() Lagermanager
+mithilfe eines Barcodelesers. Der Leser ist an eine serielle RS232 Schnittstelle angeschlossen
+und arbeitet nach folgender Spezifikation:
+– Die Schnittstelle "COM1" wird mit 9600 Baud, 8 Datenbits, 1 Stoppbit und ohne Paritätsbit
+betrieben.
+– Die Schnittstelle wird geöffnet. Ist das Öffnen nicht erfolgreich, wird die Methode beendet
+und zurückgegeben.
+null
+– Ist das Öffnen der Schnittstelle erfolgreich, wird die RTS-Leitung auf logisch high gesetzt.
+– Der Barcode wird mit dem Kommando angefordert. (Die Zeichenkette
+<STX>READ<LF>
+"READ", eingeschlossen in das STX- und das LF-Zeichen, wird auf die serielle Schnittstelle
+geschrieben.)
+– Der Barcode wird im Format als Zeichenkette von der Schnittstelle
+<STX>Barcode<LF>
+gelesen.
+– Der eingelesene Barcode wird mit der Methode
+pruefe Barcode (barcode: String):
+auf formale Korrektheit geprüft, hier würden Übermittlungsfehler bemerkt.
+boolean
+– Ist der Barcode formal korrekt, wird das Zeichen ACK über die Schnittstelle gesendet. Ist er
+nicht korrekt, wird das Zeichen NAK über die Schnittstelle gesendet und der Lesevorgang so
+oft wiederholt, bis ein korrekter Barcode gelesen wurde.
+– Die Schnittstelle wird geschlossen.
+– Der ermittelte Barcode wird zurückgegeben.
+Implementieren Sie die Methode
+scanneKarton().
+Hinweise: Das Zeichen Start-of-Text, , hat den Wert , Acknowledge, , den Wert
+STX 02h ACK
+, Negative-Acknowledge, , den Wert , steht für Line-Feed und ist das Zeichen
+06h NAK 15h LF
+'\n'. Die Klassen und sind in Material 2 beschrieben.
+Serial String
+(9 BE)
+
+## Loesung 1.3
+private String scanneKarton() {
+final char STX = 0x02;
+final char ACK = 0x06;
+final char NAK = 0x15;
+final char LF = '\n';
+String barcode = null;
+char zeichen = ' ';
+Serial com = new Serial("COM1", 9600, 8, 1, 0);
+if (com.open()) {
+com.setRTS(true);
+// Barcode anfordern
+com.write(STX + "READ" + LF);
+// solange erneut lesen, bis Barcode erfolgreich gelesen
+do {
+barcode = com.readLine();
+barcode = barcode.substring(1); // erstes Zeichen weg
+if (pruefeBarcode(barcode)) {
+zeichen = ACK;
+} else {
+zeichen = NAK;
+}
+com.write(zeichen);
+} while (zeichen == NAK);
+// Barcode korrekt gelesen
+com.close();
+}
+return barcode;
+}
+
+1.6 Die Methode der Klasse
+umlagern(artikelnr: int)
+füllt das Fach 0 mit den ältesten Kartons aus
+Lagermanager
+den darüberliegenden Fächern. Die Liste der Kartons eines
+Artikels ist nach dem Alter der Kartons sortiert, der älteste
+Karton steht vorne. Nach Ausführung der Methode ist das
+Fach 0 so weit wie möglich aufgefüllt. In den darüberliegenden
+Fächern kann es freie Plätze geben.
+Implementieren Sie die Methode.
+(10 BE)
+
+## Loesung 1.6
+private void umlagern(int artikelnr) {
+Artikel a = this.sucheArtikel(artikelnr);
+Segment s = this.findeSegment(artikelnr);
+Fach[] faecher = s.getFaecher();
+List<Karton> kartons = a.getKartons();
+int anzahlInsgesamt = kartons.size();
+Karton k = null;
+Fach f = null;
+int i = 0;
+// solange Fach Nr. 0 noch nicht voll ist
+// und noch weitere Kartons vorhanden sind
+while(!faecher[0].istVoll()&& i < anzahlInsgesamt) {
+// den nächsten Karton und sein Fach ermittelnk
+= kartons.get(i);f
+= k.getFach();
+if (f!= null && f.getFachnr() > 0) {
+f.entnehmen(k); // muss true sein, da f so ermittelt
+faecher[0].hinzufuegen(k);
+k.setFach(faecher[0]);
+}
+i++;
+}
+}
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung eines Client/Server-Systems
+Das Unternehmen plant eine Online-Plattform, um Kunden selbstständig tätige Reinigungskräfte
+zu vermitteln. Die Anwendung soll folgende Anforderungen erfüllen:
+– Kunden müssen sich auf dem Online-Portal anmelden.
+– Ein Kunde kann eine Reinigungskraft für ein Datum und eine Anzahl von Stunden buchen.
+– Für jede erfolgreiche Buchung erhält das Unternehmen eine Vermittlungsgebühr.
+– Die Abrechnung der Gebühren erfolgt monatlich.
+Ein erstes Klassenmodell finden Sie in Material 3.
+
+2.1.2 Überführen Sie die im Klassendiagramm (Material 3) dargestellten Klassen und
+Person
+in Anweisungen einer objektorientierten Programmiersprache und
+Reinigungskraft
+implementieren Sie die aufgeführten Methoden.
+Hinweise: Bei der Umsetzung der Methode ist folgendes zu
+abrechnenMonat()
+berücksichtigen:
+– Die Vermittlungsgebühr beträgt 20 % auf die Leistungshöhe und ist vom Kunden und der
+Reinigungskraft zu gleichen Teilen zu tragen.
+– Umfasst die Buchung weniger als 3 Stunden, erhält die Reinigungskraft zusätzlich eine
+Fahrtkostenpauschale von 10 EURO, die vom Kunden zu entrichten ist.
+Die Dokumentation der Klasse finden Sie in Material 4.
+List
+(12 BE)
+
+## Loesung 2.1.2
+überführen, implementieren
+public abstract class Person {
+private int personNr;
+private String name;
+private String plz;
+private String email;
+private static int autoWert = 1;
+protected List<Buchung> buchungen;
+public Person(String name, String plz, String email) {
+this.personNr = autoWert++;
+this.name = name;
+this.plz = plz;
+this.email = email;
+buchungen = new List<Buchung>();
+}
+public void hinzufuegenBuchung(Buchung b) {
+buchungen.add(b);
+}
+public abstract double abrechnenMonat(int monat,
+int jahr);
+public String toString() {
+return name + " (Personennummer: " + personNr + "), " +
+email + ", PLZ " + plz;
+}
+}
+public class Reinigungskraft extends Person {
+private double stundenSatz;
+public Reinigungskraft(String name, String plz,
+String email, double satz) {
+super(name, plz, email);
+this.stundenSatz = satz;
+}
+public double abrechnenMonat(int monat, int jahr) {
+double betrag = 0;
+for(Buchung b: buchungen) {
+if(b.getReinigungsDatum().getMonth() == monat &&
+b.getReinigungsDatum().getYear() == jahr) {
+betrag += b.getAnzahlStunden()*stundenSatz*0.9;
+if(b.getAnzahlStunden() < 3) {
+betrag += 10;
+}
+}
+}
+return betrag;
+}
+public String toString() {
+return "Reinigungskraft " + super.toString() +
+", Stundensatz " + stundenSatz + " EURO";
+}
+}
+
+2.2.2 Überführen Sie die im Klassendiagramm (Material 3) dargestellte Klasse
+PerleVerwaltung
+in Anweisungen einer objektorientierten Programmiersprache und implementieren Sie den
+Konstruktor sowie die Methoden und .
+anmelden() registriereKunde()
+Hinweise: Die Dokumentation der Klasse finden Sie in Material 4.
+List
+Die Methode muss prüfen, ob es sich bei einer Person um ein Kunden-Objekt
+anmelden()
+handelt.
+(7 BE)
+
+## Loesung 2.2.2
+überführen, implementieren
+public class PerleVerwaltung {
+private List<Person> personen;
+private PerleVerwaltung () {
+personen = new List<Person>();
+}
+public Kunde anmelden(String email, String passwort) {
+Kunde gesucht = null;
+for(Person p: personen) {
+if(p instanceof Kunde){
+Kunde k = (Kunde)p;
+if(k.getEmail().equals(email) &&
+k.getPasswort().equals(passwort)) {
+gesucht = k;
+break;
+}
+}
+}
+return gesucht;
+}
+public Kunde registriereKunde(String name, String plz,
+String email, String pw){
+Kunde k = new Kunde(name, plz, email, pw);
+personen.add(k);
+return k;
+}
+}
+
+2.3.3 Implementieren Sie den Perle-Server entsprechend Ihrer Überlegungen aus Aufgabe 2.3.2.
+(5 BE)
+
+## Loesung 2.3.3
+public class PerleServer {
+private int port;
+private PerleVerwaltung pv;
+public PerleServer(int port) {
+this.port = port;
+pv = new PerleVerwaltung();
+}
+public void starteServer() {
+ServerSocket server = new ServerSocket(port);
+while(true) {
+Socket client = server.accept();
+new KundenThread(client, pv).start();
+}
+}
+}
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+# OOP
+
+1 PC-Steuerung für einen Ergometer
+Ergometer findet man an sehr vielen Trainingsgeräten, z.B. an Fahrrad- oder auch Crosstrainern. Sie bieten für Hobby- oder Profi-Sportlerinnen und Hobby- oder Profi-Sportler die
+Möglichkeit, zahlreiche Trainings- und Gesundheitsdaten (z.B. die aktuelle Pulsfrequenz) zu
+erfassen und diese zur Auswertung an einen Personal Computer (PC) zu übertragen. Die
+Pulsmessung findet über einen Brustgurt statt. Die Kommunikation zwischen Ergometer und PC
+erfolgt über die serielle Schnittstelle. Es soll eine Anwendung realisiert werden, die sich mit
+dem Ergometer über die serielle Schnittstelle verbindet, die Trainingsdaten misst und das
+Ergometer steuert. Ein Klassenmodell der Anwendung finden Sie in Material 1. Die Befehle zur
+Gerätesteuerung sind in Material 2 beschrieben.
+
+1.2 Überführen Sie die im Klassendiagramm (Material 1) dargestellte Klasse Ergometer in
+entsprechende Anweisungen einer objektorientierten Programmiersprache und implementieren
+Sie die aufgeführten Methoden mithilfe der Klasse Serial aus Material 3.
+Hinweise: Die im Klassendiagramm dargestellten Konstanten müssen nicht implementiert
+werden. Die technische Dokumentation zum Ergometer in Material 2 ist zu berücksichtigen.
+(10 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public class Ergometer {
+ private Serial port;
+ public Ergometer(String serialPort){
+ port = new Serial(serialPort, 9600, 8, 1, 0);
+ }
+ public boolean open() {
+ return port.open();
+ }
+ public boolean reset() {
+ boolean result = false;
+ port.write(CMD_RESET + "\n");
+ String dataString = port.readLine();
+ if (dataString.equals(ACK)) {
+ result = true;
+ }
+ return result;
+ }
+ public String readStatus() {
+ String dataString = "";
+ port.write(CMD_GET_STATUS + "\n");
+ dataString = port.readLine();
+ return dataString;
+ }
+ public boolean setPower(int destPower) {
+ boolean result = false;
+ String dataString;
+ // Befehl ChangeMode senden
+ port.write(CMD_CHANGEMODE + "\n");
+ dataString = port.readLine();
+ if (dataString.equals(ACK)) {
+ // Befehl SetPower zusammensetzen und senden
+ port.write(CMD_SET_POWER + destPower + "\n");
+ dataString = port.readLine();
+ if (dataString.equals(ACK))
+ result = true;
+ }
+ return result;
+ }
+ public void close() {
+ port.close();
+ }
+}
+überführen
+implementieren
+
+1.4 Die Methode absolvierePulsTraining(benutzer: Benutzer, minPuls: int,
+maxPuls: int) der Klasse Steuerung soll während des Trainings die Belastung im
+übergebenen Pulsbereich überwachen.
+– Eine neue Trainingseinheit wird für die Benutzerin oder den Benutzer (im folgenden
+Benutzer genannt) erzeugt.
+– Die Zielbelastung des Benutzers wird ermittelt.
+– Falls die Zielbelastung den Wert 0 hat, wird mit einer Leistung von 25 Watt gestartet.
+– Nach dem Aufbau der Verbindung zum Ergometer wird das Gerät zurückgesetzt.
+– Anschließend wird das Ergometer auf die Zielleistung gesetzt und gewartet, bis das Training
+beginnt (Umdrehungen > 0).
+– Ein Pulstraining dauert immer 40 Minuten.
+– Zunächst trainiert der Benutzer mit der eingestellten Startleistung für 1 Minute.
+– Anschließend wird in Intervallen von 20 Sekunden der Puls kontrolliert. Liegt er über
+maxPuls, wird die Zielleistung für das Ergometer um 5 Watt reduziert, liegt er unter
+minPuls wird die Zielleistung um 5 Watt erhöht.
+– Nach Abschluss des Trainings werden die Trainingswerte der Einheit berechnet und die
+Zielbelastung des Benutzers mit der aktuell eingestellten Leistung aktualisiert.
+Implementieren Sie die Methode absolvierePulsTraining(benutzer: Benutzer,
+minPuls: int, maxPuls: int) der Klasse Steuerung.
+(10 BE)
+
+
+## Loesung 1.4
+implementieren
+public void absolvierePulsTraining(Benutzer benutzer,
+ int minPuls, int maxPuls)
+{
+ long startzeit = 0;
+ long trainingszeit = 0; // in Sekunden
+ int puls = 0;
+ Trainingseinheit tEinheit= new Trainingseinheit(benutzer);
+ int belastung = benutzer.getZielBelastung();
+ if (belastung == 0)
+ belastung = 25;
+ ergometer.open();
+ ergometer.reset();
+ ergometer.setPower(belastung);
+ while (!trainingGestartet());
+ startzeit = Steuerung.currentTime()/1000;
+ Steuerung.delay(60000);
+ while (trainingszeit < 40 * 60) {
+ String dataString = ergometer.readStatus();
+ Messung messung = new Messung(dataString);
+ tEinheit.hinzufuegenMessung(messung);
+ puls = messung.getPuls();
+ if (puls < minPuls){
+ belastung += 5;
+ ergometer.setPower(belastung);
+ }
+ if (puls > maxPuls){
+ belastung -= 5;
+ ergometer.setPower(belastung);
+ }
+ Steuerung.delay(20000);
+ trainingszeit = Steuerung.currentTime()/1000 -
+ startzeit;
+ }
+ tEinheit.berechneTrainingsWerte();
+ benutzer.setZielBelastung(belastung);
+}
+
+1.5 Um den Fitnesszustand des Benutzers zu berechnen, wird sofort nach Trainingsende der Belastungspuls P1 und eine Minute später der Ruhepuls P2 gemessen. Mithilfe nachstehender
+Formel wird die Fitnessnote berechnet:
+Note=6-(10*(P1-P2)/P1)
+Implementieren Sie die Methode berechneFitnessZustand() der Klasse Steuerung, die
+die Messungen durchführt und die Fitnessnote als Rückgabewert liefert.
+Hinweis: Bei fehlerhafter Pulsmessung, P1 = 0, oder für den Fall, dass der Ruhepuls P2 größer
+als P1 ist, liefert die Methode -1.
+(6 BE)
+
+## Loesung 1.5
+public int berechneFitnessZustand() {
+ int zustand = -1;
+ //messe Belastungspuls P1
+ String status = ergometer.readStatus();
+ Messung messung = new Messung(status);
+ int p1 = messung.getPuls();
+ if (p1 != 0){
+ // jetzt eine Minute warten
+ Thread.sleep(60000);
+ // erneute Pulsmessung für P2
+ status = ergometer.readStatus();
+ messung = new Messung(status);
+ int p2 = messung.getPuls();
+ if (p2 < p1)
+ zustand = 6-(10*(p1-p2)/p1);
+ }
+ return zustand;
+}
+
+
+
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+# OOP
+
+1 Für die Fußball-Bundesliga soll ein objektorientiertes Ticket-Reservierungssystem erstellt werden. 
+
+1.2 Die nachfolgenden Aufgaben beziehen sich auf das Klassendiagramm in Material 2.
+
+1.2.2 Überführen Sie die Klassen Spiel und Block aus dem Klassendiagramm in entsprechende
+Anweisungen einer objektorientierten Programmiersprache und implementieren Sie die
+Methoden.
+Hinweise: Die Block-Objekte sind bei Erzeugung eines Spiels anzulegen. Sie können davon
+ausgehen, dass den Methoden nur gültige Parameterwerte übergeben werden. Die
+Dokumentationen der Klassen DateTime und List finden Sie in Material 3.
+(12 BE)
+
+## Loesung 1.2.2
+überführen, implementieren
+public class Spiel {
+ // Instanzvariablen
+ private int spielNr;
+ private DateTime zeit;
+ private String team1;
+ private String team2;
+ private String stadionName;
+ // Umsetzung der Assoziationen
+ private Block[] bloecke;
+ private List<Reservierung> reservierungen;
+ public Spiel(int spielNr, DateTime zeit, String stadion) {
+ this.spielNr = spielNr;
+ this.zeit = zeit;
+ this.stadionName = stadion;
+ bloecke = new Block[4];
+ reservierungen = new List<Reservierung>();
+ bloecke[0] = new Block("Ost");
+ bloecke[1] = new Block("West");
+ bloecke[2] = new Block("Nord");
+ bloecke[3] = new Block("Süd");
+ }
+ public void loescheReservierung(Reservierung r) {
+ reservierungen.remove(r);
+ }
+ public Block sucheBlock(String bezeichnung) {
+ Block block = null;
+ for (Block b : bloecke)
+ if (bezeichnung.equals(b.getBezeichnung())) {
+ block = b;
+ break;
+ }
+ return block;
+ }
+ public void hinzufuegenReservierung(Reservierung r) {
+ reservierungen.add(r);
+ }
+}
+
+1.2.3 Die Methode reservierePlaetze(kunde:Kunde, spiel:Spiel, blockbez:String,
+reihe:int, vonPlatz:int, bisPlatz:int): Reservierung der Klasse
+Reservierungssystem soll den folgenden Ablauf ermöglichen:
+– Der Block wird ermittelt.
+– Es wird geprüft, ob alle Plätze reservierbar sind.
+– Wenn ja, werden die Plätze reserviert, ein neues Reservierungsobjekt erstellt und dem
+Kunden, dem Spiel sowie dem Reservierungssystem selbst zugeordnet. Eine Referenz auf
+die Reservierung wird zurückgegeben.
+– Wenn nein, wird null zurückgegeben.
+Entwickeln Sie ein Sequenzdiagramm für die Methode.
+Hinweis: Eine Vorlage finden Sie in Material 4. Sie können davon ausgehen, dass nur gültige
+Parameterwerte übergeben werden.
+(12 BE)
+
+## Loesung 1.2.3
+public class Block {
+ private static final int REIHEN = 50;
+ private static final int PLAETZE = 200;
+ private String bezeichnung;
+ private boolean belegung[][];
+ public Block(String bezeichnung) {
+ this.bezeichnung = bezeichnung;
+ this.belegung = new boolean[REIHEN][PLAETZE];
+ }
+ public boolean istFrei(int reihe, int platz) {
+ return !belegung[reihe-1][platz-1];
+ }
+ public void belegePlatz(int reihe, int platz) {
+ belegung[reihe-1][platz-1] = true;
+ }
+ public void gibPlatzFrei(int reihe, int platz) {
+ belegung[reihe-1][platz-1] = false;
+ }
+}
+überführen
+implementieren
+
+1.3 Für die Ticketreservierung über das Internet wurde eine Server-Klasse im Klassendiagramm
+ergänzt (Material 5).
+
+1.3.1 Nach der erfolgreichen Anmeldung eines Kunden wartet der Server auf eingehende
+Anforderungen. Dies geschieht in der Methode empfangeAnforderung (clientSocket:
+Socket). Die Client-Server-Kommunikation innerhalb dieser Methode ist gemäß folgendem
+Beispiel zu realisieren:
+< reserviere 45 Ost 8 12 13
+> OK: Ihre Reservierungsnummer 123456
+< reserviere 45 Ost 8 13 15
+> ERR: Reservierung nicht möglich
+< res 45 Ost 8 22 23
+> ERR: Unbekanntes Kommando
+< ende
+> OK: Danke für Ihren Besuch.
+Dabei bezeichnet „>“ die Richtung vom Server zum Client und „<“ vom Client zum Server. Im
+Beispiel wird eine Reservierungsanforderung für Spiel 45, Block Ost, Reihe 8, Plätze 12 bis 13
+übermittelt. Falls ein Einzelplatz reserviert wird, beispielsweise Platz 12, wird dies in der Form
+12 12 übermittelt.
+Überführen Sie die Klasse Reservierungsserver in Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie den Konstruktor sowie die Methoden
+starteServer() und empfangeAnforderung(clientSocket: Socket).
+Hinweis: Die Methode anmelden(), die den Anmeldevorgang realisiert, ist nicht zu
+implementieren. Die Fehlerbehandlung für die oben dargestellten Fälle ist zu implementieren.
+Zur Umwandlung eines Strings in eine Integer-Zahl steht die Methode
+Integer.parseInt(s: String): int zur Verfügung.
+(12 BE)
+
+## Loesung 1.3.1
+überführen, implementieren
+public class Reservierungsserver {
+ private int port;
+ private ServerSocket serverSocket;
+ private Reservierungssystem reservierungsSystem;
+ private Kunde aktKunde;
+ public Reservierungsserver(int port,
+ Reservierungssystem resSystem) {
+ this.port = port;
+ this.reservierungsSystem = resSystem;
+ }
+ public void starteServer() {
+ serverSocket = new ServerSocket(port);
+ while(true) {
+ Socket clientSocket = serverSocket.accept();
+ if (anmelden(clientSocket))
+ empfangeAnforderung(clientSocket);
+ clientSocket.close();
+ }
+ }
+ private void empfangeAnforderung(Socket clientSocket) {
+ String anforderung = clientSocket.readLine();
+ while (!anforderung.equals("ende")) {
+ String[] temp = anforderung.split(" ");
+ if (temp[0].equals("reserviere")) {
+ int spNr = Integer.parseInt(temp[1]);
+ Spiel spiel = reservierungsSystem.sucheSpiel(spNr);
+ String blockbez = temp[2];
+ int reihe = Integer.parseInt(temp[3]);
+ int vonPlatz = Integer.parseInt(temp[4]);
+ int bisPlatz = Integer.parseInt(temp[5]);
+ Reservierung res = reservierungsSystem.
+ reservierePlaetze(aktKunde, spiel, blockbez, reihe,
+ vonPlatz, bisPlatz);
+ if (res != null)
+ clientSocket.write("OK: Ihre Reservierungsnummer "
+ + res.getNummer() + "\n");
+ else
+ clientSocket.write("ERR: Reservierung nicht
+ möglich\n");
+ } else
+ clientSocket.write("ERR: Unbekanntes Kommando\n");
+ anforderung = clientSocket.readLine();
+ }
+ clientSocket.write("OK: Danke für Ihren Besuch\n");
+ }
+}
+überführen
+implementieren
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung des Kassensystems
+
+2.2 Die Methode anlegenArtikel() der Klasse HandelVerwaltung erzeugt ein Artikel-Objekt
+und fügt es nach der Artikelnummer aufsteigend sortiert in die Artikel-Liste ein, wenn noch
+kein Objekt mit derselben Artikelnummer existiert. Konnte das Objekt eingefügt werden, gibt
+die Methode true zurück, ansonsten false.
+Implementieren Sie die Methode.
+Hinweis: Die Dokumentation der Klasse List finden Sie in Material 7.
+(7 BE)
+
+## Loesung 2.2
+public boolean anlegenArtikel(int artikelNr,
+String bezeichnung, double preis, int mwst) {
+int i = 0;
+boolean vorhanden = false;
+for( ; i < artikel.size() && !vorhanden; i++) {
+if(artikelNr == artikel.get(i).getArtikelNr()) {
+vorhanden = true;
+} else if(artikel.get(i).getArtikelNr() > artikelNr) {
+break;
+}
+}
+if(!vorhanden) {
+artikel.add(i, new Artikel(artikelNr, bezeichnung,
+preis, mwst));
+}
+return!vorhanden;
+}
+
+2.3.1 Implementieren Sie die Methode scanneBarcode().
+Hinweise: Das Zeichen ESC hat den Wert 0x1B, STX den Wert 0x02, ACK den Wert 0x06,
+NAK den Wert 0x15 und LF den Wert 0x0A. Die Klassen Serial und String sind in
+Material 7 beschrieben.
+(8 BE)
+
+## Loesung 2.3.1
+private String scanneBarcode() {
+final int ESC = 0x1B;
+final int LF = 0x0A;
+final int ACK = 0x06;
+final int NAK = 0x15;
+String barcode = null;
+int zeichen = NAK;
+Serial com = new Serial("COM1", 9600, 7, 1, 0);
+if (com.open()) {
+com.setRTS(true);
+com.write((char)ESC + "READ" + (char)LF);
+while (zeichen == NAK) {
+barcode = com.readLine();
+barcode = barcode.substring(1);
+int[] feld = barcode.toIntArray();
+if (feld!= null && checkBarcode(feld)) {
+zeichen = ACK;
+}
+com.write(zeichen);
+}
+com.close();
+}
+return barcode;
+}
+
+2.4.1 Überführen Sie die Klasse Server aus Material 6 in entsprechende Anweisungen einer
+objektorientierten Programmiersprache.
+Hinweis: Die Klasse ServerSocket ist in Material 7 beschrieben.
+(5 BE)
+
+## Loesung 2.4.1
+public class Server {
+private ServerSocket server;
+private HandelVerwaltung hvw;
+public Server(int port, HandelVerwaltung hvw) {
+server = new ServerSocket(port);
+this.hvw = hvw;
+}
+public void startServer() {
+while(true) {
+Socket socket = server.accept();
+new ScanThread(hvw, socket).start();
+}
+}
+}
+
+2.4.2 Implementieren Sie die Klasse ScanThread aus Material 6 unter Berücksichtigung des
+Sequenzdiagramms in Material 8.
+Hinweis: Die Klasse Socket ist in Material 7 beschrieben.
+(10 BE)
+
+## Loesung 2.4.2
+public class ScanThread extends Thread {
+private HandelVerwaltung hvw;
+private Socket socket;
+public ScanThread (HandelVerwaltung hvw, Socket socket) {
+this.hvw = hvw;
+this.socket = socket;
+}
+public void run() {
+while(true) {
+String kundenNr = socket.readLine(); //"4711"
+Kunde k = hvw.sucheKunde(Integer.parseInt(kundenNr));
+if(k!= null) {
+socket.write("+OK\n");
+Rechnung r = new Rechnung(k);
+hvw.hinzufuegenRechnung(r);
+String dat = socket.readLine();//”2;23356” o. "ende"
+while(!dat.equals("ende")) {
+String[] werte = dat.split(";");
+int menge = Integer.parseInt(werte[0]);
+int artikelNr = Integer.parseInt(werte[1]);
+Artikel a = hvw.sucheArtikel(artikelNr);
+Position p = r.hinzufuegenPosition(a, menge);
+socket.write(p.toString() + "\n");
+dat = socket.readLine(); //"2;123456" oder "ende"
+}
+hvw.druckeRechnung(r);
+} else {
+socket.write("-ERR");
+}
+}
+}
+}
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+# OOP
+
+1 Objektorientiertes Software-System für die Servicedesk-Anwendung
+
+1.2.3 Überführen Sie die im UML-Klassendiagramm (Material 2) dargestellten Klassen
+Mitarbeiter und Ticket in entsprechende Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie die aufgeführten Methoden.
+Hinweise: Die Beschreibungen der Klassen List und DateTime sind in Material 3
+(Klassendokumentationen) zu finden. Die Ticketnummer soll automatisch generiert werden.
+(8 BE)
+
+## Loesung 1.2.3
+überführen, implementieren
+public class Ticket {
+public final static int UNGELOEST = 1;
+public final static int INBEARBEITUNG = 2;
+public final static int GELOEST = 3;
+public final static int GESCHLOSSEN = 4;
+private static int autoWert = 1;
+private int ticketId;
+private DateTime erfassungsdatum;
+private String betreff;
+private String beschreibung;
+private String loesung;
+private int status;
+private Kunde kunde;
+private Mitarbeiter bearbeiter;
+private Mitarbeiter erfasser;
+public Ticket(Kunde kunde, Mitarbeiter erfasser,
+String betreff, String beschreibung) {
+this.kunde = kunde;
+this.erfasser = erfasser;
+this.ticketId = autoWert++;
+this.betreff = betreff;
+this.beschreibung = beschreibung;
+this.erfassungsdatum = new DateTime();
+this.kunde.hinzufuegenTicket(this);
+this.status = UNGELOEST;
+}
+public void zuordnenBearbeiter(Mitarbeiter bearbeiter) {
+this.bearbeiter = bearbeiter;
+this.status = INBEARBEITUNG;
+}
+public void eintragenLoesung(String loesung) {
+this.loesung = loesung;
+this.status = GELOEST;
+}
+public void schliessen() {
+this.status = GESCHLOSSEN;
+}
+}
+public class Mitarbeiter {
+private String name;
+private String email;
+private String passwort;
+private List<Ticket> meineTickets;
+public Mitarbeiter(String name, String email, String pw) {
+this.name = name;
+this.email = email;
+this.passwort = pw;
+this.meineTickets = new List<Ticket>();
+}
+public void zuordnenTicket(Ticket ticket) {
+ticket.zuordnenBearbeiter(this);
+meineTickets.add(ticket);
+}
+}
+
+1.2.4 Überführen Sie die Klasse Wissensdatenbank (Material 4) in entsprechende Anweisungen
+einer objektorientierten Programmiersprache und implementieren Sie die Methoden.
+(5 BE)
+
+## Loesung 1.2.4
+überführen, implementieren
+public class Wissensdatenbank {
+private List<Loesung> loesungen;
+public Wissensdatenbank() {
+loesungen = new List<Loesung>();
+}
+public List<Loesung> findeLoesung(String stichwort) {
+List<Loesung> gefunden = new List<Loesung>();
+for (Loesung loesung: loesungen) {
+if (loesung.getStichwort().equals(stichwort)) {
+gefunden.add(loesung);
+}
+}
+return gefunden;
+}
+public void aufnehmenNeueLoesung(String stichwort,
+String beschreibung) {
+loesungen.add(new Loesung(stichwort, beschreibung));
+}
+}
+
+1.2.5 Von der Wissensdatenbank soll es nur eine Ausprägung, d.h. nur ein Objekt geben. Dies wird
+durch das Singleton-Entwurfsmuster gewährleistet. Singleton (dt. Einzelstück) ist ein in der
+Softwareentwicklung eingesetztes Entwurfsmuster. Es stellt sicher, dass von einer Klasse genau
+ein Objekt existiert.
+Der private Konstruktor kann nur innerhalb der Klasse aufgerufen werden. Das Klassenattribut
+instance referenziert das einzige Objekt der Klasse Wissensdatenbank.
+Die statische Methode getInstance()
+– erzeugt das Objekt, sofern dieses noch nicht existiert,
+– liefert die Referenz auf das Objekt zurück,
+– bietet öffentlichen Zugriff auf dieses Objekt.
+Implementieren Sie die Klasse Wissensdatenbank, indem Sie das Singleton-Entwurfsmuster
+anwenden.
+Hinweis: Es müssen nur die entsprechenden Änderungen und Ergänzungen angegeben werden.
+(5 BE)
+
+## Loesung 1.2.5
+public class Wissensdatenbank {
+...
+// Ergänzungen zum Singleton-Entwurfsmuster
+private static Wissensdatenbank instance = null;
+private Wissensdatenbank() {
+}
+public static Wissensdatenbank getInstance() {
+if (instance == null) {
+instance= new Wissensdatenbank();
+}
+return instance;
+}
+}
+
+1.3.2 Implementieren Sie die Klasse ServicedeskServer (Material 5).
+Hinweise: Die Dokumentation der Socket-Klassen finden Sie in Material 3
+(Klassendokumentationen).
+(4 BE)
+
+## Loesung 1.3.2
+public class ServicedeskServer {
+private ServerSocket serverSocket = null;
+private Servicedesk servicedesk;
+public ServicedeskServer(int port,
+Servicedesk servicedesk) {
+this.serverSocket = new ServerSocket(port);
+this.servicedesk = servicedesk;
+}
+public void runServer(){
+while (true) {
+// Verbindung zu Clients aufnehmen
+Socket socket = serverSocket.accept();
+new AnfrageThread(socket, servicedesk);
+}
+}
+}
+
+1.3.4 Überführen Sie die im UML-Klassendiagramm (Material 5) dargestellte Klasse
+ServicedeskClient in entsprechende Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie die Methoden verbinden(), anmelden(),
+abmelden() und aufgebenTicket().
+Hinweise: Die Methoden verbinden(), anmelden() und abmelden() liefern den Wert
+true, wenn die Methoden erfolgreich ausgeführt werden konnten. Antworten des Servers
+beginnen im Erfolgsfall mit "+OK".
+(8 BE)
+
+## Loesung 1.3.4
+überführen, implementieren
+public class ServicedeskClient {
+private Socket socket;
+public boolean verbinden(String server, int port) {
+socket = new Socket(server, port);
+if (! socket.connect()) {
+return false;
+}
+return true;
+}
+public boolean anmelden(String email, String passwort) {
+socket.write("login;" + email + ";" + passwort + "\n");
+// Anmeldebestätigung holen
+String antwort = socket.readLine();
+if (! antwort.startsWith("+OK")) {
+socket.close();
+return false;
+}
+return true;
+}
+public boolean abmelden() {
+socket.write("logout\n");
+// Abschiedsmeldung holen
+String antwort = socket.readLine();
+if (antwort.startsWith("+OK")) {
+socket.close();
+return true;
+}
+return false;
+}
+public String aufgebenTicket(String betreff,
+String beschreibung) {
+// Anfrage
+socket.write("newTicket;" + betreff + ";" +
+beschreibung + "\n");
+// Antwort
+String antwort = socket.readLine();
+return antwort;
+}
+}
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Anwendung
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.1 Überführen Sie die im UML-Klassendiagramm (Material 1) dargestellten Klassen Fahrer und
+Lieferauftrag in Anweisungen einer objektorientierten Programmiersprache und
+implementieren Sie die aufgeführten Methoden.
+Hinweise: Die Methode ermittleWartezeit() der Klasse Fahrer liefert die seit dem Ende
+des letzten Lieferauftrags vergangene Zeit in Millisekunden. Der letzte (neueste) Lieferauftrag
+wurde zuletzt der Liste der Lieferaufträge hinzugefügt. Hatte ein Fahrer noch keinen
+Lieferauftrag, wird die Wartezeit auf 3 Stunden festgelegt. Der Konstruktor der Klasse
+Lieferauftrag setzt die aktuelle Zeit als start-Zeit. Eine Dokumentation der Klassen
+List und DateTime ist in Material 2 zu finden.
+(8 BE)
+
+## Loesung 1.1
+überführen, implementieren
+public class Fahrer {
+private static int autowert = 0;
+private int fahrernr;
+private String vorname;
+private String nachname;
+private String rfidKennung;
+private char fuehrerscheinklasse;
+private boolean arbeitet;
+private boolean aufTour;
+private List<Lieferauftrag> lieferauftraege;
+public Fahrer(String vn, String nn,
+String rfid, char fk) {
+this.fahrernr = ++autowert;
+this.vorname = vn;
+this.nachname = nn;
+this.rfidKennung = rfid;
+this.fuehrerscheinklasse = fk;
+this.arbeitet = false;
+this.aufTour = false;
+this.lieferauftraege = new List<Lieferauftrag>();
+}
+public long ermittleWartezeit() {
+long wartezeit;
+if (lieferauftraege.size() > 0) {
+Lieferauftrag letzterAuftrag =
+lieferauftraege.get(lieferauftraege.size()-1);
+DateTime wartetSeit = letzterAuftrag.getEnde();
+wartezeit = wartetSeit.millisUntil(new DateTime());
+} else {
+wartezeit = 3*60*60*1000; // 3 Std in Millisekunden
+}
+return wartezeit;
+}
+public void hinzufuegen(Lieferauftrag la) {
+this.lieferauftraege.add(la);
+}
+}
+public class Lieferauftrag {
+private Bestellung bestellung;
+private DateTime start;
+private DateTime ausgeliefert;
+private DateTime ende;
+private Fahrer fahrer;
+private Fahrzeug fahrzeug;
+public Lieferauftrag(Bestellung bestellung,
+Fahrer f, Fahrzeug fz) {
+this.bestellung = bestellung;
+this.bestellung.setLieferauftrag(this);
+this.start = new DateTime();
+this.ausgeliefert = null;
+this.ende = null;
+this.fahrer = f;
+this.fahrzeug = fz;
+}
+}
+
+1.4.1 Die run-Methode der Klasse Controller steuert u.a. den Entriegelungsvorgang eines
+Fahrzeugs. Der Ablauf ist im Struktogramm in Material 5 dargestellt.
+Überführen Sie die Klasse Controller in Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie den Konstruktor und die Methode run().
+Hinweise: Die Dokumentation der Klasse Serial ist in Material 2 zu finden. Die Methode
+getTimer() der Klasse Controller liefert die aktuelle Zeit in Millisekunden.
+(10 BE)
+
+## Loesung 1.4.1
+überführen, implementieren
+public class Controller {
+private FunkModul funkModul;
+private RFIDReader reader;
+private Fahrzeug fahrzeug;
+public Controller(String comPort, Fahrzeug fahrzeug) {
+funkModul = new FunkModul();
+this.fahrzeug = fahrzeug;
+Serial serial = new Serial(comPort, 9600, 8, 1, 0);
+if(serial.open()) {
+reader = new RFIDReader(serial);
+}
+}
+public void run(){
+char response;
+String rfidKennung;
+while(true) {
+if(reader.isCardAvailable()) {
+rfidKennung = reader.readCard();
+if (!rfidKennung.isEmpty()) {
+this.funkModul.send("UNLOCK "
++ fahrzeug.getFahrzeugnr()+ " "
++ rfidKennung);
+response = this.funkModul.receive();
+if(response == 0x06) { // ACK, Fahrzeug entriegeln
+fahrzeug.unlock();
+// Fahrzeug wieder absperren,
+// wenn es nicht gestartet wurde,
+startTimer();
+while(getTimer()/1000 <
+&& !fahrzeug.hasStarted());
+if (!fahrzeug.hasStarted()) {
+fahrzeug.lock();
+funkModul.send("LOCK "
++ fahrzeug.getFahrzeugnr()+ " "
++ rfidKennung);
+}
+} else {
+display("Karte nicht authorisiert");
+}
+} else {
+display("Karte nicht lesbar");
+}
+}
+}
+}
+}
+
+1.4.2 Die Methode readCard() der Klasse RFIDReader liest die auf dem RFID-Chip gespeicherte
+RFID-Kennung des Fahrers über die serielle Schnittstelle. Das Datenformat (Material 4) sieht
+ein Prüfzeichen vor. Ist das Prüfzeichen korrekt, wird die RFID-Kennung in Form einer
+Zeichenkette zurückgegeben. Im Fehlerfall ist der Rückgabewert eine leere Zeichenkette.
+Implementieren Sie die Methode readCard().
+Hinweise: Die Dokumentation der Klasse String ist in Material 2 zu finden. Die Methode
+calcCheckChar() ermittelt das Prüfzeichen.
+(5 BE)
+
+## Loesung 1.4.2
+public String readCard() {
+String response = "";
+char checkValue;
+char[] data = new char[6];
+while(readChar() != 0x02); // warte auf STX
+// lies Zeichen von der Schnittstelle
+for(int i = 0; i < data.length; i++) {
+data[i] = readChar();
+}
+// lies Pruefzeichen
+checkValue = readChar();
+// wenn naechstes Zeichen ein ETX ist, geht es weiter
+if(readChar() == 0x03) {
+if(checkValue == calcCheckChar(data)) {
+response = new String(data);
+}
+}
+return response;
+}
+
+1.6 Eine Gutschrift-Funktion soll ergänzt werden. Wenn eine Kundin oder ein Kunde eine
+Bestellung aufgibt und vom Eingang der Bestellung bis zur Auslieferung mehr als 45 Minuten
+vergehen, erhält die Kundin bzw. der Kunde eine Gutschrift in Höhe von 3 Euro, die bei der
+nächsten Bestellung eingelöst werden kann.
+Entwerfen Sie die notwendigen Erweiterungen der Klassen LieferserviceVerwaltung und
+Kunde mit Beziehungen im UML-Klassendiagramm und implementieren Sie eine Methode zur
+Zuweisung der Gutschrift für eine bestimmte Bestellung in einer objektorientierten
+Programmiersprache.
+(6 BE)
+
+## Loesung 1.6
+entwerfen, implementieren
+LieferserviceVerwaltung
+- gutschriftHoehe: double =
++ erfasseBestellung(besteller: Kunde) : Bestellung
++ ermittleGutschrift(bestellung: Bestellung)
+* - kunden
+Kunde
+- name: String
+- telefon: String
+- gutschrift: boolean
++ Kunde(name: String, telefon: String, ladresse: Adresse)
+public void ermittleGutschrift(Bestellung bestellung) {
+DateTime beginn = bestellung.getBestellEingang();
+DateTime ausgeliefert =
+bestellung.getLieferauftrag().getAusgeliefert();
+long millis = beginn.millisUntil(ausgeliefert);
+if (millis > 45*60*1000) {
+bestellung.getBesteller().setGutschrift(true);
+}
+}
+entwerfen
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des Kino-Management-Systems
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.1 Überführen Sie die im UML-Klassendiagramm (Material 1) dargestellte Klasse Film in
+Anweisungen einer objektorientierten Programmiersprache und implementieren Sie die
+aufgeführten Methoden.
+Hinweise: Die Liste der Vorstellungen eines Films ist nach Datum und Uhrzeit aufsteigend zu
+sortieren. Die Methode einfuegen(vorstellung: Vorstellung) fügt eine Vorstellung an
+der zeitlich korrekten Position in die Liste ein. Eine Beschreibung der Klassen List und
+DateTime ist in Material 2 zu finden.
+(10 BE)
+
+## Loesung 1.1
+überführen, implementieren
+public class Film {
+private String titel;
+private int produktionsjahr;
+private int laenge;
+private List<Vorstellung> vorstellungen;
+public Film(String t, int pj, int l) {
+this.titel = t;
+this.produktionsjahr = pj;
+this.laenge = l;
+this.vorstellungen = new List<Vorstellung>();
+}
+public void einfuegen(Vorstellung vorstellung){
+boolean stelleGefunden = false;
+int i = 0;
+while (!stelleGefunden && i < vorstellungen.size()) {
+if(vorstellung.getDatumUhrzeit().
+isBefore(vorstellungen.get(i).getDatumUhrzeit())) {
+stelleGefunden = true;
+} else {
+i++;
+}
+}
+vorstellungen.add(i,vorstellung);
+}
+}
+
+1.2 Überführen Sie die im UML-Klassendiagramm (Material 1) dargestellte Klasse Vorstellung
+in Anweisungen einer objektorientierten Programmiersprache und implementieren Sie die
+aufgeführten Methoden.
+Hinweise: Ein Kinosaal hat eine bestimmte Anzahl von Reihen und Sitzen pro Reihe. Die
+Methode sucheBesteFreieSitze(anzahl: int) ermittelt die gewünschte Anzahl von
+freien und nebeneinanderliegenden Sitzen möglichst weit hinten. Sie liefert die Nummer des
+ersten freien Sitzes, bzw. den Wert 0, wenn es keine freien, nebeneinanderliegenden Sitze in
+einer Reihe in der gewünschten Anzahl gibt. Sie finden einen beispielhaften Sitzplan des
+Kinosaals in Material 3. Die Methode belegeSitz(sitznr: int) ermittelt die Reihe und
+den Sitz aus der übergebenen Sitznummer mithilfe der Ganzahldivision und prüft, ob der Sitz
+noch frei ist. Wenn der Sitz frei ist, wird er belegt und es wird true zurückgegeben, andernfalls
+wird false zurückgegeben. Die Methode berechneNormalpreis() berechnet den regulären
+Preis aus dem Basispreis und ggf. dem Aufpreis bei einem überlangen Film. Ein Film hat
+Überlänge, wenn er länger als 150 Minuten dauert. Eine Beschreibung der Klasse List ist in
+Material 2 zu finden.
+(16 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public class Vorstellung {
+private static final double BASISPREIS = 10.00;
+private static final double AUFPREISUEBERLAENGE = 2.00;
+private DateTime datumUhrzeit;
+private boolean [] [] sitzbelegung;
+private Kinosaal kinosaal;
+private Film film;
+public Vorstellung(Kinosaal kinosaal, Film film,
+DateTime datumUhrzeit) {
+this.datumUhrzeit = datumUhrzeit;
+this.kinosaal = kinosaal;
+this.film = film;
+sitzbelegung = new boolean [this.kinosaal.getReihen()]
+[this.kinosaal.getSitzeProReihe()];
+for (int i = 0; i < this.kinosaal.getReihen(); i++) {
+for (int j=0;j<this.kinosaal.getSitzeProReihe();j++) {
+sitzbelegung[i][j] = true; // Sitz frei
+}
+}
+}
+public int sucheBesteFreieSitze(int anzahl) {
+int ersterFreierSitz = 0;
+int anzahlFreieSitze = 0;
+for (int reihe=sitzbelegung.length-1;reihe>=0
+&& anzahlFreieSitze < anzahl;
+reihe--) {
+anzahlFreieSitze = 0;
+for (int sitz = 0; sitz < sitzbelegung[reihe].length
+&& anzahlFreieSitze < anzahl;
+sitz++) {
+if (sitzbelegung[reihe][sitz]) {
+anzahlFreieSitze++;
+if (anzahlFreieSitze == anzahl) {
+ersterFreierSitz = (reihe+1) * 100 + (sitz+1)
+- anzahl + 1;
+}
+} else {
+anzahlFreieSitze = 0;
+}
+}
+}
+return ersterFreierSitz;
+}
+public boolean belegeSitz(int sitznr) {
+boolean ergebnis = true;
+int reihe = sitznr / 100;
+int sitz = sitznr % 100;
+reihe--;
+sitz--;
+if (sitzbelegung[reihe][sitz]) {
+sitzbelegung[reihe][sitz] = false;
+} else {
+ergebnis = false; // Sitz ist bereits belegt
+}
+return ergebnis;
+}
+public double berechneNormalpreis(){
+double ergebnis = Vorstellung.BASISPREIS;
+if (film.getLaenge() > 150) {
+ergebnis += Vorstellung.AUFPREISUEBERLAENGE;
+}
+return ergebnis;
+}
+}
+
+1.4.2 Überführen Sie die im UML-Klassendiagramm (Material 1) dargestellte Klasse Server in
+Anweisungen einer objektorientierten Programmiersprache und implementieren Sie die
+aufgeführten Methoden.
+Hinweis: Die Socket-Klassen sind in Material 2 beschrieben.
+(5 BE)
+
+## Loesung 1.4.2
+überführen, implementieren
+public class Server {
+private ServerSocket serverSocket;
+private KinoManager kiman;
+public Server(int port, KinoManager kiman) {
+this.kiman = kiman;
+serverSocket = new ServerSocket(port);
+this.runServer();
+}
+public void runServer() {
+while (true){
+Socket clientSocket = serverSocket.accept();
+new ServerThread(clientSocket, kiman).start();
+}
+}
+}
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des Impfzentrum-Systems
+Ein erstes UML-Klassendiagramm finden Sie in Material 1.
+
+1.1 Die Daten der zu impfenden Personen werden dem Impfzentrum in Form einer CSV1-Datei zur
+Verfügung gestellt. Ein Datensatz hat folgenden Aufbau:
+77665;Müller;Klaus;31.12.1980;35334;Hausen;Teichweg 8;1
+Die einzelnen Elemente stehen für Personen-ID, Nachname, Vorname, Geburtsdatum, PLZ, Ort,
+Straße mit Hausnummer und Risikogruppe (1 ist Risikogruppe, 0 ist keine Risikogruppe).
+Überführen Sie die Klasse Person (Material 1) in Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie den Konstruktor ohne die weiteren Methoden.
+Hinweise: Der Konstruktor erhält die Personendaten als Zeichenkette wie oben beschrieben.
+Das Geburtsdatum muss mithilfe der Methode pruefeDatum() der Klasse
+ImpfzentrumVerwaltung auf Plausibilität getestet werden, bevor ein Datums-Objekt erzeugt
+wird. Die Dokumentationen der Klassen Date und String sind in Material 2 zu finden.
+(6 BE)
+
+## Loesung 1.1
+überführen, implementieren
+public class Person {
+private int personID;
+private String nachname;
+private String vorname;
+private Date gebDatum;
+private String plz;
+private String ort;
+private String strasse;
+private boolean risiko;
+private boolean einverstaendnis;
+private int anzahlImpfungen;
+private Impfung[] impfungen;
+private Person naechste;
+public Person(String personenDaten) {
+String[] werte = personenDaten.split(";");
+this.personID = Integer.parseInt(werte[0]);
+this.nachname = werte[1];
+this.vorname = werte[2];
+String[] datum = werte[3].split("\\.");
+int t = Integer.parseInt(datum[0]);
+int m = Integer.parseInt(datum[1]);
+int j = Integer.parseInt(datum[2]);
+this.gebDatum = null;
+if(ImpfzentrumVerwaltung.pruefeDatum(t, m, j))
+gebDatum = new Date(t, m, j);
+this.plz = werte[4];
+this.ort = werte[5];
+this.strasse = werte[6];
+this.risiko =
+(Integer.parseInt(werte[7]) == 1);
+this.einverstaendnis = false;
+this.anzahlImpfungen = 0;
+this.impfungen = new Impfung[2];
+this.naechste = null;
+}
+}
+Hinweis: Auf die Maskierung des Punktes ("\\.") kann verzichtet werden.
+
+1.3 Die Methode einladen(datum: Date) der Klasse ImpfzentrumVerwaltung (Material 1)
+generiert eine Liste mit Personen, die zu dem übergebenen Datum zur Impfung eingeladen
+werden sollen. Folgende Prioritäten sind bei der Erstellung der Liste zu berücksichtigen:
+– Erste Priorität haben Personen, deren 1. Impfung zum übergebenen Datum mehr als zwanzig
+Tage zurückliegt.
+– In zweiter Priorität folgen alle weiteren Personen nach Alter und gegebenenfalls
+Risikogruppenangehörigkeit absteigend sortiert. Handelt es sich um einen Risikopatienten,
+wird das Alter mit 2 multipliziert.
+Es muss sichergestellt werden, dass die Impfkapazität eines Tages (Anzahl der Impfstraßen mal
+Personen am Tag je Impfstraße) nicht überschritten wird. Implementieren Sie die Methode.
+Hinweis: Die Dokumentationen der Klassen Date und List sind in Material 2 zu finden.
+(10 BE)
+
+## Loesung 1.3
+public List<Person> einladen(Date datum) {
+List<Person> liste = new List<>();
+//Zuerst alle Personen, deren 1. Impftermin länger als
+//Tage zurückliegt
+for(Person p: personen) {
+if(p.getAnzahlImpfungen()==1) {
+Date d = p.getImpfungen()[0].getImpfTermin();d
+= d.addDays(21);
+if(d.isBefore(datum)) {
+liste.add(p);
+}
+}
+}
+//weitere Personen nach Priorität Alter und Risiko
+//absteigend sortiert hinzufügen
+int index = 0; //index Objekt aus der Liste personen
+//Index Prioritätenliste nach Objekten Zweittermin
+int abIndex = liste.size();
+while(index < personen.size()) {
+Person p = personen.get(index);
+if(!liste.contains(p) && p.getGebDatum() != null) {
+int i = abIndex;
+int prio1 = p.ermittleAlter()*(p.getRisiko() ? 2: 1);
+while(i < liste.size()) {
+int prio2 = liste.get(i).ermittleAlter() *
+(liste.get(i).getRisiko() ? 2: 1);
+if(prio1 >= prio2) {
+break;
+}
+i++;
+}
+liste.add(i, p);
+}
+index++;
+}
+//n Personen oberer Priorität, Rest aus Liste löschen
+int n = STRASSEN * PERSONEN_TAG_STRASSE;
+int zuLoeschen = liste.size() - n;
+while(zuLoeschen > 0 ) {
+liste.remove(n);
+zuLoeschen--;
+}
+return liste;
+}
+
+1.4.2 Implementieren Sie die Klasse Warteschlange aus Material 1.
+Hinweis: Die Methode hinzufuegen() fügt die Person an das Ende der Warteschlange hinzu.
+Die Methode entfernen() entnimmt die am längsten wartende Person. Die Methode
+loeschen() sucht eine bestimmte Person in der Warteschlange und kettet sie aus.
+(12 BE)
+
+## Loesung 1.4.2
+public class Warteschlange {
+private int anzahlPersonen;
+private Person erste;
+private Person letzte;
+public Warteschlange() {
+anzahlPersonen = 0;
+erste = null;
+letzte = null;
+}
+public void hinzufuegen(Person personNeu) {
+if (letzte!= null) {
+letzte.setNaechste(personNeu);
+} else {
+erste = personNeu;
+}
+letzte = personNeu;
+anzahlPersonen++;
+}
+public Person entfernen() {
+Person p = erste;
+if(erste!= null) {
+erste = erste.getNaechste();
+p.setNaechste(null);
+anzahlPersonen--;
+}
+return p;
+}
+public Person loeschen(int personID) {
+Person aktuelle = erste;
+Person vorherige = erste;
+if(anzahlPersonen!= 0) {
+//suche Element
+while(aktuelle!= null &&
+aktuelle.getPersonID() != personID) {
+vorherige = aktuelle;
+aktuelle = aktuelle.getNaechste();
+}
+if(aktuelle!= null) { //Element ausketten
+if(aktuelle == erste && anzahlPersonen == 1) {
+erste = null;
+letzte = null;
+} else if (aktuelle.getNaechste() == null){
+letzte = vorherige;
+letzte.setNaechste(null);
+} else if(aktuelle==erste && anzahlPersonen > 1) {
+erste = aktuelle.getNaechste();
+} else {
+vorherige.setNaechste(aktuelle.getNaechste());
+}
+anzahlPersonen--;
+aktuelle.setNaechste(null);
+}
+}
+return aktuelle;
+}
+}
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+# OOP
+
+2 Objektorientierte Entwicklung eines Zuchtmanagementsystems
+Ein erstes UML-Klassendiagramm finden Sie in Material 3.
+
+2.3 Überführen Sie die Klassen Aquarium, Lebewesen und Fischart in Anweisungen einer
+objektorientierten Programmiersprache und implementieren Sie die dargestellten Methoden.
+Hinweise: Die Methode ermittleHerkunft() der Klasse Aquarium gibt die Herkunft des
+ersten Lebewesens oder einen leeren String bei einem leeren Aquarium zurück. Die Methode
+pruefeFreiesVolumen() gibt true zurück, wenn das Volumen des Aquariums für die
+Gruppe der übergebenen Fischart ausreicht, ansonsten false. Die Methode
+besetzeAquarium() fügt die übergebene Art dem Container lebewesen hinzu. Bei
+Fischarten ist das nur möglich, wenn das freie Volumen des Aquariums ausreichend ist. Sie
+können davon ausgehen, dass der Methode besetzeAquarium() nur verträgliche Fischarten
+übergeben werden. Die Dokumentation der Klasse List ist in Material 5 zu finden.
+(16 BE)
+
+## Loesung 2.3
+überführen, implementieren
+public class Aquarium {
+private int nr;
+private int laenge;
+private int breite;
+private int hoehe;
+private int nettoVolumenInLiter;
+private int literBelegt;
+private int anzahlFischArten;
+private static int autowert = 1;
+private List<Lebewesen> lebewesen;
+public Aquarium(int laenge, int breite, int hoehe) {
+this.nr = autowert++;
+this.laenge = laenge;
+this.breite = breite;
+this.hoehe = hoehe;
+this.nettoVolumenInLiter =
+(int)((laenge*breite*hoehe/1000) * 0.875);
+this.literBelegt = 0;
+this.anzahlFischArten = 0;
+this.lebewesen = new List<>();
+}
+public String ermittleHerkunft() {
+String s = "";
+if(lebewesen.size() > 0)
+s = lebewesen.get(0).herkunft;
+return s;
+}
+public boolean pruefeFreiesVolumen(Fischart art) {
+int literBedarf = art.getLaengeInCM() *
+art.getGruppengroesse() * 2;
+if(literBedarf + literBelegt <= nettoVolumenInLiter)
+return true;
+return false;
+}
+public boolean besetzeAquarium(Lebewesen art) {
+boolean ok = true;
+if(art instanceof Fischart) {
+Fischart f = (Fischart) art;
+if(pruefeFreiesVolumen(f)) {
+lebewesen.add(art);
+anzahlFischArten++;
+literBelegt += f.getLaengeInCM() *
+f.getGruppengroesse() * 2;
+} else {
+ok = false;
+}
+} else {
+lebewesen.add(art);
+}
+return ok;
+}
+}
+public abstract class Lebewesen {
+protected String name;
+protected String herkunft;
+protected int minTemp;
+protected int maxTemp;
+public Lebewesen(String name, String herkunft, int
+minTemp, int maxTemp) {
+this.name = name;
+this.herkunft = herkunft;
+this.minTemp = minTemp;
+this.maxTemp = maxTemp;
+}
+}
+public class Fischart extends Lebewesen{
+private int laengeInCM;
+private int gruppengroesse;
+private List<Fischart> vertraeglichMit;
+public Fischart(String name, String herkunft, int minTemp,
+int maxTemp, int cm, int gruppengroesse) {
+super(name, herkunft, minTemp, maxTemp);
+this.laengeInCM = cm;
+this.gruppengroesse = gruppengroess;
+vertraeglichMit = new List<>();
+}
+public void hinzufuegenVertraeglichMit(Fischart art) {
+this.vertraeglichMit.add(art);
+}
+}
+
+2.5.1 Die Klasse Steuerung (Material 6) überwacht und regelt die Temperatur eines Aquariums.
+– Bei der Erzeugung eines Steuerungsobjekts für das übergebene Aquarium auf dem
+angegebenen Device wird die optimale Temperatur (Attribut optimaleTemp) für die
+Lebensgemeinschaft des Aquariums anhand der Methode ermittleOptimaleTemp()
+initialisiert.
+– Die Methode ermittleAktuelleTemp() gibt einen über 20 eingelesene Messwerte des
+Temperatursensors gemittelten und in Grad Celsius umgewandelten Wert zurück, wobei
+zwischen den einzelnen Messungen 10 Millisekunden Wartezeit liegen.
+– Die Methode run() der Klasse Steuerung schaltet den Heizstab ein und prüft im
+Minutentakt das Erreichen der optimalen Temperatur. Ist diese erreicht, wird der Heizstab
+entsprechend ausgeschaltet.
+– Zur daraufhin beginnenden Überwachung wird die aktuelle Temperatur ermittelt und mit der
+optimalen Temperatur verglichen. Um ständige Schaltvorgänge zu verhindern, ist eine
+Abweichung von ± 0,5 Grad Celsius zu berücksichtigen. Ein Messintervall beträgt in der
+Regel 5 Minuten.
+– Wenn eine Messung unter oder über dem Sollbereich liegt, wird der Heizstab entsprechend
+geschaltet, das Ereignis gezählt und das Messintervall auf 1 Minute heruntergesetzt.
+– Wenn der Sollbereich nach 5 Minuten nicht wiederhergestellt ist, wird die Alarmleuchte
+eingeschaltet.
+Implementieren Sie Klasse Steuerung mit dem Konstruktor und den Methoden run() sowie
+ermittleAktuelleTemp().
+Hinweis: Die Dokumentation der Klasse VUSB ist in Material 5 zu finden.
+(12 BE)
+
+## Loesung 2.5.1
+public class Steuerung {
+private Aquarium aqua;
+private float optimaleTemp;
+private VUSB vusb;
+public Steuerung(Aquarium aqua, int device) {
+this.aqua = aqua;
+vusb = new VUSB(device);
+optimaleTemp = ermittleOptimaleTemp();
+}
+public void run() {
+vusb.writeDigital(128);
+boolean heizstabIsEingeschaltet = true;
+while(ermittleAktuelleTemp() < optimaleTemp)
+warteMin(1);
+vusb.writeDigital(0);
+heizstabIsEingeschaltet = false;
+int counter = 0;
+int wartezeit = 5;
+while(true) {
+warteMin(wartezeit);
+float tempAktuell = ermittleAktuelleTemp();
+if(tempAktuell < (optimaleTemp - 0.5f)) {
+if(!heizstabIsEingeschaltet()) {
+vusb.writeDigital(128); 2
+heizstabIsEingeschaltet = true;
+}
+wartezeit = 1;
+counter++;
+} else if(tempAktuell > (optimaleTemp + 0.5f)) {
+if(heizstabIsEingeschaltet) {
+vusb.writeDigital(0);
+heizstabIsEingeschaltet = false;
+}
+wartezeit = 1;
+counter++;
+} else {
+if(heizstabIsEingeschaltet) {
+vusb.writeDigital(0);
+heizstabIsEingeschaltet = false;
+}
+counter = 0;
+wartezeit = 5;
+}
+if(counter >= 5) {
+if(heizstabIsEingeschaltet)
+vusb.writeDigital(129);
+else
+vusb.writeDigital(1);
+}
+}
+}
+private float ermittleAktuelleTemp() {
+float resultTemp = 0f;
+for(int i = 0; i < 20; i++) {
+int analogValue = vusb.readAnalog1();
+float temp = (5f*100f*analogValue)/1024f;
+resultTemp += temp;
+warteMs(10);
+}
+return resultTemp/20;
+}
+}
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung des E-Banking-Systems
+Ein erstes Klassendiagramm finden Sie in Material 1.
+
+1.4 Implementieren Sie die Klassen Konto und Buchung aus Material 1 ohne get- und setMethoden.
+Hinweise: Der PIN eines neuen Konto-Objekts wird mithilfe der statischen Methode
+generierePin() der Klasse EBVerwaltung erzeugt. Die Methode zeigeUmsaetze() der
+Klasse Konto generiert einen String in Form der Umsatzanzeige in Material 2. Die Methoden
+einzahlen() und ueberweisen() erzeugen nach erfolgreicher Ausführung der Operation
+jeweils ein Buchungsobjekt, das als neueste in der verketteten Liste eingefügt wird. Eine
+Überweisung wird nur ausgeführt, wenn das Konto dadurch nicht überzogen wird. Die Methode
+sucheBuchungen() durchsucht die Buchungstexte nach der übergebenen Zeichenfolge und
+gibt die gefundenen Buchungsobjekte als Liste zurück. Die toString()-Methode der Klasse
+Buchung generiert eine Zeichenkette mit den Buchungsdaten gemäß der Umsatzanzeige in
+Material 2. Die Dokumentationen der Klassen Date, List und String sind in Material 3 zu
+finden.
+(14 BE)
+
+## Loesung 1.4
+implementieren
+public class Konto {
+ private String iban;
+ private int pin;
+ private double kontostand;
+ private Buchung neueste;
+
+ public Konto(String iban) {
+ this.iban = iban;
+ pin = EBVerwaltung.generierePin();
+ kontostand = 0;
+ neueste = null;
+ }
+
+ public boolean login(int pin) {
+ return this.pin == pin;
+ }
+ public void einzahlen(String text, double betrag) {
+ kontostand += betrag;
+ hinzufuegenBuchung(new Buchung(text, betrag));
+ }
+ public boolean ueberweisen(Konto empfaenger, String text,
+ double betrag){
+ boolean ok = false;
+ if (betrag <= kontostand) {
+ empfaenger.einzahlen(text, betrag);
+ kontostand -= betrag;
+ hinzufuegenBuchung(new Buchung(text, (betrag*-1)));
+ ok = true;
+ }
+ return ok;
+ }
+ private void hinzufuegenBuchung(Buchung b) {
+ b.setVorherige(neueste);
+ neueste = b;
+ }
+ public String zeigeBuchungen() {
+ String s = "Konto IBAN\t" + iban + "\tKontostand\t" +
+ kontostand + " EUR\n" +
+ "Buchungstag\tBuchungstext\tBetrag in EUR\n";
+ Buchung b = neueste;
+ while(b != null) {
+ s += b.toString()+ "\n";
+ b = b.getVorherige();
+ }
+ return s;
+ }
+ public List<Buchung> sucheBuchungen(String begriff) {
+ List<Buchung> gesuchte = new List<>();
+ Buchung b = neueste;
+ while(b != null) {
+ if(b.getText().contains(begriff)) {
+  gesuchte.add(b);
+ }
+ b = b.getVorherige();
+ }
+ return gesuchte;
+ }
+}
+public class Buchung {
+ private Date datum;
+ private String text;
+ private double betrag;
+ private Buchung vorherige;
+ public Buchung(String text, double betrag) {
+ this.datum = new Date();
+ this.text = text;
+ this.betrag = betrag;
+ }
+
+ public String toString() {
+ String s = datum.toString() + "\t" + text + "\t" +
+ betrag;
+ return s;
+ }
+}
+
+1.6 Das EB-System ermöglicht einem Kunden den Zugriff auf sein Konto, um Überweisungen zu
+tätigen. Wurde vom EB-Server eine Verbindungsanfrage akzeptiert, werden Client-Anfragen
+entgegengenommen und gemäß Protokoll bearbeitet. Nach erfolgreicher Anmeldung kann der
+Kunde bei ausreichender Kontodeckung Überweisungen tätigen, bis er sich vom Server
+abmeldet. Eine typische Sitzung des EB sieht folgendermaßen aus:
+(> für Antwort vom Server, < für Kommandos vom Client, <LF> Enter-Taste):
+> +OK E-Banking
+< anmelden;DE06550205000222222222;4554<LF> (Client sendet IBAN und PIN)
+> +OK Willkommen
+< ueberweisen;DE68210501700012345678;99.76<LF> (IBAN des Empfängers und Betrag)
+> +OK Überweisung erfolgt
+> Aktueller Kontostand: 108.04 EURO
+< ueberweisen;DE68210501700012345678;499.0<LF>
+> -ERR Überweisung nicht erfolgt
+> Aktueller Kontostand: 108.04 EURO
+< quit<LF>
+In der Beispielsitzung meldet sich ein Kunde mit der IBAN DE06 5502 0500 0222 2222 22 und
+dem PIN 4554 erfolgreich an und überweist 99,76 EURO auf das Konto mit der IBAN
+DE68 2105 0170 0012 3456 78. Für die zweite Überweisung besteht keine ausreichende
+Deckung auf dem Konto und es wird eine entsprechende Meldung ausgegeben. Daraufhin
+meldet sich der Kunde ab.
+
+1.6.2 Implementieren Sie die Klasse EBServer aus Material 1 unter Berücksichtigung des in
+Aufgabe 1.6 wiedergegebenen Sitzungsprotokolls sowie des UML-Sequenzdiagramms für die
+Server-Seite aus Material 4.
+Hinweise: Die Dokumentationen der Klassen Socket, ServerSocket und String sind in
+Material 3 zu finden. Zur Umwandlung eines Strings in eine Integer-Zahl bzw. Fließkommazahl
+stehen die Methoden Integer.parseInt(s: String): int und
+Double.parseDouble(s:String): double zur Verfügung.
+(9 BE)
+
+## Loesung 1.6.2
+implementieren
+public class EBServer {
+ private ServerSocket server = null;
+ private EBVerwaltung eb;
+
+ public EBServer(int port, EBVerwaltung eb){
+ this.port = port;
+ this.eb = eb;
+ }
+
+ public void startServer(){
+ server = new ServerSocket(port);
+ while(true){
+ Socket sc = server.accept();
+ sc.write("+OK E-Banking\n");
+ String anforderung = sc.readLine();
+ String[] werte = anforderung.split(";");
+ Konto k = null;
+ k = eb.anmelden(werte[1], Integer.parseInt(werte[2]));
+ if(k == null) {
+ sc.write("-ERR Login fehlgeschlagen!\n");
+ } else {
+ sc.write("+OK Willkommen\n");
+ anforderung = sc.readLine();
+ while (!anforderung.equals("quit")){
+ werte = anforderung.split(";");
+ Konto anderesKonto = eb.sucheKonto(werte[1]);
+ if(anderesKonto != null ){
+ if(eb.ueberweisen(k, anderesKonto, werte[2],
+ Double.parseDouble(werte[3])))
+ sc.write("+OK Überweisung erfolgt\n");
+ else
+ sc.write("-ERR Überweisung nicht erfolgt\n");
+ } else {
+ sc.write("-ERR Ungültige IBAN\n");
+ }
+ sc.write("Aktueller Kontostand: " +
+ k.getKontostand() + " EURO\n");
+ anforderung = sc.readLine();
+ }
+ }
+ sc.close();
+ }
+ }
+}
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung für die Fertigungsorganisation der Bikes
+Die Kundin oder der Kunde (im Folgenden Kunde genannt) wählen für Rahmenkit,
+Schaltgruppe und diverse Einzelteile aus dem Gesamtsortiment aus. Die Auswahl wird in einem
+Datenblatt festgehalten und führt zu einer Konfigurationsdatei für die Herstellung des
+gewünschten Bikes (Material 1). Bei der Montage, beispielsweise von einem Rennrad, beginnt
+man mit dem Rahmen und allen Teilen, die zum ausgewählten Rahmenkit gehören.
+Anschließend erfolgt der Einbau des Sattels (Einzelteil) und nach der Montage einiger
+Schaltelemente der Einbau des Lenkers (Einzelteil). Dann werden die restlichen Schalt-
+/Bremselemente sowie die Räder (Einzelteile) verbaut. Ein UML-Klassendiagramm finden Sie
+in Material 2, die Dokumentation der Klasse String in Material 3.
+
+1.2 Überführen Sie die Klassen Komponente und RahmenTeil (Material 2) in Anweisungen einer
+objektorientierten Programmiersprache und implementieren Sie die Konstruktoren und
+Methoden.
+Hinweise: Der Parameter part0 des Konstruktors der Klasse Komponente enthält alle
+Attributwerte, jeweils durch Komma getrennt. Analog zusammengesetzt ist der zweite
+Konstruktor-Parameter part1 der Komponententypen.
+(8 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public abstract class Komponente {
+private String iD;
+protected String bezeichnung;
+protected int gewicht;
+protected float preis;
+protected String hersteller;
+private Komponente naechste;
+private Komponente vorherige;
+public Komponente (String part0) {
+//part0 wird am Komma gesplittet und ergibt ein Array aus
+//5 Elementen für die 5 Attribute:
+String[] temp = part0.split(",");
+this.iD = temp[0];
+this.bezeichnung = temp[1];
+this.gewicht = Integer.parseInt(temp[2]);
+this.preis = Float.parseFloat(temp[3]);
+this.hersteller = temp[4];
+}
+public String toString() {
+return "ID=" + iD + ", " + bezeichnung + " wiegt " +
+gewicht + " g, kostet " + preis + " EUR,
+Hersteller: " + hersteller + ",";
+}
+}
+public class RahmenTeil extends Komponente {
+private String gruppe;
+private String abmessung;
+public RahmenTeil (String part0, String part1) {
+super(part0);
+String[] temp = part1.split(",");
+this.gruppe = temp[0];
+this.abmessung = temp[1];
+}
+public String toString() {
+return super.toString() + " " + gruppe + ", " +
+abmessung + " cm";
+}
+}
+
+1.4 Beim Herstellen eines Bikes ist der Rahmen immer das erste Bauteil. Die Methode
+hinzufuegenKomp() soll eine automatisierte Montage eines Fahrrads in gegebener
+Einbaureihenfolge nachbilden. Die Demontage eines Bikes ist genau in der umgekehrten
+Reihenfolge durchzuführen, weshalb die Komponenten doppelt verkettet werden.
+Implementieren Sie die Klasse Bike mit ihrem Konstruktor sowie der Methode
+hinzufuegenKomp().
+Hinweise: Die Methode hinzufuegenKomp()fügt ab der zweiten Komponente eine neue
+Komponente hinzu. Wenn bereits alle Teile des Bikes montiert sind, gibt sie false zurück.
+Alle Komponenten des Bikes werden bei der Objekterzeugung automatisch hinzugefügt.
+(12 BE)
+
+## Loesung 1.4
+public class Bike {
+public static int autowert=0;
+private int bikeID;
+private int anzahlKomp;
+private String modell;
+private String[] konfigzeilen;
+private Komponente ersteKomp;
+private Komponente letzteKomp;
+private Kategorie kat;
+public Bike(String dateiname) {
+this.leseDatenAusDatei(dateiname);
+//hier für das erste Bauteil:
+String[] teile = this.konfigzeilen[0].split(";");
+this.ersteKomp = new RahmenTeil(teile[0], teile[1]);
+this.letzteKomp = this.ersteKomp;
+//für die beiden Attribute in der letzten Konfigzeile:
+String[] rest =
+this.konfigzeilen[konfigzeilen.length- 1].split(";");
+this.modell = rest[0];
+kat = new Kategorie (rest[1]);
+this.anzahlKomp = 1;
+autowert ++ ;
+this.bikeID = autowert;
+while (this.hinzufuegenKomp()) {
+}
+}
+private void leseDatenAusDatei(String dateiname) {
+//nicht zu bearbeiten
+}
+public boolean hinzufuegenKomp() {
+//doppelte Verkettung, diese Methode fügt hinten an
+//erste Komponente ist bereits vorhanden (Konstruktor)
+Komponente komp = null;
+//falls noch nicht alle Komponenten montiert sind, wird
+//die nächste genommen:
+if (this.anzahlKomp >= this.konfigzeilen.length- 1 )
+return false;
+String[] teile =
+this.konfigzeilen[this.anzahlKomp].split(";");
+if (teile[0].startsWith("r"))
+komp = new RahmenTeil (teile[0],teile[1]);
+else if (teile[0].startsWith("s"))
+komp = new SchaltElement (teile[0], teile[1]);
+else if (teile[0].startsWith("e"))
+komp = new EinzelTeil (teile[0], teile[1]);
+//an letzteKomp anfügen:
+this.letzteKomp.setNaechste(komp);
+komp.setVorherige(this.letzteKomp);
+this.letzteKomp=komp;
+this.anzahlKomp ++ ;
+return true;
+}
+}
+
+1.5 Es kann erforderlich sein, dass eine in ein Bike eingebaute Komponente ersetzt werden muss.
+Für den Fall, dass man dafür Komponenten demontieren muss, ist die Kenntnis der Reihenfolge
+der Demontage vom letzten bis einschließlich zum zu ersetzenden Bauteil erforderlich. Die
+Methode ersetzeKomp()ersetzt die Komponente mit der gleichen ID und gibt einen String
+mit den Angaben der auszubauenden Komponenten in der richtigen Reihenfolge zurück. Falls
+keine Komponente ersetzt wird, soll der zurückgegebene String diese Information enthalten.
+Implementieren Sie die Methode ersetzeKomp().
+Hinweise: Die zu ersetzende Komponente wird anhand der mitgelieferten ID identifiziert. Da
+man die erste Komponente, den speziellen Rahmen, nicht ersetzen muss, ist davon auszugehen,
+dass das Bike mindestens aus zwei montierten Teilen besteht, wenn die Methode
+ersetzeKomp() ausgeführt wird.
+(7 BE)
+
+## Loesung 1.5
+public String ersetzeKomp(Komponente neu) {
+String ausbau = "Auszubauen sind:\n";
+if (letzteKomp.getID().equals(neu.getID())) {
+ausbau += letzteKomp.toString();
+neu.setVorherige(letzteKomp.getVorherige());
+letzteKomp.getVorherige().setNaechste(neu);
+letzteKomp.setVorherige(null);
+this.letzteKomp=neu;
+} else {
+Komponente aktuelle = letzteKomp;
+while (aktuelle!= ersteKomp &&
+!aktuelle.getID().equals(neu.getID())) {
+ausbau += aktuelle.toString() ;
+aktuelle = aktuelle.getVorherige();
+}
+if(aktuelle!= ersteKomp) {
+ausbau += aktuelle.toString();
+neu.setVorherige(aktuelle.getVorherige());
+neu.setNaechste(aktuelle.getNaechste());
+aktuelle.getVorherige().setNaechste(neu);
+aktuelle.getNaechste().setVorherige(neu);
+aktuelle.setVorherige(null);
+aktuelle.setNaechste(null);
+} else {
+ausbau = "Komponente nicht ausgebaut";
+}
+}
+return ausbau;
+}
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Softwaresystems für die Social-Media-Plattform
+Ein erstes UML-Klassendiagramm ist in Material 1 zu finden.
+
+1.2 Überführen Sie die Klassen Nutzer und Beitrag in Anweisungen einer objektorientierten
+Programmiersprache und implementieren Sie die Konstruktoren und Methoden.
+Hinweise: Alle Aktionen des Nutzers führen zu einer Aktualisierung seiner letzten Aktivität.
+Ein Nutzer kann seine eigenen Beiträge nicht liken. Abonniert ein Nutzer einen anderen Nutzer,
+soll er nur einmal als Abonnent bzw. als abonnierter Nutzer gespeichert werden. Ein Benutzer
+kann sich nicht selbst abonnieren. Beim Abonnieren eines Nutzers wird die bidirektionale
+Abonnentenbeziehung vollständig implementiert. Eine Beschreibung der Klasse List ist in
+Material 2 zu finden.
+(13 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public class Nutzer {
+private String benutzerName;
+private String passwort;
+private String emailAdresse;
+private DateTime zuletztAktiv;
+private List<Beitrag> beitraege;
+private List<Nutzer> abonnenten;
+private List<Nutzer> abonnierteNutzer;
+private List<Bild> bilder;
+public Nutzer(String name, String passwort,
+String email) {
+this.benutzerName = name;
+this.passwort = passwort;
+this.emailAdresse = email;
+this.zuletztAktiv = new DateTime();
+this.beitraege = new List<>();
+this.abonnenten = new List<>();
+this.abonnierteNutzer = new List<>();
+this.bilder = new List<>();
+}
+public Beitrag erstelleBeitrag(String titel, Bild bild) {
+this.zuletztAktiv = new DateTime();
+Beitrag beitrag = new Beitrag(this, titel, Bild);
+this.beitraege.add(beitrag);
+return beitrag;
+}
+public Beitrag erstelleBeitrag(
+String titel, Bild bild, String text){
+return erstelleBeitrag(titel, bild).erstelleText(text);
+}
+public void abonnieren(Nutzer n) {
+if (n!= this){
+this.zuletztAktiv = new DateTime();
+if (!this.abonnierteNutzer.contains(n)) {
+this.abonnierteNutzer.add(n);
+n.abonnenten.add(this);
+}
+}
+}
+public void like(Beitrag beitrag) {
+if(beitrag.getAutor() != this)
+beitrag.like();
+this.zuletztAktiv = new DateTime();
+}
+public void hinzufuegenBild(Bild bild) {
+bilder.add(bild);
+zuletztAktiv = new Datetime();
+}
+}
+public class Beitrag {
+private DateTime gepostet;
+private String titel;
+private int anzahlLikes;
+private List<Bild> bilder;
+private Text text = null;
+private Nutzer autor;
+public Beitrag(Nutzer autor, String titel, Bild bild) {
+this.autor = autor;
+gepostet = new DateTime();
+this.titel = titel;
+bilder = new List<>();
+this.hinzufuegen(bild);
+anzahlLikes = 0;
+}
+public void hinzufuegen(Bild bild) {
+bilder.add(bild);
+}
+public void erstelleText(String text) {
+if(this.text == null)
+this.text = new Text(text);
+}
+public void like() {
+anzahlLikes++;
+}
+}
+
+1.4.3 Überführen Sie die Klasse Server (Material 1) in eine objektorientierte Programmiersprache.
+(5 BE)
+
+## Loesung 1.4.3
+public class Server {
+private ServerSocket serverSocket;
+private SocialMediaPlatform smp;
+public Server(int port, SocialMediaPlatform smp) {
+this.smp = smp;
+serverSocket = new ServerSocket(port);
+} 2
+public void runServer() {
+while (true){
+Socket clientSocket = serverSocket.accept();
+new ServerThread(clientSocket, smp).start();
+}
+}
+}
+
+1.5.2 Implementieren Sie die Methode generierePasswort() nach Ihrem Algorithmus aus
+Aufgabe 1.5.1.
+(8 BE)
+
+## Loesung 1.5.2
+public char[] generierePasswort() {
+char[] pwArray = new char[12];
+for(int i = 0; i < pwArray.length; i++) {
+pwArray[i] = (char)(nextInt(26) + 97);
+}
+int z1 = nextInt(12);
+int z2 = nextInt(12);
+while(z1 == z2) {
+z2 = nextInt(12);
+}
+int z3 = nextInt(12);
+while(z3 == z1 || z3 == z2) {
+z3 = nextInt(12);
+}
+pwArray[z1] = (char)(nextInt(26) + 65);
+pwArray[z2] = (char)(nextInt(10) + 48);
+pwArray[z3] = (char)(nextInt(4) + 35);
+return pwArray;
+}
+Hinweis: Auch andere Algorithmen sind zulässig.
+
+1.6 Die Methode registrieren() der Klasse SocialMediaPlattform erzeugt einen neuen
+Nutzer und trägt diesen in die Liste der Nutzer ein, sofern der Name noch nicht im System
+vergeben ist und die E-Mail-Adresse noch nicht bei einem anderen Nutzer verwendet wird.
+Implementieren Sie die Methode.
+Hinweise: Die Methode liefert 0 zurück, wenn der neue Nutzer registriert wurde, -1, wenn der
+Benutzername bereits vergeben ist und -2, wenn die E-Mail-Adresse bereits einem anderen
+Nutzer zugeordnet wurde.
+(5 BE)
+
+## Loesung 1.6
+public int registrieren(String name, String passwort,
+String email) {
+int returncode = 0;
+if (this.sucheNutzer(name) == null) {
+Nutzer n_mail = null;
+for (Nutzer n: this.nutzer) {
+if(n.getEmailAdresse().equals(email)){
+n_mail = n;
+break;
+} 1
+}
+if (n_mail == null) {
+nutzer.add(new Nutzer(name, passwort, email));
+} else {
+returncode = -2; // email-Adresse bereits benutzt
+}
+} else {
+returncode = -1; // Nutzername bereits vergeben
+}
+return returncode;
+}
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+# OOP
+
+Für ein Taxiunternehmen mit einer Flotte von 150 Fahrzeugen sollen Anwendungen für die Zentrale
+und die Taxameter sowie eine Datenbank zur Verwaltung der Taxifahrerinnen und Taxifahrer (im
+Folgenden Fahrer genannt), Fahrzeuge und Einsätze entwickelt werden.
+
+1.3 Die Auftragsdaten einer Fahrt werden vom Fahrer eingegeben bzw. vom Taxameter ermittelt
+und nach Abschluss des Auftrags auf dem Electronic Key des Fahrers gespeichert. Alle
+Auftragsdaten werden regelmäßig in der Taxizentrale ausgelesen und die entsprechenden
+Auftragsobjekte erzeugt. Ein erstes UML-Klassendiagramm für die Taxizentrale finden Sie in
+Material 2, die Dokumentation der Klassen DateTime und List in Material 3. 
+
+1.3.1 Bei der Erzeugung eines Auftrags werden das Taxi, der Fahrer sowie die Auftragsdaten in der
+Form:
+Sonnenweg 15,60487,Frankfurt a.M.; Markt 17,60311,Frankfurt a.M.;
+14.04.2022 16:28:50;14.04.2022 17:10:50;20.0;42.25
+übergeben. Die durch Semikolon getrennten Elemente stehen für Startadresse, Zieladresse,
+Start- und Endzeit der Fahrt, gefahrene Kilometer und Fahrpreis.
+Überführen Sie die Klasse Auftrag in eine objektorientierte Programmiersprache und
+implementieren Sie den Konstruktor.
+(5 BE)
+
+## Loesung 1.3.1
+überführen, implementieren
+public class Auftrag {
+ private int auftragNr;
+ private Adresse von;
+ private Adresse nach;
+ private DateTime start;
+ private DateTime ende;
+ private double fahrstrecke;
+ private double fahrpreis;
+ private Fahrer fahrer;
+ private Taxi taxi;
+ private static int autowert = 0;
+ public Auftrag(Taxi t, Fahrer f, String auftragsdaten) {
+ auftragNr = ++autowert;
+ taxi = t;
+ fahrer = f;
+ String[] werte = auftragsdaten.split(";");
+ String[] adresse = werte[0].split(",");
+ von = new Adresse(adresse[0],adresse[1],adresse[2]);
+ adresse= werte[1].split(",");
+ nach = new Adresse(adresse[0],adresse[1],adresse[2]);
+ start = new DateTime(werte[2]);
+ ende = new DateTime(werte[3]);
+ fahrstrecke = Double.parseDouble(werte[4]);
+ fahrpreis = Double.parseDouble(werte[5]);
+ }
+}
+überführen
+implementieren
+
+1.3.3 Die Methode getTaxisSortiertNachStandort(von: Adresse) der Klasse
+TaxiZentrale gibt eine Liste mit bis zu fünf Taxis zurück, die sich am nächsten von der
+Adresse von befinden, wobei das naheste Taxi zuerst aufgeführt ist. Es sind nur die Taxis zu
+berücksichtigen, die zu der angefragten Zeit frei sind.
+Implementieren Sie die Methode.
+(10 BE)
+
+## Loesung 1.3.3
+implementieren
+public List<Taxi> getTaxisSortiertNachStandort(Adresse von){
+ List<Taxi> sortierteListe = new List<Taxi>();
+ List<Taxi> freieTaxis = new List<Taxi>();
+ for(Taxi t : alleTaxis) {
+ if(t.getStatus() == Taxi.FREI) {
+ int entfernung1 = t.ermittleAktuellenStandort().
+ ermittleEntfernungNach(von);
+ int i = 0;
+ for( ; i < freieTaxis.size(); i++) {
+ int entfernung2 = freieTaxis.get(i).
+ ermittleAktuellenStandort().
+ ermittleEntfernungNach(von);
+ if(entfernung1 < entfernung2) {
+ break;
+ }
+ }
+ freieTaxis.add(i, t);
+ }
+ }
+ int zaehler = 0;
+ for(int i = 0; i < freieTaxis.size() && zaehler < 5; i++){
+ sortierteListe.add(freieTaxis.get(i));
+ zaehler++;
+ }
+ return sortierteListe;
+}
+
+1.4.2 Die Daten eines Auftrags werden als Byte-Array von der Methode writeData() der Klasse
+EksAdapter auf den Electronic Key geschrieben.
+Zum Aufbau der Verbindung wird das Steuerzeichen STX (Start of Text) auf die serielle
+Schnittstelle geschrieben. Lautet die Antwort von der Schnittstelle DLE (Data Link Escape)
+werden die zu speichernden Daten in der folgenden Form geschrieben:
+Datenblock
+1. Zeichen 2. Zeichen 3. Zeichen ... n. Zeichen DLE ETX Checksum
+1 Byte 1 Byte 1 Byte 1 Byte 1 Byte 1 Byte 1 Byte
+Lautet die darauf folgende Antwort DLE, wurde der Datenblock fehlerfrei übernommen. Ist die
+Antwort hingegen das Steuerzeichen NAK (Negative Acknowledgement), beginnt die
+Steuerung das Schreiben erneut mit dem Verbindungsaufbau STX. Bei der Antwort EM (End of
+Medium) steht kein ausreichender Speicherplatz zur Verfügung und der Vorgang wird
+abgebrochen. Die Methode gibt den Fehlerstatus wie folgt zurück:
+0 ohne Fehler
+1 Datenträger ist voll
+2 Schnittstelle ist nicht geöffnet oder Datenträger fehlt
+Implementieren Sie die Methode.
+Hinweise: Das Steuerzeichen ETX steht für End of Text. Die Dokumentation der Klasse
+Serial ist in Material 3 zu finden.
+(6 BE)
+
+## Loesung 1.4.2
+1.4.2 implementieren
+public int writeData(String data) {
+ //Schnittstelle nicht geöffnet oder Datenträger fehlt
+ int fehlerStatus = 2;
+ if(serial.open() && data.length() > 0) {
+ data = data + DLE + ETX +
+ calculateCheckDigit(data);
+ char answer;
+ do {
+ writeChar(STX);
+ if(readChar() == DLE) {
+ serial.write(data.getBytes(), data.length());
+ answer = readChar();
+ if(answer == DLE) {
+ fehlerStatus = 0; //ohne Fehler
+ } else if(answer == EM) {
+ fehlerStatus = 1; //Datenträger voll
+ break;
+ }
+ } else {
+ break;
+ }
+ } while(answer == NAK);
+ }
+ serial.close();
+ return fehlerStatus;
+
+1.4.3 Die run()-Methode der Klasse Taxameter steuert die Auftragsabwicklung im Taxi. Der
+Fahrer bedient das Taxameter über entsprechende Tasten. Für den Ablauf der Methode ist
+folgendes zu berücksichtigen:
+– Solange der EKS-Adapter keinen Electronic Key erkennt, befindet sich das Taxi im Status
+„Nicht in Betrieb“ und die Fahrernummer hat den Wert -1.
+– Wenn der EKS-Adapter einen Electronic Key erkannt hat, liest er die Fahrernummer ein.
+– Solange der Electronic Key vorhanden ist, kann der Fahrer die Tasten bedienen, die das
+Taxameter regeln.
+– Taste 1: Das Taxi hat den Status „frei“. Das Dachzeichen ist angeschaltet.
+– Taste 2: Der Fahrer hat einen Auftrag von der Taxizentrale erhalten. Das Taxi hat den Status
+„Anfahrt Kunde“. Das Dachzeichen ist ausgeschaltet.
+– Taste 3: Das Taxi hat einen Kunden aufgenommen und der Status ist „Anfahrt Ziel“. Der
+aktuelle Kilometerstand, die Startadresse sowie Startzeit werden festgehalten. Das
+Dachzeichen ist ausgeschaltet.
+– Taste 4: Das Ziel ist erreicht. Der aktuelle Kilometerstand, die Zieladresse sowie die
+Endezeit werden festgehalten. Der Fahrpreis wird berechnet und auf dem Display
+ausgegeben. Die Auftragsdaten werden in der Form "[wagenNr];[fahrerNr];[von];
+[nach];[start];[ende];[fahrstrecke];[fahrpreis]" auf dem Electronic Key
+des Fahrers gespeichert.
+– Taste 5: Der Kunde wünscht eine Quittung.
+Implementieren Sie die Methode.
+Hinweis: Fehlerfälle durch das Drücken einer falschen Taste während der Durchführung eines
+Auftrags müssen nicht berücksichtigt werden.
+(10 BE)
+
+## Loesung 1.4.3
+implementieren
+private void run() {
+ while(!eks.isKeyAvailable());
+ driverNumber = eks.readDriverNumber();
+ double km = 0, price = 0;
+ String from = "", to = "", start="", end="";
+ String orderData = "";
+ while(eks.isKeyAvailable()) {
+ int button = readButtons();
+ switch(button) {
+ //Taxameter auf FREI schalten
+ case 1: taxi.setStatus(Taxi.FREI);
+ orderData = "";
+ this.setTaxiSign(true);
+ break;
+ //Auftrag angenommen, Anfahrt Kunde
+ case 2: taxi.setStatus(Taxi.ANFAHRT_KUNDE);
+ this.setTaxiSign(false);
+ break;
+ //Beginn Kundenfahrt
+ case 3: km = taxi.getKmStand();
+ from = taxi.ermittleAktuellenStandort().toString();
+ start = new DateTime().toString();
+ taxi.setStatus(Taxi.ANFAHRT_ZIEL);
+ this.setTaxiSign(false);
+ break;
+ //Kundenfahrt beenden
+ case 4: km = taxi.getKmStand() - km;
+ price = this.calculatePrice(km);
+ to = taxi.ermittleAktuellenStandort().toString();
+ end = new DateTime().toString();
+ orderData = taxi.getWagenNr() + ";" + driverNumber +
+ ";" + from + ";" + to + ";" + start + ";" + end +
+ ";" + km + ";" + price;
+ eks.writeData(orderData);
+ display.printLine("" + price);
+ break;
+ //Quittung drucken
+ case 5: if(!orderData.equals(""))
+ thermalPrinter.printReceipt(orderData);
+ }
+ }
+ driverNumber = -1;
+ taxi.setStatus(Taxi.NICHT_IN_BETRIEB);
+}
+
+--------------------
+
+--- [ABI 2023 C] ---
+
+# OOP
+
+1 Objektorientierte Modellierung und Implementierung eines Canasta-Spiels
+Ein UML-Klassendiagramm finden Sie in Material 1. Die nachfolgenden Aufgaben beziehen
+sich auf ein Canasta-Spiel für zwei Personen. Hauptziel jeder Spielerin beziehungsweise jedes
+Spielers (im Folgenden Spieler genannt) ist es, jeweils sieben Karten gleicher Art (einen
+„Canasta“) zu sammeln und auszulegen, also zum Beispiel sieben Damen oder sieben Achten.
+Für die Lösung der Aufgaben sind keine Kenntnisse der Spielregeln erforderlich.
+
+1.2 Zu Beginn jedes Spiels werden die Karten des verwendeten Kartensatzes gemischt.
+Implementieren Sie eine Methode mischen() der Klasse CanastaManager.
+Hinweis: Die Dokumentation der Klasse Random finden Sie in Material 2.
+(4 BE)
+
+## Loesung 1.2
+private void mischen() {
+Random rand = new Random();
+Kartensatz gemischteKarten = new
+Kartensatz(ANZAHL_KARTEN);
+List<Karte> ungemischt = kartenspiel.getKarten();
+while (ungemischt.size() > 0) {
+Karte tmpKarte =
+ungemischt.remove(rand.nextInt(ungemischt.size()));
+gemischteKarten.hinzufuegenKarte(tmpKarte);
+}
+this.kartenspiel = gemischteKarten;
+}
+Hinweis: Die Implementierung einer anderen Methode, die eine Ermittlung per
+Zufall beinhaltet, ist als gleichwertig zu bewerten.
+
+1.4 Überführen Sie die Klassen Spieler und Karte in Anweisungen einer objektorientierten
+Programmiersprache. Implementieren Sie die Konstruktoren und die aufgeführten Methoden
+mit Ausnahme der Methode waehleKarte() der Klasse Spieler.
+Hinweise: Die Dokumentation der Klasse List finden Sie in Material 2 und das Datenblatt für
+die Karten sowie Hinweise zu ihrer Sortierung in Material 3. Die Hinweise zum
+Klassendiagramm in Material 1 sind zu beachten.
+(14 BE)
+
+## Loesung 1.4
+überführen, implementieren
+public class Spieler {
+private List<Karte> aktuelleHandkarten;
+private String name;
+public Spieler(String name) {
+this.name = name;
+this.aktuelleHandkarten = new List<>();
+}
+public Karte entferneKarte(int pos) {
+return this.aktuelleHandkarten.remove(pos);
+}
+public void fuegeSortiertEin(Karte k) {
+int i = 0;
+while (i < this.aktuelleHandkarten.size() &&
+this. aktuelleHandkarten.get(i).compareTo(k)) < 0) {
+i++;
+}
+aktuelleHandkarten.add(i, k);
+}
+}
+public class Karte implements Comparable<Karte> {
+private String zahlFigur;
+private int zeile;
+private int wert;
+private Symbol symbol;
+public Karte(String zahlFigur, int zeile, Symbol symbol,
+int wert) {
+this.zahlFigur = zahlFigur;
+this.zeile = zeile;
+this.symbol = symbol;
+this.wert = wert;
+}
+private int vergleicheSymbol(Karte andereKarte) {
+int code;
+if (andereKarte.getSymbol().getSortSymbol() ==
+this.getSymbol().getSortSymbol()) {
+code = 0;
+} else if (andereKarte.getSymbol().getSortSymbol() <
+this.getSymbol().getSortSymbol()) {
+code = -1;
+} else {
+code = 1;
+}
+return code;
+}
+public int compareTo(Karte andereKarte) {
+int code;
+if (andereKarte.getZeile() == this.getZeile())
+return vergleicheSymbol(andereKarte);
+}
+if (andereKarte.getZeile() < this.getZeile())
+code = 1;
+else
+code = -1;
+return code;
+}
+public boolean isJoker () {
+return (zahlFigur.equals("Joker") ||
+zahlFigur.equals("2"));
+}
+}
+
+1.5 In Material 3 finden Sie ein Beispiel für eine mit Karten belegte Auslegefläche und die Regeln
+für die Berechnung der Punkte. Dazu wurden den Elementen des zugehörigen
+zweidimensionalen Arrays (flaeche[ZEILEN][MAX_ANZAHL]) die entsprechenden
+Spielkarten zugewiesen. Die hierfür erzielte Punktezahl soll in der Methode
+ermittlePunkte() der Klasse Auslegeflaeche bestimmt werden.
+Implementieren Sie die Methoden ermittlePunkte(), punkteZeile() und
+punkteCanasta().
+(8 BE)
+
+## Loesung 1.5
+public int ermittlePunkte() {
+int punkte = 0;
+for (int i = 0; i < flaeche.length; i++) {
+punkte = punkte + punkteZeile(i);
+}
+return punkte;
+}
+private int punkteZeile(int zeile) {
+int punkte = 0;
+int kartenzahl;
+int anzahlJoker = 0;
+for (kartenzahl = 1; kartenzahl <=
+flaeche[zeile].length; kartenzahl++) {
+if (flaeche[zeile][kartenzahl - 1] == null)
+break;
+punkte = punkte +
+flaeche[zeile][kartenzahl - 1].getWert();
+if (flaeche[zeile][kartenzahl - 1].isJoker())
+anzahlJoker++;
+}
+if (kartenzahl == 7)
+punkte = punkte + punkteCanasta(anzahlJoker);
+return punkte;
+}
+private int punkteCanasta(int anzahlJoker) {
+int punkte = 300;
+if (anzahlJoker == 0)
+punkte = 500;
+else if (anzahlJoker == 7)
+punkte = 1000;
+return punkte;
+}
+
+1.6.3 In Analogie zum vorliegenden Algorithmus soll später in einer Klasse QuicksortKarten
+(siehe Material 7) eine Methode qsort() entwickelt werden, mit deren Verwendung in der
+Klasse Spieler Handkarten sortiert werden können. Implementieren Sie die zu
+teileArray() in Material 5 entsprechende statische Methode teileKarten() sowie die
+statische Hilfsmethode tauscheKarte(), die die Listenelemente mit den Indices a und b
+vertauscht und anschließend die Liste zurückgibt.
+Hinweis: Die Klasse Karte implementiert das Interface Comparable<Karte> (siehe
+Material 2).
+(7 BE)
+
+## Loesung 1.6.3
+private static int teileKarten(List<Karte> karten,
+int start, int ende) {
+int positionLinks = start;
+int positionRechts = ende - 1;
+int m = (ende + start) / 2;
+karten = tauscheKarte(karten, m, ende);
+Karte pivot = karten.get(ende);
+while(positionLinks < positionRechts) {
+while(karten.get(positionLinks).compareTo(pivot) <
+&& positionLinks < ende)
+positionLinks++;
+while(karten.get(positionRechts).compareTo(pivot) >=
+&& positionRechts > start)
+positionRechts--;
+if(positionLinks < positionRechts) {
+karten = tauscheKarte(karten,positionLinks,
+positionRechts);
+}
+}
+if(karten.get(positionLinks).compareTo(pivot) > 0) {
+karten = tauscheKarte(karten, positionLinks, ende);
+}
+return positionLinks;
+}
+private static List<Karte>
+tauscheKarte(List<Karte> karten, int a, int b) {
+Karte temp = karten.get(a);
+karten.set(a, karten.get(b));
+karten.set(b, temp);
+return karten;
+}
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Wettbewerbsverwaltung
+Für die Verwaltung der Wettbewerbe sollen eine Applikation und eine Client-Server-Lösung
+realisiert werden. Ein erstes Klassendiagramm finden Sie in Material 1.
+
+1.2 Überführen Sie die Klasse Teilnahme in eine objektorientierte Programmiersprache und
+implementieren Sie den Konstruktor und die Methoden berechneGesamtpreis() und
+toString().
+Hinweise: Die Teilnahmen eines Chores werden sortiert nach dem Ankunftsdatum in der Liste
+teilnahme der Klasse Chor gespeichert, um eine Übersicht der vergangenen und anstehenden
+Wettbewerbe zu erhalten. Die Anmeldegebühr wird für jede Kategorie, an welcher der Chor
+teilnimmt, erhoben. Es wird ein Frühbucherrabatt von 50% auf die erste Kategorie gewährt,
+wenn die Anmeldung früher als 10 Monate vor Wettbewerbsbeginn erfolgt. Eine Übernachtung
+kostet 50 Euro je Person und Nacht. Die toString()-Methode der Klasse Teilnahme
+generiert eine Zeichenkette mit den Buchungsdaten gemäß der Teilnahmebestätigung in
+Material 1. Die Dokumentationen der Klassen Date, List und String sind in Material 2 zu
+finden.
+(12 BE)
+
+## Loesung 1.2
+überführen, implementieren
+public class Teilnahme {
+private int anzSaenger;
+private Date anmeldeDatum;
+private Date ankunft;
+private Date abfahrt;
+private boolean notenHochgeladen;
+private Chor chor;
+private Wettbewerb wb;
+private List<Kategorie> kategorien;
+public Teilnahme(Wettbewerb wb, Chor chor, int anzSaenger,
+Date ankunft, Date abfahrt, List<Kategorie> kategorien){
+this.anzSaenger = anzSaenger;
+this.anmeldeDatum = Date.now();
+this.ankunft = ankunft;
+this.abfahrt = abfahrt;
+this.notenHochgeladen = false;
+this.chor = chor;
+this.wb = wb;
+this.kategorien = kategorien;
+// sortiertes Einfügen der Teilnahme
+int index=0;
+while(chor.getTeilnahmen().get(index).getAnkunft().
+isBefore(ankunft)){
+index++;
+}
+chor.getTeilnahmen().add(index, this);
+}
+private double berechneGesamtpreis(){
+//Anmeldegebühr mit Frühbucherrabatt
+gesamtpreis = Wettbewerb.ANMELDEGEBUEHR *
+kategorien.size();
+int fruehbucher = (int)anmeldeDatum.
+until(wb.getBeginn(),MONTHS);
+if (fruehbucher > 10){
+gesamtpreis -= wb.ANMELDEGEBUEHR *0.5;
+}
+//Übernachtungspreis
+gesamtpreis += 50 * anzSaenger *
+ankunft.until(abfahrt, DAYS);
+}
+public String toString(){
+return ("Ihre Anmeldung war erfolgreich!\n" +
+wb.toString()+ "\nAngemeldete Personen: " +
+anzSaenger + "\nÜbernachtung vom " +
+ankunft.toString() + " bis " +
+abfahrt.toString() + "\nGesamtpreis: " +
+berechneGesamtpreis() + " Euro.");
+}
+}
+
+1.5 Während des Wettbewerbs kann ein teilnehmender Chor einen Raum zum Proben buchen. Die
+Methode gibt true zurück, wenn ein Raum gebucht werden konnte, ansonsten false.
+Implementieren Sie für die Klasse Wettbewerb eine Methode anmeldenZurProbe(), die die
+vorhandenen Räume belegt. Ein entsprechender Pseudocode liegt in Material 4 vor.
+Hinweise: Ein Raum kann immer nur von einem Chor gebucht werden. Die Kapazität eines
+Raumes gibt an, für wie viele Personen er ausgelegt ist. Die Räume sind bereits nach ihrer
+Kapazität aufsteigend sortiert. Ein Raum wird immer mit der kompletten Anzahl an
+Sängerinnen und Sängern (im folgenden Sänger genannt) eines Chors belegt.
+(6 BE)
+
+## Loesung 1.5
+public boolean anmeldenZurProbe(Chor chor) {
+Teilnahme chorTeilnahme = ermittleTeilnahme(chor);
+List<Raum> raeumeKopie = new List<>(raeume);
+boolean flag = false;
+if(chorTeilnahme!= null) {
+| for(Raum r: raeume) {
+| | int anzSaenger = chorTeilnahme.getAnzSaenger();
+| | if(r.getRaumKapazizät() >= anzSaenger){
+| | | if (r.getGebucht() == null) {
+| | | | r.setGebucht(chorTeilnahme.getChor());
+| | | | r.setAnzahlPersonen(anzSaenger);
+| | | | flag = true;
+| | | | break;
+| | | } else {
+| | | | if(anzSaenger < r.getAnzahlPersonen()){
+| | | | | Teilnahme andereTeilnahme=
+| | | | | ermittleTeilnahme(r.getGebucht());
+| | | | | r.setGebucht(chorTeilnahme.getChor());
+| | | | | chorTeilnahme = andereTeilnahme;
+| | | | }
+| | | }
+| | }
+| }
+| if(!flag) raeume = raeumeKopie;
+}
+return flag;
+}
+
+1.7 Die Wettbewerbsverwaltung ermöglicht ihren Mitarbeitern Chöre zu Wettbewerben an- und
+abzumelden. Nach erfolgter Verbindung zu MitarbeiterServer kann ein Mitarbeiter solange
+den Status von Chören setzen, bis er sich wieder abgemeldet hat. Eine typische Sitzung sieht
+wie folgt aus:
+(> für Antwort vom Server, < für Kommando vom Client, <LF> Enter-Taste):
+> +OK Wettbewerbsverwaltung<LF>
+< ANM;Epiphony;13. World Choir Games;43;2024-07-08;2024-07-22;
+Jugendchöre;Folklore<LF>
+> +OK Anmeldung zum Wettbewerb erfolgreich.<LF>
+< ANM;Epiphony;31. World Choir Games;43;2024-07-08;2024-07-22;Jazz<LF>
+> -ERR Anmeldung fehlgeschlagen.<LF>
+< ABM;Jeugdkoor Waelrant;13. World Choir Games<LF>
+> +OK Abmeldung vom Wettbewerb erfolgreich.<LF>
+< quit<LF>
+Implementieren Sie die Klasse MitarbeiterServer.
+Hinweise: Das Kürzel ANM steht für die Anmeldung eines Chores zu einem Wettbewerb. Dazu
+muss die Anzahl der Personen, das An- und Abreisedatum und die verschiedenen Kategorien,
+an denen der Chor teilnehmen möchte, angegeben werden. Das Kürzel ABM meldet einen Chor
+von einem Wettbewerb ab. Die Dokumentationen der Klassen Socket, ServerSocket und
+String sind in Material 2 zu finden. Zur Umwandlung eines Strings in eine Integer-Zahl bzw.
+in ein Datum stehen die Methoden Integer.parseInt(s:String):int bzw.
+Date.parseDate(s:String): Date zur Verfügung.
+(10 BE)
+
+## Loesung 1.7
+public class MitarbeiterServer {
+private int port;
+private ServerSocket server;
+private Wettbewerbsverwaltung wv;
+public MitarbeiterServer(int port,
+Wettbewerbsverwaltung wv) {
+this.port = port;
+this.wv = wv;
+}
+public void startServer(){
+boolean erfolgreich;
+server = new ServerSocket(port);
+while (true) {
+Socket sc = server.accept();
+sc.write("+OK Wettbewerbsverwaltung\n");
+String anforderung = sc.readLine();
+while (!anforderung.equals("quit")) {
+String[] werte = anforderung.split(";");
+switch (werte[0]) {
+case "ANM":
+List<String> k = new List<>();
+for (int i = 6; i < werte.length; i++) 2
+k.add((werte[i]);
+erfolgreich = wv.anmeldenZumWB(werte[1],
+werte[2], Integer.parseInt(werte[3]),
+Date.parse(werte[4]),
+Date.parse(werte[5]), k);
+if (erfolgreich)
+sc.write("+OK Anmeldung zum Wettbewerb
+erfolgreich.\n");
+else
+sc.write("-ERR Anmeldung fehlgeschlagen.\n");
+break;
+case "ABM":
+erfolgreich = wv.abmeldenVomWB(werte[1],
+werte[2]);
+if (erfolgreich)
+sc.write("+OK Abmeldung vom Wettbewerb
+erfolgreich.\n");
+else
+sc.write("-ERR Abmeldung fehlgeschlagen.\n");
+break;
+}
+anforderung = sc.readLine();
+}
+sc.close();
+}
+}
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+# OOP
+
+1 Für mehrere Flughäfen soll eine Software zur Verwaltung entwickelt werden. Hauptaspekte der
+Software ist die Verwaltung von Tickets, Flügen, Kundinnen und Kunden (im Folgenden Kunde
+genannt) und Pilotinnen und Piloten (im Folgenden Pilot genannt). Ein erstes Klassendiagramm
+finden Sie in Material 1.
+
+1.3 Überführen Sie die Klassen Person und Kunde in einer objektorientierten
+Programmiersprache.
+Hinweise: Die toString()-Methode der Klassen Person und Kunde sowie die
+modifiziereBonusmeilen()-Methode der Klasse Kunde sind in Material 1 beschrieben.
+(7 BE)
+
+## Loesung 1.3
+1.3 überführen
+public class Person {
+ private int id;
+ private String vorname;
+  private String nachname;
+ private String adresse;
+ private String email;
+ private String telefonnummer;
+ private static int autowert = 0;
+ public Person(String vorname, String nachname,
+ String adresse, String email,
+ String telefonnummer) {
+ this.id = ++autowert;
+ this.vorname = vorname;
+ this.nachname = nachname;
+ this.adresse = adresse;
+ this.email = email;
+ this.telefonnummer = telefonnummer;
+ }
+ public String toString() {
+ return "ID: " + this.id +
+ "\nName: " + this.vorname +" " + this.nachname +
+ "\nAdresse: " + this.adresse +
+ "\nEmail: " + this.email +
+ "\nTelefonnummer: " + this.telefonnummer;
+ }
+}
+public class Kunde extends Person {
+ private boolean istVegetarier;
+ private int bonusmeilen;
+ public Kunde(String vorname, String nachname,
+ String adresse, String email,
+ String telefonnummer, boolean istVegetarier,
+ int bonusmeilen) {
+ super(vorname, nachname, adresse, email,telefonnummer);
+ this.istVegetarier = istVegetarier;
+ this.bonusmeilen = bonusmeilen;
+ }
+ public boolean modifiziereBonusmeilen(int meilen){
+ if(bonusmeilen + meilen >= 0){
+ bonusmeilen = bonusmeilen + meilen;
+ return true;
+ }
+ return false;
+ }
+ public String toString() {
+ return super.toString() +
+ "\nVegetarier: " + this.istVegetarier +
+ "\nBonusmeilen: " + this.bonusmeilen;
+ }
+}
+
+1.5 Implementieren Sie die Methoden ermittleFreieSitze() und reserviereSitzplatz()
+der Klasse Flug.
+Hinweis: Die reserviereSitzplatz()-Methode der Klasse Flug, ist in Material 1
+beschrieben, sowie eine Beschreibung der Klassen List in Material 3.
+(6 BE)
+
+## Loesung 1.5
+implementieren
+public List<Sitzplatz> ermittleFreieSitze () {
+ List<Sitzplatz> freiePlaetze = new List<>();
+ for (Sitzplatz s : sitzplaetze) {
+ if (s.isFrei()) {
+ freiePlaetze.add(s);
+ }
+ }
+ return freiePlaetze;
+}
+public boolean reserviereSitzplatz(Kunde k,
+ String sitzBezeichnung) {
+ String[] splitText = sitzBezeichnung.split("-");
+ char buchstabe = splitText[1].charAt(0);
+ int reihe = Integer.parseInt(splitText[0]);
+ for (Sitzplatz s : sitzplaetze) {
+ if (s.getReihe() == reihe &&
+ s.getBuchstabe() == buchstabe) {
+ if (s.istFrei()) {
+ s.setKunde(k);
+ return true;
+ }
+ }
+ }
+ return false;
+}
+
+1.6 Implementieren Sie die Methode registriereFlug() der Klasse TicketVerwaltung.
+Die Methode sucht für einen Flug einen verfügbaren Piloten, der die gesetzlichen Ruhezeiten
+bereits eingehalten hat. Wurde ein Pilot gefunden, wird der Flug erstellt und der Pilot diesem
+zugewiesen.
+Hinweise: Die Mindestruhezeit, die vor einer auf der Heimatbasis beginnenden Flugdienstzeit
+zu gewähren ist, muss so lange wie die vorhergehende Dienstzeit sein, mindestens jedoch zwölf
+Stunden. Außerhalb der Heimatbasis, beträgt die Mindestruhezeit zehn Stunden. Alle Piloten
+aus der Pilotenliste befinden sich immer am richtigen Abflughafen. Des Weiteren ist möglich,
+dass es Piloten gibt, die noch nie geflogen sind.
+Hinweis: Eine Beschreibung der Klassen DateTime und String ist in Material 3 zu finden.
+(10 BE)
+
+## Loesung 1.6
+implementieren
+public boolean registriereFlug(String flugnummer,
+ DateTime abflugzeit, String start,
+ DateTime ankunftszeit, String ziel,
+String modell, int km, String status) {
+ for (Pilot p : piloten) {
+ if (!p.istImEinsatz()) {
+ Flug letzterFlug = p.getLetzterFlug();
+ if (letzterFlug != null) {
+ long ruhezeitInMinuten =
+ letzterFlug.getAnkunftszeit().until(abflugzeit);
+ long mindestRuhezeit = 10 * 60;
+ if (p.getHeimatbasis().equals(start)) {
+ mindestRuhezeit = 12 * 60;
+ }
+ if (ruhezeitInMinuten >= mindestRuhezeit) {
+ Flug f = new Flug(flugnummer, p,
+ abflugzeit, start,
+ankunftszeit, ziel, modell,
+ km, status);
+ this.fluege.add(f);
+ p.setLetzterFlug(f);
+ p.setImEinsatz(true);
+ return true;
+ }
+ } else {
+ Flug f = new Flug(flugnummer, p,
+ abflugzeit, start,
+ankunftszeit, ziel, modell,
+km, status);
+ this.fluege.add(f);
+ p.setLetzterFlug(f);
+ p.setImEinsatz(true);
+ return true;
+ }
+ }
+ }
+ return false;
+ }
+
+1.8 Die Laufzeit zur Suche eines Tickets soll optimiert werden. Hierfür soll das Konzept der
+binären Suche genutzt werden. Implementieren Sie die binäre Suche in der Methode
+sucheTicket() der Klasse Ticketverwaltung.
+Hinweis: Die Liste tickets ist sortiert.
+(8 BE)
+
+## Loesung 1.8
+implementieren
+public Ticket sucheTicket(String ticketNummer){
+ if(this.tickets.isEmpty()){
+ return null;
+ }
+ int low = 0;
+ int max = this.tickets.size();
+ int pointer = 0;
+ while(low != max){
+ pointer = (low + max) / 2;
+ if(ticketNummer.equals(
+ this.tickets.get(pointer).getTicketnummer())){
+ return this.tickets.get(pointer);
+ }
+ if(ticketNummer.compareTo(
+ this.tickets.get(pointer).
+ getTicketnummer()) > 0){
+ low = pointer + 1;
+ }else{
+ max = pointer - 1;
+ }
+ }
+ return null;
+}
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung eines Krankenhausmanagementsystems.
+
+1.5 Überführen und implementieren Sie die Klassen und in Material 2 in eine
+Zimmer Patient
+objektorientierte Programmiersprache.
+Hinweise: Ein Behandlungsplan wird bei Aufnahme eines Patienten erstellt. Die Methode
+der Klasse gibt bei mehreren
+indikationMitHoechsterPriorität() Patient
+Beschwerden mit der höchsten Priorität nur jene zurück, welche als erste der Liste hinzugefügt
+wurde. Die niedrigste Priorität ist 0. Die Dokumentationen der Klassen und sind
+List String
+in Material 3 zu finden.
+(11 BE)
+
+## Loesung 1.5
+überführen, implementieren
+public class Zimmer {
+private int zimmerNummer;
+private int kapazitaet;
+private List<Patient> patienten;
+public Zimmer(int zimmerNummer, int kapazitaet) {
+this.zimmerNummer = zimmerNummer;
+this.kapazitaet = kapazitaet;
+this.patienten = new List<>();
+}
+private boolean istVoll() {
+if (patienten.size() == kapazitaet) return true;
+return false;
+}
+public boolean belegen(Patient patient) {
+if (!istVoll()) {
+patienten.add(patient);
+return true;
+}
+return false;
+}
+public void entlassen(Patient patient) {
+patienten.remove(patient);
+}
+}
+public class Patient {
+private int patientenNr;
+private String name;
+private String geschlecht;
+private String versicherungsart;
+private static int autowert = 1;
+private Behandlungsplan behandlungsplan;
+private Abteilung abteilung;
+private List<Indikation> indikationen;
+public Patient(String name, String geschlecht, String art,
+Abteilung abteilung){
+this.patientenNr = autowert++;
+this.name = name;
+this.geschlecht = geschlecht;
+this.versicherungsart = art;
+this.abteilung = abteilung;
+this.abteilung.aufnehmenPatient(this);
+this.behandlungsplan = new Behandlungsplan(this);
+this.indikationen = new List<>();
+}
+public void entferneBehandlungsplan(){
+behandlungsplan = null;
+}
+public Indikation indikationsMitHoechsterPrioritaet() {
+Indikation max = null;
+if(indikationen.size() > 0) {
+max = indikationen.get(0);
+}
+for(Indikation i: indikationen){
+if(max.getPriorität() < i.getPriorität()) {
+max = i;
+}
+}
+return max;
+}
+}
+
+1.6 Sobald alle Operationen eines Behandlungsplans eines Patienten durchgeführt worden sind und
+er das Krankenhaus verlässt, wird eine Abschlussrechnung erstellt.
+Implementieren Sie die Methode der Klasse .
+erstelleRechnung() Krankenhaus
+Hinweise: Sollte der Behandlungsplan noch nicht abgeschlossen sein, soll eine entsprechende
+Mitteilung zurückgegeben werden. Nach einer Operation muss ein Patient noch zwei Tage zur
+Beobachtung im Krankenhaus bleiben. Die Behandlung einer Indikation kostet pauschal 500
+Euro. Jede Prioritätsstufe erhöht diesen Betrag um weitere 10% (Stufe 0 = kein Aufschlag, Stufe
+1 = 10% Aufschlag, Stufe 2 = 20% Aufschlag, etc.). Privatpatienten zahlen zusätzlich 40% auf
+den Gesamtbetrag der Behandlungen. Pro Tag im Krankenhaus zahlen gesetzlich versicherte
+Patienten 10 Euro, privat versicherte Patienten 150 Euro. Mit Erstellung der Abschlussrechnung
+wird die Liste der Indikationen eines Patienten geleert, das Zimmer freigegeben und der
+Behandlungsplan entfernt. Die -Methode der Klasse
+erstelleRechnung() Krankenhaus
+generiert eine Zeichenkette gemäß dem Aufbau der Rechnung in Material 2. Die
+Dokumentation der Klasse ist in Material 3 zu finden.
+LocalDate
+(11 BE)
+
+## Loesung 1.6
+public String erstelleRechnung(Patient p){
+// Behandlungsplan abgeschlossen?
+for(Operation o: p.getBehandlungsplan().getOperationen()){
+if(!o.wurdeDurchgefuehrt()){
+return "Rechnung kann noch nicht erstellt werden";
+}
+}
+String s = "";
+double kostenGesamt = 0, kostenProOperation = 500;
+double kostenProNacht;
+int aufenthaltsdauer;
+// Aufsummierung der Kosten der Operationen und Datum der
+letzten Operation ermitteln
+List<Operation> op = p.getBehandlungsplan().
+getOperationen();
+LocalDate letzteOP = op.get(0).getDatum();
+for(Operation o: op){ 2
+kostenGesamt += kostenProOperation *
+(1 + ((o.getIndikation().getPriorität())/10));
+if(letzteOP.isBefore(o.getDatum())){
+letzteOP = o.getDatum();
+}
+}
+// Rechnung erstellen
+if(p.getVersicherungsart().equals("gesetzlich")){
+kostenProNacht = 10;
+} else {
+kostenProNacht = 150;
+kostenGesamt = kostenGesamt * 1.4; // Aufschlag 40%
+}
+letzteOP = letzteOP.plusDays(2);
+aufenthaltsdauer = p.getBehandlungsplan().
+getErstellungsdatum().until(letzteOP, DAYS);
+kostenGesamt += aufenthaltsdauer * kostenProNacht;
+// Ausgabe
+if(p.getGeschlecht().equals("maennlich")){s
++= "Herr ";
+}
+if(p.getGeschlecht().equals("weiblich")){s
++= "Frau ";
+}s
++= p.getName() + " ("
++ p.getVersicherungsart() + " versichert)\n war vom "
++ p.getBehandlungsplan().getErstellungsdatum()
+.toString()
++ " bis " + letzteOP.toString()
++ " im " + bezeichnung + ".\n"
++ "Zu Zahlen sind für den Aufenthalt und die
+Operationen:"
++ kostenGesamt + " Euro.";
+// Patient entlassen
+p.getIndikationen().clear();
+p.entferneBehandlungsplan();
+for(Zimmer z: p.getAbteilung().getZimmerListe()){
+z.entlassen(p);
+}
+return s;
+}
+
+1.8 Durch Personalmangel kann es passieren, dass nicht alle Operationen durchgeführt werden
+können. Dennoch sollten jene Operationen mit den höchsten Prioritäten weiterhin gewährleistet
+werden. Implementieren Sie die Methode der Klasse
+priorisierteOperationen()
+, die alle noch nicht durchgeführten Operationen durchsucht und für jede
+Krankenhaus
+Abteilung jene Operationen zurückgibt, die den beiden höchsten Prioritätsstufen dieser
+Abteilung angehören. Die Liste der Operationen soll nach den jeweiligen Abteilungen und
+innerhalb der Abteilungen nach deren Priorität absteigend sortiert sein. Ein entsprechendes
+Struktogramm liegt in Material 5 vor.
+(7 BE)
+
+## Loesung 1.8
+public List<Operation> priorisierteOperationen(){
+List<Operation> prioOps = new List<>();
+int hoechste, zweithoechste, indikationPrio;
+for(Abteilung abt: abteilungen){
+hoechste = -1;
+zweithoechste = -1;
+// höchste und zweithöchste Prio ermitteln
+for(Operation op: abt.getOperationen()){
+if (!op.wurdeDurchgefuehrt()){
+indikationPrio = op.getIndikation().getPrioritaet();
+if (indikationPrio > hoechste) {
+zweithoechste = hoechste;
+hoechste = indikationPrio;
+}
+else if (indikationPrio > zweithoechste &&
+indikationPrio!= hoechste){
+zweithoechste = indikationPrio;
+}
+}
+}
+// Operation der höchsten Priorität
+for (Operation op: abt.getOperationen()) {
+if (!op.wurdeDurchgefuehrt()) {
+if (op.getIndikation().getPriorität() == hoechste) {
+prioOps.add(op);
+}
+}
+}
+// Operation der zweithöchsten Priorität
+if (zweithoechste > -1) {
+for (Operation op: abt.getOperationen()) {
+if (!op.wurdeDurchgefuehrt()) {
+if (op.getIndikation().getPriorität() ==
+zweithoechste) {
+prioOps.add(op);
+}
+}
+}
+}
+}
+return prioOps;
+}
+
+--------------------
+
+--- [ABI 2025 B] ---
+
+# OOP
+
+1 Objektorientierte Entwicklung einer Festivalverwaltung
+Das Festival „Heartbeat of Hessen“ möchte weitgehend auf Bargeld auf dem Gelände
+verzichten und hat sich deshalb dazu entschieden, Armbänder mit RFID1-Chip einzuführen. Das
+Festival-Armband kann zu diesem Zweck an Automaten mit Bargeld aufgeladen werden. Am
+Ende des Festivals können sich die Besucherinnen und Besucher (im Folgenden Besucher
+genannt) den Restbetrag vom Automaten auszahlen lassen. Ein erstes Klassendiagramm ist in
+Material 1 hinterlegt.
+
+1.4 Überführen und implementieren Sie die Klasse in Anweisungen einer
+Verwaltung
+objektorientierten Programmiersprache.
+Hinweise: Die Dokumentation der Klassen und ist in Material 3 zu finden.
+LocalDate List
+Die Methode erstellt ein Ticket, sofern der Besucher in der Personenliste
+bucheTicket()
+existiert. Bei Erfolg wird ein Ticket mit aktuellem Datum und Bändchen erstellt, dem Besucher
+zugewiesen und zur Ticketliste hinzugefügt. Im Fehlerfall gibt die Methode false zurück.
+(8 BE)
+
+## Loesung 1.4
+überführen, implementieren
+public class Verwaltung {
+private List<Ticket> ticketliste;
+private List<Paket> paketliste;
+private List<Person> personenliste;
+public Verwaltung(){
+ticketliste = new List<>();
+paketliste = new List<>();
+personenliste = new List<>();
+}
+public Person suchePerson(String id) {
+Person erg = null;
+for (Person p: personenliste) {
+if (p.getId().equals(id))
+erg = p;
+}
+return erg;
+}
+public boolean bucheTicket(String id, Paket paket) {
+Besucher b = null;
+Person p = suchePerson(id);
+if (p instanceof Besucher){
+b= (Besucher) p;
+}
+if (b!= null) {
+Baendchen baendchen = new Baendchen(1);
+Ticket ticket = new Ticket(new LocalDate(), paket,
+baendchen);
+b.setTicket(ticket);
+ticketliste.add(ticket);
+return true;
+}
+return false;
+}
+}
+
+1.5 Überführen und implementieren Sie die Klassen und .
+Person Mitarbeiter
+Hinweise: Das Bändchen eines Mitarbeiters hat als Attribut „Typ“ den Wert 4. Die
+Dokumentation der Klasse ist in Material 3 zu finden.
+String
+(7 BE)
+
+## Loesung 1.5
+überführen, implementieren
+abstract class Person {
+protected String name;
+protected String vorname;
+private LocalDate geburtsdatum;
+protected String id;
+public Person(String name, String vorname,
+LocalDate geburtsdatum) {
+this.name = name;
+this.vorname = vorname;
+this.geburtsdatum = geburtsdatum;
+this.id = berechneId();
+}
+protected String berechneId() {
+String vornameAbkuerzung = vorname.substring(0, 2);
+String nachnameAbkuerzung =
+name.substring(name.length() - 2);
+return vornameAbkuerzung + geburtsdatum.toString()
++ nachnameAbkuerzung;
+}
+public abstract double getBaendchenGuthaben();
+}
+public class Mitarbeiter extends Person {
+private Baendchen baendchen;
+public Mitarbeiter(String nname, String vname,
+LocalDate geburtsdatum) {
+super(nname, vname, geburtsdatum);
+this.baendchen = new Baendchen(4);
+}
+@Override
+public double getBaendchenGuthaben()
+{
+return this.getBaendchen().getGuthaben();
+}
+}
+
+1.6.2 Die Methode der Klasse steuert den Entriegelungsvorgang eines
+run() Controller
+Durchgangs. Der Ablauf ist im Struktogramm in Material 5 dargestellt. Überführen Sie die
+Klasse in Anweisungen einer objektorientierten Programmiersprache und
+Controller
+implementieren Sie den Konstruktor und die Methode .
+run()
+Hinweise: An jedem Durchgang befindet sich ein Controller mit einem RFID-Lesegerät zur
+Zugangskontrolle. Jeder Besucher hat einen RFID-Chip mit einer eindeutigen RFID-Kennung.
+Will ein Besucher das Konzertgelände betreten, hält er seinen RFID-Chip an das Lesegerät am
+Controller. Der Controller liest die RFID-Kennung über die serielle Schnittstelle und sendet das
+Kommando UNLOCK mit der Nummer des Durchgangs und der RFID-Kennung des Besuchers
+über ein Funkmodul an die Verwaltung des Festivals. Ist der Besucher berechtigt, das Gelände
+zu betreten, sendet die Verwaltung das Zeichen ACK (0x06) zurück an den Controller. Der
+Zugang wird entriegelt. Er muss binnen 10 Sekunden benutzt werden, andernfalls wird er
+wieder verriegelt. Dies wird über das Kommando LOCK mit der Durchgangsnummer und der
+RFID-Kennung an die Festival-Verwaltung übermittelt. Die Dokumentation der Klasse Serial
+ist in Material 3 zu finden. Die Methode
+waitTimer(long millisec)
+hält den aktuellen
+(10 BE)
+
+## Loesung 1.6.2
+überführen, implementieren
+public class Controller {
+private FunkModul funkModul;
+private RFIDReader reader;
+private Durchgang durchgang;
+public Controller(String comPort, Durchgang durchgang) {
+this.funkModul = new FunkModul();
+this.durchgang = durchgang;
+Serial serial = new Serial(comPort, 9600, 8, 1, 0);
+if(serial.open()) {
+reader = new RFIDReader(serial);
+}
+}
+public void run(){
+char response;
+String rfidKennung;
+while(true) {
+if(reader.isCardAvailable()) {
+rfidKennung = reader.readCard();
+if (!rfidKennung.isEmpty()) {
+this.funkModul.send("UNLOCK"+
+durchgang.getDurchgangsnr()+ rfidKennung);
+response = this.funkModul.receive();
+if(response == 0x06) {
+durchgang.unlock();
+waitTimer (10000);
+}
+durchgang.lock();
+funkmodul.send("LOCK"+
+durchgang.getDurchgangsnr()
++rfidKennung);
+}
+else {
+display("Karte nicht authorisiert");
+}
+}
+else {
+display("Karte nicht lesbar");
+}
+}
+}
+}
+
+1.6.3 Die Methode der Klasse liest die auf dem RFID-Chip gespeicherte
+readCard() RFIDReader
+RFID-Kennung des Benutzers über die serielle Schnittstelle. Implementieren Sie die Methode
+readCard().
+Hinweise: Das Datenformat in Material 4 sieht ein Prüfzeichen vor. Ist das Prüfzeichen korrekt,
+wird die RFID-Kennung in Form einer Zeichenkette zurückgegeben. Im Fehlerfall ist der
+Rückgabewert eine leere Zeichenkette. Die Methode der Klasse
+calcCheckChar() RFID-
+ermittelt das Prüfzeichen. Die Dokumentation der Klasse ist in Material 3 zu
+Reader String
+finden.
+(6 BE)
+
+## Loesung 1.6.3
+public String readCard(){
+String response ="";
+char checkValue = '';
+while (readChar() != 0x02) ; //warten auf STX
+for (int i =0; i <7; i++){
+response+= readChar();
+}
+checkValue = readChar();
+if (readChar() == 0x03){
+if (checkValue!=
+calCheckChar(response.toCharArray())){
+response = "";
+}
+}
+return response;
+}
+
+--------------------

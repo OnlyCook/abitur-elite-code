@@ -1,0 +1,2154 @@
+--- [ABI 2016 A] ---
+
+# SQL
+
+1. Datenbankentwicklung
+Das ER-Modell mit Strom-Kunden, Verträgen und Tarifen sowie den zugehörigen Strom-Zählern
+ist in Material 1 dargestellt.
+
+## Relationales Model
+Kunde(kundennummer, name, vorname, strasse, hausnummer,
+ plz, wohnort)
+Vertrag(vertragsnummer, zaehlernummer, kundennummer#,
+ verbrauch_vorjahr, zaehlerstand_alt,
+ zaehlerstand_neu, tarifID#)
+Tarif(tarifID, bezeichnung, grundpreis, preis_pro_kWh)
+
+1.2.1 Formulieren Sie eine SQL-Anweisung, welche die Stromkosten inkl. Grundpreis für alle
+Kunden berechnet und mit Kundennummer, Name, Vorname und Vertragsnummer ausgibt.
+(4 BE)
+
+## Loesung 1.2.1
+Select-Anweisung über mehrere Tabellen
+SELECT kundennummer, vorname, name, vertragsnummer,
+(zaehlerstand_neu - zaehlerstand_alt)
+* Tarif.preis_pro_kWh + grundpreis) AS Stromkosten
+FROM Kunde, Vertrag, Tarif
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Vertrag.tarifID = Tarif.tarifID;
+
+1.2.2 Für den Zähler mit der Nummer 123456 sollen die Ablesedaten mit dem neuen Zählerstand 9999
+aktualisiert werden:
+– Der Vorjahresverbrauch wird mit dem Verbrauch des aktuellen Jahres überschrieben.
+– Der alte Zählerstand wird mit dem ehemals neuen Zählerstand überschrieben.
+– Der neue Zählerstand wird auf den neuen Wert gesetzt.
+Geben Sie die SQL-Anweisung an.
+(3 BE)
+
+## Loesung 1.2.2
+Update-Anweisung
+UPDATE Vertrag
+SET verbrauch_vorjahr =
+(zaehlerstand_neu – zaehlerstand_alt),
+zaehlerstand_alt = zaehlerstand_neu,
+zaehlerstand_neu = 9999
+WHERE Vertrag.zaehlernummer = 123456;
+
+1.2.3 Entwickeln Sie eine SQL-Anweisung, die alle Kunden mit Name, Vorname und ihrem Verbrauch
+liefert, deren Verbrauch über dem durchschnittlichen Verbrauch liegt.
+Hinweis: Hat ein Kunde mehrere Verträge, erscheint er mehrfach in der Ergebnisliste.
+(4 BE)
+
+## Loesung 1.2.3
+Select-Anweisung mit Unterabfrage
+SELECT Kunde.kundennummer, name, vorname,
+verbrauch_vorjahr AS Verbrauch
+FROM Kunde, Vertrag
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND verbrauch_vorjahr >
+(SELECT AVG(verbrauch_vorjahr)
+FROM Vertrag);
+
+1.2.4 Ein Mitarbeiter des Versorgungsunternehmens soll alle Stromzähler der Kunden in der
+Heinrichstraße in Frankfurt ablesen.
+Geben Sie eine SQL-Anweisung an, die Vorname, Name, Straße und Hausnummer sowie den
+bzw. die Zähler mit Zählernummer und Zählerstand der letzten Ablesung der Kunden auflistet.
+Hinweis: Die Ergebnisliste soll aufsteigend nach Hausnummer sortiert sein.
+(4 BE)
+
+## Loesung 1.2.4
+Select-Anweisung über 2 Tabellen mit Sortierung
+SELECT vorname, name, strasse, hausnummer,
+zaehlernummer,
+zaehlerstand_neu AS 'letzte Ablesung'
+FROM Kunde, Vertrag
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Kunde.wohnort = 'Frankfurt'
+AND Kunde.strasse = 'Heinrichstrasse'
+ORDER BY Kunde.hausnummer;
+
+1.2.5 Entwickeln Sie eine SQL-Anweisung, welche die drei Kunden mit dem höchsten Vorjahres-
+verbrauch des Tarifs mit der Bezeichnung „Ökostrom“ mit Kundennummer, Name, Vorname
+und ihrem Verbrauch ermittelt.
+Hinweis: Hat ein Kunde mehrere Verträge, soll die Summe der Verbräuche dieser Zähler gelistet
+werden, der Kunde erscheint also nur einmal in der Ergebnisliste.
+(5 BE)
+
+## Loesung 1.2.5
+Select-Anweisung mit Aggregatfunktion, Gruppierung, Sortierung und Begrenzung der Anzahl von Ergebnissätzen
+SELECT Kunde.kundennummer, name, vorname,
+SUM(verbrauch_vorjahr)
+AS Verbrauch
+FROM Kunde, Vertrag, Tarif
+WHERE Kunde.kundennummer = Vertrag.kundennummer
+AND Vertrag.tarifID = Tarif.tarifID
+AND Tarif.bezeichnung = 'Ökostrom'
+GROUP BY Kunde.kundennummer, name, vorname
+ORDER BY Verbrauch
+LIMIT 3;
+
+--------------------
+
+--- [ABI 2016 B] ---
+
+# SQL
+
+2. Datenbank der Stundenplanverwaltung
+Das Verwaltungsprogramm soll auch die Erstellung von Stundenplänen unterstützen. Dazu wurde
+ein erstes ER-Modell erstellt (Material 4). Dieses Modell dient als Ausgangspunkt.
+Die Schülerinnen und Schüler werden mit Schülernummer, Name, Vorname, Adresse, Geburts-
+datum und Konfession gespeichert.
+– Für die Lehrerinnen und Lehrer (im Folgenden Lehrer) werden Personalnummer, Name,
+Vorname, Adresse, Telefonnummer sowie ein Kürzel (z.B. Ste für Steiner) festgehalten. Die
+zulässigen Unterrichtsfächer eines Lehrers müssen ebenso verwaltet werden (z.B. Mathe-
+matik, Physik). Ein Lehrer unterrichtet mindestens ein, aber höchstens drei Fächer. Jedes
+Fach hat ein eindeutiges Kürzel, z.B. PHY für Physik, ENG für Englisch.
+– Die Schülerinnen und Schüler (im Folgenden Schüler) werden Klassen zugeordnet. Sie
+besuchen während ihrer gesamten Schulzeit mehrere Klassen. Eine Klasse wird identifiziert
+durch ihren Namen und das Schuljahr (eine Klasse 10a gibt es im Schuljahr 2013/14 und im
+Schuljahr 2014/15).
+– Eine Klasse wird von mindestens acht, aber höchstens 24 Schülern besucht. Jede Klasse wird
+von mehreren Lehrern in verschiedenen Fächern unterrichtet. Jeder Lehrer unterrichtet in
+mehreren Klassen und leitet eine oder mehrere Klassen als Klassenlehrer. Es gibt auch
+Lehrer, die nicht Klassenlehrer einer Klasse sind.
+
+## Relationales Modell
+hrer(persNr, kuerzel, name, vorname, plz, ort, strasse,
+ telNr)
+schueler(schuelerNr, name, vorname, plz, ort, strasse,
+ gebDatum, konfession)
+fach(fachkuerzel, bezeichnung)
+klasse(klBezeichnung, klSchuljahr, persNr_kl#)
+darfUnterrichten(persNr#, fachkuerzel#)
+unterrichtsstunde(wochentag, stundenNr, klSchuljahr#,
+ klBezeichnung#, persNr#, fachkuerzel#)
+besucht(schuelerNr#, klBezeichnung#, klSchuljahr#)
+
+2.3.1 Frau Möller, Personalnummer 101702, bekommt im Laufe des Schuljahrs 2014/15 die Klasse
+10a als Klassenlehrerin, da der bisherige Klassenlehrer erkrankt ist.
+Geben Sie eine entsprechende SQL-Anweisung an.
+(2 BE)
+
+## Loesung 2.3.1
+Einfaches Update-Statement
+UPDATE klasse
+SET persNr_kl = 101702
+WHERE klBezeichnung = '10a'
+AND klSchuljahr = '2014/15';
+
+2.3.2 Formulieren Sie eine SQL-Anweisung, die für den Lehrer mit der Personalnummer 101803 den
+Stundenplan für den Montag mit Nummer der Stunde, der Klasse und der Bezeichnung des
+unterrichtenden Fachs im Schuljahr 2014/15 ausgibt.
+Hinweis: Die Ausgabe soll nach Stundennummer sortiert sein.
+(3 BE)
+
+## Loesung 2.3.2
+Select-Statement mit Join und Sortierung
+SELECT u.stundenNr, u.klBezeichnung, f.bezeichnung
+FROM unterrichtsstunde u, fach f
+WHERE u.fachkuerzel = f.fachkuerzel
+AND persNr = 101803
+AND u.wochentag = 'Montag'
+AND klSchuljahr = '2014/15'
+ORDER BY u.stundenNr;
+
+2.3.3 Entwickeln Sie eine SQL-Anweisung, um Personalnummer, Name, Vorname und die Anzahl der
+wöchentlichen Unterrichtsstunden für jeden Lehrer im Schuljahr 2014/15 auszugeben.
+(3 BE)
+
+## Loesung 2.3.3
+Select-Statement mit Aggregatfunktion und Gruppierung
+SELECT l.persNr, l.name, l.vorname,
+COUNT(*) AS Stundenzahl
+FROM unterrichtsstunde u, lehrer l
+WHERE l.persNr = u.persNr
+AND klSchuljahr = '2014/15'
+GROUP BY l.persNr, l.name, l.vorname;
+
+2.3.4 Das Fach Physik, das Herr Norbert Frank im Schuljahr 2014/15 bisher in der 10a unterrichtet
+hat, wird jetzt von Frau Christina Martens übernommen.
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.3.4
+Update-Statement mit Unterabfrage
+UPDATEunterrichtsstunde
+SET persNr=(SELECT persNr FROM lehrer
+WHERE name = 'Martens'
+AND vorname = 'Christina')
+WHERE fachkuerzel = 'PHY'
+AND klBezeichnung = '10a'
+AND klSchuljahr = '2014/15';
+
+2.3.5 In Ausnahmefällen werden Lehrer auch in Fächern eingesetzt, für die sie keine Lehrbefähigung
+haben.
+Entwickeln Sie eine SQL-Anweisung, die für das Schuljahr 2014/15 alle Unterrichtseinsätze
+ausgibt, in denen Lehrer Fächer unterrichten, für die Sie keine Lehrbefähigung haben.
+(3 BE)
+
+## Loesung 2.3.5
+Select-Statement mit Unterabfrage
+SELECT u.* FROM unterrichtsstunde u
+WHERE fachkuerzel NOT IN
+(SELECT fachkuerzel FROM darfunterrichten d
+WHERE u.persNr = d.persNr)
+AND klSchuljahr = '2014/15';
+
+--------------------
+
+--- [ABI 2017 A] ---
+
+# SQL
+
+2 Projekt-Datenbank des Softwarehauses
+In Material 5 sind die Relationen , , und der
+Kunde Projekt Mitarbeiter Stelle
+Datenbank auszugsweise dargestellt. Die Datenbank soll analysiert, konzeptionell überarbeitet
+und ausgewertet werden.
+
+## Relationales Modell
+Projekt(projNr, titel, beginn, ende, kdNr#, part#)
+Projektart(part, vertragsvorlage)
+Kunde(kdNr, firmenname, plz, ort, strasse)
+Stelle(sid, zu_besetzen_ab, zu_besetzen_bis, projNr#,
+ fid#, mid#)
+Mitarbeiter(mid, vorname, nachname)
+Funktion(fid, bezeichnung, stundensatz)
+
+2.5 Einige Daten der neuen Datenbank sollen ausgewertet bzw. geändert werden.
+Hinweise: Die Funktion NOW() liefert das aktuelle Tagesdatum mit Uhrzeit.
+Die geforderten SQL-Anweisungen beziehen sich auf das ER-Modell in Material 6.
+
+2.5.1 Für den Kunden "Commerzbank AG" (Kundennummer 4) wird das Projekt "Suchmaschine" mit
+der Projektnummer 401 neu erfasst.
+Geben Sie die SQL-Anweisung zur Aktualisierung der Datenbank an.
+(2 BE)
+
+## Loesung 2.5.1
+Einfüge-Anweisungen für ein neues Projekt angeben
+INSERT INTO Projekt (projNr, titel, kdNr)
+VALUES (401, 'Suchmaschine', 4);
+
+2.5.2 Für das Projekt "Suchmaschine" des Kunden "Commerzbank AG" werden der Projektbeginn,
+1.6.2017 und das Projektende, 30.9.2017, erfasst.
+Formulieren Sie die SQL-Anweisung zur Aktualisierung der Datenbank.
+(2 BE)
+
+## Loesung 2.5.2
+Update-Anweisung für ein bestehendes Projekt formulieren
+UPDATE Projekt
+SET beginn='2016-06-01', ende='2017-09-30'
+WHERE projNr=401;
+
+2.5.3 Für das Projekt "MarketingApp" soll eine Projektleiterin oder ein Projektleiter (in der Folge
+Projektleiter genannt) bestimmt werden. Es soll ein Mitarbeiter sein, der bereits eine
+Projektleitung inne hatte und der während der gesamten Projektlaufzeit vom 1.10.2017 bis
+30.11.2016 verfügbar ist.
+Erklären Sie alle Bedingungen, die in der SQL-Anweisung geprüft werden müssen oder
+entwickeln Sie die SQL-Anweisung.
+Hinweis: Zur Erreichung der fünf Bewertungseinheiten ist nur eine der beiden Alternativen zu
+bearbeiten, d.h. entweder alle Bedingungen in einem Text erklären oder die SQL-Anweisung zu
+entwickeln.
+(5 BE)
+
+## Loesung 2.5.3
+Lösungsalternative 1: notwendige Bedingungen erklären
+Für die in Frage kommenden Mitarbeiter muss es in der Relation Stelle einen
+Eintrag mit der Funktionsbezeichnung "Projektleitung" bzw. der entsprechenden
+FunktionsID (fid) geben. Für diese Mitarbeiter muss die Verfügbarkeit geprüft
+werden, indem ihr Engagement in anderen Projekten betrachtet wird.
+Dazu muss geprüft werden, ob sie in einem Projekt mitarbeiten, das
+– vor dem 1.10. beginnt und nach dem 1.10. endet
+(Überschneidung mit dem Projektbeginn), oder
+– vor dem 30.11. beginnt und nach dem 30.11. endet
+(Überschneidung mit dem Projektende), oder
+– nach dem 1.10. beginnt und vor dem 30.11. endet
+(komplett innerhalb der Projektlaufzeit der MarketingApp) oder
+– genau vom 1.10. bis zum 30.11. dauert
+(genau zur gleichen Zeit läuft).
+Arbeitet ein in Frage kommender Projektleiter in einem solchen Projekt mit, egal
+in welcher Funktion, wird er ausgeschlossen. Übrig bleiben die möglichen
+Projektleiter für das Projekt MarketingApp, hier ist es nur Katharina Kunz.
+SELECT DISTINCT nachname,vorname
+FROM Mitarbeiter m, Funktion f, Stelle s
+WHERE f.fid = s.fid
+AND m.mid = s.mid
+AND f.bezeichnung = 'Projektleitung'
+AND (m.mid NOT IN
+(SELECT mid
+FROM Stelle st
+WHERE m.mid = st.mid
+AND((st.zu_besetzen_ab < '2017-10-01'
+AND st.zu_besetzen_bis > '2017-10-01')
+OR (st.zu_besetzen_ab < '2017-11-30'
+AND st.zu_besetzen_bis > '2017-11-30')
+OR (st.zu_besetzen_ab > '2017-10-01'
+AND st.zu_besetzen_bis < '2017-11-30')
+OR (st.zu_besetzen_ab = '2017-10-01'
+AND st.zu_besetzen_bis = '2017-11-30')
+)
+)
+)
+;
+
+2.5.4 Formulieren Sie eine SQL-Anweisung, die alle für zukünftige Projekte zu besetzenden Stellen
+mit Funktionsbezeichnung und Projekttitel ermittelt.
+(3 BE)
+
+## Loesung 2.5.4
+Auswahl-Abfrage über mehrere Relationen formulieren
+SELECT bezeichnung, titel
+FROM Funktion f, Projekt p, Stelle s
+WHERE f.fid = s.fid
+AND s.projNr = p.projNr
+AND s.zu_besetzen_ab > NOW()
+AND s.mid IS null;
+
+2.5.5 Entwickeln Sie eine SQL-Anweisung, die für alle Projektleiter ihren Nachnamen und Vornamen
+sowie die Anzahl der Projektleitungen ermittelt.
+Hinweis: Die Funktion "Projektleitung" hat die 1.
+fid
+(4 BE)
+
+## Loesung 2.5.5
+Auswahl-Abfrage mit Aggregatfunktion und Gruppierung entwickeln
+SELECT nachname, vorname,
+count(*) AS anzProjektleitungen
+FROM Mitarbeiter m, Stelle s
+WHERE m.mid = s.mid
+AND s.fid=1
+GROUP BY nachname, vorname;
+
+--------------------
+
+--- [ABI 2017 B] ---
+
+# SQL
+
+2 Datenbank für das Carsharing-Unternehmen
+Sie werden von dem Carsharing-Unternehmen beauftragt, seine Fahrzeug- und Mietverwaltung
+durch eine relationale Datenbank zu unterstützen. In dem Datenbanksystem soll u.a. aufgenom-
+men werden, welches Fahrzeug von welchem Mitglied gebucht bzw. genutzt wurde. Ihnen wird
+ein vorläufiges ER-Modell (Material 7) vorgelegt.
+
+## Relationales Modell
+Mitglied (mitgliedsnr, name, vorname)
+Buchung (buchungsnr, nutzungsBeginn, nutzungsEnde,
+ mitgliedsnr#,kennzeichen#)
+Fahrzeug (kennzeichen, hersteller, modell, baujahr,
+ kmStand, klasse#)
+Fahrzeugklasse (bezeichnung, preisProMin, preisProKm)
+
+2.2.1 Geben Sie eine SQL-Abfrage an, die die Fahrzeugklassen ermittelt, die weniger als 0,15€ pro
+Minute und weniger als 0,20€ pro km kosten.
+(2 BE)
+
+## Loesung 2.2.1
+Einfache Auswahlabfrage angeben
+SELECT bezeichnung
+FROM Fahrzeugklasse
+WHERE preisProMin < 0.15
+AND preisProKm < 0.20;
+
+2.2.2 Formulieren Sie eine SQL-Abfrage mit der aller Mitglieder mit Name und Vorname ausgegeben
+werden, die schon einmal einen Mercedes Smart ausgeliehen haben.
+Hinweise: Die Ergebnisliste soll aufsteigend nach Name und Vorname sortiert sein. Die
+Mehrfachnennung von Mitgliedern ist zu unterbinden.
+(3 BE)
+
+## Loesung 2.2.2
+Auswahlabfrage über 3 Tabellen mit Sortierung formulieren
+SELECT DISTINCT name, vorname
+FROM Mitglied, Buchung, Fahrzeug
+WHERE Mitglied.mitgliedsnr = Buchung.mitgliedsnr
+AND Buchung.kennzeichen = Fahrzeug.kennzeichen
+AND hersteller = 'Mercedes'
+AND modell = 'Smart'
+ORDER BY name, vorname;
+
+2.2.3 Entwickeln Sie eine SQL-Abfrage, die alle Kunden, die schon mindestens vier Mal ein Fahrzeug
+der Mittelklasse gebucht haben, mit Name, Vorname und der Anzahl dieser Buchungen ausgibt.
+(4 BE)
+
+## Loesung 2.2.3
+Auswahlabfrage über 3 Tabellen mit Aggregatfunktion und Gruppierung
+entwickeln
+SELECT name, vorname, COUNT(*) AS Anzahl
+FROM Mitglied, Buchung, Fahrzeug
+WHERE Mitglied.mitgliedsnr = Buchung.mitgliedsnr
+AND Buchung.kennzeichen = Fahrzeug.kennzeichen
+AND Fahrzeug.klasse = 'Mittel'
+GROUP BY name, vorname
+HAVING anzahl >= 4;
+
+2.2.4 Erläutern Sie den Aufbau und die inhaltliche Bedeutung der folgenden SQL-Anweisung.
+SELECT buchungsNr, Buchung.mitgliedsNr, name, vorname, kennzeichen
+FROM Buchung
+INNER JOIN Mitglied ON Buchung.mitgliedsNr = Mitglied.mitgliedsNr
+INNER JOIN Fahrzeug ON Buchung.kennzeichen = Fahrzeug.kennzeichen
+WHERE Buchung.mitgliedsNr IN (1002, 1007, 1009);
+(3 BE)
+
+## Loesung 2.2.4
+SQL-Anweisung erläutern
+Es werden Daten aus drei verbundenen Tabellen abgefragt. Hierzu werden
+mehrere „Joins” hintereinander ausgeführt. Zunächst werden die ersten beiden
+Tabellen miteinander verbunden und die Datensätze ausgewählt, die der in der
+ON-Spezifikation angegebenen Bedingung entsprechen. Anschließend wird diese
+Zwischentabelle mit der nächsten Tabelle verbunden usw. Durch den IN-
+Parameter in der WHERE-Klausel wird verglichen, ob der Inhalt einer Spalte in
+der angegebenen Liste enthalten ist.
+Die angegebene SQL-Abfrage liefert alle Buchungen (Mitgliedsnummer, Vorund Nachname des Mitglieds, Buchungsnummer, Fahrzeugkennzeichen) der
+Mitglieder mit den Mitgliedsnummern 1002, 1007 und 1009
+
+2.2.5 Das Carsharing-Unternehmen hat ein neues Fahrzeug angeschafft. Es handelt sich um einen
+VW Touran mit dem Kennzeichen F-UT 421. Das Fahrzeug ist ein Neuwagen Baujahr 2016,
+der Kilometerstand beträgt 120 km. Es ist das erste Fahrzeug der neuen Fahrzeugklasse Van.
+Für Fahrzeuge dieser Klasse fallen pro Minute 0,15 € und pro gefahrenen Kilometer 0,25 € an.
+Geben Sie die SQL-Anweisungen an, mit denen diese Informationen in die Datenbank
+eingetragen werden können.
+(3 BE)
+
+## Loesung 2.2.5
+SQL-Anweisungen zum Einfügen von Daten angeben
+INSERT INTO Fahrzeugklasse VALUES ("Van", 0.15, 0.25);
+INSERT INTO Fahrzeug
+VALUES ("F-UT 421", "VW", "Touran", 2016, 120, "Van");
+Hinweis: die Reihenfolge der Anweisungen ist zu beachten
+
+--------------------
+
+--- [ABI 2018 A] ---
+
+# SQL
+
+2 Datenbank
+Das Entity-Relationship-Modell (ERM) der Datenbank ist in Material 4 dargestellt.
+
+# Relationales Modell
+Bestellung(bestellnr, datum)
+Wareneingang(bestellnr#, datum)
+Karton(kartonnr, bestellnr#, fachnr#, segmentnr#,
+ artikelnr#)
+Fach(fachnr, segmentnr#, regalnr#, kapazität)
+Segment(segmentnr, regalnr)
+Artikel(artikelnr, typ, bezeichnung, farbe, vkpreis,
+segmentnr#, regalnr#, anzahlImKarton)
+Bestellposition(artikelnr#, bestellnr#, anzahl,
+ekpreis)
+
+2.2 Einige Daten der Datenbank sollen ausgewertet bzw. geändert werden
+
+2.2.1 Geben Sie eine SQL-Anweisung an, die den Verkaufspreis aller Artikel vom Typ „Badetuch“ um
+15% erhöht.
+(2 BE)
+
+## Loesung 2.2.1
+UPDATE Artikel
+SET vkpreis = vkpreis * 1.15
+WHERE typ = 'Badetuch';
+
+2.2.2 Geben Sie eine SQL-Anweisung an, welche die Kartonnummer aller Kartons des Wareneingangs mit der Bestellnummer 201801 ermittelt, die nicht in ein Fach eingelagert sind.
+(3 BE)
+
+## Loesung 2.2.2
+SELECT kartonnr
+FROM Karton
+WHERE bestellnr = 201801
+AND segmentnr IS null;
+
+2.2.3 Formulieren Sie eine SQL-Anweisung, die für alle Wareneingänge vom 4.1.2018 alle Kartons
+mit ihrer Kartonnummer, dem enthaltenen Artikel mit Typ, Bezeichnung und der Anzahl von
+Artikeln im Karton sowie die Nummern des Segments und des Fachs, in das sie eingelagert
+wurden, auflistet.
+Hinweis: Die Liste soll nach Bestellnummer und Kartonnummer sortiert sein.
+(4 BE)
+
+## Loesung 2.2.3
+SELECT A.typ, A.bezeichnung, A.anzahlimKarton,
+K.kartonnr, K.segmentnr, K.fachnr
+FROM Wareneingang AS W, Artikel AS A, Karton AS K
+WHERE W.datum = '2018-01-04'
+AND W.bestellnr = K.bestellnr
+AND A.artikelnr = K.artikelnr
+ORDER BY W.bestellnr, K.kartonnr;
+
+2.2.4 Entwickeln Sie eine SQL-Anweisung, die alle Artikel mit Artikelnummer, Typ, Bezeichnung
+und einem aktuellen Bestand von weniger als 50 Stück des Artikels ermittelt.
+(5 BE)
+
+# Loesung 2.2.4
+SELECT A.artikelnr, A.bezeichnung, A.typ,
+ Count(kartonnr)*A.anzahlImKarton AS Bestand
+FROM Artikel AS A, Karton AS K
+WHERE A.artikelnr = K.artikelnr
+GROUP BY A.artikelnr, A.bezeichnung,
+ A.typ, A.anzahlImKarton
+HAVING Count(kartonnr)*A.anzahlImKarton < 50;
+
+--------------------
+
+--- [ABI 2018 B] ---
+
+# SQL
+
+1 Auswertung und Erweiterung der Datenbank des Unternehmens.
+Das Entity-Relationship-Modell der Datenbank ist in Material 1 dargestellt.
+
+## Relationales Modell
+Kunde(kid, name, vorname, plz, ort, strasse)
+Mitarbeiter(mid, name, vorname, telefon, gehalt)
+Art(aid, bezeichnung, stundensatz)
+Befaehigung(aid#, mid#)
+Dienstleistung(did, datum, von, stunden, kid#, aid#, mid#)
+
+1.2.1 Für Januar 2018 soll eine Aufstellung der Summen der von den Mitarbeitern geleisteten
+Stunden gruppiert nach Vor- und Nachnamen sowie der Bezeichnung der Dienstleistungsart
+ausgegeben werden.
+Formulieren Sie eine entsprechende SQL-Anweisung.
+(4 BE)
+
+## Loesung 1.2.1
+SELECT name, vorname, bezeichnung,
+SUM(stunden) AS Gesamtstunden
+FROM Mitarbeiter, Dienstleistung, Art
+WHERE Mitarbeiter.mid = Dienstleistung.mid
+AND Dienstleistung.aid = Art.aid
+AND datum LIKE '2018-01-%'
+GROUP BY name, vorname, bezeichnung;
+
+1.2.2 Dem Mitarbeiter Knuth Müller (mid 23) wird fristlos gekündigt. Alle gebuchten
+Dienstleistungen, die ihm zugeordnet waren, sollen ab sofort von Tim Weiss übernommen
+werden.
+Entwickeln Sie die SQL-Anweisungen, um die Datenbank entsprechend zu aktualisieren.
+Hinweis: Es ist zu beachten, dass Knuth Müller zukünftig nicht mehr befähigt ist,
+Dienstleistungen auszuführen.
+(4 BE)
+
+## Loesung 1.2.2
+entwickeln
+UPDATE Dienstleistung SET mid =
+(SELECT mid FROM Mitarbeiter
+WHERE name = 'Weiss' AND vorname = 'Tim')
+WHERE mid = 23
+AND datum >= NOW();
+DELETE FROM Befaehigung
+WHERE mid = 23;
+
+1.2.3 Implementieren Sie eine SQL-Anweisung, die alle Mitarbeiter ausgibt, die für
+Hausmeisterdienste (aid 17) einsetzbar sind und noch keinen Einsatz am 24.04.2018 haben.
+(4 BE)
+
+## Loesung 1.2.3
+SELECT name, vorname
+FROM Mitarbeiter, Befaehigung
+WHERE Mitarbeiter.mid = Befaehigung.mid
+AND aid =
+AND Mitarbeiter.mid NOT IN
+(SELECT mid FROM Dienstleistung
+WHERE datum = '2018-04-24');
+
+1.2.4 Für die Kundin Lisa Rein (kid 4711) soll die Abrechnung für Dezember 2017 erstellt werden,
+wobei die einzelnen Dienstleistungen mit Datum, Stundenzahl, Art der Leistung und Betrag
+nach Datum sortiert aufgelistet werden sollen.
+Anschließend wird der Gesamtbetrag aller Leistungen ausgewiesen.
+Beispiel:
+datum stunden bezeichnung betrag
+14.12.2017 1 Treppenhausreinigung 21,80
+20.12.2017 6 Hausmeisterdienste 169,80
+Gesamt 191,60
+Implementieren Sie die entsprechenden SQL-Anweisungen.
+(5 BE)
+
+## Loesung 1.2.4
+SELECT datum, stunden, bezeichnung,
+stundensatz*stunden AS betrag
+FROM Dienstleistung, Art
+WHERE Dienstleistung.aid = Art.aid
+AND kid = 4711
+AND datum LIKE '2017-12-%'
+ORDER BY datum;
+SELECT SUM(stunden*stundensatz) AS Gesamt
+FROM Dienstleistung, Art
+WHERE Dienstleistung.aid = Art.aid
+AND kid = 4711
+AND datum LIKE '2017-12-%';
+
+--------------------
+
+--- [ABI 2019 A] ---
+
+# SQL
+
+2 Datenbank für das Fitnessstudio BodyFitness
+Die Kunden- und Trainingsdaten des Studios sollen mithilfe einer relationalen Datenbank
+verwaltet werden. Ein erstes ER-Modell wurde entworfen (Material 5).
+
+## Relationales Modell
+Kunde(kundenNr, name, vorname, iban)
+Vertrag(vertragsNr, startDatum, endDatum, beitrag,
+ kundenNr#, typNr#)
+Vertragstyp(typNr, bezeichnung)
+Geraet(geraeteNr, bezeichnung, gekauftAm)
+trainiertAn(kundenNr#, geraeteNr#, datumzeit, dauer,
+ maxPuls)
+
+2.4 Einige Daten der Datenbank des Ursprungsmodells (Material 5 bzw. Aufgabe 2.1) sollen
+eingefügt bzw. ausgewertet werden.
+
+2.4.1 Der Kunde Josef Müller soll mit der Kundennummer 3876 in die Datenbank eingefügt werden.
+Seine IBAN ist noch nicht bekannt.
+Geben Sie eine entsprechende SQL-Anweisung an.
+(2 BE)
+
+## Loesung 2.4.1
+INSERT INTO kunde (kundenNr, name, vorname)
+VALUES (3876, 'Müller', 'Josef');
+
+2.4.2 Für den Kunden mit der Kundennummer 8888 soll eine Liste mit Trainingsdatum und
+Gerätebezeichnung erstellt werden, die zeigt, wann er an welchem Gerät trainiert hat.
+Formulieren Sie eine entsprechende SQL-Anweisung.
+(2 BE)
+
+## Loesung 2.4.2
+SELECT datumzeit, bezeichnung
+FROM trainiertAn t, geraet g
+WHERE t.geraeteNr = g.geraeteNr
+AND t.kundenNr = 8888;
+
+2.4.3 Entwickeln Sie eine SQL-Abfrage, die die Daten des Geräts ermittelt, an dem am häufigsten
+trainiert wurde. Entwickeln Sie eine Ausgabe für die Anzahl der Trainingseinheiten.
+(4 BE)
+
+## Loesung 2.4.3
+entwickeln
+SELECT g.*, COUNT(*) AS anzahl
+FROM trainiertAn t, geraet g
+WHERE t.geraeteNr = g.geraeteNr
+GROUP BY t.geraeteNr
+ORDER BY anzahl DESC
+LIMIT 1;
+
+2.4.4 Es soll eine nach Namen sortierte Kundenliste mit dem Ablaufdatum des jeweiligen Vertrages
+erstellt werden. Alle Kunden sollen ausgegeben werden, auch die, die nur ein Probetraining
+absolvieren und nicht durch einen Vertrag gebunden sind.
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.4.4
+entwickeln
+SELECT name, vorname, endDatum
+FROM kunde k LEFT JOIN vertrag v
+ON k.kundenNr = v.kundenNr
+ORDER BY name, vorname;
+
+2.4.5 Es soll eine Auslastungsliste der Geräte für das vergangene Jahr erstellt werden, die je Gerät die
+Gesamtsumme aller Trainingsminuten auflistet. Die Liste soll absteigend nach der Summe der
+Trainingsminuten sortiert sein.
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+Hinweise: Im ER-Modell sind optionale Beziehungen vorhanden. Die Funktion NOW() liefert
+das aktuelle Tagesdatum. Die Funktion YEAR() extrahiert aus einem Datum die Jahreszahl.
+(5 BE)
+
+## Loesung 2.4.5
+entwickeln
+SELECT bezeichnung AS Gerät, Sum(dauer) AS Minutenanzahl
+FROM geraet g
+LEFT JOIN trainiertan t ON g.geraeteNr = t.geraeteNr
+WHERE YEAR(datumzeit) = YEAR(NOW())-1
+GROUP BY bezeichnung
+ORDER BY Minutenanzahl DESC;
+
+--------------------
+
+--- [ABI 2019 B] ---
+
+# SQL
+
+2 Datenbank des Ticket-Reservierungssystems
+Kunden können mehrere Reservierungen auf einmal vornehmen, für die eine Rechnung gestellt
+wird. Die Zahlung des Rechnungsbetrages kann in mehreren Teilzahlungen erfolgen.
+
+## Relationales Modell
+kunde(knr, name, vorname, plz, ort, strasse)
+rechnung(rechnr, datum, datumFaellig, betragRechnung, knr#)
+reservierung(resnr, datum, rechnr#, snr#)
+spiel(snr, heimmannschaft, gastmannschaft, datum, uhrzeit)
+zahlung(rechnr#, laufendeNr, datum, betrag)
+
+2.2 Einige Daten der Datenbank sollen ausgewertet bzw. geändert werden.
+
+2.2.1 Die Rechnung mit der Nummer 4743 soll gelöscht werden. Alle dazu gehörigen Reservierungen
+des Kunden wurden bereits gelöscht. Zahlungen des Kunden liegen nicht vor.
+Geben Sie die entsprechende SQL-Anweisung an.
+(2 BE)
+
+## Loesung 2.2.1
+DELETE
+FROM rechnung
+WHERE rechnr = 4743;
+
+2.2.2 Entwickeln Sie eine SQL-Anweisung, die alle Kunden ausgibt, die noch nie Tickets reserviert
+und deshalb keine Rechnung zugeordnet bekommen haben.
+(3 BE)
+
+## Loesung 2.2.2
+SELECT *
+FROM Kunde
+WHERE knr NOT IN
+ (SELECT knr FROM rechnung);
+Hinweis: Lösungen mit LEFT JOIN sind gleichwertig.
+
+2.2.3 Entwickeln Sie eine SQL-Anweisung, die alle Rechnungen für den Kunden mit der
+Kundennummer 1073 ausgibt, wobei pro Rechnung die Rechnungsnummer, der
+Rechnungsbetrag und die Summe der gezahlten Beträge ausgegeben werden soll.
+Hinweis: Auch Rechnungen, für die noch keine Zahlungen vorliegen, sollen berücksichtigt
+werden.
+(3 BE)
+
+## Loesung 2.2.3
+SELECT r.rechnr, r.betragRechnung, SUM(betrag) AS gezahlt
+FROM rechnung r LEFT JOIN zahlung z ON r.rechnr = z.rechnr
+WHERE r.knr = 1073
+GROUP BY r.rechnr;
+
+2.2.4 Entwickeln Sie eine SQL-Anweisung, die die Rechnungsnummern der Rechnungen auflistet,
+die mehr als eine Reservierung haben. Zu jeder Rechnung sollen der Vor- und Nachname des
+Kunden ausgegeben werden.
+(4 BE)
+
+## Loesung 2.2.4
+SELECT r.rechnr, k.vorname, k.nachname
+FROM kunde k
+JOIN rechnung r ON k.knr = r.knr
+JOIN reservierung re ON r.rechnr = re.rechnr
+GROUP BY re.rechnr
+HAVING COUNT(re.resnr) > 1;
+
+2.2.5 Die Ergebnistabelle soll die Kundennummer, den Nachnamen, die Rechnungsnummer und eine
+Gegenüberstellung von Rechnungsbetrag und dem bisher gezahlten Betrag enthalten.
+Entwickeln Sie eine SQL-Anweisung, die für den Rechnungsmonat Januar 2019 (Rechnungsdatum im Januar 2019) alle Kunden ermittelt, die ihre Rechnungen nicht vollständig bezahlt
+haben.
+Hinweis: Die Funktion MONTH(datum) liefert zum übergebenen Datum die Nummer des
+Monats, die Funktion YEAR(datum) liefert zum übergebenen Datum die Jahreszahl. Es ist zu
+beachten, dass manche Rechnungen nur teilweise bezahlt wurden oder noch keine Zahlung
+vorliegt.
+(5 BE)
+
+## Loesung 2.2.5
+SELECT k.knr,k.nachname, r.rechnr,
+ r.betragRechnung, SUM(betrag) AS bishergezahlt
+FROM rechnung r
+JOIN kunde k ON r.knr = k.knr
+LEFT JOIN zahlung z ON r.rechnr = z.rechnr
+WHERE MONTH(r.datum) = 1 AND YEAR(r.datum) = 2019
+GROUP BY k.knr,r.rechnr
+HAVING (bishergezahlt < r.betragRechnung
+ OR bishergezahlt IS NULL);
+Die Abfrage von bishergezahlt IS NULL wird nicht gefordert und führt
+nicht zu Punktabzug.
+
+--------------------
+
+--- [ABI 2020 A] ---
+
+# SQL
+
+1 Auswertung und Erweiterung der Datenbank
+Das Unternehmen setzt eine relationale Datenbank ein. Für die vorhandene Datenbankstruktur
+liegt ein Relationenmodell vor (Material 2).
+
+## Relationales Modell
+Kunde (kundenNr [PK], firma, name, vorname, strasse, plz, ort)
+Rechnung (rechnungsNr [PK], rechnungsDatum, kundenNr#)
+Position (rechnungsNr# [PK], artikelNr# [PK], menge)
+Artikel (artikelNr [PK], bezeichnung, nettopreis, mwstSatz, sollBestand, istBestand)
+
+1.3.1 Die Positionen aus der Beispielrechnung in Material 4 sollen der Rechnung hinzugefügt und der
+Ist-Bestand der Artikel entsprechend verringert werden.
+Formulieren Sie die SQL-Anweisungen, um die Datenbank zu aktualisieren.
+Hinweise: Die Datensätze der Artikel und der Rechnung existieren bereits.
+(4 BE)
+
+## Loesung 1.3.1
+INSERT INTO Position
+VALUES(322333, 61123, 1),
+(322333, 52133, 3);
+UPDATE Artikel SET istBestand = istBestand -
+WHERE artikelNr = 61123;
+UPDATE Artikel SET istBestand = istBestand -
+WHERE artikelNr = 52133;
+
+1.3.2 Formulieren Sie eine SQL-Anweisung, um die Positionen gemäß der Beispielrechnung in
+Material 4 auszugeben.
+(3 BE)
+
+## Loesung 1.3.2
+SELECT a.artikelNr AS 'Artikel-Nr.',
+bezeichnung AS Bezeichnung, menge AS Menge,
+nettopreis AS 'Nettopreis in €',
+mwstSatz AS 'MwSt.-Satz in %',
+(nettopreis*menge) AS 'Gesamtnettopreis in €'
+FROM Position p, Artikel a
+WHERE rechnungsNr = 322333
+AND p.artikelNr = a.artikelNr;
+
+1.3.3 Implementieren Sie eine SQL-Anweisung, welche die zehn am häufigsten verkauften Artikel im
+Rechnungsmonat Januar 2020 mit Artikelnummer, Bezeichnung und Gesamtmenge ausgibt.
+(4 BE)
+
+## Loesung 1.3.3
+SELECT a.artikelNr, bezeichnung,
+SUM(menge) AS Gesamtmenge
+FROM Position p, Artikel a, Rechnung r
+WHERE p.artikelNr = a.artikelNr
+AND p.rechnungsNr = r.rechnungsNr
+AND rechnungsDatum LIKE '2020-01-%'
+GROUP BY a.artikelNr
+ORDER BY Gesamtmenge DESC
+LIMIT 10;
+
+1.3.4 Für eine Rabattaktion sollen alle Kunden angeschrieben werden, deren Postleitzahl mit 6
+beginnt und die im laufenden Jahr noch keine Einkäufe getätigt haben.
+Entwickeln Sie eine SQL-Anweisung, die alle Daten der entsprechenden Kunden auflistet.
+(4 BE)
+
+## Loesung 1.3.4
+entwickeln
+SELECT *
+FROM Kunde
+WHERE kundenNr NOT IN
+(SELECT kundenNr FROM Rechnung
+WHERE YEAR(rechnungsDatum) = YEAR(NOW()))
+AND plz LIKE '6%';
+Hinweis: Gleichwertige Lösungen ohne Verwendung der Datumsfunktionen sind
+möglich.
+
+1.3.5 Alle Artikel, deren Ist-Bestände unter dem jeweiligen Soll-Bestand liegen, sollen selektiert
+werden, wobei die Ausgabe nach dem prozentualen Anteil aufsteigend sortiert sein soll.
+Beispiel für die Ausgabe:
+artikelNr bezeichnung sollBestand istBestand Anteil in %
+76554 Pizzatomaten 200 150 75
+52133 Servierplatte oval 50 39 78
+61123 Rindersteak 5kg 20 17 85
+56231 Kidneybohnen 100 96 96
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+(4 BE)
+
+## Loesung 1.3.5
+entwickeln
+SELECT artikelNr, bezeichnung, sollBestand, istBestand,
+(istBestand/sollBestand)*100 AS 'Anteil in %'
+FROM Artikel
+WHERE istBestand < sollBestand
+ORDER BY (istBestand/sollBestand)*100 ASC;
+
+1.3.6 Für den Monatsabschluss Februar 2020 sind die Mehrwertsteuerbeträge aller Rechnungen des
+Monats zu ermitteln.
+Implementieren Sie die entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 1.3.6
+SELECT SUM((nettopreis*menge)/100*mwstSatz)
+AS Mehrwertsteuer
+FROM Rechnung r, Position p, Artikel a
+WHERE r.rechnungsNr = p.rechnungsNr
+AND p.artikelNr = a.artikelNr
+AND rechnungsDatum LIKE '2020-02-%';
+
+--------------------
+
+--- [ABI 2020 B] ---
+
+# SQL
+
+2 Für den Servicedesk soll eine Datenbank zur Datenspeicherung neu entwickelt werden. 
+
+## Relationales Modell
+Kunde (kid, name, vorname, email)
+Mitarbeiter (mid, name, vorname)
+Ticket (tid, erfassungsdatum, betreff, beschreibung, status,
+ kid#, erfasst_von#
+ 
+2.2 Einige Daten der Datenbank sollen geändert bzw. abgefragt werden. 
+
+2.2.1 Geben Sie eine SQL-Anweisung an, die die Tickets mit Ticket-ID und Erfassungsdatum
+ermittelt, bei denen in der Beschreibung der Begriff 'Drucker' enthalten ist.
+(3 BE) 
+
+## Loesung 2.2.1
+SELECT tid, erfassungsdatum
+FROM Ticket
+WHERE beschreibung LIKE '%Drucker%'; 
+
+2.2.2 Formulieren Sie eine SQL-Anweisung, die die am 14.02.2020 von der Kundin Franziska Hall
+aufgegebenen Tickets mit Erfassungsdatum und Betreff ermittelt.
+(3 BE) 
+
+## Loesung 2.2.2
+SELECT erfassungsdatum, betreff
+FROM Kunde
+JOIN Ticket
+ON (Kunde.kid = Ticket.kid)
+WHERE vorname = 'Franziska'
+AND name = 'Hall'
+AND erfassungsdatum LIKE '2020-02-14%'; 
+
+2.2.4 Entwickeln Sie eine SQL-Anweisung, die die Anzahl der offenen und die Anzahl der
+geschlossenen Tickets des Bearbeiters Horst Schmitt wie folgt ermittelt.
++-------------+--------+
+| Status | Anzahl |
++-------------+--------+
+| geschlossen | 20 |
+| offen | 8 |
++-------------+--------+
+(4 BE) 
+
+## Loesung 2.2.4
+SELECT status AS Status, COUNT(*) AS Anzahl
+FROM Ticket, Mitarbeiter
+WHERE mid = zugewiesen_an
+AND vorname ='Horst'
+AND name = 'Schmitt'
+AND (status = 'offen' OR status = 'geschlossen')
+GROUP BY status;
+
+2.2.5 Entwickeln Sie eine SQL-Anweisung, die alle noch offenen Tickets (Vorname, Name des
+Kunden, Erfassungsdatum und Betreff) des Bearbeiters Horst Schmitt ermittelt.
+(4 BE) 
+
+## Loesung 2.2.5
+SELECT Kunde.vorname, Kunde.name, erfassungsdatum, betreff
+FROM Kunde
+JOIN Ticket
+ON Kunde.kid = Ticket.kid
+JOIN Mitarbeiter
+ON zugewiesen_an = mid
+WHERE Mitarbeiter.vorname ='Horst'
+AND Mitarbeiter.name = 'Schmitt'
+AND Ticket.status = 'offen'; 
+
+--------------------
+
+--- [ABI 2021 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für den Lieferservice
+Ein Entity-Relationship-Modell (ERM) der Datenbank ist in Material 7 zu finden.
+
+## Relationales Modell
+Filiale(filialnr, strassehausnr, plz, ort)
+Fahrer(fahrernr, handynr, vorname, nachname,
+ führerscheinklasse)
+FahrerEinsatzFuerFiliale(filialnr#, fahrernr#, tag)
+Lieferauftrag(bestellnr, strassehausnr, plz, ort, start,
+ ausgeliefert, ende, fahrernr#, fahrzeugnr#)
+Fahrzeug(fahrzeugnr, kmStand, kennzeichen, nächsteHU,
+ versicherungskennzeichen, ladezeit, reichweite)
+
+2.2.1 Formulieren Sie eine SQL-Anweisung, die die Bestellnummern und die Lieferdauer (Zeit
+zwischen Start und Auslieferung) aller Lieferaufträge ermittelt, deren Lieferdauer mehr als 45
+Minuten beträgt.
+Hinweise: Die SQL-Funktion TIMEDIFF(time1, time2) liefert die Differenz time1 –
+time2 als Wert des Typs TIME. Die SQL-Funktion MINUTE(time) ermittelt die Minuten eines
+TIME-Wertes, die Funktion HOUR(time) die Stunden.
+(3 BE)
+
+## Loesung 2.2.1
+SELECT bestellnr,
+TIMEDIFF(ausgeliefert,start)) AS Lieferdauer
+FROM Lieferauftrag
+WHERE HOUR(TIMEDIFF(ausgeliefert, start)) >=
+OR MINUTE(TIMEDIFF(ausgeliefert, start)) > 45;
+
+2.2.2 Das Kennzeichen des Kleinwagens sowie Vor- und Nachname des Fahrers für die Auslieferung
+der Bestellung mit der Nummer 4711 sollen ermittelt werden.
+Geben Sie die entsprechende SQL-Anweisung an.
+(3 BE)
+
+## Loesung 2.2.2
+SELECT kennzeichen, vorname, nachname
+FROM Fahrzeug INNER JOIN Lieferauftrag USING (fahrzeugnr)
+INNER JOIN Fahrer USING (fahrernr)
+WHERE bestellnr = 4711;
+
+2.2.3 Implementieren Sie eine SQL-Anweisung, welche die Vor- und Nachnamen aller Fahrer mit der
+Anzahl ihrer durchgeführten Lieferaufträge auflistet.
+Hinweis: Alle Fahrer sollen in der Liste erscheinen, auch solche, die noch keinen Lieferauftrag
+durchgeführt haben. Die Fahrer-Liste ist nach der Anzahl der Lieferaufträge absteigend zu
+sortieren.
+(3 BE)
+
+## Loesung 2.2.3
+SELECT vorname, nachname, COUNT(bestellnr) AS Anzahl
+FROM Fahrer LEFT JOIN Lieferauftrag USING (fahrernr)
+GROUP BY fahrernr
+ORDER BY Anzahl DESC;
+
+2.2.4 Eine Tabelle Geschäftsführer soll in der Datenbank nach folgendem Modell ergänzt
+werden:
+Der Fremdschlüssel zur Implementierung der Beziehung soll in der bestehenden Tabelle
+Filiale ergänzt werden. Frau Mira Bellenbaum ist Geschäftsführerin der Filiale Nr. 3 in der
+Bahnhofstr. 3 in 37213 Witzenhausen.
+Entwickeln Sie die SQL-Anweisungen, um die Tabelle Geschäftsführer zu erstellen und die
+Tabelle Filiale, um den Fremdschlüssel personalnr zu erweitern sowie die Filiale in
+Witzenhausen und die Geschäftsführerin in die jeweiligen Tabellen einzufügen.
+Hinweis: Die Personalnummer der Geschäftsführerin wird vom System automatisch vergeben
+und muss beim Einfügen der Filiale ermittelt werden.
+(8 BE)
+
+## Loesung 2.2.4
+entwickeln
+CREATE TABLE Geschäftsführer (
+personalnr INTEGER AUTO_INCREMENT,
+vorname VARCHAR(64),
+nachname VARCHAR(64),
+PRIMARY KEY (personalnr)
+);
+ALTER TABLE Filiale
+ADD gf_personalnr INTEGER;
+ALTER TABLE Filiale
+ADD FOREIGN KEY (gf_personalnr)
+REFERENCES Geschäftsführer(personalnr);
+INSERT INTO Geschäftsführer (vorname, nachname)
+VALUES ('Mira', 'Bellenbaum');
+INSERT INTO Filiale
+(filialnr, strassehausnr, plz, ort, gf_personalnr)
+VALUES (3, 'Bahnhofstr.3', '37213', 'Witzenhausen',
+(SELECT personalnr
+FROM Geschäftsführer
+WHERE vorname = 'Mira'
+AND nachname = 'Bellenbaum'));
+
+--------------------
+
+--- [ABI 2021 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für das Kinocenter
+Ein Entity-Relationship-Model (ERM) der Datenbank finden Sie in Material 7.
+
+## Relationales Modell
+Film(fid, titel, osprache, fsk, laenge, vid#, gid#)
+Genre(gid, bezeichnung)
+Verleih(vid, name, land, plz, ort, strasseHausnr)
+Trailer(tid, bezeichnung, sprache, laenge, fid#)
+Schauspieler(sid, name, vorname, gebdatum)
+Besetzung(fid#, sid#)
+
+2.2.1 Die Titel aller Komödien für Kinder (FSK höchstens 12) mit einer Länge von maximal 100
+Minuten sollen angezeigt werden.
+Geben Sie eine entsprechende SQL-Anweisung an.
+(2 BE)
+
+## Loesung 2.2.1
+SELECT titel
+FROM Film, Genre
+WHERE Film.gid = Genre.gid
+AND fsk <=
+AND laenge <= 100
+AND bezeichnung = 'Komödie';
+
+2.2.2 Der neue Animations-Film mit dem Titel "Logo Movie" soll der Datenbank hinzugefügt
+werden. Die Originalsprache des Films ist "English", er hat keine Altersbeschränkung (FSK 0)
+und ist 145 Minuten lang. Er ist im Verleih der "Logo Movie Production".
+Entwickeln Sie die entsprechende SQL-Anweisung.
+Hinweis: Der neue Film bekommt die Film-ID 4723. Die Primärschlüssel des Verleihs "Logo
+Movie Production" und des Genres "Animation“ sind zu ermitteln.
+(4 BE)
+
+## Loesung 2.2.2
+entwickeln
+INSERT INTO Film (fid,titel,osprache,fsk,laenge,vid,gid)
+VALUES (4723, 'Logo Movie', 'English', 0, 145,
+(SELECT vid FROM Verleih
+WHERE name = 'Logo Movie Production'),
+(SELECT gid FROM Genre
+WHERE bezeichnung = 'Animation'));
+
+2.2.3 Implementieren Sie eine SQL-Anweisung, welche die Titel der Filme ermittelt, in welchen die
+beiden Schauspieler Amy Bale und Christian Adams mitgespielt haben.
+Hinweis: Amy Bale hat die sid 114, Christian Adams hat die sid 111.
+(4 BE)
+
+## Loesung 2.2.3
+SELECT F.titel
+FROM Film AS F, Besetzung AS B
+WHERE F.fid = B.fid
+AND B.sid = 111
+AND F.fid IN
+(SELECT F.fid
+FROM Film AS F, Besetzung AS B
+WHERE F.fid = B.fid
+AND B.sid = 114);
+
+2.2.4 Entwickeln Sie eine SQL-Anweisung, die Vor- und Nachnamen aller Schauspieler mit der
+Anzahl ihrer Filme ausgibt, in denen sie mitgespielt haben, sofern es mehr als 3 Filme sind.
+(4 BE)
+
+## Loesung 2.2.4
+entwickeln
+SELECT vorname, name, COUNT(*) AS Anzahl_Filme
+FROM Schauspieler AS S, Besetzung AS B
+WHERE S.sid = B.sid
+GROUP BY vorname, name
+HAVING COUNT(*) > 3;
+
+--------------------
+
+--- [ABI 2021 C] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für das Impfzentrum
+In einer ersten Version der Datenbank möchte das Impfzentrum die Daten der zu impfenden
+Personen verwalten. Ebenso sollen die Daten der Impfstoffe und ihrer Lagerstandorte, der
+Produzenten sowie der Impfstofflieferungen verwaltet werden. Dabei gilt:
+Eine Person wird zweimal geimpft, wobei zwischen den Impfterminen drei Wochen liegen
+sollen. Es muss sichergestellt sein, dass eine Person bei beiden Impfungen den gleichen
+Impfstoff erhält.
+Ein Entity-Relationship-Modell (ERM) ist in Material 4 dargestellt.
+
+## Relationales Modell
+on(personID, nname, vname, gebDatum, plz, ort, strasse,
+ risiko)
+Impfung(personID#, termin1, termin2, bezeichnung#)
+Impfstoff(bezeichnung, entwickler, gruppe, lagerTemperatur)
+Standort(ortID, temperatur, istAnzahlImpfdosen,
+ kapazitaetImpfdosen, bezeichnung#)
+Produzent(prodID, name, plz, ort, land)
+Lieferung(prodID#, bezeichnung#, anzahlImpfdosen, termin)
+
+
+2.2.1 Formulieren Sie eine SQL-Anweisung, die alle Personen mit Personen-ID, Vor- und
+Nachnamen sowie dem Termin der ersten Impfung auflistet, die bisher nur einmal mit dem
+Impfstoff mit der Bezeichnung BT223a2 geimpft wurden.
+(3 BE)
+
+## Loesung 2.2.1
+SELECT p.personID, p.vname, p.nname, i.termin1
+FROM Person p, Impfung i
+WHERE p.personID = i.personID
+AND i.bezeichnung = 'BT223a2'
+AND i.termin1 <= NOW()
+AND (i.termin2 > NOW() OR i.termin2 IS null);
+
+2.2.2 Implementieren Sie eine SQL-Anweisung, die alle Impfstoffgruppen mit der Anzahl der im 1.
+Quartal 2021 zum zweiten Mal erfolgten Impfungen, absteigend sortiert nach der Anzahl,
+ausgibt.
+(3 BE)
+
+## Loesung 2.2.2
+SELECT gruppe, COUNT(*) AS Anzahl
+FROM Impfung JOIN Impfstoff USING (bezeichnung)
+WHERE termin2 BETWEEN '2021-1-1' AND '2021-3-31'
+GROUP BY gruppe
+ORDER BY Anzahl DESC;
+
+2.2.3 Der kanadische Impfstoffproduzent PharmaCorn (ID 96) in Vancouver (Postleitzahl
+BC V6T 1Z3) liefert am 26.04.2021 erstmalig 2500 Dosen des Impfstoffs BT223a2.
+Entwickeln Sie die SQL-Anweisungen, um die Datenbank zu ergänzen und die Lagermenge zu
+aktualisieren.
+Hinweise: Es existieren bereits mehrere Lagerstandorte für den Impfstoff BT223a2. Die 2500
+neuen Dosen können nur eingelagert werden, wenn an einem Standort genügend Platz
+vorhanden ist. Sie können davon ausgehen, dass es mindestens einen Standort gibt, der die
+gelieferte Menge aufnehmen kann. Der Standort mit der geringsten Anzahl an BT223a2-
+Impfdosen ist als Lagerstandort zu wählen.
+(6 BE)
+
+## Loesung 2.2.3
+entwickeln
+INSERT INTO Produzent
+VALUES(96, 'PharmaCorn', 'BCV6T1Z3', 'Vancouver', 'Kanada');
+INSERT INTO Lieferung
+VALUES(96, 'BT223a2', 2500, '2021-04-26');
+UPDATE Standort SET istAnzahlImpfdosen =
+istAnzahlImpfdosen + 2500
+WHERE ortID =
+(SELECT ortID FROM Standort
+WHERE bezeichnung = 'BT223a2'
+AND kapazitaetImpfdosen – istAnzahlImpfdosen >= 2500
+ORDER BY istAnzahlImpfdosen ASC
+LIMIT 1);
+
+2.2.4 Für die Terminplanung soll eine nach Impfstoffen gruppierte Aufstellung mit der jeweiligen
+Anzahl an vorrätigen Dosen und der Anzahl der noch für die 2. Impfung benötigten Dosen in
+der folgenden Form ausgegeben werden:
+Impfstoff Vorrätige Dosen Benötigte Dosen
+ApolloVac 668 420
+BT223a2 488 620
+Vec23.Cov 52 102
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+(4 BE)
+
+## Loesung 2.2.4
+entwickeln
+SELECT bezeichnung AS Impfstoff,
+SUM(istAnzahlImpfdosen) AS 'Vorrätige Dosen',
+(SELECT COUNT(*) FROM impfung AS i
+WHERE (i.termin2 IS null OR i.termin2 > NOW())
+AND Impfstoff = i.bezeichnung
+GROUP BY i.bezeichnung
+) AS 'Benötigte Dosen'
+FROM Standort
+GROUP BY bezeichnung;
+
+--------------------
+
+--- [ABI 2022 A] ---
+
+# SQL
+
+1 Entwicklung einer Datenbank für den Aquaristikhandel
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 1 dargestellt.
+
+## Relationales Modell
+Artikel(artNr, preis, bestand)
+Lebewesen(artNr#, name, herkunft)
+Pflanzenart(artNr#, wuchshoehe, lichtbedarf)
+Fischart(artNr#, laenge, gruppengroesse)
+Zubehoer(artNr#, bezeichnung, beschreibung)
+Kunde(kNr, vname, nname, plz, ort, strasse, telefon)
+Bestellung(bestellNr, bestellDatum, lieferDatum, kNr#)
+Position(bestellNr#, artNr#, anzahl)
+
+1.3.1 Der neue Kunde Hans Hecht aus 89075 Ulm, Donautor 1, Telefon 0177 1234567 erhält die
+Kundennummer 7654 und bestellt am 02.05.2022 einen Aquariumbelüfter (artNr 277).
+Entwickeln Sie die SQL-Anweisungen, um die erforderlichen Datensätze einzufügen und den
+Bestand des Artikels zu aktualisieren.
+Hinweis: Die Bestellnummer einer Bestellung wird automatisch vergeben (AUTO_INCREMENT).
+(7 BE)
+
+## Loesung 1.3.1
+entwickeln
+INSERT INTO Kunde(vname, nname, plz, ort, strasse, telefon)
+VALUES(7654, 'Hans', 'Hecht', '89075', 'Ulm', 'Donautor 1',
+'0177 1234567');
+INSERT INTO Bestellung(bestellDatum, kNr)
+VALUES('2022-05-02', 7654);
+INSERT INTO Position
+VALUES((SELECT bestellNr FROM Bestellung
+WHERE bestellDatum = '2022-05-02'
+AND kNr = 7654), 277, 1);
+UPDATE Artikel SET bestand = bestand -
+WHERE artNr = 277;
+
+1.3.2 Formulieren Sie eine SQL-Anweisung, die die Bestellnummern und Kundendaten der
+Bestellungen, die noch nicht geliefert wurden und in den PLZ-Bereich 12 versendet werden
+sollen, ausgibt.
+(3 BE)
+
+## Loesung 1.3.2
+SELECT bestellNr, k.*
+FROM Bestellung b JOIN Kunde k ON(b.kNr=k.kNr)
+WHERE b.lieferDatum IS null
+AND k.plz LIKE '12%';
+
+1.3.3 Die Gesamtumsätze von Fischen der Bestellungen mit dem Bestelldatum im 1. Quartal 2022
+sollen nach Herkunft gruppiert ausgegeben werden.
+Implementieren Sie eine entsprechende SQL-Anweisung.
+(5 BE)
+
+## Loesung 1.3.3
+SELECT l.herkunft, SUM(a.preis * p.anzahl) AS Gesamtumsatz
+FROM Bestellung b JOIN Position p
+ON(b.bestellNr = p.bestellNr)
+JOIN Artikel a ON(p.artNr = a.artNr)
+JOIN Lebewesen l ON(a.artNr = l.artNr)
+JOIN Fischart f ON(l.artNr = f.artNr)
+WHERE b.bestellDatum BETWEEN '2022-01-01' AND '2022-03-31'
+GROUP BY l.herkunft;
+
+--------------------
+
+--- [ABI 2022 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank zur Verwaltung von Darlehensverträgen und Depotkonten
+Ein vorläufiges Entity-Relationship-Modell (ER-Modell) ist in Material 6 dargestellt.
+
+## Relationales Modell
+Kunde(kid, nname, vname, strasse, plz, ort)
+Girokonto(iban, pin, kontostand, inhaber#)
+Buchung(bid, buTag, text, betrag, iban#)
+Darlehen(vertragsNr, datum, summe, rate, laufzeit, turnus,
+ zinssatz, referenzkonto#)
+
+2.2 Einige Daten der Datenbank sollen ergänzt, geändert bzw. ausgewertet werden. Folgende
+Funktionen stehen zur Verfügung:
+– NOW() liefert das aktuelle Tagesdatum.
+– POWER(m,n) liefert das Ergebnis von m
+n
+.
+– ROUND(x,n) liefert den auf n Nachkommastellen gerundeten Betrag x.
+
+2.2.1 Die letzten zehn Buchungen des Kontos mit der IBAN DE06 5502 0500 0222 2222 22 sollen
+nach Buchungstag absteigend sortiert ausgegeben werden.
+Geben Sie eine entsprechende SQL-Anweisung an.
+(3 BE)
+
+## Loesung 2.2.1
+SELECT buTag, text, betrag
+FROM Buchung b
+WHERE iban = 'DE06550205000222222222'
+ORDER BY buTag DESC
+LIMIT 10;
+
+2.2.2 Der Kunde Paul Müller schließt heute ein neues Darlehen (Vertragsnummer 12345) über die
+Summe von 30.000 EUR ab. Die Laufzeit beträgt 10 Jahre bei einem Zinssatz von 1,76 Prozent.
+Die Raten werden im monatlichen Turnus (Turnus = 12) von dem Referenzkonto mit der IBAN
+DE06 5502 0500 0222 2222 22 abgebucht.
+Entwickeln Sie die SQL-Anweisungen, um das neue Darlehen in die Datenbank einzufügen und
+die monatliche Rate zu setzen.
+Hinweis: Die Mindest-Höhe R der (jährlichen) Annuität4 eines Kredits mit der Kreditsumme S0
+bei einem Zinssatz von i (z.B. 3 Prozent ⇒ i = 0,03) und einer Laufzeit von n Jahren lässt sich
+mittels der Formeln
+R = S_{0} * ((1 + i) ^ n * i)/((1 + i) ^ n - 1)
+und
+Rate = R / turnus
+berechnen.
+(5 BE)
+
+## Loesung 2.2.2
+INSERT INTO Darlehen(vertragsNr, datum, summe, laufzeit,
+ turnus, zinssatz, referenzkonto)
+VALUES(12345, NOW(), 30000, 10, 12, 1.76,
+ 'DE06550205000222222222');
+UPDATE Darlehen
+SET rate = ROUND((summe *
+ ((POWER(1+zinssatz/100,laufzeit)*zinssatz/100) /
+ (POWER(1+zinssatz/100,laufzeit)-1)))/turnus, 2)
+WHERE vertragsNr = 12345;
+
+2.2.3 Am Monatsende werden unter anderem die Buchungen der monatlich zu zahlenden
+Darlehensraten durchgeführt. Dafür werden zuerst die Kunden mit der IBAN des
+Referenzkontos, der Vertragsnummer und der Ratenhöhe ausgegeben, bei denen aufgrund nicht
+ausreichender Deckung auf dem Konto keine Buchung erfolgen kann. Anschließend sollen die
+Kontostände aller Kunden, die ein Darlehen abgeschlossen haben, entsprechend aktualisiert
+werden.
+Entwickeln Sie die entsprechenden SQL-Anweisungen.
+Hinweis: Das Hinzufügen der Buchungen in die Buchungstabelle ist nicht Gegenstand dieser
+Aufgabe.
+(6 BE)
+
+## Loesung 2.2.3
+SELECT kid, k.nname, k.vname, g.iban, d.vertragsNr, d.rate
+FROM Kunde k JOIN Girokonto g ON kid = inhaber
+JOIN Darlehen d ON g.iban = d.referenzkonto
+WHERE d.turnus = 12
+AND g.kontostand - d.rate < 0;
+UPDATE Girokonto g, Darlehen d
+SET g.kontostand = g.kontostand - d.rate
+WHERE d.referenzkonto = g.iban
+AND d.turnus = 12
+AND g.kontostand - d.rate >= 0;
+
+2.2.4 Alle Kunden sollen mit der Gesamtsumme ihrer aufgenommenen Darlehen aufgeführt werden,
+sofern die Gesamtsumme 100.000 EUR übersteigt. Die Liste soll nach der Gesamtsumme
+absteigend sortiert sein.
+Implementieren Sie eine entsprechende SQL-Anweisung.
+(4 BE)
+
+## Loesung 2.2.4
+SELECT Kunde.*, SUM(summe) AS 'Kreditsumme aufgenommen'
+FROM Kunde JOIN Girokonto ON kid = inhaber
+ JOIN Darlehen ON iban = referenzkonto
+GROUP BY kid
+HAVING SUM(summe) > 100000
+ORDER BY SUM(summe) DESC;
+
+--------------------
+
+--- [ABI 2022 C] ---
+
+# SQL
+
+2 Entwicklung der Datenbank zur Verwaltung der montierten und ausgelieferten Bikes
+Ein erstes Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 4.
+
+## Relationales Modell
+Fachhändler(fiD, name, plz, ort, strasseNr)
+Bike(bikeID, modell, baujahr, fiD#, kBez#)
+Kategorie(kBez, versicherung)
+Montage(miD, bikeID#, iD#)
+Komponente(iD, bezeichnung, gewicht, preis, hersteller)
+Rahmenteil(iD#, gruppe, abmessung)
+Schaltelement(iD#, gruppe, detail)
+Einzelteil(iD#, modellName, abmessung)
+
+2.3.1 Die Komponenten des Herstellers Manu verteuern sich um 5%.
+Formulieren Sie eine SQL-Anweisung zur Aktualisierung der Datenbank.
+(2 BE)
+
+## Loesung 2.3.1
+UPDATE Komponente SET preis = preis*1.05
+WHERE hersteller = 'MANU';
+
+2.3.2 Es wird die neue Kategorie E-Bike-Trekking mit notwendigem Versicherungsschutz in die
+Datenbank aufgenommen. Das nächste Bike, das fertiggestellt wird, ist ein Rad dieser Kategorie
+(Modell Manu SportABC). Für die Auslieferung an den Kunden wurde dafür ein neuer
+Fachhändler gewonnen: MyChain, 63452 Hanau, Einkaufsstraße 28.
+Formulieren Sie die SQL-Anweisungen, um diese Daten einzutragen.
+Hinweise: Die IDs der Tabellen Fachhändler und Bike werden vom System automatisch
+vergeben. Die Funktion NOW()liefert das aktuelle Tagesdatum, die Funktion YEAR() die zu
+einem Datum zugehörige Jahreszahl.
+(6 BE)
+
+## Loesung 2.3.2
+INSERT INTO Kategorie
+VALUES('E-Bike Trekking',true);
+INSERT INTO Fachhändler (name, plz, ort, strasseNr)
+VALUES('MyChain', '63452', 'Hanau', 'Einkaufsstraße 28');
+INSERT INTO Bike (modell, baujahr, fiD, kBez)
+VALUES('Manu SportABC', YEAR(NOW()),
+(SELECT fiD
+FROM Fachhändler
+WHERE name = 'MyChain'
+AND ort = 'Hanau'),'E-Bike Trekking');
+
+2.3.3 Formulieren Sie eine SQL-Anweisung, um alle im letzten Jahr gebauten Bikes, die an den
+Fachhändler "Bosse Zweirad" in Köln geliefert wurden, mit Bike-ID und Bezeichnung von
+Modell und Kategorie auszugeben.
+(3 BE)
+
+## Loesung 2.3.3
+SELECT b.bikeID, b.modell, b.kBez
+FROM Bike b, Fachhändler f
+WHERE b.fiD = f.fiD
+AND f.name = 'Bosse Zweirad'
+AND f.ort = 'Köln'
+AND b.baujahr = 2021;
+
+2.3.4 Die BikeID und das Gesamtgewicht jedes Racing-Bikes sollen ausgegeben werden.
+Implementieren Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.3.4
+SELECT b.bikeID, SUM(kom.gewicht) AS 'Gesamtgewicht'
+FROM Bike b, Montage m, Komponente kom
+WHERE b.bikeID = m.bikeID AND m.iD = komp.iD
+AND b.kBez = 'RacingBike'
+GROUP BY b.bikeID;
+
+2.3.5 Für alle Vorjahresmodelle will man diejenigen Hersteller ermitteln, von denen mindestens zehn
+Felgenbremsen (Detail „Felgen-Br“) verbaut worden sind.
+Entwickeln Sie eine SQL-Anweisung, die diese Informationen liefert.
+Hinweis: Die Angabe der Anzahl ist absteigend zu sortieren.
+(5 BE)
+3 Für einen Bikeshop soll eine neue Datenbank entwickelt werden, die folgende Anforderungen
+umsetzt:
+– Von einer Herstellerin oder einem Hersteller (im Folgenden Hersteller genannt) werden zu
+einem bestimmten Datum und zu einem bestimmten Einkaufspreis Bikes geliefert. Für das
+gezielte Anbieten dieser Bikes sind die Eigenschaften Farbe, Rahmengröße, Laufradgröße,
+Schaltung (Gruppe), Produktzustand und Verfügbarkeit erforderlich.
+– Hersteller zeichnen sich durch Namen und Ort aus.
+– Jedes Bike kann durch unterschiedliches Zubehör ergänzt werden. Dies ist, zum Beispiel bei
+E-Bikes, ein Ladegerät oder ein zweiter Akku. Neben den Marken werden auch die Preise
+gespeichert.
+– Das Bike kann an einen Kunden zu einem bestimmten Preis verkauft werden. Dafür ist das
+Verkaufsdatum zu speichern.
+– Die Kunden werden mit Namen und Adresse gespeichert.
+– Bikes können Teil eines Leasingvertrags sein, der von einer Arbeitgeberin oder von einem
+Arbeitgeber (im Folgenden Arbeitgeber genannt) abgeschlossen werden muss. Ein
+Arbeitgeber kann beliebig viele Leasingverträge abschließen. Mindestens fünf Bikes sind
+Teil eines Leasingvertrags. Gespeichert werden die Höhe der monatlichen Leasingrate in
+Euro, der Beginn und das Ende des Leasingzeitraums sowie der monatliche
+Versicherungsbeitrag in Euro. Arbeitgeber zeichnen sich durch ihren Firmennamen aus.
+Entwickeln und zeichnen Sie ein ER-Diagramm, das die genannten Anforderungen umsetzt.
+Hinweis: Das ER-Modell ist in der Form Entitätstypen, Attribute und Beziehungen mit
+Kardinalitäten in der [min, max]-Notation darzustellen.
+(10 BE)
+
+## Loesung 2.3.5
+entwickeln
+SELECT k.hersteller, COUNT(k.iD) AS Anzahl
+FROM Bike b, Montage m, Komponente k, Schaltelement s
+WHERE b.bikeID = m.bikeID AND m.iD = k.iD AND k.iD = s.iD
+AND s.detail LIKE 'Felgen-Br'
+AND b.baujahr = YEAR(NOW())-1
+GROUP BY k.hersteller
+HAVING COUNT(k.iD)>=10
+ORDER BY Anzahl DESC;
+
+--------------------
+
+--- [ABI 2023 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Social-Media-Plattform
+Ein Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 5.
+
+## Relationales Modell
+Nutzer (benutzerName, passwort, email, zuletztAktiv)
+Beitrag (beitragid, erstelltAm, titel, text, autor#)
+NutzerLikesBeitrag (benutzerName#, beitragid#, zeitstempel)
+Bild (bildid, dateiname)
+BeitragEnthaeltBild (beitragid#, bildid#)
+
+2.2.1 Für die Nutzerin "Anna" sollen alle Titel ihrer Beiträge mit den IDs der enthaltenen Bilder und
+den Dateinamen der Bilder angezeigt werden.
+Formulieren Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.2.1
+SELECT BE.titel, BEB.bildid, B.dateiname
+FROM Beitrag JOIN BeitragEnthaeltBild BEB
+USING(beitragid)
+JOIN Bild B USING(bildid)
+WHERE BE.autor = 'Anna';
+
+2.2.2 Der neue Nutzer "Clark", mit dem Passwort "ert4$alPhawe" und der E-Mail-Adresse
+"clark@family.com" wird der Datenbank heute hinzugefügt. Er erstellt seinen ersten Beitrag
+(beitragid 42) und nutzt dafür das Bild mit der ID 3. Geben Sie die entsprechenden SQLAnweisungen an.
+Hinweis: Die Funktion NOW() liefert den Zeitstempel. Fehlende Daten sind sinnvoll zu
+ergänzen.
+(4 BE)
+
+## Loesung 2.2.2
+INSERT INTO Nutzer
+VALUES ('Clark', 'ert4$alPhawe', 'Clark@familiy.com',
+ NOW());
+INSERT INTO Beitrag
+VALUES (42, NOW(), 'Best of 2022', null, 'Clark');
+INSERT INTO BeitragEnthaeltBild (beitragid, bildid)
+VALUES (42,3);
+
+2.2.3 Implementieren Sie eine SQL-Anweisung für die Ermittlung der Titel aller Beiträge mit den
+Namen der Autoren und der Anzahl der Likes, die im Januar 2023 mehr als 10 Likes bekommen
+haben, absteigend sortiert nach der Anzahl ihrer Likes.
+(5 BE)
+
+## Loesung 2.2.3
+SELECT B.titel AS Beitragstitel, B.autor AS 'Autor:in',
+COUNT(N.beitragid) AS 'Anzahl Likes im Januar 2023'
+FROM NutzerLikesBeitrag N JOIN Beitrag B USING(beitragid)
+WHERE N.zeitstempel LIKE '2023-01%'
+GROUP BY N.beitragid
+HAVING COUNT(N.beitragid) >
+ORDER BY COUNT(N.beitragid) DESC;
+
+2.2.4 Entwickeln Sie eine SQL-Anweisung für die Ausgabe der IDs und Dateinamen aller Bilder, die
+nicht in Beiträgen verwendet werden.
+(3 BE)
+
+## Loesung 2.2.4
+entwickeln
+SELECT bildid, dateiname
+FROM Bild
+WHERE bildid NOT IN
+(SELECT bildid FROM BeitragEnthaeltBild);
+
+2.2.5 Im Folgenden ist ein Ausschnitt einer gewünschten Ergebnistabelle gegeben. In der Tabelle sind
+die Namen aller Nutzer aufgeführt sowie die Titel ihrer Beiträge, sofern die Nutzer Beiträge
+erstellt haben.
+Benutzername Beitragstitel Erstellungsdatum
+Anna Annas Lieblingsessen 01.01.2023 12:00
+Anna Gerne ein E-Bike! 01.01.2023 14:00
+MaxMüller2 happy-end 03.01.2023 01:00
+Benedict
+Amelie
+Clark Best of 2022 20.01.2023 10:00
+MaxMüller3
+Don Eric Porsche 911 23.01.2023 02:00
+Martin
+Nachfolgend ist der Entwurf für eine SQL-Anweisung zur Erstellung der gezeigten
+Ergebnistabelle zu sehen:
+SELECT benutzerName AS Benutzername, titel AS Beitragstitel,
+erstelltAm AS Erstellungsdatum
+FROM Nutzer N, Beitrag B;
+Erörtern Sie die Eignung der SQL-Anweisung zur Erstellung der gezeigten Ergebnistabelle.
+Formulieren Sie eine verbesserte bzw. ergänzte SQL-Anweisung.
+(4 BE)
+
+## Loesung 2.2.5
+Die angegebene SQL-Anweisung erzeugt nicht die gewünschte Ergebnistabelle,
+denn bei fehlender Verknüpfung über ein gemeinsames Feld wird von den
+Tabellen Nutzer und Beitrag das kartesische Produkt gebildet.
+Die notwendige Verknüpfung realisiert man durch einen JOIN über die
+Primärschlüssel-Fremdschlüssel-Beziehung zwischen benutzername und
+autor. Weil darüber hinaus alle Nutzer in der Ergebnistabelle enthalten sein
+sollen, muss ein LEFT JOIN angewendet werden.
+SELECT benutzerName AS Benutzername, titel AS Beitragstitel,
+erstelltAm AS Erstellungsdatum
+FROM Nutzer N LEFT JOIN Beitrag B ON
+N.benutzerName = B.autor
+
+--------------------
+
+--- [ABI 2023 B] ---
+
+# SQL
+
+2 Datenbank für die Einsatzverwaltung und -planung des Taxiunternehmens
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 7 dargestellt. 
+
+## Relationales Modell
+Fahrer(fahrerNr, nachname, vorname, stundenlohn, iban)
+Taxi(wagenNr, kennzeichen)
+Einsatz(eID, beginn, ende, fahrerNr#, wagenNr#)
+Auftrag(auftragNr, start, ende, eID#, von#, nach#)
+Adresse(aID, strasse, plz, ort, oID#)
+Ortsteil(oID, bezeichnung)
+
+2.2 Einige Daten der Datenbank sollen ergänzt, geändert bzw. ausgewertet werden.
+Hinweise: Die Funktion CONCAT(arg1, arg2,...) gibt die verknüpfte Zeichenfolge der
+übergebenen Zeichenketten zurück.
+Die Funktion TIMESTAMPDIFF(MINUTE, datetime_expr1, datetime_expr2) liefert
+das Ergebnis der Subtraktion datetime_expr2 – datetime_expr1 in Minuten.
+
+2.2.1 Das Unternehmen stellt Lennard Knebel als neuen Taxifahrer ein. Die Fahrernummer ist 333,
+sein Stundenlohn beträgt 12 Euro. Sein erster Einsatz ist für den 18.05.2023 von 8 bis 17 Uhr
+geplant. Das Taxi für diesen Einsatz hat das Kennzeichen F-TT 661.
+Formulieren Sie die entsprechenden SQL-Anweisungen, um die Daten in die Datenbank
+einzufügen.
+(5 BE)
+
+## Loesung 2.2.1
+INSERT INTO Fahrer
+VALUES(333, 'Knebel', 'Lennard', 12.0, null);
+INSERT INTO Einsatz(beginn, ende, fahrerNr, wagenNr)
+VALUES('2023-05-18 08:00:00', '2023-05-18 17:00:00', 333,
+(SELECT wagenNr FROM Taxi WHERE kennzeichen = 'F-TT 661'));
+
+2.2.2 Der Fahrer Tobias Tischendorf ist erkrankt und soll für seine Einsätze vom 01.05.2023 bis
+14.05.2023 durch Lennard Knebel (Fahrernummer 333) ersetzt werden.
+Formulieren Sie eine SQL-Anweisung zur Aktualisierung der Datenbank.
+Hinweis: Fahrernamen sind immer eindeutig.
+(3 BE)
+
+## Loesung 2.2.2
+UPDATE Einsatz SET fahrerNr = 333
+WHERE fahrerNr = (SELECT fahrerNr FROM Fahrer
+ WHERE nachname = 'Tischendorf'
+ AND vorname = 'Tobias')
+AND beginn BETWEEN '2023-05-01%' AND '2023-05-14%';
+
+2.2.3 Alle Taxis, die noch keinen Einsatz am 30.05.2023 haben, sollen ermittelt werden. Entwickeln
+Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.2.3
+SELECT *
+FROM Taxi
+WHERE wagenNr NOT IN
+ (SELECT wagenNr FROM Einsatz
+ WHERE beginn LIKE '2023-05-30%'
+ OR ende LIKE '2023-05-30%');
+
+2.2.4 Für den Fahrer Karl-Heinz Großfuss soll der Stundenzettel für den Monat März ausgegeben
+werden. Beispiel:
+Arbeitszeit von - bis Anzahl Stunden
+2023-03-01 08:00:00 - 2023-03-01 17:00:00 9.00
+2023-03-03 08:00:00 - 2023-03-03 16:00:00 8.00
+2023-03-04 08:00:00 - 2023-03-04 17:15:00 9.25
+2023-03-05 12:00:00 - 2023-03-05 22:00:00 10.00
+2023-03-06 20:00:00 - 2023-03-07 06:00:00 10.00
+...
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+Hinweis: Fahrernamen sind immer eindeutig.
+(4 BE)
+
+## Loesung 2.2.4
+SELECT CONCAT(e.beginn," - ", e.ende)
+ AS 'Arbeitszeit von - bis',
+ TIMESTAMPDIFF(MINUTE, e.beginn, e.ende)/60
+ AS 'Anzahl Stunden'
+FROM Einsatz e JOIN Fahrer f USING(fahrerNr)
+WHERE e.beginn LIKE '2023-03%'
+ AND f.nachname = 'Großfuss'
+ AND f.vorname = 'Karl-Heinz';
+ 
+2.2.5 Implementieren Sie eine SQL-Anweisung, die eine nach Fahrernamen sortierte Liste mit IBAN
+und jeweiligem Monatslohn des betreffenden Fahrers für März 2023 ausgibt. Zu
+berücksichtigen sind die Einsätze, die im März 2023 enden.
+(4 BE)
+
+## Loesung 2.2.5
+SELECT f.nachname, f.vorname, f.iban,
+ SUM(TIMESTAMPDIFF(MINUTE, e.beginn, e.ende)/60 *
+ f.stundenlohn) AS 'Löhne März 2023'
+FROM Einsatz e JOIN Fahrer f USING(fahrerNr)
+WHERE e.ende LIKE '2023-03%'
+GROUP BY f.fahrerNr
+ORDER BY f.nachname, f.vorname;
+
+--------------------
+
+--- [ABI 2023 C] ---
+
+# SQL
+
+2 Zudem wird für professionelle Canasta-Turniere eine Datenbank für die Verwaltung von
+zurückliegenden und zukünftigen Canasta-Spielrunden entwickelt.
+Ein erstes Entity-Relationship-Modell (ERM) für das Canastaspielen in Zweierteams ist in
+Material 8 dargestellt. Ein Canasta-Spiel besteht aus mehreren Spielrunden, deren Punkte so
+lange summiert werden, bis ein Team mindestens 5000 Punkte erreicht hat und somit als
+Gewinner feststeht.
+Hinweis: Es ist davon auszugehen, dass nur ein Team mehr als 5000 Punkte erreicht.
+
+## Relationales Modell
+Spieler(sID, name, vorname, gebDat)
+Team(teamID, bewertMod, sNr1#, sNr2#)
+NimmtTeil(teamID#, cSpielID#, punktezahl)
+Canastaspiel(cSpielID, datum, startZeit, ort, kID#)
+Kartensatz(kID, bezeichnung, herkunft, kaufDat, preis)
+
+2.3.1 Frau Petra Schmidt, geboren am 19. Juli 2001, möchte erstmalig an den Canastaspielen
+teilnehmen, und zwar zusammen im Team mit der Stammspielerin Astrid Treusch, und zunächst
+ohne Wertung. Frau Schmidt wurde mit der Spielernummer 57 in die Datenbank eingetragen.
+Entwickeln Sie die SQL-Anweisungen, um die Spielerin und die Teamzusammenstellung
+anzulegen.
+Hinweis: Es gibt nur eine Spielerin mit dem Namen Astrid Treusch.
+(5 BE)
+
+## Loesung 2.3.1
+Entwickeln
+INSERT INTO Spieler VALUES (57, 'Schmidt', 'Petra',
+'2001-07-19');
+INSERT INTO Team (bewertMod, sNr1, sNr2)
+VALUES (false, (SELECT sID FROM Spieler
+WHERE name LIKE 'Treusch'
+AND vorname LIKE 'Astrid'),
+57);
+
+2.3.2 Es wurde ein neuer analoger Kartensatz angeschafft und mit der ID 13 in die Datenbank
+aufgenommen. Dieser Kartensatz soll an allen zukünftigen Spieltagen den nicht mehr
+vollständigen Kartensatz mit der ID 1 ersetzen, welcher aus der Datenbank zu entfernen ist.
+Entwickeln Sie die SQL-Anweisungen zur Aktualisierung der Datenbank unter
+Berücksichtigung der referentiellen Integrität.
+(5 BE)
+
+## Loesung 2.3.2
+entwickeln
+UPDATE Canastaspiel SET kID =13
+WHERE datum > NOW() AND kID = 1;
+UPDATE Canastaspiel SET kID = NULL
+WHERE kID = 1;
+DELETE FROM Kartensatz WHERE kID = 1;
+
+2.3.3 Für eine Statistik sollen alle gewonnenen Spiele ausgegeben werden, unter Angabe der teamID
+des Gewinnerteams, der spielID und der erreichten Punktzahl. Implementieren Sie dafür eine
+SQL-Anweisung.
+(2 BE)
+
+## Loesung 2.3.3
+SELECT teamID, cSpielID, punktezahl
+FROM Nimmtteil
+WHERE punktezahl >= 5000;
+
+2.3.4 Entwickeln Sie eine SQL-Anweisung, die ermittelt, welche Kartensätze in Canastaspielen
+jeweils über 100-mal eingesetzt worden sind. Die Anzahl, wie oft die betreffenden Kartensätze
+verwendet worden sind, ist dabei absteigend sortiert auszugeben.
+(5 BE)
+
+## Loesung 2.3.4
+entwickeln
+SELECT c.kID, COUNT(c.kID) AS Anzahl
+FROM Canastaspiel c, Kartensatz e
+WHERE c.kID = e.kID
+GROUP BY c.kID
+HAVING COUNT(c.kID) > 100
+ORDER BY Anzahl DESC;
+
+2.3.5 Für jeden Kartenspieler, unter Angabe seines vollständigen Namens und der Spielernummer, ist
+die Gesamtpunktzahl über alle Canastaspiele gesucht, an denen er beteiligt war, vorausgesetzt,
+sein Team war mit dem Bewertungsmodus true gemeldet.
+Entwickeln Sie für diese Auswertung eine entsprechende SQL-Anweisung,
+(4 BE)
+
+## Loesung 2.3.5
+entwickeln
+SELECT sp.sID, sp.vorname, sp.name, SUM(n.punktezahl) AS
+Gesamtpunkte
+FROM Spieler sp, Team z, Nimmtteil n
+WHERE z.teamID = n.teamID AND (sp.sID = z.sID1 OR
+sp.sID = z.sID2) AND z.bewertMod = true
+GROUP BY sp.sID;
+
+--------------------
+
+--- [ABI 2024 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Choranmeldung
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 7 dargestellt.
+
+## Relationales Modell
+Chor(cID, name, land, strasse, plz, ort)
+Teilnahme(tID, anzahlPers, ankunft, abfahrt, cID#, wID#)
+Wettbewerb(wID, bezeichnung, land, beginn, ende)
+Kategorie(kID, bezeichnung)
+Teilnahme_Kategorie(tID#, kID#, bewertung)
+
+2.2.1 Der Chor Epiphony (ID 201) möchte am Chorwettbewerb in Neuseeland 2024 (ID 62)
+teilnehmen. Insgesamt nehmen 43 Sänger des Chores teil, welche am 01.07.2024 an- und am
+22.07.2024 wieder abreisen. Die Nennung der Kategorien wird zu einem späteren Zeitpunkt
+mitgeteilt. Zudem wird der Chor mit der Teilnahme-ID 6258 am gleichen Wettbewerb mit einer
+Person weniger als angemeldet antreten.
+Entwickeln Sie die SQL-Anweisungen, um diese Daten einzufügen bzw. zu aktualisieren.
+Hinweis: Der Primärschlüssel von Teilnahme wird automatisch vergeben.
+(4 BE)
+
+## Loesung 2.2.1
+entwickeln
+INSERT INTO Teilnahme (anzahlPers, ankunft, abfahrt, cID,
+wID) VALUES (43, '2024-07-01', '2024-07-22', 201, 62);
+UPDATE Teilnahme SET anzahlPers = anzahlPers -
+WHERE tID = 6258;
+
+2.2.2 Da die Anmeldung an einem Wettbewerb frühestens ein Jahr vorher stattfindet, sollen die
+nächsten fünf Wettbewerbe ausgegeben werden, an denen ein Chor sich aktuell noch anmelden
+kann. Entwickeln Sie einen SQL-Befehl, der die entsprechenden Wettbewerbe nach Datum
+ihres Beginns chronologisch ausgibt.
+Hinweise: Die Funktion DATEADD(Interval, Zahl, Datum) fügt einem Datum ein
+Datumsintervall hinzu (Zahl) und gibt das entsprechende Datum zurück. Das Intervall kann u.a.
+folgende Werte besitzen: year für Jahr, month für Monat, day für Tag.
+(4 BE)
+
+## Loesung 2.2.2
+entwickeln
+SELECT *
+FROM Wettbewerb
+WHERE beginn >= NOW() AND beginn <= DATEADD(year, 1, NOW())
+ORDER BY beginn ASC
+LIMIT 5;
+
+2.2.3 Der Veranstalter möchte sich bei den Chören bedanken, welche an den letzten beiden
+Weltmeisterschaften (11. World Choir Games und 12. World Choir Games) teilgenommen
+haben. Entwickeln Sie dazu einen SQL-Befehl, welcher die Kontaktdaten der Chöre ausgibt.
+(5 BE)
+
+## Loesung 2.2.3
+entwickeln
+SELECT c.*
+FROM Wettbewerb w JOIN Teilnahme t USING(wID)
+JOIN Chor c USING(cID)
+WHERE w.bezeichnung = '11. World Choir Games'
+AND c.cID IN (SELECT cid
+FROM Wettbewerb w JOIN Teilnahme t USING(wID)
+WHERE w.bezeichnung = '12. World Choir Games');
+
+2.2.4 Theoretisch ist die Teilnahme an allen Kategorien an einem Wettbewerb möglich, praktisch für
+einen einzelnen Chor aber nicht umsetzbar. Daher sollte ein Chor nur an bis zu drei Kategorien
+teilnehmen. Um insbesondere neue Chöre auf diese Problematik hinzuweisen, sollen alle Chöre
+mit entsprechendem Wettbewerb und Kategorieanzahl ausgegeben werden, welche bei
+zukünftigen Wettbewerben an mindestens vier Kategorien teilnehmen. Entwickeln Sie dazu
+einen SQL-Befehl.
+(4 BE)
+
+## Loesung 2.2.4
+entwickeln
+SELECT c.name, w.bezeichnung, COUNT(tk.kID) AS
+'Kategorieanzahl'
+FROM Chor c JOIN Teilnahme t USING(cID)
+JOIN Teilnahme_Kategorie tk USING(tID)
+JOIN Wettbewerb w USING(wID)
+WHERE w.beginn > NOW()
+GROUP BY c.name, w.bezeichnung
+HAVING Kategorieanzahl > 3;
+
+--------------------
+
+--- [ABI 2024 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Flughafenverwaltung.
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 5 dargestellt.
+
+## Relationales Modell
+Kunde (kid, vorname, name, adresse, telefon, email)
+Ticket (tid, status, sitzplatz, kid#, fid#)
+Gepäck (gid, gewicht, tid#)
+Flug (fid, preis, startZeit, endZeit, aid#)
+Flugzeug (aid, geschwindigkeit, sitze, modell, fgid#)
+Fluggesellschaft (fgid, name, adresse, telefon, email)
+
+2.2.1 Mark Duvall ist wohnhaft in der Hauptstraße 21 in 63075 Offenbach am Main, mit der
+Telefonnummer 069 123 456 und der E-Mailadresse Mark.Duvall@online.com. Ersoll in die
+Datenbank aufgenommen werden. Implementieren Sie die entsprechende SQL-Anweisung.
+(2 BE)
+
+## Loesung 2.2.1
+INSERT INTO Kunde (vorname, name, adresse, telefon, email)
+VALUES ('Mark', 'Duvall', 'Hauptstraße 21 63075 Offenbach
+am Main', '069123456', 'Mark.Duvall@online.com');
+
+2.2.2 Die Fluggesellschaft DijkstraAir hat die Flugzeuge vom Typ CRJ700 mit aktuell 60 Sitzplätzen.
+Um die Kundenzufriedenheit zu erhöhen, wird die Beinfreiheit erhöht. Ab sofort stehen nur
+noch 50 Sitzplätze zur Verfügung. Implementieren Sie die entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.2.2
+UPDATE Flugzeug SET sitze = 50
+WHERE modell = 'CRJ700'
+ AND fgid =
+ (SELECT fgid FROM Fluggesellschaft
+ WHERE name = 'Dijkstra
+ 
+2.2.3 Das Gesamtgewicht des Gepäcks für den Flug NJ1381 am 04.02.2024 um 14:05:00 Uhr soll
+ermittelt werden. Formulieren Sie eine entsprechende SQL-Anweisung.
+(3 BE)
+
+## Loesung 2.2.3
+SELECT SUM(gewicht) AS Gewicht
+FROM Gepäck g, Ticket t, Flug f
+WHERE g.tid = t.tid
+AND t.fid = f.fid
+AND f.fid = 'NJ1381'
+AND f.startZeit = '2024-02-04 14:05:00';
+
+2.2.4 Eine alphabetisch geordnete Passagierliste (Name, Vorname) soll für den Flug DL1942 erstellt
+werden.
+Ticket_Id Name Vorname Sitzplatz
+1258 Bogies Jonas 1-C
+1241 Bogies Wylma 1-B
+1243 Haus Martin 3-F
+… … … …
+Entwickeln Sie eine entsprechende SQL-Anweisung.
+(5 BE)
+
+## Loesung 2.2.4
+SELECT t.tid AS Ticket_Id, k.name AS Name, k.vorname AS
+Vorname, t.sitz AS Sitzplatz
+FROM Kunde k, Ticket t
+WHERE k.kid = t.kid
+AND t.fid = 'DL1942'
+ORDER BY k.name, k.vorname;
+
+2.2.5 Die Anzahl der Starts der Fluggesellschaften für den März im Jahr 2024 wird gesucht. Es sollen
+nur Fluggesellschaften und deren Startanzahl angezeigt werden, die weniger als 50 Starts in der
+Zeit durchgeführt haben. Entwickeln Sie eine entsprechende SQL-Anweisung.
+(5 BE)
+
+## Loesung 2.2.5
+SELECT fgid.name, COUNT(fg.fgid) AS Starts
+FROM Fluggesellschaft fg, Flugzeug fz, Flug f
+WHERE fg.fgid = fz.fgid
+AND fz.aid = f.aid
+AND f.startzeit BETWEEN '2024-03-01 00:00:00'
+AND '2024-03-31 23:59:59'
+GROUP BY fg.fgid
+HAVING Starts < 50;
+
+--------------------
+
+--- [ABI 2025 A] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Logistik eines Krankenhauses.
+Ein erstes Entity-Relationship-Modell (ERM) ist in Material 6 dargestellt.
+
+## Relationales Modell
+Mitarbeiter(mID, name, vorname)
+Bestellung(bID, datum)
+Mitarbeiter_Bestellung(mID#, bID#)
+Position(pID, menge, ablaufdatum, aID#, bID#)
+Artikel(aID, bezeichnung, preis)
+Lager(lID, standort)
+Bestellung_Lager (bID#, lID#)
+Lager_Artikel(datum, anzGenutzt, anzAbgelaufen, lID#, aID#)
+
+2.4.1 Formulieren Sie eine SQL-Anweisung, die eine Liste aller Artikel mit Bezeichnung und Preis
+alphabetisch sortiert ausgibt.
+(2 BE)
+
+## Loesung 2.4.1
+SELECT bezeichnung, preis
+FROM Artikel
+ORDER BY bezeichnung ASC;
+
+2.4.2 Entwickeln Sie einen SQL-Befehl, der alle Arzneimittel anzeigt, welche im Standort Kreißsaal
+bereits abgelaufen sind.
+(4 BE)
+
+## Loesung 2.4.2
+entwickeln
+SELECT bezeichnung, ablaufdatum
+FROM Artikel
+JOIN Position USING(aID)
+JOIN Bestellung USING(bID)
+JOIN Bestellung_Lager USING(bID)
+JOIN Lager USING(lID)
+WHERE standort = 'Kreißsaal' AND ablaufdatum < NOW();
+
+2.4.3 Die letzte Bestellung wurde fälschlicherweise durchgeführt. Entwickeln Sie die SQL-Befehle,
+um die Bestellung in allen beteiligten Tabellen zu löschen.
+Hinweise: Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende
+Löschung. Mit kann ein Wert als Variable
+SET @variablenName = (SELECT … FROM …);
+für weitere Anweisungen genutzt werden.
+(4 BE)
+
+## Loesung 2.4.3
+entwickeln
+SET @bestellung = (
+SELECT bID
+FROM Bestellung
+ORDER BY bID DESC
+LIMIT 1);
+DELETE FROM Position WHERE bID = @bestellung;
+DELETE FROM Bestellung_Lager WHERE bID = @bestellung;
+DELETE FROM Mitarbeiter_Bestellung WHERE bID = @bestellung;
+DELETE FROM Bestellung WHERE bID = @bestellung;
+Hinweis: Eine Umsetzung ohne SET ist als gleichwertig anzusehen.
+
+2.4.4 Entwickeln Sie einen SQL-Befehl, der ermittelt, wie viele Bestellungen an den jeweiligen
+Lagerstandorten aufgegeben wurden. Es sollen auch alle Lager ausgegeben werden, welche
+noch keine Bestellung aufgegeben haben.
+(4 BE)
+
+## Loesung 2.4.4
+entwickeln
+SELECT Lager.standort, COUNT(Bestellung_Lager.bID)
+AS Bestellanzahl
+FROM Lager
+LEFT JOIN Bestellung_Lager USING(lID)
+GROUP BY Lager.standort;
+
+2.4.5 Um bei der nächsten Bestellung nicht zu viele Artikel zu kaufen, sollen für das 1. Quartal 2025
+alle Artikel ausgegeben werden, die in diesem Zeitraum bestellt und verbraucht worden sind.
+Beispiel:
+Artikelbezeichnung Bestellmenge verbraucht
+Ibuprofen 400mg 20 16
+ASS 100mg 5 10
+…
+Entwickeln Sie einen entsprechenden SQL-Befehl.
+Hinweise: Die Bestellmenge bezieht sich nur auf Bestellungen innerhalb des entsprechenden
+Quartals. Bestellmengen der vorherigen Quartale sollen nicht berücksichtigt werden.
+Abgelaufene Artikel gelten auch als verbraucht.
+(5 BE)
+
+## Loesung 2.4.5
+entwickeln
+SELECT a.bezeichnung AS Artikelbezeichnung,
+SUM(p.menge) AS Bestellmenge,
+(SUM(la.anzGenutzt)+ SUM(la.anzAbgelaufen)) AS verbraucht
+FROM artikel a
+JOIN Lager_Artikel la USING(aID)
+JOIN Position p USING(aID)
+JOIN Bestellung b USING(bID)
+WHERE la.datum BETWEEN '2025-01-01' AND '2025-03-31'
+AND b.datum BETWEEN '2025-01-01' AND '2025-03-31'
+GROUP BY a.bezeichnung;
+
+--------------------
+
+--- [ABI 2025 B] ---
+
+# SQL
+
+2 Entwicklung einer Datenbank für die Festival-Verwaltung
+Ein Entity-Relationship-Modell (ERM) der Datenbank finden Sie in Material 6.
+
+## Relationales Modell
+Person (pid, nachname, vorname, gebDatum)
+Baendchen (bid, farbe, rfid)
+traegt (pid#, bid#, von, bis)
+Aufbuchung (aid, datum, uhrzeit, betrag, bid#)
+Kauf (kid, datum, uhrzeit, anzahlGetraenke, bid#, gsid#,
+gid#)
+Getraenkestand (gsid, standort)
+Getraenk (gid, bezeichnung, preis, liter)
+
+2.2.1 Der Hersteller des Getränkes „Fratz Cola“ hat das Produkt umbenannt in „Hessen Cola“.
+Formulieren Sie eine SQL-Abfrage, die den Datensatz aktualisiert.
+(2 BE)
+
+## Loesung 2.2.1
+UPDATE Getraenk
+SET bezeichnung = 'Hessen Cola'
+WHERE bezeichnung = 'Fratz Cola';
+
+2.2.2 Der Umsatz jedes Getränkestandes soll ermittelt werden. Formulieren Sie eine entsprechende
+SQL-Abfrage.
+(3 BE)
+
+## Loesung 2.2.2
+SELECT Getraenkestand.standort,
+SUM(Getraenk.preis * Kauf.anzahlGetraenke) AS Umsatz
+FROM Kauf
+JOIN Getraenkestand USING(gsid)
+JOIN Getraenk USING(gid)
+GROUP BY Getraenkestand.standort;
+
+2.2.3 Am Ende des Festivals erhält der Besucher eine Liste seiner Getränke-Käufe wie in der
+untenstehenden Tabelle dargestellt. Formulieren Sie eine SQL-Abfrage, um diese Liste für die
+Besucherin Hedy Amar für den Zeitraum vom 05.04.2025 bis zum 07.04.2025 auszugeben.
+Getränk Anzahl Summe Datum Uhrzeit
+Wasser 2 4.00 2025-04-05 14:30:00
+Limo 1 3.50 2025-04-06 19:15:00
+Cola 3 6.75 2025-04-07 11:00:00
+Hinweis: Es kann davon ausgegangen werden, dass alle Namen eindeutig sind.
+(4 BE)
+
+## Loesung 2.2.3
+SELECT G.bezeichnung AS Getränk,
+K.anzahlGetraenke AS Anzahl,
+K.anzahlGetraenke * G.preis AS Summe,
+K.datum AS Datum, K.uhrzeit AS Uhrzeit
+FROM Kauf K
+JOIN Getraenk G USING(gid)
+JOIN traegt T USING(bid)
+JOIN Person P USING(pid)
+WHERE P.name = 'Amar' AND P.vorname = 'Hedy'
+AND K.datum BETWEEN '2025-04-05' AND '2025-04-07';
+
+2.2.4 Für den Einlass für bestimmte Konzerte muss geprüft werden, ob eine Person mindestens 18
+Jahre alt ist. Entwickeln Sie eine SQL-Abfrage, die für die Person Adele Goldmann für das
+heutige Konzert den Ausdruck ‘Ja‘ ausgibt, falls die Person volljährig ist und ‘Nein‘ falls sie
+nicht volljährig ist.
+Hinweise: In SQL kann eine Bedingung mit folgender Syntax abgefragt werden:
+IF(Bedingung, Ausdruck, AndererAusdruck)
+In SQL ermöglicht das Schlüsselwort INTERVAL einen Zeitraum zu definieren:
+INTERVAL Wert Einheit
+Mögliche Einheiten sind YEAR, MONTH, DAY.
+(4 BE)
+
+## Loesung 2.2.4
+entwickeln
+SELECT IF (geburtsdatum <= NOW() - INTERVAL 18 YEAR,
+'Ja', 'Nein')
+FROM Person
+WHERE nachname = 'Goldmann' AND vorname = 'Adele';
+
+2.2.5 Die fünf am wenigsten verkauften Getränke sollen aus der Tabelle Getränk gelöscht werden.
+Entwickeln Sie eine SQL-Anweisung und beschreiben Sie die Komplikationen, die solch eine
+Löschung verursacht.
+(6 BE)
+
+## Loesung 2.2.5
+entwickeln
+DELETE FROM Getraenk
+WHERE gid IN (
+SELECT gid
+FROM (
+SELECT gid, SUM(anzahlGetraenke)
+FROM Kauf
+GROUP BY gid
+ORDER BY SUM(anzahlGetraenke) ASC
+LIMIT
+) AS x );
+Bei der Löschweitergabe müssen zunächst alle Tabelleneinträge gelöscht
+werden, in denen der Primärschlüssel des Datensatzes als Fremdschlüssel
+verwendet wird. Im Anschluss wird der Datensatz selbst gelöscht. Werden nur
+die Einträge in der Tabelle Getränke gelöscht, können die damit assoziierten
+Tabelleneinträge nicht mehr identifiziert werden.
+
+--------------------

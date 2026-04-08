@@ -1,16 +1,16 @@
-﻿using AvaloniaEdit.Highlighting;
-using AvaloniaEdit.Highlighting.Xshd;
-using System.IO;
+﻿using System.IO;
 using System.Xml;
+using AvaloniaEdit.Highlighting;
+using AvaloniaEdit.Highlighting.Xshd;
 
-namespace AbiturEliteCode
+namespace AbiturEliteCode;
+
+internal class SqlCodeEditor
 {
-    internal class SqlCodeEditor
+    public static IHighlightingDefinition GetDarkSqlHighlighting()
     {
-        public static IHighlightingDefinition GetDarkSqlHighlighting()
-        {
-            string xshd =
-                @"
+        string xshd =
+            @"
 <SyntaxDefinition name=""SQL Dark"" extensions="".sql"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
 	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""-- comment"" />
 	<Color name=""String"" foreground=""#CE9178"" exampleText=""'text'"" />
@@ -149,10 +149,9 @@ namespace AbiturEliteCode
 	</RuleSet>
 </SyntaxDefinition>";
 
-            using (var reader = XmlReader.Create(new StringReader(xshd)))
-            {
-                return HighlightingLoader.Load(reader, HighlightingManager.Instance);
-            }
+        using (var reader = XmlReader.Create(new StringReader(xshd)))
+        {
+            return HighlightingLoader.Load(reader, HighlightingManager.Instance);
         }
     }
 }

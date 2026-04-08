@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OOP Abitur: Muster & Cheat Sheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --border-sub: #21262d;
+    --text:       #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim:   #484f58;
+    --green:      #3fb950;
+    --yellow:     #d29922;
+    --red:        #f85149;
+    --blue:       #58a6ff;
+    --orange:     #db6d28;
+    --purple:     #bc8cff;
+    --teal:       #39d353;
+    --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb a { color: var(--link); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .ybadge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 11px;
+  }
+
+  /* ── NOTE / CALLOUT ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+  .note.warn  { border-left-color: var(--yellow); }
+  .note.warn2 { border-left-color: var(--yellow); margin-bottom: 12px; }
+  .note.danger{ border-left-color: var(--red); }
+  .note.tip   { border-left-color: var(--green); }
+  .note.purple{ border-left-color: var(--purple); }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 22px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .h3-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--blue);
+    padding: 1px 7px;
+    border-radius: 3px;
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .rule-card.green  { border-left-color: var(--green); }
+  .rule-card.yellow { border-left-color: var(--yellow); }
+  .rule-card.red    { border-left-color: var(--red); }
+  .rule-card.purple { border-left-color: var(--purple); }
+  .rule-card.orange { border-left-color: var(--orange); }
+
+  .rule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .rule-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .rule-body strong { color: var(--text); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .kw      { color: var(--purple); }
+  .kw2     { color: var(--blue); font-weight: 600; }
+  .type    { color: var(--teal); }
+  .str     { color: var(--yellow); }
+  .num     { color: var(--orange); }
+  .cm      { color: var(--text-dim); font-style: italic; }
+  .meth    { color: var(--blue); }
+  .ph      { color: var(--red); font-style: italic; }   /* placeholder */
+  .hi      { color: var(--green); font-weight: 600; }   /* highlight / key line */
+
+  /* ── TABLES ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 12px 0;
+  }
+  table.rtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.rtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  table.rtable td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  table.rtable tr:last-child td { border-bottom: none; }
+  table.rtable td strong { color: var(--text); }
+  table.rtable td code { font-size: 11px; }
+  .td-green { color: var(--green) !important; font-family: var(--mono); font-size: 12px; }
+  .td-darkgreen { color: #2e8b3b !important; font-family: var(--mono); font-size: 12px; }
+  .td-red   { color: var(--red) !important;   font-family: var(--mono); font-size: 12px; }
+  .td-yellow{ color: var(--yellow) !important; font-family: var(--mono); font-size: 12px; }
+
+  /* ── STEP BOXES ── */
+  .step-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .step-box-head {
+    background: var(--bg3);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step-box-body {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .pill {
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill-b  { background: rgba(88,166,255,.15); color: var(--blue);   border: 1px solid rgba(88,166,255,.3); }
+  .pill-g  { background: rgba(63,185,80,.15);  color: var(--green);  border: 1px solid rgba(63,185,80,.3); }
+  .pill-y  { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+  .pill-r  { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+  .pill-p  { background: rgba(188,140,255,.15);color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
+
+  /* ── EX-PANELS ── */
+  .ex-panel {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .ex-panel-title {
+    background: var(--bg3);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .ex-panel-title.after { color: var(--green); }
+  .ex-panel-body {
+    background: #010409;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text-muted);
+  }
+
+  /* ── DECISION TABLE ── */
+  .decision-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .decision-cell {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .decision-cell .dc-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+
+  /* ── FREQ BADGE ── */
+  .freq {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .freq-high   { background: rgba(63,185,80,.2);  color: var(--green); }
+  .freq-med    { background: rgba(210,153,34,.2); color: var(--yellow); }
+  .freq-low    { background: rgba(88,166,255,.2); color: var(--blue); }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .footer a { color: var(--link); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  
+    a {
+    color: #b388ff !important;
+  }
+
+  /* ── LANGUAGE TOGGLE ── */
+  .cstoggle-wrap { position: relative; }
+  .cstoggle-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-bottom: none; border-radius: 6px 6px 0 0;
+    padding: 5px 10px 5px 12px; font-size: 11px;
+    font-family: var(--mono); color: var(--text-muted);
+  }
+  .cstoggle-header + .cstoggle-java .code-block,
+  .cstoggle-header + div .code-block {
+    border-radius: 0 0 6px 6px; margin-top: 0 !important; border-top: none;
+  }
+  .cstoggle-btn {
+    font-family: var(--mono); font-size: 10px;
+    background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.3);
+    color: var(--blue); padding: 2px 9px; border-radius: 3px;
+    cursor: pointer; white-space: nowrap; transition: background .15s;
+    user-select: none; flex-shrink: 0; margin-left: 10px;
+  }
+  .cstoggle-btn:hover { background: rgba(88,166,255,.2); }
+  .cstoggle-btn.cs-active {
+    background: rgba(57,211,83,.1); border-color: rgba(57,211,83,.3); color: var(--teal);
+  }
+  .ex-panel-title { display: flex; justify-content: space-between; align-items: center; }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note" style="border-left-color: var(--yellow); margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Seite wurden durch manuelle Analyse aller OOP-Ausarbeitungsaufgaben aus den offiziellen Prüfungsvorschlägen gewonnen und mithilfe von KI ausgewertet. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen vergleichen.
+</div>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+  <header class="page-header">
+    <div class="breadcrumb">
+	  <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+      <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+	  Java Cheat Sheet
+	</div>
+    <h1>Java Abitur — Muster &amp; Cheat Sheet</h1>
+    <p>
+      Systematische Analyse aller OOP-Implementierungsaufgaben aus den Hessischen Abiturprüfungen (Java)
+      2016–2025. Dieses Dokument zeigt wiederkehrende Muster, damit du jede Aufgabe strukturiert
+      lösen kannst — ohne freies Denken, nur Pattern-Matching.
+    </p>
+  </header>
+
+  <div class="note danger">
+    <strong>⚠ Wichtiger Hinweis zur Vollständigkeit:</strong> Dieses Dokument basiert ausschließlich auf dem Aufgabentext und den offiziellen Musterlösungen. Alles, was nur aus einem Klassendiagramm oder Material zu entnehmen ist (konkrete Attribute, genaue Methodensignaturen, Assoziationen), kann hier nicht vollständig beschrieben werden. Solche Stellen sind mit <span style="color:var(--red);font-style:italic;">[→ DIAGRAM]</span> markiert. Fülle diese selbst anhand des Klassendiagramms der jeweiligen Aufgabe aus.
+  </div>
+
+  <!-- ══ SECTION 1: AUFGABENTYPEN ════════════════════════════════════════ -->
+  <div class="section">
+    <h2>1 · Aufgabentypen — Was wird überhaupt gefragt?</h2>
+    <div class="section-desc">Übersicht der wiederkehrenden Aufgabenformen aus 10 Jahren Abitur.</div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead>
+          <tr>
+            <th>Aufgabentyp</th>
+            <th>Schlüsselwörter im Text</th>
+            <th>Häufigkeit</th>
+            <th>Schwerpunkt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Klasse überführen &amp; implementieren</strong></td>
+            <td><code>Überführen Sie … in Anweisungen einer OOP-Sprache und implementieren Sie</code></td>
+            <td><span class="freq freq-high">sehr hoch</span></td>
+            <td>Klassendiagramm → Java-Code</td>
+          </tr>
+          <tr>
+            <td><strong>Methode implementieren</strong></td>
+            <td><code>Implementieren Sie die Methode …</code></td>
+            <td><span class="freq freq-high">sehr hoch</span></td>
+            <td>Algorithmus nach Beschreibung / Struktogramm</td>
+          </tr>
+          <tr>
+            <td><strong>Serielle Schnittstelle</strong></td>
+            <td><code>Serial</code>, <code>readLine()</code>, Kommunikationsprotokoll gegeben</td>
+            <td><span class="freq freq-high">hoch</span></td>
+            <td>Protokoll lesen, parsen, senden</td>
+          </tr>
+          <tr>
+            <td><strong>Client/Server implementieren</strong></td>
+            <td><code>ServerSocket</code>, <code>Socket</code>, Sitzungsprotokoll gegeben</td>
+            <td><span class="freq freq-high">hoch</span></td>
+            <td>Server-Hauptschleife + Protokoll-Parsing</td>
+          </tr>
+          <tr>
+            <td><strong>RFID readCard()</strong></td>
+            <td><code>RFIDReader</code>, <code>readCard()</code>, Prüfzeichen</td>
+            <td><span class="freq freq-med">mittel</span></td>
+            <td>STX/ETX-Framing + Prüfsumme</td>
+          </tr>
+          <tr>
+            <td><strong>Controller run()</strong></td>
+            <td><code>Struktogramm in Material X</code>, <code>FunkModul</code>, <code>RFID</code></td>
+            <td><span class="freq freq-med">mittel</span></td>
+            <td>Struktogramm direkt in Code übersetzen</td>
+          </tr>
+          <tr>
+            <td><strong>Sortiertes Einfügen</strong></td>
+            <td><code>Liste ist nach … sortiert</code>, <code>einfuegen()</code> / <code>hinzufuegenSortiert()</code></td>
+            <td><span class="freq freq-med">mittel</span></td>
+            <td>Position suchen, <code>list.add(index, obj)</code></td>
+          </tr>
+          <tr>
+            <td><strong>Singleton-Muster</strong></td>
+            <td><code>von einer Klasse genau ein Objekt</code>, <code>getInstance()</code></td>
+            <td><span class="freq freq-low">selten</span></td>
+            <td>Privater Konstruktor + statische Instanz</td>
+          </tr>
+          <tr>
+            <td><strong>Binäre Suche</strong></td>
+            <td><code>Liste ist sortiert</code>, <code>binäre Suche</code></td>
+            <td><span class="freq freq-low">selten</span></td>
+            <td>low/max-Pointer-Schema</td>
+          </tr>
+          <tr>
+            <td><strong>Algorithmen (Quicksort, Mischen etc.)</strong></td>
+            <td><code>teileArray()</code>, <code>mischen()</code>, <code>Random</code></td>
+            <td><span class="freq freq-low">selten</span></td>
+            <td>Algorithmus aus Pseudocode / Analogie ableiten</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 2: KLASSE ÜBERFÜHREN ════════════════════════════════════ -->
+  <div class="section">
+    <h2>2 · Klasse überführen &amp; implementieren — Schritt für Schritt</h2>
+    <div class="section-desc">Der häufigste Aufgabentyp. Immer gleiche Struktur, immer gleiche Reihenfolge.</div>
+
+    <div class="note tip">
+      <strong>Faustregel:</strong> Überführen = UML → Java-Grundgerüst (Attribute, Konstruktor, Methodenköpfe). Implementieren = die Methodenkörper mit Logik füllen. Beides wird fast immer zusammen verlangt.
+    </div>
+
+    <h3><span class="h3-num">2.1</span> Reihenfolge im Klassenkörper</h3>
+    <div class="rule-card purple">
+      <div class="rule-title">Feste Schreibreihenfolge (entspricht dem Klassendiagramm von oben nach unten)</div>
+      <div class="rule-body">
+        1. Klassenkonstanten (<code>static final</code> - in C#: <code>static readonly</code>) — wenn im Diagramm <u>unterstrichen</u> und mit GROSSBUCHSTABEN<br>
+        2. Statische Attribute (<code>static</code>) — z.B. <code>autowert</code> (<u>unterstrichen</u> im Diagramm)<br>
+        3. Instanzattribute (in Diagramm-Reihenfolge)<br>
+        4. Konstruktor(en)<br>
+        5. Methoden (in Diagramm-Reihenfolge)
+      </div>
+    </div>
+
+    <h3><span class="h3-num">2.2</span> Attribute aus dem Klassendiagramm ablesen</h3>
+    <div class="note warn">
+      <strong>Ohne Klassendiagramm nicht möglich.</strong> Die Attribute stehen vollständig im Diagramm. Merke nur: <strong><u>unterstrichene</u> Attribute</strong> im Diagramm sind <code>static</code> in Java. <u>Unterstrichene</u> und GROß geschriebene Konstanten werden zu <code>static final</code> - in C#: <code>static readonly</code>.
+    </div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>UML-Notation</th><th>Java</th><th>C#</th></tr></thead>
+        <tbody>
+          <tr><td><code>- name : String</code></td><td class="td-darkgreen">private String name;</td><td class="td-green">private string name;</td></tr>
+          <tr><td><code>+ anzahl : int</code></td><td class="td-darkgreen">public int anzahl;</td><td class="td-green">public int anzahl;</td></tr>
+          <tr><td><code># wert : double</code> (vererbt)</td><td class="td-darkgreen">protected double wert;</td><td class="td-green">protected double wert;</td></tr>
+          <tr><td><code><u>- autowert : int = 0</u></code> (unterstrichen)</td><td class="td-darkgreen">private static int autowert = 0;</td><td class="td-green">private static int autowert = 0;</td></tr>
+          <tr><td><code><u>BASISPREIS : double = 10.0</u></code> (unterstrichen, CAPS)</td><td class="td-darkgreen">private static final double BASISPREIS = 10.0;</td><td class="td-green">private static readonly double BASISPREIS = 10.0;</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span class="h3-num">2.3</span> Konstruktor-Grundgerüst</h3>
+    <div class="ex-panel cstoggle-wrap">
+      <div class="ex-panel-title">Standard-Konstruktor-Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">ClassName</span>(<span class="ph">[→ DIAGRAM: Parameter]</span>) {
+    <span class="cm">// 1. Autowert-Zuweisung (falls vorhanden — siehe Sektion 3)</span>
+    <span class="hi">this.id = …autowert…;</span>
+    <span class="cm">// 2. Alle einfachen Attribute zuweisen</span>
+    <span class="hi">this.name = name;</span>
+    <span class="hi">this.wert = wert;</span>
+    <span class="cm">// 3. Boolesche Flags auf Standardwert setzen</span>
+    <span class="hi">this.aktiv = false;</span>
+    <span class="cm">// 4. Listenattribute initialisieren (NIE vergessen!)</span>
+    <span class="hi">this.items = new List&lt;&gt;();</span>
+    <span class="cm">// 5. Seiteneffekte (z.B. this zu anderer Liste hinzufügen — siehe Sektion 8)</span>
+}</div></div>
+      <div style="display:none"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">ClassName</span>(<span class="ph">[→ DIAGRAM: Parameter]</span>) {
+    <span class="cm">// 1. Autowert-Zuweisung (falls vorhanden — siehe Sektion 3)</span>
+    <span class="hi">this.id = …autowert…;</span>
+    <span class="cm">// 2. Alle einfachen Attribute zuweisen</span>
+    <span class="hi">this.name = name;</span>
+    <span class="hi">this.wert = wert;</span>
+    <span class="cm">// 3. Boolesche Flags auf Standardwert setzen</span>
+    <span class="hi">this.aktiv = false;</span>
+    <span class="cm">// 4. Listenattribute initialisieren (NIE vergessen!)</span>
+    <span class="hi">this.items = new List&lt;<span class="ph">TYPE</span>&gt;();</span>  <span class="cm">// Typ immer angeben (kein &lt;&gt; in C#)</span>
+    <span class="cm">// 5. Seiteneffekte (z.B. this zu anderer Liste hinzufügen — siehe Sektion 8)</span>
+}</div></div>
+    </div>
+
+    <h3><span class="h3-num">2.4</span> Listen immer im Konstruktor initialisieren</h3>
+    <div class="rule-card green">
+      <div class="rule-title">Jede Liste im Klassendiagramm → <code>new List&lt;&gt;()</code> im Konstruktor</div>
+      <div class="rule-body">
+        Wird eine Liste im Konstruktor <strong>nicht</strong> initialisiert, gibt es zur Laufzeit eine <code>NullPointerException</code>.
+        Das ist ein häufiger Fehler. Jedes Attribut vom Typ <code>List&lt;X&gt;</code> muss im Konstruktor mit
+        <code>this.listName = new List&lt;&gt;();</code> belegt werden — auch wenn die Liste zunächst leer ist.
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Buchung</span>&gt; buchungen;
+
+<span class="kw">public</span> <span class="type">Mitglied</span>(<span class="type">String</span> name) {
+    <span class="cm">// ...</span>
+    <span class="hi">this.buchungen = new <span class="type">List</span>&lt;&gt;();</span>  <span class="cm">// ← IMMER!</span>
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Buchung</span>&gt; buchungen;
+
+<span class="kw">public</span> <span class="type">Mitglied</span>(<span class="type">String</span> name) {
+    <span class="cm">// ...</span>
+    <span class="hi">this.buchungen = new <span class="type">List</span>&lt;<span class="type">Buchung</span>&gt;();</span>  <span class="cm">// ← IMMER! (Typ angeben, kein &lt;&gt; in C#)</span>
+}</div></div>
+</div>
+
+    <h3><span class="h3-num">2.5</span> Abstrakte Klassen</h3>
+    <div class="rule-card yellow">
+      <div class="rule-title">Wann ist eine Klasse <code>abstract</code>?</div>
+      <div class="rule-body">
+        Das Klassendiagramm zeigt es: Wenn der Klassenname <em>kursiv</em> geschrieben ist und es steht
+        explizit <code>&lt;&lt;abstract&gt;&gt;</code> im Diagramm.
+        <br><br>
+        Abstrakte Methoden in der abstrakten Elternklasse: <code>public abstract double berechne();</code> (kein Körper)<br>
+        In der Unterklasse: <code>@Override public double berechne() { … }</code> - in C#: <code>public override double berechne() { … }</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 3: AUTOWERT ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>3 · Das Autowert-Muster — Pre- vs. Post-Inkrement</h2>
+    <div class="section-desc">Eines der häufigsten Fallstricke im Abitur. Die Entscheidung liegt ausschließlich im Klassendiagramm.</div>
+
+    <div class="note danger">
+      <strong>Goldene Regel:</strong> Den Startwert des <code>autowert</code>-Attributs liest du aus dem Klassendiagramm ab (es ist immer <code>static</code>, also unterstrichen). Er bestimmt eindeutig, ob Pre- oder Post-Inkrement verwendet wird. Die erste vergebene ID ist in beiden Fällen <strong>immer 1</strong>. Eine zugewiesene ID von 0, darf es in deinem Code nicht geben!
+    </div>
+
+    <div class="decision-row">
+      <div class="decision-cell">
+        <div class="dc-label">Diagramm zeigt: <code>autowert = 0</code> (oder <code>autowert</code>*)</div>
+        <div class="code-block" style="margin:6px 0;"><u>- </u><span class="hi"><u>autowert : int = 0</u></span>
+(unterstrichen = static)</div>
+        <div class="rule-body" style="font-size:12px; margin-top:6px;">
+          → <strong style="color:var(--green);">Pre-Inkrement verwenden</strong><br>
+          Zuerst erhöhen, dann zuweisen.<br>
+          Erste vergebene ID = <strong>1</strong> ✓
+        </div>
+        <div class="code-block" style="margin-top:8px;"><span class="kw">private static int</span> autowert = <span class="num">0</span>;
+
+<span class="cm">// Im Konstruktor:</span>
+<span class="hi">this.id = ++autowert;</span>
+<span class="cm">// Erste Ausführung: autowert wird 1, id = 1</span></div>
+      </div>
+      <div class="decision-cell">
+        <div class="dc-label">Diagramm zeigt: <code>autowert = 1</code></code> (oder <code>autowert</code>*)</div>
+        <div class="code-block" style="margin:6px 0;"><u>- </u><span class="hi"><u>autowert : int = 1</u></span>
+(unterstrichen = static)</div>
+        <div class="rule-body" style="font-size:12px; margin-top:6px;">
+          → <strong style="color:var(--green);">Post-Inkrement verwenden</strong><br>
+          Zuerst zuweisen, dann erhöhen.<br>
+          Erste vergebene ID = <strong>1</strong> ✓
+        </div>
+        <div class="code-block" style="margin-top:8px;"><span class="kw">private static int</span> autowert = <span class="num">1</span>;
+
+<span class="cm">// Im Konstruktor:</span>
+<span class="hi">this.id = autowert++;</span>
+<span class="cm">// Erste Ausführung: id = 1, danach autowert = 2</span></div>
+      </div>
+    </div>
+
+    <h3><span class="h3-num">3.1</span> Belegstellen aus den Musterlösungen</h3>
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead>
+          <tr><th>Jahr</th><th>Klasse</th><th>Diagramm-Startwert</th><th>Code in Lösung</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>2016 A*</td><td><code>Kunde</code></td><td class="td-yellow">autonr</td><td class="td-green">this.kdNr = ++autonr;</td></tr>
+          <tr><td>2017 B*</td><td><code>Mitglied</code></td><td class="td-yellow">autowert</td><td class="td-green">mitgliedsNr = autowert++;</td></tr>
+          <tr><td>2017 B*</td><td><code>Buchung</code></td><td class="td-yellow">autowert</td><td class="td-green">buchungsNr = autowert++;</td></tr>
+          <tr><td>2018 B</td><td><code>Person</code> (abstract)</td><td class="td-yellow">autoWert = 1</td><td class="td-green">this.personNr = autoWert++;</td></tr>
+          <tr><td>2021 A</td><td><code>Fahrer</code></td><td class="td-yellow">autowert = 0</td><td class="td-green">this.fahrernr = ++autowert;</td></tr>
+          <tr><td>2022 C*</td><td><code>Bike</code></td><td class="td-yellow">autowert</td><td class="td-green">autowert++; this.bikeID = autowert;</td></tr>
+          <tr><td>2024 B</td><td><code>Person</code></td><td class="td-yellow">autowert = 0</td><td class="td-green">this.id = ++autowert;</td></tr>
+          <tr><td>2025 A</td><td><code>Patient</code></td><td class="td-yellow">autowert = 1</td><td class="td-green">this.patientenNr = autowert++;</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn2">
+      <strong>Sonderfall 2022 C (Bike):</strong> Hier wurde eine ungewöhnliche Variante verwendet — <code>autowert++; this.bikeID = autowert;</code> — was dasselbe Ergebnis wie Pre-Inkrement liefert, aber über zwei separate Zeilen. <strong>Schreibe lieber die Normalform</strong> (<code>... = ++autowert</code> oder <code>... = autowert++</code>), die in allen anderen Jahren verwendet wird.
+    </div>
+
+    <div class="note warn">
+      <strong>*Zweiter Sonderfall:</strong> In 2016 A, 2017 B und 2022 C wurde <code>autowert</code> keine Zahl im Klassendiagramm zugewiesen. Da sich hier Pre- (2016 A) als auch Post-Increment (2022 C) vorweisen lässt, kann man selbst entscheiden welche Variante man benutzen will.<br>⚠️ Aber <b>beachte:</b> wenn <code>private static int autowert = 1;</code> → <code>... = autowert++;</code> und wenn <code>private static int autowert = 0;</code> → <code>... = ++autowert;</code>!
+    </div>
+  </div>
+
+  <!-- ══ SECTION 4: LISTEN-MUSTER ═════════════════════════════════════════ -->
+  <div class="section">
+    <h2>4 · Listen — Verwendungsmuster</h2>
+    <div class="section-desc">Die eigene <code>List&lt;T&gt;</code>-Klasse des Abiturs verhält sich ähnlich wie ArrayList, hat aber eine eigene API.</div>
+
+    <h3><span class="h3-num">4.1</span> Bekannte Methoden der Abi-<code>List</code>-Klasse</h3>
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Methode (Java)</th><th>Methode (C#)</th><th>Bedeutung</th></tr></thead>
+        <tbody>
+          <tr><td><code>list.add(element)</code></td><td><code>list.Add(element)</code></td><td>Element am Ende anfügen</td></tr>
+          <tr><td><code>list.add(index, element)</code></td><td><code>list.Insert(index, element)</code></td><td>Element an Position <code>index</code> einfügen (restliche Elemente rücken nach rechts)</td></tr>
+          <tr><td><code>list.get(index)</code></td><td><code>list[index]</code></td><td>Element an Position <code>index</code> lesen (0-basiert)</td></tr>
+          <tr><td><code>list.remove(element)</code></td><td><code>list.Remove(element)</code></td><td>Objekt aus Liste entfernen</td></tr>
+          <tr><td><code>list.remove(index)</code></td><td><code>list.RemoveAt(index)</code></td><td>Element an Position entfernen, gibt Element zurück</td></tr>
+          <tr><td><code>list.size()</code></td><td><code>list.Count()</code></td><td>Anzahl der Elemente</td></tr>
+          <tr><td><code>list.isEmpty()</code></td><td><code>list.IsEmpty()</code></td><td>Prüft ob leer</td></tr>
+          <tr><td><code>list.contains(element)</code></td><td><code>list.Contains(element)</code></td><td>Prüft ob Element enthalten</td></tr>
+          <tr><td><code>for (Typ t : list)</code></td><td><code>foreach (Typ t in list)</code></td><td>For-each-Schleife (sehr häufig im Abi)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span class="h3-num">4.2</span> Suchmethode — Standard-Muster</h3>
+    <div class="rule-card green">
+      <div class="rule-title">sucheX() / findeX() — immer gleiche Struktur</div>
+      <div class="rule-body">
+        Ergebnisvariable auf <code>null</code> setzen, Liste iterieren, bei Treffer zuweisen. Am Ende zurückgeben.
+        Wenn nur das erste Ergebnis gesucht wird: <code>break</code> oder vorzeitig <code>return</code>.
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public</span> <span class="type">Spieler</span> sucheSpieler(<span class="type">String</span> name) {
+    <span class="type">Spieler</span> ergebnis = <span class="kw">null</span>;
+    <span class="kw">for</span> (<span class="type">Spieler</span> s : spieler) {
+        <span class="kw">if</span> (s.<span class="meth">getName</span>().<span class="meth">equals</span>(name)) {
+            ergebnis = s;
+            <span class="kw">break</span>;  <span class="cm">// nur erstes Ergebnis</span>
+        }
+    }
+    <span class="kw">return</span> ergebnis;
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public</span> <span class="type">Spieler</span> sucheSpieler(<span class="kw">string</span> name) {
+    <span class="type">Spieler</span> ergebnis = <span class="kw">null</span>;
+    <span class="kw">foreach</span> (<span class="type">Spieler</span> s <span class="kw">in</span> spieler) {
+        <span class="kw">if</span> (s.<span class="meth">getName</span>() == name) {
+            ergebnis = s;
+            <span class="kw">break</span>;  <span class="cm">// nur erstes Ergebnis</span>
+        }
+    }
+    <span class="kw">return</span> ergebnis;
+}</div></div>
+</div>
+
+    <h3><span class="h3-num">4.3</span> Sortiertes Einfügen — Standard-Muster</h3>
+    <div class="rule-card blue">
+      <div class="rule-title">Liste ist nach X sortiert → neues Element an richtiger Position einfügen</div>
+      <div class="rule-body">
+        Trigger im Aufgabentext: „<em>Die Liste ist nach [Datum/Stunde/Wert] sortiert zu halten</em>"
+        oder „<em>Die Methode fügt an der zeitlich korrekten Position ein</em>".<br>
+        Muster: Index mit While-Schleife suchen, dann <code>list.add(index, element)</code>.
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Bsp: Liste aufsteigend nach Datum sortiert halten</span>
+<span class="kw">int</span> i = <span class="num">0</span>;
+<span class="kw">while</span> (i &lt; liste.<span class="meth">size</span>() &amp;&amp; liste.<span class="meth">get</span>(i).<span class="meth">getDatum</span>().<span class="meth">isBefore</span>(neuesDatum)) {
+    i++;
+}
+liste.<span class="meth">add</span>(i, neuesElement);  <span class="cm">// an gefundener Position einfügen</span></div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Bsp: Liste aufsteigend nach Datum sortiert halten</span>
+<span class="kw">int</span> i = <span class="num">0</span>;
+<span class="kw">while</span> (i &lt; liste.<span class="meth">Count</span>() &amp;&amp; liste[i].<span class="meth">getDatum</span>().<span class="meth">isBefore</span>(neuesDatum)) {
+    i++;
+}
+liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an gefundener Position einfügen</span></div></div>
+</div>
+
+    <div class="note">
+      <strong>Hinweis:</strong> Der genaue Vergleich (<code>isBefore</code>, <code>compareTo</code>, <code>&gt;</code>, <code>&lt;</code>) hängt vom Typ des Sortierkriteriums ab — steht im Aufgabentext oder Material. Nur das Grundmuster (Index-Suche + <code>add(index, …)</code>) ist garantiert konstant.
+    </div>
+  </div>
+
+  <!-- ══ SECTION 5: VERERBUNG ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>5 · Vererbung &amp; abstrakte Klassen</h2>
+    <div class="section-desc">Muster für <code>extends</code>, <code>super()</code>, <code>@Override</code> und <code>instanceof</code>.</div>
+
+    <h3><span class="h3-num">5.1</span> Unterklassen-Konstruktor — immer mit <code>super()</code></h3>
+    <div class="rule-card green">
+      <div class="rule-title"><code>super()</code> ist immer die erste Zeile im Unterklassen-Konstruktor</div>
+      <div class="rule-body">
+        Alle Parameter, die zur Elternklasse gehören, werden via <code>super()</code> weitergegeben.
+        Danach kommen nur noch die Attribute der Unterklasse selbst.
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public abstract class</span> <span class="type">Person</span> {
+    <span class="kw">protected</span> <span class="type">String</span> name;
+    <span class="kw">protected</span> <span class="type">String</span> vorname;
+    <span class="kw">public</span> <span class="type">Person</span>(<span class="type">String</span> name, <span class="type">String</span> vorname) {
+        <span class="hi">this.name = name;</span>
+        <span class="hi">this.vorname = vorname;</span>
+    }
+    <span class="kw">public abstract double</span> <span class="meth">berechne</span>();
+}
+
+<span class="kw">public class</span> <span class="type">Mitarbeiter</span> <span class="kw">extends</span> <span class="type">Person</span> {
+    <span class="kw">private</span> <span class="type">double</span> gehalt;
+    <span class="kw">public</span> <span class="type">Mitarbeiter</span>(<span class="type">String</span> name, <span class="type">String</span> vorname, <span class="type">double</span> gehalt) {
+        <span class="hi">super(name, vorname);</span>   <span class="cm">// ← IMMER ERSTE ZEILE</span>
+        <span class="hi">this.gehalt = gehalt;</span>
+    }
+    <span class="hi">@Override</span>
+    <span class="kw">public double</span> <span class="meth">berechne</span>() {
+        <span class="kw">return this</span>.gehalt;
+    }
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public abstract class</span> <span class="type">Person</span> {
+    <span class="kw">protected</span> <span class="kw">string</span> name;
+    <span class="kw">protected</span> <span class="kw">string</span> vorname;
+    <span class="kw">public</span> <span class="type">Person</span>(<span class="kw">string</span> name, <span class="kw">string</span> vorname) {
+        <span class="hi">this.name = name;</span>
+        <span class="hi">this.vorname = vorname;</span>
+    }
+    <span class="kw">public abstract double</span> <span class="meth">berechne</span>();
+}
+
+<span class="kw">public class</span> <span class="type">Mitarbeiter</span> : <span class="type">Person</span> {
+    <span class="kw">private double</span> gehalt;
+    <span class="kw">public</span> <span class="type">Mitarbeiter</span>(<span class="kw">string</span> name, <span class="kw">string</span> vorname, <span class="kw">double</span> gehalt) : <span class="hi">base(name, vorname)</span> { <span class="cm">// ← base() steht nach der Signatur, nicht im Body</span>
+        <span class="hi">this.gehalt = gehalt;</span>
+    }
+    <span class="kw">public override double</span> <span class="meth">berechne</span>() {
+        <span class="kw">return this</span>.gehalt;
+    }
+}</div></div>
+</div>
+
+    <h3><span class="h3-num">5.2</span> <code>instanceof</code> + Cast — Standard-Muster</h3>
+    <div class="rule-card purple">
+      <div class="rule-title">Wenn eine Liste Objekte der Elternklasse enthält, aber nur Unterklassen-Objekte bearbeitet werden sollen</div>
+      <div class="rule-body">
+        Trigger: „<em>Die Methode muss prüfen, ob es sich bei einer Person um ein Kunden-Objekt handelt</em>"
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">for</span> (<span class="type">Person</span> p : personen) {
+    <span class="kw">if</span> (p <span class="kw">instanceof</span> <span class="type">Kunde</span>) {
+        <span class="type">Kunde</span> k = (<span class="type">Kunde</span>) p;   <span class="cm">// expliziter Cast</span>
+        <span class="cm">// jetzt mit k arbeiten</span>
+    }
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">foreach</span> (<span class="type">Person</span> p <span class="kw">in</span> personen) {
+    <span class="kw">if</span> (p <span class="kw">is</span> <span class="type">Kunde</span>) {
+        <span class="type">Kunde</span> k = (<span class="type">Kunde</span>) p;   <span class="cm">// expliziter Cast (oder: p as Kunde)</span>
+        <span class="cm">// jetzt mit k arbeiten</span>
+    }
+}</div></div>
+</div>
+
+    <h3><span class="h3-num">5.3</span> <code>toString()</code> in der Vererbungshierarchie</h3>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// In der Unterklasse: super.toString() aufrufen + eigenes ergänzen</span>
+<span class="hi">@Override</span>
+<span class="kw">public</span> <span class="type">String</span> <span class="meth">toString</span>() {
+    <span class="kw">return</span> <span class="str">"Reinigungskraft "</span> + <span class="kw">super</span>.<span class="meth">toString</span>() + <span class="str">", Stundensatz "</span> + stundenSatz + <span class="str">" EURO"</span>;
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// In der Unterklasse: base.ToString() aufrufen + eigenes ergänzen</span>
+<span class="kw">public override string</span> <span class="meth">ToString</span>() {
+    <span class="kw">return</span> <span class="str">"Reinigungskraft "</span> + <span class="kw">base</span>.<span class="meth">ToString</span>() + <span class="str">", Stundensatz "</span> + stundenSatz + <span class="str">" EURO"</span>;
+}</div></div>
+</div>
+  </div>
+
+  <!-- ══ SECTION 6: SERIELLE SCHNITTSTELLE ════════════════════════════════ -->
+  <div class="section">
+    <h2>6 · Serielle Schnittstelle — Serial-Klasse</h2>
+    <div class="section-desc">Wiederkehrendes Muster für Hardware-Kommunikation. Taucht in fast jedem zweiten Exam auf.</div>
+
+    <h3><span class="h3-num">6.1</span> <code>Serial</code>-Konstruktor — immer gleiche Parameterliste</h3>
+    <div class="rule-card blue">
+      <div class="rule-title"><code>new Serial(port, baudrate, datenbits, stoppbits, parität)</code></div>
+      <div class="rule-body">
+        Diese Parameterliste ist <strong>festgelegt</strong> und taucht in dieser Form in allen Jahren auf.
+        Die konkreten Werte stehen im Aufgabentext.
+      </div>
+    </div>
+    <div class="code-block"><span class="cm">// Aufgabentext: "9600 Baud, 8 Datenbits, 1 Stoppbit, keine Parität"</span>
+<span class="type">Serial</span> port = <span class="kw">new</span> <span class="type">Serial</span>(<span class="str">"COM1"</span>, <span class="num">9600</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">0</span>);
+<span class="cm">//                         ↑      ↑    ↑  ↑  ↑</span>
+<span class="cm">//                       Port   Baud Dat Stp Parität(0=none)</span>
+
+<span class="cm">// Aufgabentext: "2400 Baud, 8 Daten-, einem Stoppbit, ohne Paritätsbit"</span>
+<span class="type">Serial</span> serial = <span class="kw">new</span> <span class="type">Serial</span>(<span class="str">"COM1"</span>, <span class="num">2400</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">0</span>);</div>
+
+    <h3><span class="h3-num">6.2</span> Serial — Grundgerüst mit open/close</h3>
+    <div class="code-block"><span class="type">Serial</span> com = <span class="kw">new</span> <span class="type">Serial</span>(<span class="ph">[Port]</span>, <span class="ph">[Baud]</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">0</span>);
+<span class="kw">if</span> (com.<span class="meth">open</span>()) {
+    <span class="cm">// Kommunikation</span>
+    com.<span class="meth">write</span>(<span class="ph">[Befehl]</span> + <span class="str">"\n"</span>);       <span class="cm">// Zeile senden</span>
+    <span class="type">String</span> antwort = com.<span class="meth">readLine</span>();  <span class="cm">// Zeile lesen</span>
+    <span class="cm">// ...</span>
+    com.<span class="meth">close</span>();
+}</div>
+
+    <h3><span class="h3-num">6.3</span> Protokoll parsen — Antwort verarbeiten</h3>
+    <div class="note">
+      Der konkrete Aufbau des Protokolls (welche Zeichen, welche Trennzeichen, welche Feldlängen) steht <strong>ausschließlich im Material</strong>. Das Grundmuster ist aber konstant:
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Typisches Muster: Antwort hat Rahmen, der abgeschnitten wird</span>
+<span class="type">String</span> temp = com.<span class="meth">readLine</span>();
+temp = temp.<span class="meth">substring</span>(<span class="num">1</span>, temp.<span class="meth">length</span>() - <span class="num">1</span>); <span class="cm">// Rahmenzeichen entfernen</span>
+
+<span class="cm">// Typisches Muster: Werte durch Trennzeichen trennen</span>
+<span class="type">String</span>[] werte = temp.<span class="meth">split</span>(<span class="str">";"</span>);
+<span class="kw">int</span>[] zahlen = <span class="kw">new int</span>[werte.<span class="meth">length</span>];
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; werte.<span class="meth">length</span>; i++) {
+    zahlen[i] = <span class="type">Integer</span>.<span class="meth">parseInt</span>(werte[i].<span class="meth">trim</span>());
+}
+
+<span class="cm">// Typisches Muster: ACK/NAK-Schleife</span>
+<span class="kw">do</span> {
+    barcode = com.<span class="meth">readLine</span>();
+    <span class="kw">if</span> (<span class="meth">pruefeBarcode</span>(barcode)) {
+        com.<span class="meth">write</span>(ACK);
+    } <span class="kw">else</span> {
+        com.<span class="meth">write</span>(NAK);
+    }
+} <span class="kw">while</span> (zeichen == NAK);</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Typisches Muster: Antwort hat Rahmen, der abgeschnitten wird</span>
+<span class="kw">string</span> temp = com.<span class="meth">readLine</span>();
+temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp.<span class="meth">Length</span> - <span class="num">2</span>); <span class="cm">// Rahmenzeichen entfernen (C#: Substring(start, length)!)</span>
+
+<span class="cm">// Typisches Muster: Werte durch Trennzeichen trennen</span>
+<span class="kw">string</span>[] werte = temp.<span class="meth">Split</span>(<span class="str">';'</span>);
+<span class="kw">int</span>[] zahlen = <span class="kw">new int</span>[werte.<span class="meth">Length</span>];
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; werte.<span class="meth">Length</span>; i++) {
+    zahlen[i] = <span class="kw">int</span>.<span class="meth">Parse</span>(werte[i].<span class="meth">Trim</span>());
+}
+
+<span class="cm">// Typisches Muster: ACK/NAK-Schleife</span>
+<span class="kw">do</span> {
+    barcode = com.<span class="meth">readLine</span>();
+    <span class="kw">if</span> (<span class="meth">pruefeBarcode</span>(barcode)) {
+        com.<span class="meth">write</span>(ACK);
+    } <span class="kw">else</span> {
+        com.<span class="meth">write</span>(NAK);
+    }
+} <span class="kw">while</span> (zeichen == NAK);</div></div>
+</div>
+  </div>
+
+  <!-- ══ SECTION 7: RFID ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>7 · RFID readCard() — STX/ETX-Rahmen-Muster</h2>
+    <div class="section-desc">Taucht in identischer Form in ABI 2021 A und ABI 2025 B auf. Sehr gut lernbar.</div>
+
+    <div class="note tip">
+      <strong>Erkennungsmerkmal:</strong> Aufgabentext erwähnt <code>RFIDReader</code>, <code>readCard()</code>, <code>Prüfzeichen</code>, <code>calcCheckChar()</code> und ein „Datenformat in Material X". Das Grundmuster ist in allen Jahren identisch.
+    </div>
+
+    <div class="rule-card blue">
+      <div class="rule-title">Protokoll-Aufbau (immer: STX | Daten | Prüfzeichen | ETX)</div>
+      <div class="rule-body">
+        <strong>STX</strong> = 0x02 (Start of Text) — auf dieses Zeichen wird gewartet<br>
+        <strong>Daten</strong> = <span class="ph">[→ DIAGRAM/MATERIAL: Anzahl der Datenbytes — z.B. 6 oder 7]</span><br>
+        <strong>Prüfzeichen</strong> = 1 Byte, berechnet via <code>calcCheckChar()</code><br>
+        <strong>ETX</strong> = 0x03 (End of Text) — wird überprüft
+      </div>
+    </div>
+
+    <div class="ex-panel cstoggle-wrap">
+      <div class="ex-panel-title">readCard() — vollständiges Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">String</span> <span class="meth">readCard</span>() {
+    <span class="type">String</span> response = <span class="str">""</span>;
+    <span class="kw">char</span> checkValue;
+    <span class="kw">char</span>[] data = <span class="kw">new char</span>[<span class="ph">[→ MATERIAL: Anzahl Datenbytes, z.B. 6 oder 7]</span>];
+
+    <span class="hi">while (readChar() != 0x02);</span>  <span class="cm">// warte auf STX</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; data.<span class="meth">length</span>; i++) {
+        data[i] = <span class="meth">readChar</span>();    <span class="cm">// Datenbytes lesen</span>
+    }
+
+    <span class="hi">checkValue = <span class="meth">readChar</span>();</span>     <span class="cm">// Prüfzeichen lesen</span>
+
+    <span class="kw">if</span> (<span class="meth">readChar</span>() == <span class="hi">0x03</span>) {    <span class="cm">// ETX prüfen</span>
+        <span class="kw">if</span> (checkValue == <span class="meth">calcCheckChar</span>(data)) {
+            response = <span class="kw">new</span> <span class="type">String</span>(data);
+        }
+        <span class="cm">// Prüfzeichen falsch → response bleibt ""</span>
+    }
+    <span class="kw">return</span> response;  <span class="cm">// "" = Fehlerfall</span>
+}</div></div>
+      <div style="display:none"><div class="ex-panel-body"><span class="kw">public string</span> <span class="meth">readCard</span>() {
+    <span class="kw">string</span> response = <span class="str">""</span>;
+    <span class="kw">char</span> checkValue;
+    <span class="kw">char</span>[] data = <span class="kw">new char</span>[<span class="ph">[→ MATERIAL: Anzahl Datenbytes, z.B. 6 oder 7]</span>];
+
+    <span class="hi">while (readChar() != 0x02);</span>  <span class="cm">// warte auf STX</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; data.<span class="meth">Length</span>; i++) {
+        data[i] = <span class="meth">readChar</span>();    <span class="cm">// Datenbytes lesen</span>
+    }
+
+    <span class="hi">checkValue = <span class="meth">readChar</span>();</span>     <span class="cm">// Prüfzeichen lesen</span>
+
+    <span class="kw">if</span> (<span class="meth">readChar</span>() == <span class="hi">0x03</span>) {    <span class="cm">// ETX prüfen</span>
+        <span class="kw">if</span> (checkValue == <span class="meth">calcCheckChar</span>(data)) {
+            response = <span class="kw">new string</span>(data);
+        }
+        <span class="cm">// Prüfzeichen falsch → response bleibt ""</span>
+    }
+    <span class="kw">return</span> response;  <span class="cm">// "" = Fehlerfall</span>
+}</div></div>
+    </div>
+
+    <div class="note warn">
+      <strong>Variation 2025 B:</strong> Dort wird <code>response</code> direkt als <code>String</code> aufgebaut statt als <code>char[]</code> — die Logik (warte auf STX, lies Daten, lies Prüfzeichen, prüfe ETX) ist identisch. Beide Varianten sind akzeptiert.
+    </div>
+  </div>
+
+  <!-- ══ SECTION 8: CONTROLLER run() ═════════════════════════════════════ -->
+  <div class="section">
+    <h2>8 · Controller <code>run()</code> — FunkModul + RFID</h2>
+    <div class="section-desc">Taucht in ABI 2021 A und ABI 2025 B nahezu identisch auf. Struktogramm direkt übersetzen.</div>
+
+    <div class="note warn">
+      <strong>Der genaue Ablauf steht im Struktogramm (Material X).</strong> Ohne das Struktogramm kann man den Methodenkörper nicht vollständig implementieren. Das Grundgerüst des Konstruktors und der äußeren Schleife ist jedoch konstant.
+    </div>
+
+    <div class="ex-panel cstoggle-wrap">
+      <div class="ex-panel-title">Controller — Konstruktor-Muster (konstant über alle Jahre)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Controller</span> {
+    <span class="kw">private</span> <span class="type">FunkModul</span> funkModul;
+    <span class="kw">private</span> <span class="type">RFIDReader</span> reader;
+    <span class="kw">private</span> <span class="ph">[→ DIAGRAM: weiteres Attribut, z.B. Fahrzeug/Durchgang]</span>;
+
+    <span class="kw">public</span> <span class="type">Controller</span>(<span class="type">String</span> comPort, <span class="ph">[→ DIAGRAM: Typ name]</span>) {
+        <span class="hi">funkModul = new <span class="type">FunkModul</span>();</span>
+        <span class="hi">this.<span class="ph">[attribut]</span> = <span class="ph">[parameter]</span>;</span>
+        <span class="type">Serial</span> serial = <span class="kw">new</span> <span class="type">Serial</span>(comPort, <span class="num">9600</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">0</span>);
+        <span class="kw">if</span> (serial.<span class="meth">open</span>()) {
+            <span class="hi">reader = new <span class="type">RFIDReader</span>(serial);</span>
+        }
+    }
+
+    <span class="kw">public void</span> <span class="meth">run</span>() {
+        <span class="kw">char</span> response;
+        <span class="type">String</span> rfidKennung;
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="kw">if</span> (reader.<span class="meth">isCardAvailable</span>()) {
+                rfidKennung = reader.<span class="meth">readCard</span>();
+                <span class="kw">if</span> (!rfidKennung.<span class="meth">isEmpty</span>()) {
+                    <span class="cm">// UNLOCK-Kommando + FunkModul senden</span>
+                    funkModul.<span class="meth">send</span>(<span class="str">"UNLOCK"</span> + <span class="ph">[→ STRUKTOGRAMM: Felder]</span>);
+                    response = funkModul.<span class="meth">receive</span>();
+                    <span class="kw">if</span> (response == <span class="num">0x06</span>) {  <span class="cm">// ACK</span>
+                        <span class="ph">[→ STRUKTOGRAMM: Entsperr-Logik + Timer]</span>
+                    } <span class="kw">else</span> {
+                        <span class="meth">display</span>(<span class="str">"Karte nicht authorisiert"</span>);
+                    }
+                } <span class="kw">else</span> {
+                    <span class="meth">display</span>(<span class="str">"Karte nicht lesbar"</span>);
+                }
+            }
+        }
+    }
+}</div></div>
+      <div style="display:none"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Controller</span> {
+    <span class="kw">private</span> <span class="type">FunkModul</span> funkModul;
+    <span class="kw">private</span> <span class="type">RFIDReader</span> reader;
+    <span class="kw">private</span> <span class="ph">[→ DIAGRAM: weiteres Attribut, z.B. Fahrzeug/Durchgang]</span>;
+
+    <span class="kw">public</span> <span class="type">Controller</span>(<span class="kw">string</span> comPort, <span class="ph">[→ DIAGRAM: Typ name]</span>) {
+        <span class="hi">funkModul = new <span class="type">FunkModul</span>();</span>
+        <span class="hi">this.<span class="ph">[attribut]</span> = <span class="ph">[parameter]</span>;</span>
+        <span class="type">Serial</span> serial = <span class="kw">new</span> <span class="type">Serial</span>(comPort, <span class="num">9600</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">0</span>);
+        <span class="kw">if</span> (serial.<span class="meth">open</span>()) {
+            <span class="hi">reader = new <span class="type">RFIDReader</span>(serial);</span>
+        }
+    }
+
+    <span class="kw">public void</span> <span class="meth">run</span>() {
+        <span class="kw">char</span> response;
+        <span class="kw">string</span> rfidKennung;
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="kw">if</span> (reader.<span class="meth">isCardAvailable</span>()) {
+                rfidKennung = reader.<span class="meth">readCard</span>();
+                <span class="kw">if</span> (!rfidKennung.<span class="meth">isEmpty</span>()) {
+                    <span class="cm">// UNLOCK-Kommando + FunkModul senden</span>
+                    funkModul.<span class="meth">send</span>(<span class="str">"UNLOCK"</span> + <span class="ph">[→ STRUKTOGRAMM: Felder]</span>);
+                    response = funkModul.<span class="meth">receive</span>();
+                    <span class="kw">if</span> (response == <span class="num">0x06</span>) {  <span class="cm">// ACK</span>
+                        <span class="ph">[→ STRUKTOGRAMM: Entsperr-Logik + Timer]</span>
+                    } <span class="kw">else</span> {
+                        <span class="meth">display</span>(<span class="str">"Karte nicht authorisiert"</span>);
+                    }
+                } <span class="kw">else</span> {
+                    <span class="meth">display</span>(<span class="str">"Karte nicht lesbar"</span>);
+                }
+            }
+        }
+    }
+}</div></div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 9: CLIENT/SERVER ═════════════════════════════════════════ -->
+  <div class="section">
+    <h2>9 · Client/Server — Protokoll-basierte Implementierung</h2>
+    <div class="section-desc">Taucht in fast jedem Jahr auf. Das Sitzungsprotokoll steht immer im Aufgabentext — daraus wird der Code direkt abgeleitet.</div>
+
+    <h3><span class="h3-num">9.1</span> Server-Grundgerüst</h3>
+    <div class="rule-card green">
+      <div class="rule-title">Server = ServerSocket + while(true) + accept()</div>
+      <div class="rule-body">
+        Die äußere Endlosschleife mit <code>serverSocket.accept()</code> ist in <strong>jedem</strong> Server-Beispiel gleich.
+        Was sich ändert: die Protokoll-Verarbeitung im Inneren.
+      </div>
+    </div>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public class</span> <span class="type">MeinServer</span> {
+    <span class="kw">private</span> <span class="type">ServerSocket</span> server;
+    <span class="kw">private</span> <span class="ph">[→ DIAGRAM: Verwaltungs-Objekt]</span> verwaltung;
+
+    <span class="kw">public</span> <span class="type">MeinServer</span>(<span class="kw">int</span> port, <span class="ph">[→ DIAGRAM]</span> verwaltung) {
+        <span class="hi">this.server = new <span class="type">ServerSocket</span>(port);</span>
+        <span class="hi">this.verwaltung = verwaltung;</span>
+    }
+
+    <span class="kw">public void</span> <span class="meth">startServer</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="hi"><span class="type">Socket</span> sc = server.<span class="meth">accept</span>();</span>
+            <span class="cm">// Begrüßung senden (steht im Protokoll im Aufgabentext)</span>
+            sc.<span class="meth">write</span>(<span class="str">"+OK …\n"</span>);
+            <span class="type">String</span> anforderung = sc.<span class="meth">readLine</span>();
+            <span class="kw">while</span> (!anforderung.<span class="meth">equals</span>(<span class="str">"quit"</span>)) {
+                <span class="cm">// Kommando verarbeiten</span>
+                <span class="type">String</span>[] werte = anforderung.<span class="meth">split</span>(<span class="str">";"</span>);
+                <span class="kw">switch</span> (werte[<span class="num">0</span>]) {
+                    <span class="kw">case</span> <span class="str">"<span class="ph">[KOMMANDO1]</span>"</span>: <span class="ph">…</span>; <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="str">"<span class="ph">[KOMMANDO2]</span>"</span>: <span class="ph">…</span>; <span class="kw">break</span>;
+                }
+                anforderung = sc.<span class="meth">readLine</span>();
+            }
+            sc.<span class="meth">close</span>();
+        }
+    }
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public class</span> <span class="type">MeinServer</span> {
+    <span class="kw">private</span> <span class="type">ServerSocket</span> server;
+    <span class="kw">private</span> <span class="ph">[→ DIAGRAM: Verwaltungs-Objekt]</span> verwaltung;
+
+    <span class="kw">public</span> <span class="type">MeinServer</span>(<span class="kw">int</span> port, <span class="ph">[→ DIAGRAM]</span> verwaltung) {
+        <span class="hi">this.server = new <span class="type">ServerSocket</span>(port);</span>
+        <span class="hi">this.verwaltung = verwaltung;</span>
+    }
+
+    <span class="kw">public void</span> <span class="meth">startServer</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="hi"><span class="type">Socket</span> sc = server.<span class="meth">accept</span>();</span>
+            <span class="cm">// Begrüßung senden (steht im Protokoll im Aufgabentext)</span>
+            sc.<span class="meth">write</span>(<span class="str">"+OK …\n"</span>);
+            <span class="kw">string</span> anforderung = sc.<span class="meth">readLine</span>();
+            <span class="kw">while</span> (anforderung != <span class="str">"quit"</span>) {
+                <span class="cm">// Kommando verarbeiten</span>
+                <span class="kw">string</span>[] werte = anforderung.<span class="meth">Split</span>(<span class="str">';'</span>);
+                <span class="kw">switch</span> (werte[<span class="num">0</span>]) {
+                    <span class="kw">case</span> <span class="str">"<span class="ph">[KOMMANDO1]</span>"</span>: <span class="ph">…</span>; <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="str">"<span class="ph">[KOMMANDO2]</span>"</span>: <span class="ph">…</span>; <span class="kw">break</span>;
+                }
+                anforderung = sc.<span class="meth">readLine</span>();
+            }
+            sc.<span class="meth">close</span>();
+        }
+    }
+}</div></div>
+</div>
+
+    <h3><span class="h3-num">9.2</span> Protokoll-Parsing — Wie man Kommandos erkennt</h3>
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Protokoll-Zeichen im Text</th><th>Bedeutung im Code</th></tr></thead>
+        <tbody>
+          <tr><td><code>&gt; +OK …</code></td><td>Server sendet: <code>sc.write("+OK …\n")</code></td></tr>
+          <tr><td><code>&gt; -ERR …</code></td><td>Server sendet: <code>sc.write("-ERR …\n")</code></td></tr>
+          <tr><td><code>&lt; kommando;wert1;wert2</code></td><td>Client sendet, Server liest: <code>sc.readLine()</code> → split(";") → werte[0] = "kommando"</td></tr>
+          <tr><td><code>&lt; quit</code></td><td>Schleifenabbruch: <code>while (!anforderung.equals("quit"))</code></td></tr>
+          <tr><td>Antwort beginnt mit <code>+OK</code></td><td>Prüfung: <code>antwort.startsWith("+OK")</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span class="h3-num">9.3</span> String → Zahlen umwandeln</h3>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Steht häufig als Hinweis im Aufgabentext:</span>
+<span class="kw">int</span>    i = <span class="type">Integer</span>.<span class="meth">parseInt</span>(werte[<span class="num">1</span>]);
+<span class="kw">double</span> d = <span class="type">Double</span>.<span class="meth">parseDouble</span>(werte[<span class="num">2</span>]);
+<span class="type">Date</span>   dt = <span class="type">Date</span>.<span class="meth">parseDate</span>(werte[<span class="num">3</span>]);  <span class="cm">// wenn Date-Klasse vorhanden</span></div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Steht häufig als Hinweis im Aufgabentext:</span>
+<span class="kw">int</span>    i = <span class="kw">int</span>.<span class="meth">Parse</span>(werte[<span class="num">1</span>]);
+<span class="kw">double</span> d = <span class="kw">double</span>.<span class="meth">Parse</span>(werte[<span class="num">2</span>]);
+<span class="type">Date</span>   dt = <span class="type">Date</span>.<span class="meth">parseDate</span>(werte[<span class="num">3</span>]);  <span class="cm">// wenn Date-Klasse vorhanden</span></div></div>
+</div>
+
+    <h3><span class="h3-num">9.4</span> Anmelden-Methode — Klassiker</h3>
+<div class="cstoggle-wrap">
+  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Muster: gib Objekt zurück wenn Credentials stimmen, sonst null</span>
+<span class="kw">public</span> <span class="type">Konto</span> anmelden(<span class="type">String</span> iban, <span class="kw">int</span> pin) {
+    <span class="kw">for</span> (<span class="type">Konto</span> k : konten) {
+        <span class="kw">if</span> (k.<span class="meth">getIban</span>().<span class="meth">equals</span>(iban) &amp;&amp; k.<span class="meth">login</span>(pin)) {
+            <span class="kw">return</span> k;
+        }
+    }
+    <span class="kw">return null</span>;
+}</div></div>
+  <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Muster: gib Objekt zurück wenn Credentials stimmen, sonst null</span>
+<span class="kw">public</span> <span class="type">Konto</span> anmelden(<span class="kw">string</span> iban, <span class="kw">int</span> pin) {
+    <span class="kw">foreach</span> (<span class="type">Konto</span> k <span class="kw">in</span> konten) {
+        <span class="kw">if</span> (k.<span class="meth">getIban</span>() == iban &amp;&amp; k.<span class="meth">login</span>(pin)) {
+            <span class="kw">return</span> k;
+        }
+    }
+    <span class="kw">return null</span>;
+}</div></div>
+</div>
+  </div>
+
+  <!-- ══ SECTION 10: KONSTRUKTOR-SEITENEFFEKTE ════════════════════════════ -->
+  <div class="section">
+    <h2>10 · Konstruktor-Seiteneffekte</h2>
+    <div class="section-desc">Manchmal fügt ein Konstruktor das neue Objekt selbst zu einer anderen Klasse hinzu — oder erstellt ein abhängiges Objekt automatisch.</div>
+
+    <div class="note warn">
+      <strong>Erkennungsmerkmal im Aufgabentext:</strong> Formulierungen wie<br>
+      — „<em>Der Konstruktor setzt die aktuelle Zeit als Startzeit.</em>"<br>
+      — „<em>Ein Behandlungsplan wird bei Aufnahme eines Patienten erstellt.</em>"<br>
+      — „<em>Beim Abonnieren wird die bidirektionale Beziehung vollständig implementiert.</em>"
+    </div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr><th>Jahr</th><th>Klasse</th><th>Seiteneffekt im Konstruktor</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>2020 A</td>
+            <td><code>Ticket</code></td>
+            <td><code>this.kunde.hinzufuegenTicket(this);</code><br><small>Ticket fügt sich selbst beim Kunden hinzu</small></td>
+          </tr>
+          <tr>
+            <td>2021 A</td>
+            <td><code>Lieferauftrag</code></td>
+            <td><code>this.start = new DateTime();</code><br><small>Aktuelle Zeit wird automatisch als Start gesetzt</small></td>
+          </tr>
+          <tr>
+            <td>2024 A</td>
+            <td><code>Teilnahme</code></td>
+            <td><code>chor.getTeilnahmen().add(index, this);</code><br><small>Sortiertes Einfügen direkt im Konstruktor</small></td>
+          </tr>
+          <tr>
+            <td>2025 A</td>
+            <td><code>Patient</code></td>
+            <td><code>this.abteilung.aufnehmenPatient(this);</code> und <code>this.behandlungsplan = new Behandlungsplan(this);</code><br><small>Patient meldet sich selbst bei der Abteilung an + erstellt eigenen Behandlungsplan</small></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rule-card yellow">
+      <div class="rule-title">Wann Seiteneffekte auftreten — Checkliste</div>
+      <div class="rule-body">
+        ✓ Aufgabentext beschreibt was „bei Erzeugung" passiert<br>
+        ✓ Aufgabentext erwähnt, dass eine andere Liste/Objekt aktualisiert wird<br>
+        ✓ Eine Assoziation im Klassendiagramm deutet auf eine bidirektionale Beziehung hin<br>
+        ✗ Fehlt dieser Hinweis → <strong>kein</strong> Seiteneffekt einbauen
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 11: SINGLETON ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>11 · Singleton-Entwurfsmuster</h2>
+    <div class="section-desc">Taucht selten auf, aber wenn, dann immer in identischer Form (ABI 2020 A). Auswendig lernbar.</div>
+
+    <div class="note tip">
+      <strong>Erkennungsmerkmal:</strong> Text enthält explizit „<em>von einer Klasse genau ein Objekt</em>", „<em>Singleton</em>", oder „<em>getInstance()</em>".
+    </div>
+
+    <div class="ex-panel cstoggle-wrap">
+      <div class="ex-panel-title">Singleton-Muster — vollständig<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Wissensdatenbank</span> {
+    <span class="cm">// Bestehende Attribute und Methoden bleiben erhalten</span>
+    <span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Loesung</span>&gt; loesungen;
+
+    <span class="cm">// Singleton-Ergänzungen:</span>
+    <span class="hi"><span class="kw">private static</span> <span class="type">Wissensdatenbank</span> instance = <span class="kw">null</span>;</span>
+
+    <span class="hi"><span class="kw">private</span> <span class="type">Wissensdatenbank</span>() {</span> <span class="cm">// privater Konstruktor</span>
+<span class="hi">        loesungen = <span class="kw">new</span> <span class="type">List</span>&lt;&gt;();</span>
+<span class="hi">    }</span>
+
+    <span class="hi"><span class="kw">public static</span> <span class="type">Wissensdatenbank</span> <span class="meth">getInstance</span>() {</span>
+<span class="hi">        <span class="kw">if</span> (instance == <span class="kw">null</span>) {</span>
+<span class="hi">            instance = <span class="kw">new</span> <span class="type">Wissensdatenbank</span>();</span>
+<span class="hi">        }</span>
+<span class="hi">        <span class="kw">return</span> instance;</span>
+<span class="hi">    }</span>
+
+    <span class="cm">// ... restliche Methoden</span>
+}</div></div>
+      <div style="display:none"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Wissensdatenbank</span> {
+    <span class="cm">// Bestehende Attribute und Methoden bleiben erhalten</span>
+    <span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Loesung</span>&gt; loesungen;
+
+    <span class="cm">// Singleton-Ergänzungen:</span>
+    <span class="hi"><span class="kw">private static</span> <span class="type">Wissensdatenbank</span> instance = <span class="kw">null</span>;</span>
+
+    <span class="hi"><span class="kw">private</span> <span class="type">Wissensdatenbank</span>() {</span> <span class="cm">// privater Konstruktor</span>
+<span class="hi">        loesungen = <span class="kw">new</span> <span class="type">List</span>&lt;<span class="type">Loesung</span>&gt;();</span>  <span class="cm">// Typ angeben, kein &lt;&gt; in C#</span>
+<span class="hi">    }</span>
+
+    <span class="hi"><span class="kw">public static</span> <span class="type">Wissensdatenbank</span> <span class="meth">getInstance</span>() {</span>
+<span class="hi">        <span class="kw">if</span> (instance == <span class="kw">null</span>) {</span>
+<span class="hi">            instance = <span class="kw">new</span> <span class="type">Wissensdatenbank</span>();</span>
+<span class="hi">        }</span>
+<span class="hi">        <span class="kw">return</span> instance;</span>
+<span class="hi">    }</span>
+
+    <span class="cm">// ... restliche Methoden</span>
+}</div></div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 12: BINÄRE SUCHE ═════════════════════════════════════════ -->
+  <div class="section">
+    <h2>12 · Binäre Suche</h2>
+    <div class="section-desc">ABI 2024 B. Erkennungsmerkmal: „Liste ist sortiert" + „binäre Suche" oder „Laufzeit optimieren".</div>
+
+    <div class="ex-panel cstoggle-wrap">
+      <div class="ex-panel-title">Binäre Suche — vollständiges Muster (aus ABI 2024 B)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">Ticket</span> <span class="meth">sucheTicket</span>(<span class="type">String</span> ticketNummer) {
+    <span class="kw">if</span> (tickets.<span class="meth">isEmpty</span>()) <span class="kw">return null</span>;
+
+    <span class="kw">int</span> low = <span class="num">0</span>;
+    <span class="kw">int</span> max = tickets.<span class="meth">size</span>() - <span class="num">1</span>;  <span class="cm">// Achtung: size()-1, nicht size()</span>
+
+    <span class="kw">while</span> (low != max) {
+        <span class="kw">int</span> pointer = (low + max) / <span class="num">2</span>;
+        <span class="kw">if</span> (ticketNummer.<span class="meth">equals</span>(tickets.<span class="meth">get</span>(pointer).<span class="meth">getTicketnummer</span>())) {
+            <span class="kw">return</span> tickets.<span class="meth">get</span>(pointer);
+        }
+        <span class="kw">if</span> (ticketNummer.<span class="meth">compareTo</span>(tickets.<span class="meth">get</span>(pointer).<span class="meth">getTicketnummer</span>()) &gt; <span class="num">0</span>) {
+            low = pointer + <span class="num">1</span>;     <span class="cm">// gesuchtes liegt rechts</span>
+        } <span class="kw">else</span> {
+            max = pointer - <span class="num">1</span>;     <span class="cm">// gesuchtes liegt links</span>
+        }
+    }
+    <span class="kw">return null</span>;
+}</div></div>
+      <div style="display:none"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">Ticket</span> <span class="meth">sucheTicket</span>(<span class="kw">string</span> ticketNummer) {
+    <span class="kw">if</span> (tickets.<span class="meth">IsEmpty</span>()) <span class="kw">return null</span>;
+
+    <span class="kw">int</span> low = <span class="num">0</span>;
+    <span class="kw">int</span> max = tickets.<span class="meth">Count</span>() - <span class="num">1</span>;  <span class="cm">// Achtung: Count()-1, nicht Count()</span>
+
+    <span class="kw">while</span> (low != max) {
+        <span class="kw">int</span> pointer = (low + max) / <span class="num">2</span>;
+        <span class="kw">if</span> (ticketNummer == tickets[pointer].<span class="meth">getTicketnummer</span>()) {
+            <span class="kw">return</span> tickets[pointer];
+        }
+        <span class="kw">if</span> (<span class="type">string</span>.<span class="meth">Compare</span>(ticketNummer, tickets[pointer].<span class="meth">getTicketnummer</span>()) &gt; <span class="num">0</span>) {
+            low = pointer + <span class="num">1</span>;     <span class="cm">// gesuchtes liegt rechts</span>
+        } <span class="kw">else</span> {
+            max = pointer - <span class="num">1</span>;     <span class="cm">// gesuchtes liegt links</span>
+        }
+    }
+    <span class="kw">return null</span>;
+}</div></div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 13: DOPPELTE VERKETTUNG ═══════════════════════════════════ -->
+  <div class="section">
+    <h2>13 · Doppelt verkettete Liste (manuelle Implementierung)</h2>
+    <div class="section-desc">ABI 2022 C (Bike) und ABI 2022 B (Buchungen als verkettete Liste). Erkennungsmerkmal: „Demontage in umgekehrter Reihenfolge" / „naechste + vorherige".</div>
+
+    <div class="note">
+      <strong>Unterschied zur Standard-<code>List&lt;T&gt;</code>:</strong> Hier hat jedes Objekt selbst Zeiger auf das nächste/vorherige Objekt (<code>naechste</code>, <code>vorherige</code>) — wie eine klassische Linked List. Die <code>List&lt;T&gt;</code>-Klasse des Abiturs wird <strong>nicht</strong> verwendet.
+    </div>
+
+    <div class="code-block"><span class="cm">// Klasse mit Zeigern auf Vorgänger und Nachfolger</span>
+<span class="kw">public abstract class</span> <span class="type">Komponente</span> {
+    <span class="kw">private</span> <span class="type">Komponente</span> naechste;    <span class="cm">// → Nachfolger</span>
+    <span class="kw">private</span> <span class="type">Komponente</span> vorherige;   <span class="cm">// → Vorgänger</span>
+    <span class="cm">// ...</span>
+}
+
+<span class="cm">// Hinten anfügen (Bike-Konstruktor):</span>
+letzteKomp.<span class="meth">setNaechste</span>(komp);
+komp.<span class="meth">setVorherige</span>(letzteKomp);
+letzteKomp = komp;
+
+<span class="cm">// Rückwärts traversieren (von letzter zu erster):</span>
+<span class="type">Komponente</span> aktuell = letzteKomp;
+<span class="kw">while</span> (aktuell != <span class="kw">null</span>) {
+    <span class="cm">// verarbeite aktuell</span>
+    aktuell = aktuell.<span class="meth">getVorherige</span>();
+}</div>
+  </div>
+
+  <!-- ══ SECTION 14: SCHNELL-REFERENZ ═════════════════════════════════════ -->
+  <div class="section">
+    <h2>14 · Schnell-Referenz: Schlüsselwörter → Muster</h2>
+    <div class="section-desc">Erkenne am Aufgabentext sofort, welches Muster gefragt ist.</div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead>
+          <tr>
+            <th>Schlüsselwort / Phrase im Aufgabentext</th>
+            <th>→ Muster / Sektion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>„Überführen Sie … und implementieren Sie"</td><td>→ Klasse überführen (<strong>Sektion 2</strong>), Autowert prüfen (<strong>Sektion 3</strong>)</td></tr>
+          <tr><td>„<code><u>autowert : int = 0</u></code>" (unterstrichen, im Diagramm)</td><td>→ <code>++autowert</code> (<strong>Sektion 3</strong>)</td></tr>
+          <tr><td>„<code><u>autowert : int = 1</u></code>" (unterstrichen, im Diagramm)</td><td>→ <code>autowert++</code> (<strong>Sektion 3</strong>)</td></tr>
+          <tr><td>Liste als Attribut vorhanden</td><td>→ <code>new List&lt;&gt;()</code> im Konstruktor (<strong>Sektion 4</strong>)</td></tr>
+          <tr><td>„Liste ist … sortiert zu halten" / „einfuegen()"</td><td>→ Sortiertes Einfügen (<strong>Sektion 4.3</strong>)</td></tr>
+          <tr><td>Klasse in <em>kursiv</em> im Diagramm / <code>&lt;&lt;abstract&gt;&gt;</code></td><td>→ <code>abstract class</code> + <code>abstract</code>-Methoden (<strong>Sektion 5</strong>)</td></tr>
+          <tr><td>„extends" / Vererbung sichtbar im Diagramm</td><td>→ <code>super(…)</code> als erste Konstruktorzeile (<strong>Sektion 5.1</strong>)</td></tr>
+          <tr><td>„prüfen ob Person ein Kunden-Objekt ist"</td><td>→ <code>instanceof</code> + Cast (<strong>Sektion 5.2</strong>)</td></tr>
+          <tr><td><code>Serial</code>, Baudrate, Datenbits, Stoppbits, Parität</td><td>→ <code>new Serial(port, baud, 8, 1, 0)</code> (<strong>Sektion 6</strong>)</td></tr>
+          <tr><td><code>RFIDReader</code>, <code>readCard()</code>, Prüfzeichen, <code>calcCheckChar()</code></td><td>→ STX/ETX-Muster (<strong>Sektion 7</strong>)</td></tr>
+          <tr><td><code>FunkModul</code>, Struktogramm in Material X, <code>Controller</code></td><td>→ Controller run()-Muster (<strong>Sektion 8</strong>)</td></tr>
+          <tr><td>Sitzungsprotokoll im Aufgabentext (<code>&gt; +OK</code>, <code>&lt; kommando</code>)</td><td>→ Client/Server (<strong>Sektion 9</strong>)</td></tr>
+          <tr><td>„bei Erzeugung wird …" / „bei Aufnahme wird erstellt"</td><td>→ Konstruktor-Seiteneffekt (<strong>Sektion 10</strong>)</td></tr>
+          <tr><td>„von einer Klasse genau ein Objekt" / „Singleton"</td><td>→ Singleton-Muster (<strong>Sektion 11</strong>)</td></tr>
+          <tr><td>„Liste ist sortiert" + „Laufzeit optimieren" / „binäre Suche"</td><td>→ Binäre Suche (<strong>Sektion 12</strong>)</td></tr>
+          <tr><td>„Demontage in umgekehrter Reihenfolge" / „naechste + vorherige"</td><td>→ Doppelt verkettete Liste (<strong>Sektion 13</strong>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<footer>
+  Datengrundlage: Offizielle Prüfungsvorschläge des hessischen Landesabiturs im Fach Praktische Informatik (Java), Jahrgänge 2016–2025 · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">23 Vorschläge aus 10 Jahrgängen</a> (Roh: <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/pi-abi-oop-coding.txt">1</a>)
+</footer>
+
+</div>
+<script>
+function toggleLang(btn) {
+  var wrap = btn.closest('.cstoggle-wrap');
+  var java = wrap.querySelector('.cstoggle-java');
+  var cs   = java.nextElementSibling;
+  var showingCs = java.style.display === 'none';
+  if (showingCs) {
+    cs.style.display   = 'none';
+    java.style.display = '';
+    btn.textContent    = 'C# anzeigen';
+    btn.classList.remove('cs-active');
+  } else {
+    java.style.display = 'none';
+    cs.style.display   = '';
+    btn.textContent    = 'Java anzeigen';
+    btn.classList.add('cs-active');
+  }
+}
+</script>
+</body>
+</html>

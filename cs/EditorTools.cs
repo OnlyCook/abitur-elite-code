@@ -1,4 +1,11 @@
-﻿using Avalonia;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Xml;
+using AbiturEliteCode.cs.MainWindow;
+using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
@@ -9,1218 +16,1313 @@ using AvaloniaEdit.Rendering;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Xml;
 
-namespace AbiturEliteCode
+namespace AbiturEliteCode;
+
+public class ConsoleRedirectionWriter : StringWriter
 {
-    public class ConsoleRedirectionWriter : StringWriter
-    {
-        private Action<string> _onWrite;
-        public ConsoleRedirectionWriter(Action<string> onWrite)
-        {
-            _onWrite = onWrite;
-        }
+    private readonly Action<string> _onWrite;
 
-        public override void Write(string value) => _onWrite?.Invoke(value);
-        public override void WriteLine(string value) => _onWrite?.Invoke(value + "\n");
-        public override void Write(char value) => _onWrite?.Invoke(value.ToString());
-        public override void Write(char[] buffer, int index, int count) => _onWrite?.Invoke(new string(buffer, index, count));
+    public ConsoleRedirectionWriter(Action<string> onWrite)
+    {
+        _onWrite = onWrite;
     }
 
-    public class TextMarkerService : IBackgroundRenderer
+    public override void Write(string value)
     {
-        private readonly TextEditor _editor;
-        private readonly TextSegmentCollection<TextMarker> _markers;
+        _onWrite?.Invoke(value);
+    }
 
-        public TextMarkerService(TextEditor editor)
+    public override void WriteLine(string value)
+    {
+        _onWrite?.Invoke(value + "\n");
+    }
+
+    public override void Write(char value)
+    {
+        _onWrite?.Invoke(value.ToString());
+    }
+
+    public override void Write(char[] buffer, int index, int count)
+    {
+        _onWrite?.Invoke(new string(buffer, index, count));
+    }
+}
+
+public class TextMarkerService : IBackgroundRenderer
+{
+    private readonly TextEditor _editor;
+    private readonly TextSegmentCollection<TextMarker> _markers;
+
+    public TextMarkerService(TextEditor editor)
+    {
+        _editor = editor;
+        _markers = new TextSegmentCollection<TextMarker>(editor.Document);
+    }
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
+    {
+        if (_markers == null || !textView.VisualLinesValid) return;
+
+        foreach (VisualLine line in textView.VisualLines)
+        foreach (TextMarker marker in _markers.FindOverlappingSegments(line.FirstDocumentLine.Offset,
+                     line.LastDocumentLine.EndOffset))
+        foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, marker))
         {
-            _editor = editor;
-            _markers = new TextSegmentCollection<TextMarker>(editor.Document);
-        }
+            var startPoint = rect.BottomLeft;
+            var endPoint = rect.BottomRight;
 
-        public TextMarker GetMarkerAtOffset(int offset)
-        {
-            if (_markers == null) return null;
-            return _markers.FindSegmentsContaining(offset).FirstOrDefault();
-        }
+            var pen = new Pen(new SolidColorBrush(marker.MarkerColor));
 
-        public void Draw(TextView textView, DrawingContext drawingContext)
-        {
-            if (_markers == null || !textView.VisualLinesValid) return;
-
-            foreach (VisualLine line in textView.VisualLines)
+            // draw swirly line
+            var geometry = new StreamGeometry();
+            using (var ctx = geometry.Open())
             {
-                foreach (TextMarker marker in _markers.FindOverlappingSegments(line.FirstDocumentLine.Offset, line.LastDocumentLine.EndOffset))
+                ctx.BeginFigure(startPoint, false);
+                double x = startPoint.X;
+                double y = startPoint.Y;
+                double squiggleHeight = 2.5;
+
+                while (x < endPoint.X)
                 {
-                    foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, marker))
-                    {
-                        var startPoint = rect.BottomLeft;
-                        var endPoint = rect.BottomRight;
-
-                        var pen = new Pen(new SolidColorBrush(marker.MarkerColor), 1);
-
-                        // draw swirly line
-                        var geometry = new StreamGeometry();
-                        using (var ctx = geometry.Open())
-                        {
-                            ctx.BeginFigure(startPoint, false);
-                            double x = startPoint.X;
-                            double y = startPoint.Y;
-                            double squiggleHeight = 2.5;
-
-                            while (x < endPoint.X)
-                            {
-                                x += 2;
-                                ctx.LineTo(new Point(x, y - squiggleHeight));
-                                x += 2;
-                                ctx.LineTo(new Point(x, y));
-                            }
-                        }
-                        drawingContext.DrawGeometry(null, pen, geometry);
-                    }
+                    x += 2;
+                    ctx.LineTo(new Point(x, y - squiggleHeight));
+                    x += 2;
+                    ctx.LineTo(new Point(x, y));
                 }
             }
-        }
 
-        public KnownLayer Layer => KnownLayer.Selection;
-
-        public void Add(int offset, int length, Color color, string message = null)
-        {
-            _markers.Add(new TextMarker(offset, length) { MarkerColor = color, Message = message });
-        }
-
-        public void Clear()
-        {
-            var oldMarkers = _markers.ToList();
-            foreach (var m in oldMarkers) _markers.Remove(m);
-        }
-
-        public class TextMarker : TextSegment
-        {
-            public TextMarker(int startOffset, int length)
-            {
-                StartOffset = startOffset;
-                Length = length;
-            }
-            public Color MarkerColor { get; set; }
-            public string Message { get; set; }
+            drawingContext.DrawGeometry(null, pen, geometry);
         }
     }
 
-    public class UnusedCodeTransformer : DocumentColorizingTransformer
+    public KnownLayer Layer => KnownLayer.Selection;
+
+    public TextMarker GetMarkerAtOffset(int offset)
     {
-        private readonly TextEditor _editor;
-        public TextSegmentCollection<TextSegment> UnusedSegments { get; private set; }
+        if (_markers == null) return null;
+        return _markers.FindSegmentsContaining(offset).FirstOrDefault();
+    }
 
-        public UnusedCodeTransformer(TextEditor editor)
+    public void Add(int offset, int length, Color color, string message = null)
+    {
+        _markers.Add(new TextMarker(offset, length) { MarkerColor = color, Message = message });
+    }
+
+    public void Clear()
+    {
+        var oldMarkers = _markers.ToList();
+        foreach (var m in oldMarkers) _markers.Remove(m);
+    }
+
+    public class TextMarker : TextSegment
+    {
+        public TextMarker(int startOffset, int length)
         {
-            _editor = editor;
-            UnusedSegments = new TextSegmentCollection<TextSegment>(editor.Document);
-
-            // handle document replacement just in case
-            _editor.DocumentChanged += (s, e) =>
-            {
-                if (_editor.Document != null)
-                    UnusedSegments = new TextSegmentCollection<TextSegment>(_editor.Document);
-            };
+            StartOffset = startOffset;
+            Length = length;
         }
 
-        protected override void ColorizeLine(DocumentLine line)
+        public Color MarkerColor { get; set; }
+        public string Message { get; set; }
+    }
+}
+
+public class UnusedCodeTransformer : DocumentColorizingTransformer
+{
+    private readonly TextEditor _editor;
+
+    public UnusedCodeTransformer(TextEditor editor)
+    {
+        _editor = editor;
+        UnusedSegments = new TextSegmentCollection<TextSegment>(editor.Document);
+
+        // handle document replacement just in case
+        _editor.DocumentChanged += (s, e) =>
         {
-            if (UnusedSegments == null || UnusedSegments.Count == 0) return;
+            if (_editor.Document != null)
+                UnusedSegments = new TextSegmentCollection<TextSegment>(_editor.Document);
+        };
+    }
 
-            int lineStart = line.Offset;
-            int lineEnd = lineStart + line.Length;
+    public TextSegmentCollection<TextSegment> UnusedSegments { get; private set; }
 
-            foreach (var segment in UnusedSegments.FindOverlappingSegments(lineStart, line.Length))
-            {
-                int start = Math.Max(lineStart, segment.StartOffset);
-                int end = Math.Min(lineEnd, segment.EndOffset);
+    protected override void ColorizeLine(DocumentLine line)
+    {
+        if (UnusedSegments == null || UnusedSegments.Count == 0) return;
 
-                ChangeLinePart(start, end, element =>
+        int lineStart = line.Offset;
+        int lineEnd = lineStart + line.Length;
+
+        foreach (var segment in UnusedSegments.FindOverlappingSegments(lineStart, line.Length))
+        {
+            int start = Math.Max(lineStart, segment.StartOffset);
+            int end = Math.Min(lineEnd, segment.EndOffset);
+
+            ChangeLinePart(start, end,
+                element =>
                 {
                     element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
                 });
-            }
         }
     }
+}
 
-    public class EscapeSequenceTransformer : DocumentColorizingTransformer
+public class EscapeSequenceTransformer : DocumentColorizingTransformer
+{
+    private static readonly Regex EscapePatternInString =
+        new(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|['\\\0abfnrtvN])", RegexOptions.Compiled);
+
+    private static readonly Regex EscapePatternInChar =
+        new(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|[""\\\0abfnrtvN])",
+            RegexOptions.Compiled);
+
+    private static readonly SolidColorBrush EscapeBrush = new(Color.Parse("#D7BA7D"));
+
+    protected override void ColorizeLine(DocumentLine line)
     {
-        private static readonly Regex EscapePatternInString = new Regex(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|['\\\0abfnrtvN])", RegexOptions.Compiled);
-        private static readonly Regex EscapePatternInChar = new Regex(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|[""\\\0abfnrtvN])", RegexOptions.Compiled);
+        string text = CurrentContext.Document.GetText(line);
+        if (string.IsNullOrEmpty(text)) return;
 
-        private static readonly SolidColorBrush EscapeBrush = new SolidColorBrush(Color.Parse("#D7BA7D"));
+        int lineStart = line.Offset;
 
-        protected override void ColorizeLine(DocumentLine line)
+        bool inLineComment = false;
+        bool inBlockComment = false;
+        bool inString = false;
+        bool inVerbatim = false; // @"..."
+        bool inChar = false;
+
+        for (int i = 0; i < text.Length; i++)
         {
-            string text = CurrentContext.Document.GetText(line);
-            if (string.IsNullOrEmpty(text)) return;
+            char c = text[i];
 
-            int lineStart = line.Offset;
-
-            bool inLineComment = false;
-            bool inBlockComment = false;
-            bool inString = false;
-            bool inVerbatim = false; // @"..."
-            bool inChar = false;
-
-            for (int i = 0; i < text.Length; i++)
+            // block comment
+            if (inBlockComment)
             {
-                char c = text[i];
-
-                // block comment
-                if (inBlockComment)
+                if (c == '*' && i + 1 < text.Length && text[i + 1] == '/')
                 {
-                    if (c == '*' && i + 1 < text.Length && text[i + 1] == '/')
-                    { inBlockComment = false; i++; }
+                    inBlockComment = false;
+                    i++;
+                }
+
+                continue;
+            }
+
+            // line comment
+            if (inLineComment) continue;
+
+            // inside a verbatim string: only "" is an escape
+            if (inVerbatim)
+            {
+                if (c == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"')
+                        i++; // "" → skip pair
+                    else
+                        inVerbatim = false;
+                }
+
+                continue; // no \ escapes in verbatim strings
+            }
+
+            // inside a regular string
+            if (inString)
+            {
+                if (c == '\\')
+                {
+                    // try to match an escape sequence starting at position i
+                    var m = EscapePatternInString.Match(text, i);
+                    if (m.Success && m.Index == i)
+                    {
+                        int absStart = lineStart + i;
+                        int absEnd = absStart + m.Length;
+                        ChangeLinePart(absStart, absEnd, el =>
+                            el.TextRunProperties.SetForegroundBrush(EscapeBrush));
+                        i += m.Length - 1;
+                    }
+                    else
+                    {
+                        i++; // skip the next char (unknown escape)
+                    }
+
                     continue;
                 }
 
-                // line comment
-                if (inLineComment) continue;
+                if (c == '"') inString = false;
+                continue;
+            }
 
-                // inside a verbatim string: only "" is an escape
-                if (inVerbatim)
+            // inside a char literal
+            if (inChar)
+            {
+                if (c == '\\')
                 {
-                    if (c == '"')
+                    var m = EscapePatternInChar.Match(text, i);
+                    if (m.Success && m.Index == i)
                     {
-                        if (i + 1 < text.Length && text[i + 1] == '"') { i++; } // "" → skip pair
-                        else { inVerbatim = false; }
+                        int absStart = lineStart + i;
+                        int absEnd = absStart + m.Length;
+                        ChangeLinePart(absStart, absEnd, el =>
+                            el.TextRunProperties.SetForegroundBrush(EscapeBrush));
+                        i += m.Length - 1;
                     }
-                    continue; // no \ escapes in verbatim strings
-                }
+                    else
+                    {
+                        i++;
+                    }
 
-                // inside a regular string
-                if (inString)
-                {
-                    if (c == '\\')
-                    {
-                        // try to match an escape sequence starting at position i
-                        var m = EscapePatternInString.Match(text, i);
-                        if (m.Success && m.Index == i)
-                        {
-                            int absStart = lineStart + i;
-                            int absEnd = absStart + m.Length;
-                            ChangeLinePart(absStart, absEnd, el =>
-                                el.TextRunProperties.SetForegroundBrush(EscapeBrush));
-                            i += m.Length - 1;
-                        }
-                        else
-                        {
-                            i++; // skip the next char (unknown escape)
-                        }
-                        continue;
-                    }
-                    if (c == '"') { inString = false; }
                     continue;
                 }
 
-                // inside a char literal
-                if (inChar)
+                if (c == '\'') inChar = false;
+                continue;
+            }
+
+            // not inside any literal
+            if (c == '/' && i + 1 < text.Length)
+            {
+                if (text[i + 1] == '/')
                 {
-                    if (c == '\\')
-                    {
-                        var m = EscapePatternInChar.Match(text, i);
-                        if (m.Success && m.Index == i)
-                        {
-                            int absStart = lineStart + i;
-                            int absEnd = absStart + m.Length;
-                            ChangeLinePart(absStart, absEnd, el =>
-                                el.TextRunProperties.SetForegroundBrush(EscapeBrush));
-                            i += m.Length - 1;
-                        }
-                        else { i++; }
-                        continue;
-                    }
-                    if (c == '\'') { inChar = false; }
+                    inLineComment = true;
+                    i++;
                     continue;
                 }
 
-                // not inside any literal
-                if (c == '/' && i + 1 < text.Length)
+                if (text[i + 1] == '*')
                 {
-                    if (text[i + 1] == '/') { inLineComment = true; i++; continue; }
-                    if (text[i + 1] == '*') { inBlockComment = true; i++; continue; }
+                    inBlockComment = true;
+                    i++;
+                    continue;
+                }
+            }
+
+            if (c == '@' && i + 1 < text.Length && text[i + 1] == '"')
+            {
+                inVerbatim = true;
+                i++;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (c == '\'') inChar = true;
+        }
+    }
+}
+
+public class GhostCharacterTransformer : DocumentColorizingTransformer
+{
+    private readonly TextEditor _editor;
+
+    public GhostCharacterTransformer(TextEditor editor)
+    {
+        _editor = editor;
+    }
+
+    protected override void ColorizeLine(DocumentLine line)
+    {
+        int offset = _editor.CaretOffset;
+
+        // only check if caret is on this line and not at the very end of document
+        if (offset >= line.Offset && offset < line.EndOffset)
+        {
+            char nextChar = _editor.Document.GetCharAt(offset);
+
+            // check for closing pairs
+            if (nextChar == ')' || nextChar == '}' || nextChar == ']' || nextChar == '"' || nextChar == '\'' ||
+                nextChar == '>')
+                // apply opacity to the single character at the caret position
+                ChangeLinePart(offset, offset + 1, element =>
+                {
+                    // skip autocompletion
+                    if (element is GhostTextElement || element.DocumentLength == 0) return;
+
+                    element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#66D4D4D4")));
+                });
+        }
+    }
+}
+
+public class IndentationGuideRenderer : IBackgroundRenderer
+{
+    private readonly Pen _activeGuidePen;
+    private readonly TextEditor _editor;
+    private readonly Pen _guidePen;
+
+    public IndentationGuideRenderer(TextEditor editor)
+    {
+        _editor = editor;
+
+        _guidePen = new Pen(new SolidColorBrush(Color.Parse("#3E3E42")));
+        _activeGuidePen = new Pen(new SolidColorBrush(Color.Parse("#A0A0A0")));
+    }
+
+    public KnownLayer Layer => KnownLayer.Background;
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
+    {
+        if (_editor.Document == null) return;
+
+        double spaceWidth = textView.WideSpaceWidth;
+        if (double.IsNaN(spaceWidth) || spaceWidth == 0) spaceWidth = _editor.FontSize / 2;
+        double indentWidth = _editor.Options.IndentationSize * spaceWidth;
+
+        int caretLineNum = _editor.TextArea.Caret.Line;
+        int caretIndent = 0;
+        int activeGuideIndex = -1;
+        int scopeStart = 0;
+        int scopeEnd = _editor.Document.LineCount + 1;
+
+        if (caretLineNum > 0 && caretLineNum <= _editor.Document.LineCount)
+        {
+            var caretLine = _editor.Document.GetLineByNumber(caretLineNum);
+            caretIndent = GetIndentLevel(_editor.Document, caretLine);
+
+            string lineText = _editor.Document.GetText(caretLine).Trim();
+            bool isOpeningBlock = lineText.Contains("{");
+            bool isClosingBlock = lineText.Contains("}");
+            bool isLineEmpty = caretLine.Length == 0 || string.IsNullOrWhiteSpace(_editor.Document.GetText(caretLine));
+
+            bool prevLineEndedWithOpenBrace = false;
+            if (caretLineNum > 1)
+                for (int i = caretLineNum - 1; i >= 1; i--)
+                {
+                    var l = _editor.Document.GetLineByNumber(i);
+                    string txt = _editor.Document.GetText(l).Trim();
+                    if (!string.IsNullOrEmpty(txt))
+                    {
+                        if (txt.EndsWith("{")) prevLineEndedWithOpenBrace = true;
+                        break;
+                    }
                 }
 
-                if (c == '@' && i + 1 < text.Length && text[i + 1] == '"')
-                { inVerbatim = true; i++; continue; }
+            if (isLineEmpty) caretIndent = GetContextIndent(_editor.Document, caretLineNum);
 
-                if (c == '"') { inString = true; continue; }
-                if (c == '\'') { inChar = true; continue; }
+            // if caret is on a line with braces -> use that indentation level otherwise go one level deeper
+            if (caretIndent > 0 || isOpeningBlock || isClosingBlock || prevLineEndedWithOpenBrace)
+            {
+                // if opening or closing block -> use current indent else use parent
+                bool useInnerScope = isOpeningBlock || isClosingBlock;
+                activeGuideIndex = useInnerScope ? caretIndent : caretIndent - 1;
+
+                // find start of scope (scan up)
+                for (int i = caretLineNum - 1; i >= 1; i--)
+                {
+                    var l = _editor.Document.GetLineByNumber(i);
+                    // skip empty lines for scope detection to avoid breaking early
+                    if (string.IsNullOrWhiteSpace(_editor.Document.GetText(l))) continue;
+
+                    if (GetIndentLevel(_editor.Document, l) <= activeGuideIndex)
+                    {
+                        scopeStart = i;
+                        break;
+                    }
+                }
+
+                // find end of scope (scan down)
+                for (int i = caretLineNum + 1; i <= _editor.Document.LineCount; i++)
+                {
+                    var l = _editor.Document.GetLineByNumber(i);
+                    if (string.IsNullOrWhiteSpace(_editor.Document.GetText(l))) continue;
+                    if (GetIndentLevel(_editor.Document, l) <= activeGuideIndex)
+                    {
+                        scopeEnd = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        foreach (var line in textView.VisualLines)
+        {
+            int lineNum = line.FirstDocumentLine.LineNumber;
+            int indentLevel = GetIndentLevel(_editor.Document, line.FirstDocumentLine);
+
+            string text = _editor.Document.GetText(line.FirstDocumentLine);
+            if (string.IsNullOrWhiteSpace(text)) indentLevel = GetContextIndent(_editor.Document, lineNum);
+
+            for (int i = 0; i < indentLevel; i++)
+            {
+                double x = i * indentWidth + spaceWidth / 2 - textView.ScrollOffset.X;
+                if (x < 0) continue;
+
+                var top = new Point(x, line.VisualTop - textView.ScrollOffset.Y);
+                var bottom = new Point(x, line.VisualTop + line.Height - textView.ScrollOffset.Y);
+
+                bool isActive = i == activeGuideIndex && lineNum > scopeStart && lineNum < scopeEnd;
+
+                drawingContext.DrawLine(isActive ? _activeGuidePen : _guidePen, top, bottom);
             }
         }
     }
 
-    public class GhostCharacterTransformer : DocumentColorizingTransformer
+    private int GetIndentLevel(TextDocument doc, DocumentLine line)
     {
-        private readonly TextEditor _editor;
+        string text = doc.GetText(line.Offset, line.Length);
+        int spaces = 0;
+        foreach (char c in text)
+            if (c == ' ') spaces++;
+            else if (c == '\t') spaces += _editor.Options.IndentationSize;
+            else break;
+        return spaces / _editor.Options.IndentationSize;
+    }
 
-        public GhostCharacterTransformer(TextEditor editor)
+    private int GetContextIndent(TextDocument doc, int lineNum)
+    {
+        int effectivePrev = 0;
+        for (int i = lineNum - 1; i >= 1; i--)
         {
-            _editor = editor;
+            var l = doc.GetLineByNumber(i);
+            string text = doc.GetText(l).Trim();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                int indent = GetIndentLevel(doc, l);
+                effectivePrev = text.EndsWith("{") ? indent + 1 : indent;
+                break;
+            }
         }
 
-        protected override void ColorizeLine(DocumentLine line)
+        int effectiveNext = effectivePrev; // fallback if no next line
+        for (int i = lineNum + 1; i <= doc.LineCount; i++)
         {
-            int offset = _editor.CaretOffset;
-
-            // only check if caret is on this line and not at the very end of document
-            if (offset >= line.Offset && offset < line.EndOffset)
+            var l = doc.GetLineByNumber(i);
+            string text = doc.GetText(l).Trim();
+            if (!string.IsNullOrWhiteSpace(text))
             {
-                char nextChar = _editor.Document.GetCharAt(offset);
-
-                // check for closing pairs
-                if (nextChar == ')' || nextChar == '}' || nextChar == ']' || nextChar == '"' || nextChar == '\'' || nextChar == '>')
-                {
-                    // apply opacity to the single character at the caret position
-                    ChangeLinePart(offset, offset + 1, element =>
-                    {
-                        // skip autocompletion
-                        if (element is GhostTextElement || element.DocumentLength == 0) return;
-
-                        element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#66D4D4D4")));
-                    });
-                }
+                int indent = GetIndentLevel(doc, l);
+                effectiveNext = text.StartsWith("}") ? indent + 1 : indent;
+                break;
             }
+        }
+
+        return Math.Min(effectivePrev, effectiveNext);
+    }
+}
+
+public class BracketHighlightRenderer : IBackgroundRenderer
+{
+    private readonly TextEditor _editor;
+    private readonly SolidColorBrush _highlightBrush;
+    private readonly Pen _highlightPen;
+
+    public BracketHighlightRenderer(TextEditor editor)
+    {
+        _editor = editor;
+        _highlightBrush = new SolidColorBrush(Color.Parse("#33007ACC")); // faint blue background
+        _highlightPen = new Pen(new SolidColorBrush(Color.Parse("#007ACC"))); // blue border
+    }
+
+    public KnownLayer Layer => KnownLayer.Selection;
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
+    {
+        int offset = _editor.CaretOffset;
+        if (offset == 0 && offset == _editor.Document.TextLength) return;
+
+        var result = FindMatchingBracket(offset);
+
+        if (result.HasValue)
+        {
+            DrawHighlight(textView, drawingContext, result.Value.Open);
+            DrawHighlight(textView, drawingContext, result.Value.Close);
         }
     }
 
-    public class IndentationGuideRenderer : IBackgroundRenderer
+    private void DrawHighlight(TextView textView, DrawingContext ctx, int offset)
     {
-        private readonly TextEditor _editor;
-        private readonly Pen _guidePen;
-        private readonly Pen _activeGuidePen;
+        if (offset < 0 || offset >= _editor.Document.TextLength) return; // safety
 
-        public IndentationGuideRenderer(TextEditor editor)
+        var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView,
+            new TextSegment { StartOffset = offset, Length = 1 });
+
+        double charWidth = textView.WideSpaceWidth;
+        if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2;
+
+        foreach (var rect in rects)
         {
-            _editor = editor;
+            var adjustedRect = rect;
 
-            _guidePen = new Pen(new SolidColorBrush(Color.Parse("#3E3E42")), 1);
-            _activeGuidePen = new Pen(new SolidColorBrush(Color.Parse("#A0A0A0")), 1);
-        }
-
-        public KnownLayer Layer => KnownLayer.Background;
-
-        public void Draw(TextView textView, DrawingContext drawingContext)
-        {
-            if (_editor.Document == null) return;
-
-            double spaceWidth = textView.WideSpaceWidth;
-            if (double.IsNaN(spaceWidth) || spaceWidth == 0) spaceWidth = _editor.FontSize / 2;
-            double indentWidth = _editor.Options.IndentationSize * spaceWidth;
-
-            int caretLineNum = _editor.TextArea.Caret.Line;
-            int caretIndent = 0;
-            int activeGuideIndex = -1;
-            int scopeStart = 0;
-            int scopeEnd = _editor.Document.LineCount + 1;
-
-            if (caretLineNum > 0 && caretLineNum <= _editor.Document.LineCount)
+            // check if the rectangle is wider than a single character due to ghost text
+            if (rect.Width > charWidth * 1.5)
             {
-                var caretLine = _editor.Document.GetLineByNumber(caretLineNum);
-                caretIndent = GetIndentLevel(_editor.Document, caretLine);
-
-                string lineText = _editor.Document.GetText(caretLine).Trim();
-                bool isOpeningBlock = lineText.Contains("{");
-                bool isClosingBlock = lineText.Contains("}");
-                bool isLineEmpty = caretLine.Length == 0 || string.IsNullOrWhiteSpace(_editor.Document.GetText(caretLine));
-
-                bool prevLineEndedWithOpenBrace = false;
-                if (caretLineNum > 1)
-                {
-                    for (int i = caretLineNum - 1; i >= 1; i--)
-                    {
-                        var l = _editor.Document.GetLineByNumber(i);
-                        string txt = _editor.Document.GetText(l).Trim();
-                        if (!string.IsNullOrEmpty(txt))
-                        {
-                            if (txt.EndsWith("{")) prevLineEndedWithOpenBrace = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (isLineEmpty)
-                {
-                    caretIndent = GetContextIndent(_editor.Document, caretLineNum);
-                }
-
-                // if caret is on a line with braces -> use that indentation level otherwise go one level deeper
-                if (caretIndent > 0 || isOpeningBlock || isClosingBlock || prevLineEndedWithOpenBrace)
-                {
-                    // if opening or closing block -> use current indent else use parent
-                    bool useInnerScope = isOpeningBlock || isClosingBlock;
-                    activeGuideIndex = useInnerScope ? caretIndent : caretIndent - 1;
-
-                    // find start of scope (scan up)
-                    for (int i = caretLineNum - 1; i >= 1; i--)
-                    {
-                        var l = _editor.Document.GetLineByNumber(i);
-                        // skip empty lines for scope detection to avoid breaking early
-                        if (string.IsNullOrWhiteSpace(_editor.Document.GetText(l))) continue;
-
-                        if (GetIndentLevel(_editor.Document, l) <= activeGuideIndex)
-                        {
-                            scopeStart = i;
-                            break;
-                        }
-                    }
-
-                    // find end of scope (scan down)
-                    for (int i = caretLineNum + 1; i <= _editor.Document.LineCount; i++)
-                    {
-                        var l = _editor.Document.GetLineByNumber(i);
-                        if (string.IsNullOrWhiteSpace(_editor.Document.GetText(l))) continue;
-                        if (GetIndentLevel(_editor.Document, l) <= activeGuideIndex)
-                        {
-                            scopeEnd = i;
-                            break;
-                        }
-                    }
-                }
+                if (offset == _editor.CaretOffset) // before
+                    adjustedRect = new Rect(rect.Right - charWidth, rect.Y, charWidth, rect.Height);
+                else if (offset + 1 == _editor.CaretOffset) // after
+                    adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
+                else // fallback
+                    adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
             }
 
-            foreach (var line in textView.VisualLines)
-            {
-                int lineNum = line.FirstDocumentLine.LineNumber;
-                int indentLevel = GetIndentLevel(_editor.Document, line.FirstDocumentLine);
-
-                string text = _editor.Document.GetText(line.FirstDocumentLine);
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    indentLevel = GetContextIndent(_editor.Document, lineNum);
-                }
-
-                for (int i = 0; i < indentLevel; i++)
-                {
-                    double x = (i * indentWidth) + (spaceWidth / 2) - textView.ScrollOffset.X;
-                    if (x < 0) continue;
-
-                    var top = new Point(x, line.VisualTop - textView.ScrollOffset.Y);
-                    var bottom = new Point(x, line.VisualTop + line.Height - textView.ScrollOffset.Y);
-
-                    bool isActive = (i == activeGuideIndex) && (lineNum > scopeStart) && (lineNum < scopeEnd);
-
-                    drawingContext.DrawLine(isActive ? _activeGuidePen : _guidePen, top, bottom);
-                }
-            }
-        }
-
-        private int GetIndentLevel(TextDocument doc, DocumentLine line)
-        {
-            string text = doc.GetText(line.Offset, line.Length);
-            int spaces = 0;
-            foreach (char c in text)
-            {
-                if (c == ' ') spaces++;
-                else if (c == '\t') spaces += _editor.Options.IndentationSize;
-                else break;
-            }
-            return spaces / _editor.Options.IndentationSize;
-        }
-
-        private int GetContextIndent(TextDocument doc, int lineNum)
-        {
-            int effectivePrev = 0;
-            for (int i = lineNum - 1; i >= 1; i--)
-            {
-                var l = doc.GetLineByNumber(i);
-                string text = doc.GetText(l).Trim();
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    int indent = GetIndentLevel(doc, l);
-                    effectivePrev = text.EndsWith("{") ? indent + 1 : indent;
-                    break;
-                }
-            }
-
-            int effectiveNext = effectivePrev; // fallback if no next line
-            for (int i = lineNum + 1; i <= doc.LineCount; i++)
-            {
-                var l = doc.GetLineByNumber(i);
-                string text = doc.GetText(l).Trim();
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    int indent = GetIndentLevel(doc, l);
-                    effectiveNext = text.StartsWith("}") ? indent + 1 : indent;
-                    break;
-                }
-            }
-
-            return Math.Min(effectivePrev, effectiveNext);
+            ctx.DrawRectangle(_highlightBrush, _highlightPen, adjustedRect);
         }
     }
 
-    public class BracketHighlightRenderer : IBackgroundRenderer
+    private (int Open, int Close)? FindMatchingBracket(int caretOffset)
     {
-        private readonly TextEditor _editor;
-        private readonly SolidColorBrush _highlightBrush;
-        private readonly Pen _highlightPen;
+        if (_editor.Document.TextLength == 0) return null;
 
-        public BracketHighlightRenderer(TextEditor editor)
+        char cLeft = caretOffset > 0 ? _editor.Document.GetCharAt(caretOffset - 1) : '\0';
+        char cRight = caretOffset < _editor.Document.TextLength ? _editor.Document.GetCharAt(caretOffset) : '\0';
+
+        int searchStart = -1;
+        bool searchForward = true;
+        char openChar = '\0';
+        char closeChar = '\0';
+
+        // check char to the right
+        if (IsStartBracket(cRight) && IsValidBracket(caretOffset))
         {
-            _editor = editor;
-            _highlightBrush = new SolidColorBrush(Color.Parse("#33007ACC")); // faint blue background
-            _highlightPen = new Pen(new SolidColorBrush(Color.Parse("#007ACC")), 1); // blue border
+            searchStart = caretOffset;
+            searchForward = true;
+            openChar = cRight;
+            closeChar = GetMatching(cRight);
+        }
+        else if (IsEndBracket(cRight) && IsValidBracket(caretOffset))
+        {
+            searchStart = caretOffset;
+            searchForward = false;
+            closeChar = cRight;
+            openChar = GetMatching(cRight);
+        }
+        // check char to the left
+        else if (IsStartBracket(cLeft) && IsValidBracket(caretOffset - 1))
+        {
+            searchStart = caretOffset - 1;
+            searchForward = true;
+            openChar = cLeft;
+            closeChar = GetMatching(cLeft);
+        }
+        else if (IsEndBracket(cLeft) && IsValidBracket(caretOffset - 1))
+        {
+            searchStart = caretOffset - 1;
+            searchForward = false;
+            closeChar = cLeft;
+            openChar = GetMatching(cLeft);
         }
 
-        public KnownLayer Layer => KnownLayer.Selection;
+        if (searchStart == -1) return null;
 
-        public void Draw(TextView textView, DrawingContext drawingContext)
+        int match = ScanForMatch(searchStart, searchForward, openChar, closeChar);
+        if (match != -1) return searchForward ? (searchStart, match) : (match, searchStart);
+
+        return null;
+    }
+
+    private int ScanForMatch(int start, bool forward, char open, char close)
+    {
+        int balance = 0;
+        int docLength = _editor.Document.TextLength;
+        int step = forward ? 1 : -1;
+
+        bool isChevron = open == '<' || close == '<';
+
+        for (int i = start; i >= 0 && i < docLength; i += step)
         {
-            int offset = _editor.CaretOffset;
-            if (offset == 0 && offset == _editor.Document.TextLength) return;
+            char c = _editor.Document.GetCharAt(i);
 
-            var result = FindMatchingBracket(offset);
+            if (!IsValidBracket(i)) continue;
 
-            if (result.HasValue)
-            {
-                DrawHighlight(textView, drawingContext, result.Value.Open);
-                DrawHighlight(textView, drawingContext, result.Value.Close);
-            }
+            if (c == open) balance++;
+            else if (c == close) balance--;
+
+            if (balance == 0) return i;
+
+            // abort if we hit invalid generic characters
+            if (isChevron && balance != 0)
+                // if we are "inside" the brackets -> ensure the content is valid for generics
+                if (!IsValidGenericContentChar(c))
+                    return -1; // not a generic pair
+
+            if (Math.Abs(i - start) > 20000) break;
         }
 
-        private void DrawHighlight(TextView textView, DrawingContext ctx, int offset)
-        {
-            if (offset < 0 || offset >= _editor.Document.TextLength) return; // safety
+        return -1;
+    }
 
-            var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, new TextSegment { StartOffset = offset, Length = 1 });
-
-            double charWidth = textView.WideSpaceWidth;
-            if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2;
-
-            foreach (var rect in rects)
-            {
-                var adjustedRect = rect;
-
-                // check if the rectangle is wider than a single character due to ghost text
-                if (rect.Width > charWidth * 1.5)
-                {
-                    if (offset == _editor.CaretOffset) // before
-                    {
-                        adjustedRect = new Rect(rect.Right - charWidth, rect.Y, charWidth, rect.Height);
-                    }
-                    else if (offset + 1 == _editor.CaretOffset) // after
-                    {
-                        adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
-                    }
-                    else // fallback
-                    {
-                        adjustedRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
-                    }
-                }
-
-                ctx.DrawRectangle(_highlightBrush, _highlightPen, adjustedRect);
-            }
-        }
-
-        private (int Open, int Close)? FindMatchingBracket(int caretOffset)
-        {
-            if (_editor.Document.TextLength == 0) return null;
-
-            char cLeft = caretOffset > 0 ? _editor.Document.GetCharAt(caretOffset - 1) : '\0';
-            char cRight = caretOffset < _editor.Document.TextLength ? _editor.Document.GetCharAt(caretOffset) : '\0';
-
-            int searchStart = -1;
-            bool searchForward = true;
-            char openChar = '\0';
-            char closeChar = '\0';
-
-            // check char to the right
-            if (IsStartBracket(cRight) && IsValidBracket(caretOffset))
-            {
-                searchStart = caretOffset;
-                searchForward = true;
-                openChar = cRight;
-                closeChar = GetMatching(cRight);
-            }
-            else if (IsEndBracket(cRight) && IsValidBracket(caretOffset))
-            {
-                searchStart = caretOffset;
-                searchForward = false;
-                closeChar = cRight;
-                openChar = GetMatching(cRight);
-            }
-            // check char to the left
-            else if (IsStartBracket(cLeft) && IsValidBracket(caretOffset - 1))
-            {
-                searchStart = caretOffset - 1;
-                searchForward = true;
-                openChar = cLeft;
-                closeChar = GetMatching(cLeft);
-            }
-            else if (IsEndBracket(cLeft) && IsValidBracket(caretOffset - 1))
-            {
-                searchStart = caretOffset - 1;
-                searchForward = false;
-                closeChar = cLeft;
-                openChar = GetMatching(cLeft);
-            }
-
-            if (searchStart == -1) return null;
-
-            int match = ScanForMatch(searchStart, searchForward, openChar, closeChar);
-            if (match != -1)
-            {
-                return searchForward ? (searchStart, match) : (match, searchStart);
-            }
-
-            return null;
-        }
-
-        private int ScanForMatch(int start, bool forward, char open, char close)
-        {
-            int balance = 0;
-            int docLength = _editor.Document.TextLength;
-            int step = forward ? 1 : -1;
-
-            bool isChevron = (open == '<' || close == '<');
-
-            for (int i = start; i >= 0 && i < docLength; i += step)
-            {
-                char c = _editor.Document.GetCharAt(i);
-
-                if (!IsValidBracket(i)) continue;
-
-                if (c == open) balance++;
-                else if (c == close) balance--;
-
-                if (balance == 0) return i;
-
-                // abort if we hit invalid generic characters
-                if (isChevron && balance != 0)
-                {
-                    // if we are "inside" the brackets -> ensure the content is valid for generics
-                    if (!IsValidGenericContentChar(c))
-                    {
-                        return -1; // not a generic pair
-                    }
-                }
-
-                if (Math.Abs(i - start) > 20000) break;
-            }
-            return -1;
-        }
-
-        // determine if a character is allowed inside a generic declaration <T>
-        private bool IsValidGenericContentChar(char c)
-        {
-            if (char.IsLetterOrDigit(c) || c == '_' || c == ' ' || c == ',' || c == '.' || c == '?' || c == '[' || c == ']' || c == '<' || c == '>')
-                return true;
-
-            return false;
-        }
-
-        private bool IsValidBracket(int offset) // filter edge cases
-        {
-            char c = _editor.Document.GetCharAt(offset);
-            if (c != '<' && c != '>') return true;
-
-            if (c == '<')
-            {
-                if (offset + 1 < _editor.Document.TextLength)
-                {
-                    char next = _editor.Document.GetCharAt(offset + 1);
-                    if (next == '=' || next == '<') return false;
-                }
-                if (offset > 0 && _editor.Document.GetCharAt(offset - 1) == '<') return false;
-            }
-            else if (c == '>')
-            {
-                if (offset > 0)
-                {
-                    char prev = _editor.Document.GetCharAt(offset - 1);
-                    if (prev == '=' || prev == '>') return false; // arrows => or >>
-                    if (prev == '-') return false; // arrow ->
-                }
-                if (offset + 1 < _editor.Document.TextLength && _editor.Document.GetCharAt(offset + 1) == '>') return false;
-            }
-
-            var line = _editor.Document.GetLineByOffset(offset);
-            string lineText = _editor.Document.GetText(line.Offset, offset - line.Offset);
-            if (lineText.Contains("//") || lineText.Contains("/*")) return false;
-
+    // determine if a character is allowed inside a generic declaration <T>
+    private bool IsValidGenericContentChar(char c)
+    {
+        if (char.IsLetterOrDigit(c) || c == '_' || c == ' ' || c == ',' || c == '.' || c == '?' || c == '[' ||
+            c == ']' || c == '<' || c == '>')
             return true;
+
+        return false;
+    }
+
+    private bool IsValidBracket(int offset) // filter edge cases
+    {
+        char c = _editor.Document.GetCharAt(offset);
+        if (c != '<' && c != '>') return true;
+
+        if (c == '<')
+        {
+            if (offset + 1 < _editor.Document.TextLength)
+            {
+                char next = _editor.Document.GetCharAt(offset + 1);
+                if (next == '=' || next == '<') return false;
+            }
+
+            if (offset > 0 && _editor.Document.GetCharAt(offset - 1) == '<') return false;
+        }
+        else if (c == '>')
+        {
+            if (offset > 0)
+            {
+                char prev = _editor.Document.GetCharAt(offset - 1);
+                if (prev == '=' || prev == '>') return false; // arrows => or >>
+                if (prev == '-') return false; // arrow ->
+            }
+
+            if (offset + 1 < _editor.Document.TextLength && _editor.Document.GetCharAt(offset + 1) == '>') return false;
         }
 
-        private bool IsStartBracket(char c) => c == '(' || c == '{' || c == '[' || c == '<';
-        private bool IsEndBracket(char c) => c == ')' || c == '}' || c == ']' || c == '>';
+        var line = _editor.Document.GetLineByOffset(offset);
+        string lineText = _editor.Document.GetText(line.Offset, offset - line.Offset);
+        if (lineText.Contains("//") || lineText.Contains("/*")) return false;
 
-        private char GetMatching(char c)
+        return true;
+    }
+
+    private bool IsStartBracket(char c)
+    {
+        return c == '(' || c == '{' || c == '[' || c == '<';
+    }
+
+    private bool IsEndBracket(char c)
+    {
+        return c == ')' || c == '}' || c == ']' || c == '>';
+    }
+
+    private char GetMatching(char c)
+    {
+        switch (c)
         {
-            switch (c)
-            {
-                case '(': return ')';
-                case ')': return '(';
-                case '{': return '}';
-                case '}': return '{';
-                case '[': return ']';
-                case ']': return '[';
-                case '<': return '>';
-                case '>': return '<';
-                default: return '\0';
-            }
+            case '(': return ')';
+            case ')': return '(';
+            case '{': return '}';
+            case '}': return '{';
+            case '[': return ']';
+            case ']': return '[';
+            case '<': return '>';
+            case '>': return '<';
+            default: return '\0';
+        }
+    }
+}
+
+public class AutocompleteService
+{
+    // c# keywords to ignore
+    public static readonly HashSet<string> CsharpKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const",
+        "continue",
+        "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false",
+        "finally",
+        "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is",
+        "lock",
+        "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private", "protected",
+        "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string",
+        "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+        "using", "virtual", "void", "volatile", "while", "var", "List", "Dictionary", "Console", "Math"
+    };
+
+    // sql keywords to ignore
+    public static readonly HashSet<string> SqlKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "INSERT", "INTO",
+        "VALUES", "UPDATE", "SET", "DELETE", "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "CROSS", "ON",
+        "AS", "DISTINCT", "ALL", "UNION", "AND", "OR", "NOT", "NULL", "IS", "IN", "BETWEEN", "LIKE",
+        "EXISTS", "CREATE", "TABLE", "DROP", "ALTER", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT",
+        "AUTO_INCREMENT", "ASC", "DESC", "USING", "INT", "INTEGER", "VARCHAR", "TEXT", "CHAR", "DATE",
+        "DATETIME", "TIMESTAMP", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN", "COUNT", "SUM", "AVG", "MIN",
+        "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW", "YEAR", "MONTH", "DAY", "DATE_ADD", "DATEDIFF",
+        "INTERVAL"
+    };
+
+    private readonly HashSet<string> _allClasses = new();
+    private readonly HashSet<string> _allLocals = new();
+    private List<string> _currentSuggestions = new();
+
+    // semantic context
+    private readonly Dictionary<string, HashSet<string>> _instanceMembers = new();
+
+    private readonly HashSet<string> _keywords;
+    private readonly Dictionary<string, string> _sqlAliases = new(StringComparer.OrdinalIgnoreCase);
+
+    // sql schema context
+    private Dictionary<string, List<string>> _sqlSchema = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HashSet<string>> _staticMembers = new();
+    private int _suggestionIndex;
+    private readonly Dictionary<string, string> _variableTypes = new();
+
+    public AutocompleteService(HashSet<string> keywords)
+    {
+        _keywords = keywords ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public int CurrentWordLength { get; private set; }
+    public string CurrentSuggestionFull => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
+
+    public bool HasSuggestion => _currentSuggestions.Count > 0;
+
+    public string CurrentSuggestionSuffix
+    {
+        get
+        {
+            if (!HasSuggestion) return null;
+
+            if (_keywords == SqlKeywords)
+                return CurrentWordLength <= _currentSuggestions[_suggestionIndex].Length
+                    ? _currentSuggestions[_suggestionIndex].Substring(CurrentWordLength)
+                    : null;
+
+            return _currentSuggestions[_suggestionIndex];
         }
     }
 
-    public class AutocompleteService
+    public void CycleNext()
     {
-        private List<string> _currentSuggestions = new List<string>();
-        private int _suggestionIndex = 0;
+        if (HasSuggestion && _suggestionIndex < _currentSuggestions.Count - 1) _suggestionIndex++;
+    }
 
-        public int CurrentWordLength { get; private set; }
-        public string CurrentSuggestionFull => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
+    public void CyclePrevious()
+    {
+        if (HasSuggestion && _suggestionIndex > 0) _suggestionIndex--;
+    }
 
-        private HashSet<string> _keywords;
+    public void ScanTokens(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
 
-        // semantic context
-        private Dictionary<string, HashSet<string>> _instanceMembers = new Dictionary<string, HashSet<string>>();
-        private Dictionary<string, HashSet<string>> _staticMembers = new Dictionary<string, HashSet<string>>();
-        private Dictionary<string, string> _variableTypes = new Dictionary<string, string>();
-        private HashSet<string> _allClasses = new HashSet<string>();
-        private HashSet<string> _allLocals = new HashSet<string>();
-
-        // sql schema context
-        private Dictionary<string, List<string>> _sqlSchema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        private Dictionary<string, string> _sqlAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        // c# keywords to ignore
-        public static readonly HashSet<string> CsharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        // sql mode fallback
+        if (_keywords == SqlKeywords)
         {
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue",
-            "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
-            "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
-            "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private", "protected",
-            "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string",
-            "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
-            "using", "virtual", "void", "volatile", "while", "var", "List", "Dictionary", "Console", "Math"
-        };
-
-        // sql keywords to ignore
-        public static readonly HashSet<string> SqlKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "INSERT", "INTO",
-            "VALUES", "UPDATE", "SET", "DELETE", "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "CROSS", "ON",
-            "AS", "DISTINCT", "ALL", "UNION", "AND", "OR", "NOT", "NULL", "IS", "IN", "BETWEEN", "LIKE",
-            "EXISTS", "CREATE", "TABLE", "DROP", "ALTER", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT",
-            "AUTO_INCREMENT", "ASC", "DESC", "USING", "INT", "INTEGER", "VARCHAR", "TEXT", "CHAR", "DATE",
-            "DATETIME", "TIMESTAMP", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN", "COUNT", "SUM", "AVG", "MIN",
-            "MAX", "UPPER", "LOWER", "LENGTH", "CONCAT", "NOW", "YEAR", "MONTH", "DAY", "DATE_ADD", "DATEDIFF",
-            "INTERVAL"
-        };
-
-        public AutocompleteService(HashSet<string> keywords)
-        {
-            _keywords = keywords ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        public bool HasSuggestion => _currentSuggestions.Count > 0;
-        public string CurrentSuggestionSuffix
-        {
-            get
-            {
-                if (!HasSuggestion) return null;
-
-                if (_keywords == SqlKeywords)
-                {
-                    return CurrentWordLength <= _currentSuggestions[_suggestionIndex].Length
-                        ? _currentSuggestions[_suggestionIndex].Substring(CurrentWordLength)
-                        : null;
-                }
-
-                return _currentSuggestions[_suggestionIndex];
-            }
-        }
-
-        public void CycleNext()
-        {
-            if (HasSuggestion && _suggestionIndex < _currentSuggestions.Count - 1)
-            {
-                _suggestionIndex++;
-            }
-        }
-
-        public void CyclePrevious()
-        {
-            if (HasSuggestion && _suggestionIndex > 0)
-            {
-                _suggestionIndex--;
-            }
-        }
-
-        public void ScanTokens(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return;
-
-            // sql mode fallback
-            if (_keywords == SqlKeywords)
-            {
-                _allLocals.Clear();
-                _sqlAliases.Clear();
-
-                // extract table aliases
-                var aliasMatches = Regex.Matches(text, @"(?i)(?:\b(?:FROM|JOIN)\b|,)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+AS)?\s+([a-zA-Z_][a-zA-Z0-9_]*)\b");
-                foreach (Match m in aliasMatches)
-                {
-                    string table = m.Groups[1].Value;
-                    string alias = m.Groups[2].Value;
-                    if (!SqlKeywords.Contains(alias) && !SqlKeywords.Contains(table))
-                    {
-                        _sqlAliases[alias] = table;
-                    }
-                }
-
-                var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
-                foreach (Match match in matches)
-                {
-                    string token = match.Value;
-                    if (token.Length > 2 && !_keywords.Contains(token)) _allLocals.Add(token);
-                }
-                return;
-            }
-
-            // c# mode semantic extraction
-            var tree = CSharpSyntaxTree.ParseText(text);
-            var root = tree.GetRoot();
-
-            _instanceMembers.Clear();
-            _staticMembers.Clear();
-            _variableTypes.Clear();
-            _allClasses.Clear();
             _allLocals.Clear();
+            _sqlAliases.Clear();
 
-            // extract explicitly declared classes and members
-            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-            foreach (var cls in classes)
+            // extract table aliases
+            var aliasMatches = Regex.Matches(text,
+                @"(?i)(?:\b(?:FROM|JOIN)\b|,)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+AS)?\s+([a-zA-Z_][a-zA-Z0-9_]*)\b");
+            foreach (Match m in aliasMatches)
             {
-                string className = cls.Identifier.Text;
-                _allClasses.Add(className);
-
-                if (!_instanceMembers.ContainsKey(className)) _instanceMembers[className] = new HashSet<string>();
-                if (!_staticMembers.ContainsKey(className)) _staticMembers[className] = new HashSet<string>();
-
-                foreach (var member in cls.Members)
-                {
-                    bool isStatic = member.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-                    string memberName = null;
-
-                    if (member is MethodDeclarationSyntax method) memberName = method.Identifier.Text;
-                    else if (member is PropertyDeclarationSyntax prop) memberName = prop.Identifier.Text;
-                    else if (member is FieldDeclarationSyntax field) memberName = field.Declaration.Variables.FirstOrDefault()?.Identifier.Text;
-
-                    if (memberName != null)
-                    {
-                        if (isStatic) _staticMembers[className].Add(memberName);
-                        else _instanceMembers[className].Add(memberName);
-                    }
-                }
+                string table = m.Groups[1].Value;
+                string alias = m.Groups[2].Value;
+                if (!SqlKeywords.Contains(alias) && !SqlKeywords.Contains(table)) _sqlAliases[alias] = table;
             }
 
-            // extract parameters to trust user defined types
-            var parameters = root.DescendantNodes().OfType<ParameterSyntax>();
-            foreach (var param in parameters)
+            var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+            foreach (Match match in matches)
             {
-                if (param.Type != null)
-                {
-                    string typeName = param.Type.ToString().Replace("[]", "").Trim();
-                    string varName = param.Identifier.Text;
-                    _allLocals.Add(varName);
-
-                    // Basisname ohne Generics (z.B. "List" aus "List<string>") fuer Keyword-Pruefung
-                    string baseTypeName = typeName.Contains('<') ? typeName.Substring(0, typeName.IndexOf('<')).Trim() : typeName;
-
-                    if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
-                    {
-                        _variableTypes[varName] = typeName;
-                        _allClasses.Add(baseTypeName);
-                    }
-                }
+                string token = match.Value;
+                if (token.Length > 2 && !_keywords.Contains(token)) _allLocals.Add(token);
             }
 
-            // extract local variables and fields to trust user defined types
-            var variables = root.DescendantNodes().OfType<VariableDeclarationSyntax>();
-            foreach (var varDecl in variables)
-            {
-                string typeName = varDecl.Type.ToString().Replace("[]", "").Trim();
+            return;
+        }
 
-                string baseTypeName = typeName.Contains('<') ? typeName.Substring(0, typeName.IndexOf('<')).Trim() : typeName;
+        // c# mode semantic extraction
+        var tree = CSharpSyntaxTree.ParseText(text);
+        var root = tree.GetRoot();
+
+        _instanceMembers.Clear();
+        _staticMembers.Clear();
+        _variableTypes.Clear();
+        _allClasses.Clear();
+        _allLocals.Clear();
+
+        // extract explicitly declared classes and members
+        var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        foreach (var cls in classes)
+        {
+            string className = cls.Identifier.Text;
+            _allClasses.Add(className);
+
+            if (!_instanceMembers.ContainsKey(className)) _instanceMembers[className] = new HashSet<string>();
+            if (!_staticMembers.ContainsKey(className)) _staticMembers[className] = new HashSet<string>();
+
+            foreach (var member in cls.Members)
+            {
+                bool isStatic = member.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
+                string memberName = null;
+
+                if (member is MethodDeclarationSyntax method) memberName = method.Identifier.Text;
+                else if (member is PropertyDeclarationSyntax prop) memberName = prop.Identifier.Text;
+                else if (member is FieldDeclarationSyntax field)
+                    memberName = field.Declaration.Variables.FirstOrDefault()?.Identifier.Text;
+
+                if (memberName != null)
+                {
+                    if (isStatic) _staticMembers[className].Add(memberName);
+                    else _instanceMembers[className].Add(memberName);
+                }
+            }
+        }
+
+        // extract parameters to trust user defined types
+        var parameters = root.DescendantNodes().OfType<ParameterSyntax>();
+        foreach (var param in parameters)
+            if (param.Type != null)
+            {
+                string typeName = param.Type.ToString().Replace("[]", "").Trim();
+                string varName = param.Identifier.Text;
+                _allLocals.Add(varName);
+
+                // Basisname ohne Generics (z.B. "List" aus "List<string>") fuer Keyword-Pruefung
+                string baseTypeName = typeName.Contains('<')
+                    ? typeName.Substring(0, typeName.IndexOf('<')).Trim()
+                    : typeName;
 
                 if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
                 {
+                    _variableTypes[varName] = typeName;
                     _allClasses.Add(baseTypeName);
-                }
-
-                foreach (var v in varDecl.Variables)
-                {
-                    string varName = v.Identifier.Text;
-                    _allLocals.Add(varName);
-
-                    if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName))
-                    {
-                        _variableTypes[varName] = typeName;
-                    }
                 }
             }
 
-            // infer members from usage
-            var memberAccesses = root.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
-            foreach (var access in memberAccesses)
-            {
-                if (access.Expression is IdentifierNameSyntax callerObj)
-                {
-                    string callerName = callerObj.Identifier.Text;
-                    string memberName = access.Name.Identifier.Text;
+        // extract local variables and fields to trust user defined types
+        var variables = root.DescendantNodes().OfType<VariableDeclarationSyntax>();
+        foreach (var varDecl in variables)
+        {
+            string typeName = varDecl.Type.ToString().Replace("[]", "").Trim();
 
-                    // is it a static call?
-                    if (_allClasses.Contains(callerName))
-                    {
-                        if (!_staticMembers.ContainsKey(callerName)) _staticMembers[callerName] = new HashSet<string>();
-                        _staticMembers[callerName].Add(memberName);
-                    }
-                    // is it an instance call?
-                    else if (_variableTypes.ContainsKey(callerName))
-                    {
-                        string typeName = _variableTypes[callerName];
-                        if (!_instanceMembers.ContainsKey(typeName)) _instanceMembers[typeName] = new HashSet<string>();
-                        _instanceMembers[typeName].Add(memberName);
-                    }
-                }
+            string baseTypeName =
+                typeName.Contains('<') ? typeName.Substring(0, typeName.IndexOf('<')).Trim() : typeName;
+
+            if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName)) _allClasses.Add(baseTypeName);
+
+            foreach (var v in varDecl.Variables)
+            {
+                string varName = v.Identifier.Text;
+                _allLocals.Add(varName);
+
+                if (typeName != "var" && !CsharpKeywords.Contains(baseTypeName)) _variableTypes[varName] = typeName;
             }
         }
 
-        public void UpdateSuggestion(string text, int caretOffset)
+        // infer members from usage
+        var memberAccesses = root.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
+        foreach (var access in memberAccesses)
+            if (access.Expression is IdentifierNameSyntax callerObj)
+            {
+                string callerName = callerObj.Identifier.Text;
+                string memberName = access.Name.Identifier.Text;
+
+                // is it a static call?
+                if (_allClasses.Contains(callerName))
+                {
+                    if (!_staticMembers.ContainsKey(callerName)) _staticMembers[callerName] = new HashSet<string>();
+                    _staticMembers[callerName].Add(memberName);
+                }
+                // is it an instance call?
+                else if (_variableTypes.ContainsKey(callerName))
+                {
+                    string typeName = _variableTypes[callerName];
+                    if (!_instanceMembers.ContainsKey(typeName)) _instanceMembers[typeName] = new HashSet<string>();
+                    _instanceMembers[typeName].Add(memberName);
+                }
+            }
+    }
+
+    public void UpdateSuggestion(string text, int caretOffset)
+    {
+        _currentSuggestions.Clear();
+        _suggestionIndex = 0;
+
+        if (caretOffset == 0 || caretOffset > text.Length) return;
+
+        // skip inside strings or comments in c#
+        if (_keywords != SqlKeywords && IsInsideStringOrComment(text, caretOffset)) return;
+
+        // do not suggest if caret is directly before a word character
+        if (caretOffset < text.Length)
         {
-            _currentSuggestions.Clear();
-            _suggestionIndex = 0;
+            char nextChar = text[caretOffset];
+            if (char.IsLetterOrDigit(nextChar) || nextChar == '_') return;
+        }
 
-            if (caretOffset == 0 || caretOffset > text.Length) return;
+        // find word boundary before caret
+        int start = caretOffset - 1;
+        while (start >= 0)
+        {
+            char c = text[start];
+            if (!char.IsLetterOrDigit(c) && c != '_') break;
+            start--;
+        }
 
-            // skip inside strings or comments in c#
-            if (_keywords != SqlKeywords && IsInsideStringOrComment(text, caretOffset)) return;
+        start++;
 
-            // do not suggest if caret is directly before a word character
-            if (caretOffset < text.Length)
+        int length = caretOffset - start;
+        string currentWord = length > 0 ? text.Substring(start, length) : "";
+        CurrentWordLength = length;
+
+        // check if there is a dot before the word (caller)
+        int beforeWord = start - 1;
+        while (beforeWord >= 0 && char.IsWhiteSpace(text[beforeWord])) beforeWord--;
+
+        bool hasDot = beforeWord >= 0 && text[beforeWord] == '.';
+        string caller = "";
+
+        if (hasDot)
+        {
+            int callerEnd = beforeWord - 1;
+            while (callerEnd >= 0 && char.IsWhiteSpace(text[callerEnd])) callerEnd--;
+
+            int callerStart = callerEnd;
+            while (callerStart >= 0)
             {
-                char nextChar = text[caretOffset];
-                if (char.IsLetterOrDigit(nextChar) || nextChar == '_') return;
-            }
-
-            // find word boundary before caret
-            int start = caretOffset - 1;
-            while (start >= 0)
-            {
-                char c = text[start];
+                char c = text[callerStart];
                 if (!char.IsLetterOrDigit(c) && c != '_') break;
-                start--;
-            }
-            start++;
-
-            int length = caretOffset - start;
-            string currentWord = length > 0 ? text.Substring(start, length) : "";
-            CurrentWordLength = length;
-
-            // check if there is a dot before the word (caller)
-            int beforeWord = start - 1;
-            while (beforeWord >= 0 && char.IsWhiteSpace(text[beforeWord])) beforeWord--;
-
-            bool hasDot = beforeWord >= 0 && text[beforeWord] == '.';
-            string caller = "";
-
-            if (hasDot)
-            {
-                int callerEnd = beforeWord - 1;
-                while (callerEnd >= 0 && char.IsWhiteSpace(text[callerEnd])) callerEnd--;
-
-                int callerStart = callerEnd;
-                while (callerStart >= 0)
-                {
-                    char c = text[callerStart];
-                    if (!char.IsLetterOrDigit(c) && c != '_') break;
-                    callerStart--;
-                }
-                callerStart++;
-
-                if (callerEnd >= callerStart)
-                {
-                    caller = text.Substring(callerStart, callerEnd - callerStart + 1);
-                }
+                callerStart--;
             }
 
-            HashSet<string> possibleMatches = new HashSet<string>();
+            callerStart++;
 
-            if (_keywords == SqlKeywords)
+            if (callerEnd >= callerStart) caller = text.Substring(callerStart, callerEnd - callerStart + 1);
+        }
+
+        HashSet<string> possibleMatches = new HashSet<string>();
+
+        if (_keywords == SqlKeywords)
+        {
+            string queryUpToCaret = text.Substring(0, start).TrimEnd();
+            var wordMatches = Regex.Matches(queryUpToCaret, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+            string lastWordUpper = wordMatches.Count > 0 ? wordMatches[wordMatches.Count - 1].Value.ToUpper() : "";
+
+            bool expectTable = lastWordUpper == "FROM" || lastWordUpper == "JOIN" || lastWordUpper == "INTO" ||
+                               lastWordUpper == "UPDATE";
+            bool expectColumn = lastWordUpper == "SELECT" || lastWordUpper == "WHERE" || lastWordUpper == "ON" ||
+                                lastWordUpper == "SET" || lastWordUpper == "BY" || lastWordUpper == "HAVING" ||
+                                lastWordUpper == "AND" || lastWordUpper == "OR";
+
+            bool isAliased(string tableName)
             {
-                string queryUpToCaret = text.Substring(0, start).TrimEnd();
-                var wordMatches = Regex.Matches(queryUpToCaret, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
-                string lastWordUpper = wordMatches.Count > 0 ? wordMatches[wordMatches.Count - 1].Value.ToUpper() : "";
+                return _sqlAliases.Values.Any(v => string.Equals(v, tableName, StringComparison.OrdinalIgnoreCase));
+            }
 
-                bool expectTable = lastWordUpper == "FROM" || lastWordUpper == "JOIN" || lastWordUpper == "INTO" || lastWordUpper == "UPDATE";
-                bool expectColumn = lastWordUpper == "SELECT" || lastWordUpper == "WHERE" || lastWordUpper == "ON" || lastWordUpper == "SET" || lastWordUpper == "BY" || lastWordUpper == "HAVING" || lastWordUpper == "AND" || lastWordUpper == "OR";
+            if (hasDot && !string.IsNullOrEmpty(caller))
+            {
+                string actualTable = caller;
+                if (_sqlAliases.ContainsKey(caller)) actualTable = _sqlAliases[caller];
 
-                bool isAliased(string tableName) => _sqlAliases.Values.Any(v => string.Equals(v, tableName, StringComparison.OrdinalIgnoreCase));
+                if (_sqlSchema.ContainsKey(actualTable))
+                    foreach (var col in _sqlSchema[actualTable])
+                        possibleMatches.Add(col);
+            }
+            else if (expectTable)
+            {
+                foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table);
+            }
+            else if (expectColumn)
+            {
+                foreach (var cols in _sqlSchema.Values)
+                foreach (var col in cols)
+                    possibleMatches.Add(col);
 
-                if (hasDot && !string.IsNullOrEmpty(caller))
-                {
-                    string actualTable = caller;
-                    if (_sqlAliases.ContainsKey(caller))
-                    {
-                        actualTable = _sqlAliases[caller];
-                    }
-
-                    if (_sqlSchema.ContainsKey(actualTable))
-                    {
-                        foreach (var col in _sqlSchema[actualTable]) possibleMatches.Add(col);
-                    }
-                }
-                else if (expectTable)
-                {
-                    foreach (var table in _sqlSchema.Keys) possibleMatches.Add(table);
-                }
-                else if (expectColumn)
-                {
-                    foreach (var cols in _sqlSchema.Values)
-                        foreach (var col in cols) possibleMatches.Add(col);
-
-                    foreach (var table in _sqlSchema.Keys)
-                    {
-                        if (!isAliased(table)) possibleMatches.Add(table);
-                    }
-                    foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
-                    foreach (var t in _allLocals)
-                    {
-                        if (!isAliased(t)) possibleMatches.Add(t);
-                    }
-                }
-                else
-                {
-                    foreach (var table in _sqlSchema.Keys)
-                    {
-                        if (!isAliased(table)) possibleMatches.Add(table);
-                    }
-                    foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
-                    foreach (var cols in _sqlSchema.Values)
-                        foreach (var col in cols) possibleMatches.Add(col);
-                    foreach (var t in _allLocals)
-                    {
-                        if (!isAliased(t)) possibleMatches.Add(t);
-                    }
-                }
+                foreach (var table in _sqlSchema.Keys)
+                    if (!isAliased(table))
+                        possibleMatches.Add(table);
+                foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
+                foreach (var t in _allLocals)
+                    if (!isAliased(t))
+                        possibleMatches.Add(t);
             }
             else
             {
-                // c# contextual completion
-                if (hasDot && !string.IsNullOrEmpty(caller))
+                foreach (var table in _sqlSchema.Keys)
+                    if (!isAliased(table))
+                        possibleMatches.Add(table);
+                foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
+                foreach (var cols in _sqlSchema.Values)
+                foreach (var col in cols)
+                    possibleMatches.Add(col);
+                foreach (var t in _allLocals)
+                    if (!isAliased(t))
+                        possibleMatches.Add(t);
+            }
+        }
+        else
+        {
+            // c# contextual completion
+            if (hasDot && !string.IsNullOrEmpty(caller))
+            {
+                if (caller == "this")
                 {
-                    if (caller == "this")
-                    {
-                        var tree = CSharpSyntaxTree.ParseText(text);
-                        var root = tree.GetRoot();
-                        var nodeAtCaret = root.FindToken(start).Parent;
-                        var parentClass = nodeAtCaret?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-
-                        if (parentClass != null)
-                        {
-                            string cName = parentClass.Identifier.Text;
-                            if (_instanceMembers.ContainsKey(cName))
-                            {
-                                foreach (var m in _instanceMembers[cName]) possibleMatches.Add(m);
-                            }
-                        }
-                    }
-                    // static members of a class
-                    else if (_allClasses.Contains(caller) && _staticMembers.ContainsKey(caller))
-                    {
-                        foreach (var m in _staticMembers[caller]) possibleMatches.Add(m);
-                    }
-                    // instance members of a variable
-                    else if (_variableTypes.ContainsKey(caller))
-                    {
-                        string type = _variableTypes[caller];
-                        if (_instanceMembers.ContainsKey(type))
-                        {
-                            foreach (var m in _instanceMembers[type]) possibleMatches.Add(m);
-                        }
-                    }
-                }
-                else if (!hasDot && length > 0)
-                {
-                    // current scope members, locals, classes
                     var tree = CSharpSyntaxTree.ParseText(text);
                     var root = tree.GetRoot();
-                    var nodeAtCaret = root.FindToken(caretOffset).Parent;
+                    var nodeAtCaret = root.FindToken(start).Parent;
                     var parentClass = nodeAtCaret?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
                     if (parentClass != null)
                     {
                         string cName = parentClass.Identifier.Text;
-                        if (_staticMembers.ContainsKey(cName)) foreach (var m in _staticMembers[cName]) possibleMatches.Add(m);
-                        if (_instanceMembers.ContainsKey(cName)) foreach (var m in _instanceMembers[cName]) possibleMatches.Add(m);
+                        if (_instanceMembers.ContainsKey(cName))
+                            foreach (var m in _instanceMembers[cName])
+                                possibleMatches.Add(m);
                     }
-
-                    foreach (var c in _allClasses) possibleMatches.Add(c);
-                    foreach (var l in _allLocals) possibleMatches.Add(l);
+                }
+                // static members of a class
+                else if (_allClasses.Contains(caller) && _staticMembers.ContainsKey(caller))
+                {
+                    foreach (var m in _staticMembers[caller]) possibleMatches.Add(m);
+                }
+                // instance members of a variable
+                else if (_variableTypes.ContainsKey(caller))
+                {
+                    string type = _variableTypes[caller];
+                    if (_instanceMembers.ContainsKey(type))
+                        foreach (var m in _instanceMembers[type])
+                            possibleMatches.Add(m);
                 }
             }
-
-            if (possibleMatches.Count > 0 && currentWord.Length > 0)
+            else if (!hasDot && length > 0)
             {
-                if (_keywords == SqlKeywords)
+                // current scope members, locals, classes
+                var tree = CSharpSyntaxTree.ParseText(text);
+                var root = tree.GetRoot();
+                var nodeAtCaret = root.FindToken(caretOffset).Parent;
+                var parentClass = nodeAtCaret?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+                if (parentClass != null)
                 {
-                    _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) && t.Length > currentWord.Length)
-                        .Distinct()
-                        .OrderBy(t => t)
-                        .ToList();
+                    string cName = parentClass.Identifier.Text;
+                    if (_staticMembers.ContainsKey(cName))
+                        foreach (var m in _staticMembers[cName])
+                            possibleMatches.Add(m);
+                    if (_instanceMembers.ContainsKey(cName))
+                        foreach (var m in _instanceMembers[cName])
+                            possibleMatches.Add(m);
                 }
-                else
-                {
-                    // c# mode: case-sensitive matching and extract only the remaining suffix
-                    _currentSuggestions = possibleMatches
-                        .Where(t => t.StartsWith(currentWord, StringComparison.Ordinal) && t.Length > currentWord.Length)
-                        .Select(t => t.Substring(currentWord.Length))
-                        .Distinct()
-                        .OrderBy(t => t)
-                        .ToList();
-                }
+
+                foreach (var c in _allClasses) possibleMatches.Add(c);
+                foreach (var l in _allLocals) possibleMatches.Add(l);
             }
         }
 
-        private bool IsInsideStringOrComment(string text, int offset)
+        if (possibleMatches.Count > 0 && currentWord.Length > 0)
         {
-            bool inString = false;
-            bool inChar = false;
-            bool inLineComment = false;
-            bool inBlockComment = false;
-            bool inInterpolated = false;
-            int interpolationDepth = 0;
+            if (_keywords == SqlKeywords)
+                _currentSuggestions = possibleMatches
+                    .Where(t => t.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                t.Length > currentWord.Length)
+                    .Distinct()
+                    .OrderBy(t => t)
+                    .ToList();
+            else
+                // c# mode: case-sensitive matching and extract only the remaining suffix
+                _currentSuggestions = possibleMatches
+                    .Where(t => t.StartsWith(currentWord, StringComparison.Ordinal) && t.Length > currentWord.Length)
+                    .Select(t => t.Substring(currentWord.Length))
+                    .Distinct()
+                    .OrderBy(t => t)
+                    .ToList();
+        }
+    }
 
-            for (int i = 0; i < offset; i++)
+    private bool IsInsideStringOrComment(string text, int offset)
+    {
+        bool inString = false;
+        bool inChar = false;
+        bool inLineComment = false;
+        bool inBlockComment = false;
+        bool inInterpolated = false;
+        int interpolationDepth = 0;
+
+        for (int i = 0; i < offset; i++)
+        {
+            char c = text[i];
+            if (inBlockComment)
             {
-                char c = text[i];
-                if (inBlockComment) { if (c == '*' && i + 1 < text.Length && text[i + 1] == '/') { inBlockComment = false; i++; } continue; }
-                if (inLineComment) { if (c == '\n') inLineComment = false; continue; }
-
-                // handle interpolation
-                if (inInterpolated && c == '{')
+                if (c == '*' && i + 1 < text.Length && text[i + 1] == '/')
                 {
-                    if (i + 1 < text.Length && text[i + 1] == '{') { i++; continue; }
-                    interpolationDepth++;
+                    inBlockComment = false;
+                    i++;
+                }
+
+                continue;
+            }
+
+            if (inLineComment)
+            {
+                if (c == '\n') inLineComment = false;
+                continue;
+            }
+
+            // handle interpolation
+            if (inInterpolated && c == '{')
+            {
+                if (i + 1 < text.Length && text[i + 1] == '{')
+                {
+                    i++;
                     continue;
                 }
-                if (inInterpolated && interpolationDepth > 0 && c == '}')
+
+                interpolationDepth++;
+                continue;
+            }
+
+            if (inInterpolated && interpolationDepth > 0 && c == '}')
+            {
+                if (i + 1 < text.Length && text[i + 1] == '}')
                 {
-                    if (i + 1 < text.Length && text[i + 1] == '}') { i++; continue; }
-                    interpolationDepth--;
+                    i++;
                     continue;
                 }
 
-                if (interpolationDepth > 0) continue;
+                interpolationDepth--;
+                continue;
+            }
 
-                if (inString || inInterpolated) { if (c == '\\') { i++; continue; } if (c == '"') { inString = false; inInterpolated = false; } continue; }
-                if (inChar) { if (c == '\\') { i++; continue; } if (c == '\'') inChar = false; continue; }
+            if (interpolationDepth > 0) continue;
 
-                if (c == '/' && i + 1 < text.Length)
+            if (inString || inInterpolated)
+            {
+                if (c == '\\')
                 {
-                    if (text[i + 1] == '/') { inLineComment = true; i++; continue; }
-                    if (text[i + 1] == '*') { inBlockComment = true; i++; continue; }
+                    i++;
+                    continue;
                 }
-                if (c == '$' && i + 1 < text.Length && text[i + 1] == '"') { inInterpolated = true; i++; continue; }
-                if (c == '"') { inString = true; continue; }
-                if (c == '\'') { inChar = true; continue; }
-            }
 
-            return (inString || inInterpolated) && interpolationDepth == 0 || inChar || inLineComment || inBlockComment;
-        }
-
-        public void ClearSuggestion()
-        {
-            _currentSuggestions.Clear();
-            _suggestionIndex = 0;
-            CurrentWordLength = 0;
-        }
-
-        public void SetSqlSchema(Dictionary<string, List<string>> schema)
-        {
-            _sqlSchema = schema ?? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        }
-    }
-
-    public class AutocompleteGhostGenerator : VisualLineElementGenerator
-    {
-        private readonly TextEditor _editor;
-        private readonly AutocompleteService _service;
-
-        public AutocompleteGhostGenerator(TextEditor editor, AutocompleteService service)
-        {
-            _editor = editor;
-            _service = service;
-        }
-
-        public override int GetFirstInterestedOffset(int startOffset)
-        {
-            if (!AppSettings.IsAutocompleteEnabled && !AppSettings.IsSqlAutocompleteEnabled) return -1;
-            if (!_service.HasSuggestion) return -1;
-
-            int caretOffset = _editor.CaretOffset;
-
-            if (caretOffset >= startOffset) // only generate if the caret is within the current visual line segment
-            {
-                return caretOffset;
-            }
-
-            return -1;
-        }
-
-        public override VisualLineElement ConstructElement(int offset)
-        {
-            if (_service.HasSuggestion && offset == _editor.CaretOffset)
-            {
-                string suffix = _service.CurrentSuggestionSuffix;
-
-                if (!string.IsNullOrEmpty(suffix))
+                if (c == '"')
                 {
-                    // returns a custom element that renders the ghost text
-                    return new GhostTextElement(suffix, _editor);
+                    inString = false;
+                    inInterpolated = false;
+                }
+
+                continue;
+            }
+
+            if (inChar)
+            {
+                if (c == '\\')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (c == '\'') inChar = false;
+                continue;
+            }
+
+            if (c == '/' && i + 1 < text.Length)
+            {
+                if (text[i + 1] == '/')
+                {
+                    inLineComment = true;
+                    i++;
+                    continue;
+                }
+
+                if (text[i + 1] == '*')
+                {
+                    inBlockComment = true;
+                    i++;
+                    continue;
                 }
             }
-            return null;
+
+            if (c == '$' && i + 1 < text.Length && text[i + 1] == '"')
+            {
+                inInterpolated = true;
+                i++;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (c == '\'') inChar = true;
         }
+
+        return ((inString || inInterpolated) && interpolationDepth == 0) || inChar || inLineComment || inBlockComment;
     }
 
-    public class GhostTextElement : VisualLineElement
+    public void ClearSuggestion()
     {
-        private readonly string _text;
-        private readonly TextEditor _editor;
-
-        // base(visualLength, documentLength)
-        public GhostTextElement(string text, TextEditor editor) : base((text ?? string.Empty).Length, 0)
-        {
-            _text = text ?? string.Empty;
-            _editor = editor;
-        }
-
-        public override TextRun CreateTextRun(int visualColumn, ITextRunConstructionContext context)
-        {
-            this.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#808080")));
-            this.TextRunProperties.SetTypeface(new Typeface(_editor.FontFamily, FontStyle.Italic, _editor.FontWeight));
-
-            return new TextCharacters(_text, this.TextRunProperties);
-        }
+        _currentSuggestions.Clear();
+        _suggestionIndex = 0;
+        CurrentWordLength = 0;
     }
 
-    internal class CsharpCodeEditor
+    public void SetSqlSchema(Dictionary<string, List<string>> schema)
     {
-        public static IHighlightingDefinition GetDarkCsharpHighlighting()
+        _sqlSchema = schema ?? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+    }
+}
+
+public class AutocompleteGhostGenerator : VisualLineElementGenerator
+{
+    private readonly TextEditor _editor;
+    private readonly AutocompleteService _service;
+
+    public AutocompleteGhostGenerator(TextEditor editor, AutocompleteService service)
+    {
+        _editor = editor;
+        _service = service;
+    }
+
+    public override int GetFirstInterestedOffset(int startOffset)
+    {
+        if (!AppSettings.IsAutocompleteEnabled && !AppSettings.IsSqlAutocompleteEnabled) return -1;
+        if (!_service.HasSuggestion) return -1;
+
+        int caretOffset = _editor.CaretOffset;
+
+        if (caretOffset >= startOffset) // only generate if the caret is within the current visual line segment
+            return caretOffset;
+
+        return -1;
+    }
+
+    public override VisualLineElement ConstructElement(int offset)
+    {
+        if (_service.HasSuggestion && offset == _editor.CaretOffset)
         {
-            string xshd =
-                @"
+            string suffix = _service.CurrentSuggestionSuffix;
+
+            if (!string.IsNullOrEmpty(suffix))
+                // returns a custom element that renders the ghost text
+                return new GhostTextElement(suffix, _editor);
+        }
+
+        return null;
+    }
+}
+
+public class GhostTextElement : VisualLineElement
+{
+    private readonly TextEditor _editor;
+    private readonly string _text;
+
+    // base(visualLength, documentLength)
+    public GhostTextElement(string text, TextEditor editor) : base((text ?? string.Empty).Length, 0)
+    {
+        _text = text ?? string.Empty;
+        _editor = editor;
+    }
+
+    public override TextRun CreateTextRun(int visualColumn, ITextRunConstructionContext context)
+    {
+        TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#808080")));
+        TextRunProperties.SetTypeface(new Typeface(_editor.FontFamily, FontStyle.Italic, _editor.FontWeight));
+
+        return new TextCharacters(_text, TextRunProperties);
+    }
+}
+
+internal class CsharpCodeEditor
+{
+    public static IHighlightingDefinition GetDarkCsharpHighlighting()
+    {
+        string xshd =
+            @"
 <SyntaxDefinition name=""C# Dark"" extensions="".cs"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
 	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""// comment"" />
 	<Color name=""String"" foreground=""#CE9178"" exampleText=""string text = &quot;Hello&quot;"" />
@@ -1486,263 +1588,269 @@ namespace AbiturEliteCode
 	</RuleSet>
 </SyntaxDefinition>";
 
-            using (var reader = XmlReader.Create(new StringReader(xshd)))
-            {
-                return HighlightingLoader.Load(reader, HighlightingManager.Instance);
-            }
+        using (var reader = XmlReader.Create(new StringReader(xshd)))
+        {
+            return HighlightingLoader.Load(reader, HighlightingManager.Instance);
         }
     }
+}
 
-    public class SemanticClassHighlightingTransformer : DocumentColorizingTransformer
+public class SemanticClassHighlightingTransformer : DocumentColorizingTransformer
+{
+    public HashSet<string> KnownClasses { get; set; } = new();
+
+    protected override void ColorizeLine(DocumentLine line)
     {
-        public HashSet<string> KnownClasses { get; set; } = new HashSet<string>();
+        if (!AppSettings.IsSyntaxHighlightingEnabled) return;
+        if (KnownClasses.Count == 0) return;
 
-        protected override void ColorizeLine(DocumentLine line)
+        string text = CurrentContext.Document.GetText(line);
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        int lineStart = line.Offset;
+
+        var safeRanges = new List<(int start, int end)>();
+        bool inString = false;
+        bool inInterpolated = false;
+        bool inChar = false;
+        int interpolationDepth = 0;
+        int safeStart = 0;
+
+        for (int i = 0; i < text.Length; i++)
         {
-            if (!AppSettings.IsSyntaxHighlightingEnabled) return;
-            if (KnownClasses.Count == 0) return;
-
-            string text = CurrentContext.Document.GetText(line);
-            if (string.IsNullOrWhiteSpace(text)) return;
-
-            int lineStart = line.Offset;
-
-            var safeRanges = new List<(int start, int end)>();
-            bool inString = false;
-            bool inInterpolated = false;
-            bool inChar = false;
-            int interpolationDepth = 0;
-            int safeStart = 0;
-
-            for (int i = 0; i < text.Length; i++)
+            // handle interpolation
+            if (inInterpolated && text[i] == '{')
             {
-                // handle interpolation
-                if (inInterpolated && text[i] == '{')
+                if (i + 1 < text.Length && text[i + 1] == '{')
                 {
-                    if (i + 1 < text.Length && text[i + 1] == '{') { i++; continue; } // Skip {{
-                    interpolationDepth++;
-                    safeStart = i + 1;
+                    i++;
                     continue;
-                }
-                if (inInterpolated && interpolationDepth > 0 && text[i] == '}')
-                {
-                    if (i + 1 < text.Length && text[i + 1] == '}') { i++; continue; } // Skip }}
-                    safeRanges.Add((safeStart, i));
-                    interpolationDepth--;
-                    continue;
-                }
+                } // Skip {{
 
-                if (interpolationDepth > 0) continue;
-
-                if (inString || inInterpolated)
-                {
-                    if (text[i] == '"' && (i == 0 || text[i - 1] != '\\'))
-                    {
-                        inString = false;
-                        inInterpolated = false;
-                        safeStart = i + 1;
-                    }
-                    continue;
-                }
-
-                if (inChar)
-                {
-                    if (text[i] == '\'' && (i == 0 || text[i - 1] != '\\'))
-                    {
-                        inChar = false;
-                        safeStart = i + 1;
-                    }
-                    continue;
-                }
-
-                // line comments
-                if (text[i] == '/' && i + 1 < text.Length && text[i + 1] == '/')
-                {
-                    safeRanges.Add((safeStart, i));
-                    safeStart = text.Length;
-                    break;
-                }
-
-                // string starts
-                if (text[i] == '$' && i + 1 < text.Length && text[i + 1] == '"')
-                {
-                    safeRanges.Add((safeStart, i));
-                    inInterpolated = true;
-                    i++; // skip "
-                }
-                else if (text[i] == '"')
-                {
-                    safeRanges.Add((safeStart, i));
-                    inString = true;
-                }
-                else if (text[i] == '\'')
-                {
-                    safeRanges.Add((safeStart, i));
-                    inChar = true;
-                }
+                interpolationDepth++;
+                safeStart = i + 1;
+                continue;
             }
 
-            if (safeStart < text.Length) safeRanges.Add((safeStart, text.Length));
-
-            // finds class, struct, record, interface, enum names
-            var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
-            foreach (Match match in matches)
+            if (inInterpolated && interpolationDepth > 0 && text[i] == '}')
             {
-                if (KnownClasses.Contains(match.Value))
+                if (i + 1 < text.Length && text[i + 1] == '}')
                 {
-                    bool isSafe = false;
-                    foreach (var range in safeRanges)
+                    i++;
+                    continue;
+                } // Skip }}
+
+                safeRanges.Add((safeStart, i));
+                interpolationDepth--;
+                continue;
+            }
+
+            if (interpolationDepth > 0) continue;
+
+            if (inString || inInterpolated)
+            {
+                if (text[i] == '"' && (i == 0 || text[i - 1] != '\\'))
+                {
+                    inString = false;
+                    inInterpolated = false;
+                    safeStart = i + 1;
+                }
+
+                continue;
+            }
+
+            if (inChar)
+            {
+                if (text[i] == '\'' && (i == 0 || text[i - 1] != '\\'))
+                {
+                    inChar = false;
+                    safeStart = i + 1;
+                }
+
+                continue;
+            }
+
+            // line comments
+            if (text[i] == '/' && i + 1 < text.Length && text[i + 1] == '/')
+            {
+                safeRanges.Add((safeStart, i));
+                safeStart = text.Length;
+                break;
+            }
+
+            // string starts
+            if (text[i] == '$' && i + 1 < text.Length && text[i + 1] == '"')
+            {
+                safeRanges.Add((safeStart, i));
+                inInterpolated = true;
+                i++; // skip "
+            }
+            else if (text[i] == '"')
+            {
+                safeRanges.Add((safeStart, i));
+                inString = true;
+            }
+            else if (text[i] == '\'')
+            {
+                safeRanges.Add((safeStart, i));
+                inChar = true;
+            }
+        }
+
+        if (safeStart < text.Length) safeRanges.Add((safeStart, text.Length));
+
+        // finds class, struct, record, interface, enum names
+        var matches = Regex.Matches(text, @"\b[a-zA-Z_][a-zA-Z0-9_]*\b");
+        foreach (Match match in matches)
+            if (KnownClasses.Contains(match.Value))
+            {
+                bool isSafe = false;
+                foreach (var range in safeRanges)
+                    if (match.Index >= range.start && match.Index + match.Length <= range.end)
                     {
-                        if (match.Index >= range.start && (match.Index + match.Length) <= range.end)
-                        {
-                            isSafe = true;
-                            break;
-                        }
+                        isSafe = true;
+                        break;
                     }
 
-                    if (isSafe)
-                    {
-                        ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length, element =>
+                if (isSafe)
+                    ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length,
+                        element =>
                         {
                             element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#4EC9B0")));
                         });
-                    }
-                }
             }
-        }
+    }
+}
+
+public class SpaceTabIndicatorRenderer : IBackgroundRenderer
+{
+    private readonly TextEditor _editor;
+    private readonly Pen _indicatorPen;
+
+    public SpaceTabIndicatorRenderer(TextEditor editor)
+    {
+        _editor = editor;
+        _indicatorPen = new Pen(new SolidColorBrush(Color.Parse("#30FFFFFF")), 1.5);
     }
 
-    public class SpaceTabIndicatorRenderer : IBackgroundRenderer
+    public KnownLayer Layer => KnownLayer.Background;
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        private readonly TextEditor _editor;
-        private readonly Pen _indicatorPen;
+        var doc = _editor.Document;
+        if (doc == null) return;
 
-        public SpaceTabIndicatorRenderer(TextEditor editor)
+        foreach (var line in textView.VisualLines)
         {
-            _editor = editor;
-            _indicatorPen = new Pen(new SolidColorBrush(Color.Parse("#30FFFFFF")), 1.5);
-        }
-
-        public KnownLayer Layer => KnownLayer.Background;
-
-        public void Draw(TextView textView, DrawingContext drawingContext)
-        {
-            var doc = _editor.Document;
-            if (doc == null) return;
-
-            foreach (var line in textView.VisualLines)
-            {
-                string text = doc.GetText(line.FirstDocumentLine);
-                int offset = 0;
-                while (offset <= text.Length - 4)
+            string text = doc.GetText(line.FirstDocumentLine);
+            int offset = 0;
+            while (offset <= text.Length - 4)
+                if (text.Substring(offset, 4) == "    ")
                 {
-                    if (text.Substring(offset, 4) == "    ")
+                    var segment = new TextSegment { StartOffset = line.FirstDocumentLine.Offset + offset, Length = 4 };
+                    var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment);
+                    foreach (var rect in rects)
                     {
-                        var segment = new TextSegment { StartOffset = line.FirstDocumentLine.Offset + offset, Length = 4 };
-                        var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment);
-                        foreach (var rect in rects)
-                        {
-                            double midY = rect.Y + rect.Height / 2;
-                            double tipX = rect.X + 3; // space 0
+                        double midY = rect.Y + rect.Height / 2;
+                        double tipX = rect.X + 3; // space 0
 
-                            // draw arrow
-                            drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY - 2), new Point(tipX + 3, midY));
-                            drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY + 2), new Point(tipX + 3, midY));
-                        }
-                        offset += 4;
+                        // draw arrow
+                        drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY - 2), new Point(tipX + 3, midY));
+                        drawingContext.DrawLine(_indicatorPen, new Point(tipX, midY + 2), new Point(tipX + 3, midY));
                     }
-                    else
-                    {
-                        offset++;
-                    }
+
+                    offset += 4;
                 }
-            }
+                else
+                {
+                    offset++;
+                }
         }
     }
+}
 
-    public class SelectionHighlightRenderer : IBackgroundRenderer
+public class SelectionHighlightRenderer : IBackgroundRenderer
+{
+    private readonly TextEditor _editor;
+    private readonly SolidColorBrush _highlightBrush;
+    private string _currentSelection = "";
+
+    public SelectionHighlightRenderer(TextEditor editor)
     {
-        private readonly TextEditor _editor;
-        private readonly SolidColorBrush _highlightBrush;
-        private string _currentSelection = "";
+        _editor = editor;
+        _highlightBrush = new SolidColorBrush(Color.Parse("#35FFFFFF"));
 
-        public SelectionHighlightRenderer(TextEditor editor)
+        _editor.TextArea.SelectionChanged += (s, e) =>
         {
-            _editor = editor;
-            _highlightBrush = new SolidColorBrush(Color.Parse("#35FFFFFF"));
+            string newSelection = _editor.TextArea.Selection.GetText();
+            if (string.IsNullOrWhiteSpace(newSelection))
+                newSelection = "";
 
-            _editor.TextArea.SelectionChanged += (s, e) =>
+            if (_currentSelection != newSelection)
             {
-                string newSelection = _editor.TextArea.Selection.GetText();
-                if (string.IsNullOrWhiteSpace(newSelection))
-                    newSelection = "";
-
-                if (_currentSelection != newSelection)
-                {
-                    _currentSelection = newSelection;
-                    _editor.TextArea.TextView.InvalidateLayer(Layer);
-                }
-            };
-        }
-
-        public KnownLayer Layer => KnownLayer.Selection;
-
-        public void Draw(TextView textView, DrawingContext drawingContext)
-        {
-            if (string.IsNullOrEmpty(_currentSelection) || _editor.Document == null) return;
-
-            string docText = _editor.Document.Text;
-            int index = 0;
-
-            while ((index = docText.IndexOf(_currentSelection, index, StringComparison.Ordinal)) != -1)
-            {
-                var segment = new TextSegment { StartOffset = index, Length = _currentSelection.Length };
-                foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
-                {
-                    drawingContext.DrawRectangle(_highlightBrush, null, rect);
-                }
-                index += _currentSelection.Length;
+                _currentSelection = newSelection;
+                _editor.TextArea.TextView.InvalidateLayer(Layer);
             }
-        }
+        };
     }
 
-    public class VimBlockCaretRenderer : IBackgroundRenderer
+    public KnownLayer Layer => KnownLayer.Selection;
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        private readonly TextEditor _editor;
-        private readonly SolidColorBrush _brush;
-        public bool IsEnabled { get; set; } = false;
+        if (string.IsNullOrEmpty(_currentSelection) || _editor.Document == null) return;
 
-        public VimBlockCaretRenderer(TextEditor editor)
+        string docText = _editor.Document.Text;
+        int index = 0;
+
+        while ((index = docText.IndexOf(_currentSelection, index, StringComparison.Ordinal)) != -1)
         {
-            _editor = editor;
-            _brush = new SolidColorBrush(Color.Parse("#88FFFFFF"));
+            var segment = new TextSegment { StartOffset = index, Length = _currentSelection.Length };
+            foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
+                drawingContext.DrawRectangle(_highlightBrush, null, rect);
+            index += _currentSelection.Length;
         }
+    }
+}
 
-        public KnownLayer Layer => KnownLayer.Caret;
+public class VimBlockCaretRenderer : IBackgroundRenderer
+{
+    private readonly SolidColorBrush _brush;
+    private readonly TextEditor _editor;
 
-        public void Draw(TextView textView, DrawingContext drawingContext)
+    public VimBlockCaretRenderer(TextEditor editor)
+    {
+        _editor = editor;
+        _brush = new SolidColorBrush(Color.Parse("#88FFFFFF"));
+    }
+
+    public bool IsEnabled { get; set; } = false;
+
+    public KnownLayer Layer => KnownLayer.Caret;
+
+    public void Draw(TextView textView, DrawingContext drawingContext)
+    {
+        if (!IsEnabled || _editor.Document == null) return;
+
+        int offset = _editor.CaretOffset;
+        if (offset > _editor.Document.TextLength) return;
+
+        var segment = new TextSegment { StartOffset = offset, Length = 1 };
+        // draw block caret (with space width cuz mono space)
+        char c = offset < _editor.Document.TextLength ? _editor.Document.GetCharAt(offset) : '\n';
+
+        var rect = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment).FirstOrDefault();
+        if (rect != default)
         {
-            if (!IsEnabled || _editor.Document == null) return;
-
-            int offset = _editor.CaretOffset;
-            if (offset > _editor.Document.TextLength) return;
-
-            var segment = new TextSegment { StartOffset = offset, Length = 1 };
-            // draw block caret (with space width cuz mono space)
-            char c = offset < _editor.Document.TextLength ? _editor.Document.GetCharAt(offset) : '\n';
-
-            var rect = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment).FirstOrDefault();
-            if (rect != default)
+            var drawRect = rect;
+            if (c == '\n' || c == '\r' || rect.Width == 0)
             {
-                var drawRect = rect;
-                if (c == '\n' || c == '\r' || rect.Width == 0)
-                {
-                    double charWidth = textView.WideSpaceWidth;
-                    if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2.0;
-                    drawRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
-                }
-                drawingContext.DrawRectangle(_brush, null, drawRect);
+                double charWidth = textView.WideSpaceWidth;
+                if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2.0;
+                drawRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
             }
+
+            drawingContext.DrawRectangle(_brush, null, drawRect);
         }
     }
 }

@@ -2,64 +2,69 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 public class PlayerSettings
 {
-    public bool IsVimEnabled { get; set; } = false;
-    public bool IsSqlVimEnabled { get; set; } = false;
-    public bool IsSyntaxHighlightingEnabled { get; set; } = false;
-    public bool IsSqlSyntaxHighlightingEnabled { get; set; } = false;
-    public bool IsAutocompleteEnabled { get; set; } = false;
-    public bool IsSqlAutocompleteEnabled { get; set; } = false;
+    public bool IsVimEnabled { get; set; }
+    public bool IsSqlVimEnabled { get; set; }
+    public bool IsSyntaxHighlightingEnabled { get; set; }
+    public bool IsSqlSyntaxHighlightingEnabled { get; set; }
+    public bool IsAutocompleteEnabled { get; set; }
+    public bool IsSqlAutocompleteEnabled { get; set; }
     public double EditorFontSize { get; set; } = 16.0;
     public double SqlEditorFontSize { get; set; } = 16.0;
     public double UiScale { get; set; } = 1.0;
-    public int TabTipShownCount { get; set; } = 0;
-    public int VimTutorialHighscore { get; set; } = 0;
+    public int TabTipShownCount { get; set; }
+    public int VimTutorialHighscore { get; set; }
     public bool AutoCheckForUpdates { get; set; } = true;
-    public bool IsSqlAntiSpoilerEnabled { get; set; } = false;
-    public double LastScreenWidth { get; set; } = 0;
-    public double LastScreenHeight { get; set; } = 0;
-    public bool SqlSpoilerHintDismissed { get; set; } = false;
-    public double SqlSpoilerHintTotalSeconds { get; set; } = 0;
-    public bool RelationalModelTipShown { get; set; } = false;
-    public bool IsDiscordRpcEnabled { get; set; } = false;
+    public bool IsSqlAntiSpoilerEnabled { get; set; }
+    public double LastScreenWidth { get; set; }
+    public double LastScreenHeight { get; set; }
+    public bool SqlSpoilerHintDismissed { get; set; }
+    public double SqlSpoilerHintTotalSeconds { get; set; }
+    public bool RelationalModelTipShown { get; set; }
+    public bool IsDiscordRpcEnabled { get; set; }
 }
 
 public class PlayerData
 {
-    public List<int> UnlockedLevelIds { get; set; } = new List<int> { 1 };
-    public List<int> CompletedLevelIds { get; set; } = new List<int>();
+    public List<int> UnlockedLevelIds { get; set; } = new() { 1 };
+    public List<int> CompletedLevelIds { get; set; } = new();
 
-    public List<int> UnlockedSqlLevelIds { get; set; } = new List<int> { 1 };
-    public List<int> CompletedSqlLevelIds { get; set; } = new List<int>();
+    public List<int> UnlockedSqlLevelIds { get; set; } = new() { 1 };
+    public List<int> CompletedSqlLevelIds { get; set; } = new();
 
-    public Dictionary<int, string> UserSqlCode { get; set; } = new Dictionary<int, string>();
-    public Dictionary<int, string> UserSqlModels { get; set; } = new Dictionary<int, string>();
-    public Dictionary<int, string> UserCode { get; set; } = new Dictionary<int, string>();
-    public PlayerSettings Settings { get; set; } = new PlayerSettings();
+    public Dictionary<int, string> UserSqlCode { get; set; } = new();
+    public Dictionary<int, string> UserSqlModels { get; set; } = new();
+    public Dictionary<int, string> UserCode { get; set; } = new();
+    public PlayerSettings Settings { get; set; } = new();
 }
+
 public class CustomPlayerData
 {
     // c#
-    public HashSet<string> CompletedCustomLevels { get; set; } = new HashSet<string>();
-    public Dictionary<string, string> UserCode { get; set; } = new Dictionary<string, string>();
-    
+    public HashSet<string> CompletedCustomLevels { get; set; } = new();
+    public Dictionary<string, string> UserCode { get; set; } = new();
+
     // sql
-    public HashSet<string> CompletedCustomSqlLevels { get; set; } = new HashSet<string>();
-    public Dictionary<string, string> UserSqlCode { get; set; } = new Dictionary<string, string>();
-    public Dictionary<string, string> UserSqlModels { get; set; } = new Dictionary<string, string>();
+    public HashSet<string> CompletedCustomSqlLevels { get; set; } = new();
+    public Dictionary<string, string> UserSqlCode { get; set; } = new();
+    public Dictionary<string, string> UserSqlModels { get; set; } = new();
 }
 
 public static class SaveSystem
 {
-    private static string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
-    private static string rootFolder = AppContext.BaseDirectory; // portable location
+    private static readonly string appDataFolder =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AbiturEliteCode");
+
+    private static readonly string rootFolder = AppContext.BaseDirectory; // portable location
 
     private static string AppDataPath => Path.Combine(appDataFolder, "savegame.elitedata");
     private static string RootPath => Path.Combine(rootFolder, "savegame.elitedata");
 
-    private static string CustomSavePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
+    private static string CustomSavePath =>
+        Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
 
     private static string GetActivePath()
     {
@@ -75,7 +80,10 @@ public static class SaveSystem
         return AppDataPath; // fallback appdata
     }
 
-    public static bool IsPortableModeEnabled() => File.Exists(RootPath);
+    public static bool IsPortableModeEnabled()
+    {
+        return File.Exists(RootPath);
+    }
 
     public static bool CanWriteToRoot()
     {
@@ -99,13 +107,9 @@ public static class SaveSystem
         {
             // switch to portable mode
             if (File.Exists(AppDataPath))
-            {
                 File.Copy(AppDataPath, RootPath, true);
-            }
             else
-            {
-                Save(new PlayerData(), forcePath: RootPath);
-            }
+                Save(new PlayerData(), RootPath);
         }
         else
         {
@@ -128,16 +132,21 @@ public static class SaveSystem
 
         string ids = string.Join(",", data.UnlockedLevelIds);
         string completed = string.Join(",", data.CompletedLevelIds);
-        string codes = string.Join(";", data.UserCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings = $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled};lastscreenwidth:{data.Settings.LastScreenWidth};lastscreenheight:{data.Settings.LastScreenHeight};sqlspoilerdismissed:{data.Settings.SqlSpoilerHintDismissed};sqlspoilertime:{data.Settings.SqlSpoilerHintTotalSeconds};relationaltip:{data.Settings.RelationalModelTipShown};discordrpc:{data.Settings.IsDiscordRpcEnabled}";
+        string codes = string.Join(";",
+            data.UserCode.Select(k => $"{k.Key}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}"));
+        string settings =
+            $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled};lastscreenwidth:{data.Settings.LastScreenWidth};lastscreenheight:{data.Settings.LastScreenHeight};sqlspoilerdismissed:{data.Settings.SqlSpoilerHintDismissed};sqlspoilertime:{data.Settings.SqlSpoilerHintTotalSeconds};relationaltip:{data.Settings.RelationalModelTipShown};discordrpc:{data.Settings.IsDiscordRpcEnabled}";
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
-        string sqlCodes = string.Join(";", data.UserSqlCode.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
-        string sqlModels = string.Join(";", data.UserSqlModels.Select(k => $"{k.Key}:{System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}"));
+        string sqlCodes = string.Join(";",
+            data.UserSqlCode.Select(k => $"{k.Key}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}"));
+        string sqlModels = string.Join(";",
+            data.UserSqlModels.Select(k => $"{k.Key}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}"));
 
         // format: unlocked|codes|completed|settings|sqlUnlocked|sqlCompleted|sqlCodes|sqlModels
-        File.WriteAllText(targetPath, $"{ids}|{codes}|{completed}|{settings}|{sqlUnlocked}|{sqlCompleted}|{sqlCodes}|{sqlModels}");
+        File.WriteAllText(targetPath,
+            $"{ids}|{codes}|{completed}|{settings}|{sqlUnlocked}|{sqlCompleted}|{sqlCodes}|{sqlModels}");
     }
 
     public static PlayerData Load()
@@ -156,7 +165,6 @@ public static class SaveSystem
                 data.UnlockedLevelIds = parts[0].Split(',').Select(int.Parse).ToList();
 
             if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
-            {
                 foreach (var item in parts[1].Split(';'))
                 {
                     if (string.IsNullOrWhiteSpace(item)) continue;
@@ -164,15 +172,12 @@ public static class SaveSystem
                     if (pair.Length < 2) continue;
 
                     int id = int.Parse(pair[0]);
-                    string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
+                    string code = Encoding.UTF8.GetString(Convert.FromBase64String(pair[1]));
                     if (!data.UserCode.ContainsKey(id)) data.UserCode.Add(id, code);
                 }
-            }
 
             if (parts.Length > 2 && !string.IsNullOrEmpty(parts[2]))
-            {
                 data.CompletedLevelIds = parts[2].Split(',').Select(int.Parse).ToList();
-            }
 
             if (parts.Length > 3 && !string.IsNullOrEmpty(parts[3]))
             {
@@ -203,7 +208,6 @@ public static class SaveSystem
                         case "sqlspoilertime": data.Settings.SqlSpoilerHintTotalSeconds = double.Parse(kv[1]); break;
                         case "relationaltip": data.Settings.RelationalModelTipShown = bool.Parse(kv[1]); break;
                         case "discordrpc": data.Settings.IsDiscordRpcEnabled = bool.Parse(kv[1]); break;
-                        default: break;
                     }
                 }
             }
@@ -215,7 +219,6 @@ public static class SaveSystem
                 data.CompletedSqlLevelIds = parts[5].Split(',').Select(int.Parse).ToList();
 
             if (parts.Length > 6 && !string.IsNullOrEmpty(parts[6]))
-            {
                 foreach (var item in parts[6].Split(';'))
                 {
                     if (string.IsNullOrWhiteSpace(item)) continue;
@@ -223,13 +226,11 @@ public static class SaveSystem
                     if (pair.Length < 2) continue;
 
                     int id = int.Parse(pair[0]);
-                    string code = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
+                    string code = Encoding.UTF8.GetString(Convert.FromBase64String(pair[1]));
                     if (!data.UserSqlCode.ContainsKey(id)) data.UserSqlCode.Add(id, code);
                 }
-            }
 
             if (parts.Length > 7 && !string.IsNullOrEmpty(parts[7]))
-            {
                 foreach (var item in parts[7].Split(';'))
                 {
                     if (string.IsNullOrWhiteSpace(item)) continue;
@@ -237,12 +238,14 @@ public static class SaveSystem
                     if (pair.Length < 2) continue;
 
                     int id = int.Parse(pair[0]);
-                    string modelJson = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(pair[1]));
+                    string modelJson = Encoding.UTF8.GetString(Convert.FromBase64String(pair[1]));
                     if (!data.UserSqlModels.ContainsKey(id)) data.UserSqlModels.Add(id, modelJson);
                 }
-            }
         }
-        catch { }
+        catch
+        {
+        }
+
         return data;
     }
 
@@ -255,17 +258,17 @@ public static class SaveSystem
         // c# data
         string completed = string.Join("|", data.CompletedCustomLevels);
         var codeEntries = data.UserCode.Select(k =>
-            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+            $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}");
         string codes = string.Join(";", codeEntries);
 
         // new: sql data
         string sqlCompleted = string.Join("|", data.CompletedCustomSqlLevels);
         var sqlCodeEntries = data.UserSqlCode.Select(k =>
-            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+            $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}");
         string sqlCodes = string.Join(";", sqlCodeEntries);
 
         var sqlModelEntries = data.UserSqlModels.Select(k =>
-            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(k.Value))}");
+            $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}");
         string sqlModels = string.Join(";", sqlModelEntries);
 
         // append sql sections with '§'
@@ -302,8 +305,8 @@ public static class SaveSystem
                         var parts = entry.Split(':');
                         if (parts.Length == 2)
                         {
-                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
-                            string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            string key = Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string code = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
                             if (!data.UserCode.ContainsKey(key)) data.UserCode.Add(key, code);
                         }
                     }
@@ -325,8 +328,8 @@ public static class SaveSystem
                         var parts = entry.Split(':');
                         if (parts.Length == 2)
                         {
-                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
-                            string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            string key = Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string code = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
                             if (!data.UserSqlCode.ContainsKey(key)) data.UserSqlCode.Add(key, code);
                         }
                     }
@@ -341,15 +344,18 @@ public static class SaveSystem
                         var parts = entry.Split(':');
                         if (parts.Length == 2)
                         {
-                            string key = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
-                            string modelJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                            string key = Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                            string modelJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
                             if (!data.UserSqlModels.ContainsKey(key)) data.UserSqlModels.Add(key, modelJson);
                         }
                     }
                 }
             }
         }
-        catch { }
+        catch
+        {
+        }
+
         return data;
     }
 }

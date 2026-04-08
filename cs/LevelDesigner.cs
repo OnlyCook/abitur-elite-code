@@ -10,229 +10,231 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace AbiturEliteCode.cs
+namespace AbiturEliteCode.cs;
+
+public class LevelDraft
 {
-    public class LevelDraft
-    {
-        public class DiagramData
-        {
-            public string Name { get; set; } = "Material Diagramm";
-            public string PlantUmlSource { get; set; } = "@startuml\nclass NewMaterial {\n}\n@enduml";
-            public string PlantUmlSvgContent { get; set; } = "";
-        }
+    public string Name { get; set; } = "Neues Level";
+    public string Author { get; set; } = "Unbekannt";
+    public string Description { get; set; } = "Beschreibe hier die Aufgabe...";
 
-        public string Name { get; set; } = "Neues Level";
-        public string Author { get; set; } = "Unbekannt";
-        public string Description { get; set; } = "Beschreibe hier die Aufgabe...";
-        public string Materials { get; set; } = "Hier können Dokumentation, Tipps oder Hinweise stehen...\n\nstart-hint: Ein Hinweis\nVersteckter Text\n:end-hint";
-        public List<string> Prerequisites { get; set; } = new List<string>();
-        public string StarterCode { get; set; } = "public class MyClass \n{\n    // Code hier\n}";
-        public string ValidationCode { get; set; } = "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
-        public string TestCode { get; set; } = "";
-        public List<string> PlantUmlSources { get; set; } = new List<string> { "@startuml\nAlice -> Bob: Hello\n@enduml" };
-        public List<string> PlantUmlSvgContents { get; set; } = new List<string>();
-        public List<DiagramData> MaterialDiagrams { get; set; } = new List<DiagramData>();
-        public bool QuickGenerate { get; set; } = false;
+    public string Materials { get; set; } =
+        "Hier können Dokumentation, Tipps oder Hinweise stehen...\n\nstart-hint: Ein Hinweis\nVersteckter Text\n:end-hint";
+
+    public List<string> Prerequisites { get; set; } = new();
+    public string StarterCode { get; set; } = "public class MyClass \n{\n    // Code hier\n}";
+
+    public string ValidationCode { get; set; } =
+        "private static bool ValidateLevel(Assembly assembly, out string feedback)\n{\n    feedback = \"Gut gemacht!\";\n    return true;\n}";
+
+    public string TestCode { get; set; } = "";
+    public List<string> PlantUmlSources { get; set; } = new() { "@startuml\nAlice -> Bob: Hello\n@enduml" };
+    public List<string> PlantUmlSvgContents { get; set; } = new();
+    public List<DiagramData> MaterialDiagrams { get; set; } = new();
+    public bool QuickGenerate { get; set; }
+
+    public class DiagramData
+    {
+        public string Name { get; set; } = "Material Diagramm";
+        public string PlantUmlSource { get; set; } = "@startuml\nclass NewMaterial {\n}\n@enduml";
+        public string PlantUmlSvgContent { get; set; } = "";
     }
+}
 
-    public static class LevelEncryption
+public static class LevelEncryption
+{
+    private static readonly byte[] Key = Encoding.UTF8.GetBytes("AbiturElite_32ByteEncryptionKey!");
+    private static readonly byte[] Iv = Encoding.UTF8.GetBytes("EliteCode_IV1234");
+
+    public static string Encrypt(string plainText)
     {
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("AbiturElite_32ByteEncryptionKey!");
-        private static readonly byte[] Iv = Encoding.UTF8.GetBytes("EliteCode_IV1234");
-
-        public static string Encrypt(string plainText)
+        using (Aes aes = Aes.Create())
         {
-            using (Aes aes = Aes.Create())
+            aes.Key = Key;
+            aes.IV = Iv;
+            var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using (var ms = new MemoryStream())
             {
-                aes.Key = Key;
-                aes.IV = Iv;
-                var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-                using (var ms = new MemoryStream())
+                using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                using (var sw = new StreamWriter(cs))
                 {
-                    using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                    using (var sw = new StreamWriter(cs))
-                    {
-                        sw.Write(plainText);
-                    }
-                    return Convert.ToBase64String(ms.ToArray());
+                    sw.Write(plainText);
                 }
-            }
-        }
 
-        public static string Decrypt(string cipherText)
-        {
-            using (Aes aes = Aes.Create())
-            {
-                aes.Key = Key;
-                aes.IV = Iv;
-                var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-                using (var ms = new MemoryStream(Convert.FromBase64String(cipherText)))
-                using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                using (var sr = new StreamReader(cs))
-                {
-                    return sr.ReadToEnd();
-                }
+                return Convert.ToBase64String(ms.ToArray());
             }
         }
     }
 
-    public static class LevelDesigner
+    public static string Decrypt(string cipherText)
     {
-        public static LevelDraft LoadDraft(string path)
+        using (Aes aes = Aes.Create())
         {
-            if (!File.Exists(path)) return new LevelDraft();
-            try
+            aes.Key = Key;
+            aes.IV = Iv;
+            var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            using (var ms = new MemoryStream(Convert.FromBase64String(cipherText)))
+            using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+            using (var sr = new StreamReader(cs))
             {
-                string json = File.ReadAllText(path);
-                var draft = JsonSerializer.Deserialize<LevelDraft>(json);
-
-                if (draft != null)
-                {
-                    if (draft.PlantUmlSources == null) draft.PlantUmlSources = new List<string>();
-                    if (draft.PlantUmlSources.Count == 0) draft.PlantUmlSources.Add("@startuml\nAlice -> Bob: Hello\n@enduml");
-
-                    if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
-                    while (draft.PlantUmlSvgContents.Count < draft.PlantUmlSources.Count)
-                    {
-                        draft.PlantUmlSvgContents.Add("");
-                    }
-                }
-
-                return draft ?? new LevelDraft();
-            }
-            catch
-            {
-                return new LevelDraft();
+                return sr.ReadToEnd();
             }
         }
+    }
+}
 
-        public static async Task SaveDraftAsync(string path, LevelDraft draft)
+public static class LevelDesigner
+{
+    public static LevelDraft LoadDraft(string path)
+    {
+        if (!File.Exists(path)) return new LevelDraft();
+        try
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string json = JsonSerializer.Serialize(draft, options);
-            await File.WriteAllTextAsync(path, json);
-        }
+            string json = File.ReadAllText(path);
+            var draft = JsonSerializer.Deserialize<LevelDraft>(json);
 
-        public static void ExportLevel(string draftPath, LevelDraft draft)
-        {
-            string dir = Path.GetDirectoryName(draftPath);
-            string filename = Path.GetFileNameWithoutExtension(draftPath);
-            string targetPath = Path.Combine(dir, filename + ".elitelvl");
-
-            var exportData = new
+            if (draft != null)
             {
-                Name = draft.Name,
-                Author = draft.Author,
-                Description = draft.Description,
-                MaterialDocs = draft.Materials,
-                Prerequisites = draft.Prerequisites,
-                StarterCode = draft.StarterCode,
-                ValidationCode = draft.ValidationCode,
-                PlantUmlSvgs = draft.PlantUmlSvgContents,
-                PlantUmlSources = draft.PlantUmlSources,
+                if (draft.PlantUmlSources == null) draft.PlantUmlSources = new List<string>();
+                if (draft.PlantUmlSources.Count == 0)
+                    draft.PlantUmlSources.Add("@startuml\nAlice -> Bob: Hello\n@enduml");
 
-                MaterialDiagramSvgs = draft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList()
-            };
+                if (draft.PlantUmlSvgContents == null) draft.PlantUmlSvgContents = new List<string>();
+                while (draft.PlantUmlSvgContents.Count < draft.PlantUmlSources.Count) draft.PlantUmlSvgContents.Add("");
+            }
 
-            var options = new JsonSerializerOptions { WriteIndented = false };
-            string json = JsonSerializer.Serialize(exportData, options);
-
-            string encryptedJson = LevelEncryption.Encrypt(json);
-            File.WriteAllText(targetPath, encryptedJson);
+            return draft ?? new LevelDraft();
+        }
+        catch
+        {
+            return new LevelDraft();
         }
     }
 
-    public static class PlantUmlHelper
+    public static async Task SaveDraftAsync(string path, LevelDraft draft)
     {
-        private static readonly string _plantUmlAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string json = JsonSerializer.Serialize(draft, options);
+        await File.WriteAllTextAsync(path, json);
+    }
 
-        public static async Task<string> GenerateSvgFromCodeAsync(string plantUmlCode)
+    public static void ExportLevel(string draftPath, LevelDraft draft)
+    {
+        string dir = Path.GetDirectoryName(draftPath);
+        string filename = Path.GetFileNameWithoutExtension(draftPath);
+        string targetPath = Path.Combine(dir, filename + ".elitelvl");
+
+        var exportData = new
         {
-            var chenKeys = new HashSet<string>();
-            var keyMatches = Regex.Matches(plantUmlCode, @"(\w+)\s*<<key>>");
-            foreach (Match match in keyMatches)
-            {
-                if (match.Groups.Count > 1)
-                {
-                    chenKeys.Add(match.Groups[1].Value);
-                }
-            }
+            draft.Name,
+            draft.Author,
+            draft.Description,
+            MaterialDocs = draft.Materials,
+            draft.Prerequisites,
+            draft.StarterCode,
+            draft.ValidationCode,
+            PlantUmlSvgs = draft.PlantUmlSvgContents,
+            draft.PlantUmlSources,
 
-            string encoded = EncodePlantUml(plantUmlCode);
-            string url = $"http://www.plantuml.com/plantuml/dsvg/{encoded}";
+            MaterialDiagramSvgs = draft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList()
+        };
 
-            string svgContent;
-            using (var client = new HttpClient())
-            {
-                svgContent = await client.GetStringAsync(url);
-            }
+        var options = new JsonSerializerOptions { WriteIndented = false };
+        string json = JsonSerializer.Serialize(exportData, options);
 
-            if (chenKeys.Count > 0)
-            {
-                foreach (var key in chenKeys)
-                {
-                    string unicodeKey = ConvertToUnicodeUnderline(key);
-                    string pattern = @"(<text[^>]*>)\s*" + Regex.Escape(key) + @"\s*(</text>)";
-                    svgContent = Regex.Replace(svgContent, pattern, $"$1{unicodeKey}$2");
-                }
-            }
+        string encryptedJson = LevelEncryption.Encrypt(json);
+        File.WriteAllText(targetPath, encryptedJson);
+    }
+}
 
-            return svgContent;
+public static class PlantUmlHelper
+{
+    private static readonly string _plantUmlAlphabet =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+
+    public static async Task<string> GenerateSvgFromCodeAsync(string plantUmlCode)
+    {
+        var chenKeys = new HashSet<string>();
+        var keyMatches = Regex.Matches(plantUmlCode, @"(\w+)\s*<<key>>");
+        foreach (Match match in keyMatches)
+            if (match.Groups.Count > 1)
+                chenKeys.Add(match.Groups[1].Value);
+
+        string encoded = EncodePlantUml(plantUmlCode);
+        string url = $"http://www.plantuml.com/plantuml/dsvg/{encoded}";
+
+        string svgContent;
+        using (var client = new HttpClient())
+        {
+            svgContent = await client.GetStringAsync(url);
         }
 
-        private static string ConvertToUnicodeUnderline(string input)
-        {
-            var sb = new StringBuilder();
-            foreach (char c in input)
+        if (chenKeys.Count > 0)
+            foreach (var key in chenKeys)
             {
-                sb.Append(c);
-                sb.Append('\u0332'); // add underline
-            }
-            return sb.ToString();
-        }
-
-        private static string EncodePlantUml(string text)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
-
-            using (var output = new MemoryStream())
-            {
-                using (var compressor = new DeflateStream(output, CompressionLevel.Optimal))
-                {
-                    compressor.Write(bytes, 0, bytes.Length);
-                }
-                bytes = output.ToArray();
+                string unicodeKey = ConvertToUnicodeUnderline(key);
+                string pattern = @"(<text[^>]*>)\s*" + Regex.Escape(key) + @"\s*(</text>)";
+                svgContent = Regex.Replace(svgContent, pattern, $"$1{unicodeKey}$2");
             }
 
-            return Encode64(bytes);
+        return svgContent;
+    }
+
+    private static string ConvertToUnicodeUnderline(string input)
+    {
+        var sb = new StringBuilder();
+        foreach (char c in input)
+        {
+            sb.Append(c);
+            sb.Append('\u0332'); // add underline
         }
 
-        private static string Encode64(byte[] data)
+        return sb.ToString();
+    }
+
+    private static string EncodePlantUml(string text)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(text);
+
+        using (var output = new MemoryStream())
         {
-            StringBuilder r = new StringBuilder();
-            int i = 0;
-            while (i < data.Length)
+            using (var compressor = new DeflateStream(output, CompressionLevel.Optimal))
             {
-                byte b1 = data[i++];
-                byte b2 = (i < data.Length) ? data[i++] : (byte)0;
-                byte b3 = (i < data.Length) ? data[i++] : (byte)0;
-
-                r.Append(Append3Bytes(b1, b2, b3));
+                compressor.Write(bytes, 0, bytes.Length);
             }
-            return r.ToString();
+
+            bytes = output.ToArray();
         }
 
-        private static string Append3Bytes(byte b1, byte b2, byte b3)
+        return Encode64(bytes);
+    }
+
+    private static string Encode64(byte[] data)
+    {
+        StringBuilder r = new StringBuilder();
+        int i = 0;
+        while (i < data.Length)
         {
-            int c1 = b1 >> 2;
-            int c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
-            int c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
-            int c4 = b3 & 0x3F;
+            byte b1 = data[i++];
+            byte b2 = i < data.Length ? data[i++] : (byte)0;
+            byte b3 = i < data.Length ? data[i++] : (byte)0;
 
-            return "" + _plantUmlAlphabet[c1 & 0x3F] +
-                        _plantUmlAlphabet[c2 & 0x3F] +
-                        _plantUmlAlphabet[c3 & 0x3F] +
-                        _plantUmlAlphabet[c4 & 0x3F];
+            r.Append(Append3Bytes(b1, b2, b3));
         }
+
+        return r.ToString();
+    }
+
+    private static string Append3Bytes(byte b1, byte b2, byte b3)
+    {
+        int c1 = b1 >> 2;
+        int c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+        int c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
+        int c4 = b3 & 0x3F;
+
+        return "" + _plantUmlAlphabet[c1 & 0x3F] +
+               _plantUmlAlphabet[c2 & 0x3F] +
+               _plantUmlAlphabet[c3 & 0x3F] +
+               _plantUmlAlphabet[c4 & 0x3F];
     }
 }

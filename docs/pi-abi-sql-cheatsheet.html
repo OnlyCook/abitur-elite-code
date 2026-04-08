@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Abitur: Muster & Cheat Sheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --border-sub: #21262d;
+    --text:       #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim:   #484f58;
+    --green:      #3fb950;
+    --yellow:     #d29922;
+    --red:        #f85149;
+    --blue:       #58a6ff;
+    --orange:     #db6d28;
+    --purple:     #bc8cff;
+    --teal:       #39d353;
+    --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb a { color: #b388ff; text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .ybadge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 11px;
+  }
+
+  /* ── NOTE / CALLOUT ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+  .note.warn   { border-left-color: var(--yellow); }
+  .note.danger { border-left-color: var(--red); }
+  .note.tip    { border-left-color: var(--green); }
+  .note.purple { border-left-color: var(--purple); }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 22px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .h3-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--blue);
+    padding: 1px 7px;
+    border-radius: 3px;
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .rule-card.green  { border-left-color: var(--green); }
+  .rule-card.yellow { border-left-color: var(--yellow); }
+  .rule-card.red    { border-left-color: var(--red); }
+  .rule-card.purple { border-left-color: var(--purple); }
+  .rule-card.orange { border-left-color: var(--orange); }
+  .rule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .rule-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .rule-body strong { color: var(--text); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  /* SQL keyword colors */
+  .kw      { color: var(--purple); }   /* SELECT, FROM, WHERE, ... */
+  .kw2     { color: var(--blue); font-weight: 600; } /* JOIN variants */
+  .str     { color: var(--yellow); }   /* string literals */
+  .num     { color: var(--orange); }   /* numbers */
+  .cm      { color: var(--text-dim); font-style: italic; } /* comments */
+  .fn      { color: var(--teal); }     /* functions NOW(), SUM(), ... */
+  .tbl     { color: var(--green); }    /* table names */
+  .col     { color: var(--text); }     /* column names */
+  .op      { color: var(--red); }      /* operators = > < */
+  .hi      { color: var(--green); font-weight: 600; }  /* highlight */
+  .ph      { color: var(--red); font-style: italic; }  /* placeholder */
+
+  /* ── TABLES ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 12px 0;
+  }
+  table.rtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.rtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  table.rtable td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  table.rtable tr:last-child td { border-bottom: none; }
+  table.rtable td strong { color: var(--text); }
+  table.rtable td code { font-size: 11px; }
+  .td-green  { color: var(--green)  !important; font-family: var(--mono); font-size: 12px; }
+  .td-red    { color: var(--red)    !important; font-family: var(--mono); font-size: 12px; }
+  .td-yellow { color: var(--yellow) !important; font-family: var(--mono); font-size: 12px; }
+  .td-blue   { color: var(--blue)   !important; font-family: var(--mono); font-size: 12px; }
+
+  /* ── EX-PANELS ── */
+  .ex-panel {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .ex-panel-title {
+    background: var(--bg3);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .ex-panel-body {
+    background: #010409;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text-muted);
+  }
+
+  /* ── PILLS ── */
+  .pill {
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill-b  { background: rgba(88,166,255,.15); color: var(--blue);   border: 1px solid rgba(88,166,255,.3); }
+  .pill-g  { background: rgba(63,185,80,.15);  color: var(--green);  border: 1px solid rgba(63,185,80,.3); }
+  .pill-y  { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+  .pill-r  { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+  .pill-p  { background: rgba(188,140,255,.15);color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
+
+  /* ── FREQ BADGE ── */
+  .freq {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .freq-high { background: rgba(63,185,80,.2);  color: var(--green); }
+  .freq-med  { background: rgba(210,153,34,.2); color: var(--yellow); }
+  .freq-low  { background: rgba(88,166,255,.2); color: var(--blue); }
+
+  /* ── DECISION ROW ── */
+  .decision-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  @media (max-width: 640px) { .decision-row { grid-template-columns: 1fr; } }
+  .decision-cell {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .decision-cell .dc-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .decision-cell .dc-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    white-space: pre;
+    line-height: 1.8;
+  }
+
+  a { color: #b388ff !important; }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="note warn" style="margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Seite wurden durch manuelle Analyse aller SQL-Datenbankaufgaben aus den offiziellen Prüfungsvorschlägen gewonnen und mithilfe von KI ausgewertet. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen vergleichen.
+</div>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <div class="breadcrumb">
+    <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+    <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+    SQL Cheat Sheet
+  </div>
+  <h1>SQL Abitur — Muster &amp; Cheat Sheet</h1>
+  <p>
+    Systematische Analyse aller SQL-Datenbankaufgaben aus den Hessischen Abiturprüfungen
+    (MySQL) 2016–2025. Dieses Dokument zeigt wiederkehrende Muster und Erkennungsmerkmale,
+    damit du jeden Aufgabentyp sofort erkennen und strukturiert lösen kannst.
+  </p>
+</header>
+
+<div class="note danger">
+  <strong>⚠ Wichtiger Hinweis zur Vollständigkeit:</strong>
+  Dieses Dokument beschreibt <strong>syntaktische und logische SQL-Muster</strong>, die direkt aus den Aufgabentexten und Musterlösungen ableitbar sind.
+  Konkrete Tabellen- und Spaltennamen kommen immer aus dem Relationen-Modell bzw. ER-Diagramm der jeweiligen Aufgabe — diese musst du selbst aus den Aufgabenunterlagen entnehmen.
+  Stellen, an denen ein konkreter Wert aus dem Diagramm benötigt wird, sind mit <span style="color:var(--red);font-style:italic;">[→ DIAGRAM]</span> markiert.
+</div>
+
+<!-- ══ SECTION 1: AUFGABENTYPEN ════════════════════════════════════════ -->
+<div class="section">
+  <h2>1 · Aufgabentypen — Übersicht</h2>
+  <div class="section-desc">Alle wiederkehrenden SQL-Aufgabenformen aus 10 Jahren Abitur, mit Häufigkeit und Erkennungsmerkmal.</div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Aufgabentyp</th>
+          <th>Schlüsselwörter im Aufgabentext</th>
+          <th>SQL-Befehl</th>
+          <th>Häufigkeit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Neuen Datensatz einfügen</strong></td>
+          <td><code>neu</code>, <code>wird aufgenommen</code>, <code>wird hinzugefügt</code>, <code>wird in die Datenbank eingetragen</code>, <code>erstmalig</code></td>
+          <td class="td-green">INSERT INTO</td>
+          <td><span class="freq freq-high">sehr hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Datensatz aktualisieren</strong></td>
+          <td><code>soll aktualisiert werden</code>, <code>wird übernommen</code>, <code>erhöhen um X%</code>, <code>wird auf … gesetzt</code>, <code>bekommt … zugeteilt</code>, <code>fälschlicherweise</code></td>
+          <td class="td-yellow">UPDATE … SET</td>
+          <td><span class="freq freq-high">sehr hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Einfache Auswahlabfrage</strong></td>
+          <td><code>ermitteln</code>, <code>ausgeben</code>, <code>anzeigen</code>, <code>auflisten</code> — mit Filterbedingung aus einer Tabelle</td>
+          <td class="td-blue">SELECT … WHERE</td>
+          <td><span class="freq freq-high">sehr hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mehrere Tabellen verknüpfen</strong></td>
+          <td>Ausgabe enthält Spalten aus mindestens 2 Tabellen (z.B. Name + Vertragsnummer)</td>
+          <td class="td-blue">SELECT … JOIN / FROM t1, t2 WHERE</td>
+          <td><span class="freq freq-high">sehr hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Aggregation &amp; Gruppierung</strong></td>
+          <td><code>Anzahl</code>, <code>Summe</code>, <code>je … die Summe</code>, <code>gruppiert nach</code>, <code>die mehr als X … haben</code></td>
+          <td class="td-blue">COUNT/SUM + GROUP BY + HAVING</td>
+          <td><span class="freq freq-high">sehr hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sortierung + Top-N-Begrenzung</strong></td>
+          <td><code>sortiert</code>, <code>die drei … mit dem höchsten</code>, <code>die letzten zehn</code>, <code>nur N … anzeigen</code></td>
+          <td class="td-blue">ORDER BY + LIMIT</td>
+          <td><span class="freq freq-high">hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>LEFT JOIN — auch ohne Treffer</strong></td>
+          <td><code>auch … die noch keine … haben</code>, <code>alle … auch die ohne</code>, <code>auch Rechnungen, für die keine Zahlungen vorliegen</code></td>
+          <td class="td-blue">LEFT JOIN</td>
+          <td><span class="freq freq-high">hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Unterabfrage — Ausschluss</strong></td>
+          <td><code>die noch nie</code>, <code>die keinen … haben</code>, <code>für die keine … vorliegen</code>, <code>die noch nicht</code></td>
+          <td class="td-blue">WHERE … NOT IN (SELECT …)</td>
+          <td><span class="freq freq-high">hoch</span></td>
+        </tr>
+        <tr>
+          <td><strong>Unterabfrage — Vergleich mit Aggregat</strong></td>
+          <td><code>über dem Durchschnitt</code>, <code>mindestens so viele wie</code>, <code>nur wenn … mehr als X</code></td>
+          <td class="td-blue">WHERE x > (SELECT AVG(…))</td>
+          <td><span class="freq freq-med">mittel</span></td>
+        </tr>
+        <tr>
+          <td><strong>Datensatz löschen (einfach)</strong></td>
+          <td><code>soll gelöscht werden</code>, <code>soll entfernt werden</code> — mit bereits bereinigten Abhängigkeiten</td>
+          <td class="td-red">DELETE FROM … WHERE</td>
+          <td><span class="freq freq-med">mittel</span></td>
+        </tr>
+        <tr>
+          <td><strong>Löschen mit referentieller Integrität</strong></td>
+          <td><code>unter Berücksichtigung der referentiellen Integrität</code>, <code>keine kaskadierende Löschung</code></td>
+          <td class="td-red">mehrere DELETE + Reihenfolge</td>
+          <td><span class="freq freq-med">mittel</span></td>
+        </tr>
+        <tr>
+          <td><strong>Datumsfunktionen</strong></td>
+          <td><code>im Monat Januar</code>, <code>im vergangenen Jahr</code>, <code>aktuelles Datum</code>, <code>Differenz in Minuten</code></td>
+          <td class="td-blue">NOW(), YEAR(), MONTH(), LIKE '…%'</td>
+          <td><span class="freq freq-med">mittel</span></td>
+        </tr>
+        <tr>
+          <td><strong>Tabelle erstellen / erweitern</strong></td>
+          <td><code>Tabelle … soll in der Datenbank ergänzt werden</code>, <code>Fremdschlüssel … ergänzen</code></td>
+          <td class="td-green">CREATE TABLE + ALTER TABLE</td>
+          <td><span class="freq freq-low">selten</span></td>
+        </tr>
+        <tr>
+          <td><strong>SQL-Anweisung erläutern</strong></td>
+          <td><code>Erläutern Sie den Aufbau und die inhaltliche Bedeutung</code></td>
+          <td>— (Text)</td>
+          <td><span class="freq freq-low">selten</span></td>
+        </tr>
+        <tr>
+          <td><strong>MySQL-Variable SET @var</strong></td>
+          <td>Hinweis im Aufgabentext: <code>SET @variablenName = (SELECT … FROM …);</code></td>
+          <td class="td-blue">SET @var = …</td>
+          <td><span class="freq freq-low">selten</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SECTION 2: INSERT INTO ══════════════════════════════════════════ -->
+<div class="section">
+  <h2>2 · INSERT INTO — Neuen Datensatz einfügen</h2>
+  <div class="section-desc">Häufigster DML-Schreibbefehl. Immer wenn etwas „neu" ist oder „aufgenommen" / „eingetragen" werden soll.</div>
+
+  <div class="note tip">
+    <strong>Goldene Regel:</strong> Das Wort <strong>„neu"</strong> im Aufgabentext bedeutet fast immer <code>INSERT INTO</code> — auch wenn die Person oder das Objekt im weiteren Satz so beschrieben wird, als existiere sie schon. Lies: <em>„Der neue Mitarbeiter Max Müller übernimmt ab sofort …"</em> → zuerst INSERT, dann ggf. UPDATE/weitere Verknüpfungen.
+  </div>
+
+  <h3><span class="h3-num">2.1</span> Einfaches INSERT</h3>
+  <div class="rule-card green">
+    <div class="rule-title">Erkennungsmerkmal: Alle Werte sind direkt im Aufgabentext angegeben</div>
+    <div class="rule-body">
+      Alle einzufügenden Werte werden explizit im Text genannt (Name, Datum, Preis, …). Kein Nachschlagen anderer Tabellen nötig.
+      <br><strong>Variante mit Spaltenliste:</strong> Wenn nicht alle Spalten befüllt werden (z.B. IBAN noch nicht bekannt), Spalten explizit angeben.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">INSERT — alle Werte bekannt (ABI 2017 B, ABI 2024 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Alle Spalten werden befüllt (Reihenfolge = Tabellendefinition)</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Fahrzeugklasse</span>
+<span class="kw">VALUES</span> (<span class="str">"Van"</span>, <span class="num">0.15</span>, <span class="num">0.25</span>);
+
+<span class="cm">-- Nicht alle Spalten bekannt → Spalten explizit nennen (IBAN fehlt)</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Fahrer</span> (<span class="col">fahrernr</span>, <span class="col">nachname</span>, <span class="col">vorname</span>, <span class="col">stundenlohn</span>)
+<span class="kw">VALUES</span> (<span class="num">333</span>, <span class="str">'Knebel'</span>, <span class="str">'Lennard'</span>, <span class="num">12.0</span>);
+<span class="cm">-- → iban wird implizit NULL (wenn die Spalte das erlaubt)</span></div>
+  </div>
+
+  <h3><span class="h3-num">2.2</span> INSERT mit AUTO_INCREMENT</h3>
+  <div class="rule-card green">
+    <div class="rule-title">Erkennungsmerkmal: „Die ID/Nummer wird vom System automatisch vergeben"</div>
+    <div class="rule-body">
+      Wenn der Hinweis <strong>„AUTO_INCREMENT"</strong> oder <strong>„wird automatisch vergeben"</strong> erscheint, darf der Primärschlüssel beim INSERT weggelassen werden — entweder durch explizite Spaltenliste (ohne PK) oder <code>NULL</code> als Platzhalterwert.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">INSERT mit AUTO_INCREMENT — PK weglassen (ABI 2021 A, ABI 2022 A, ABI 2022 C)</div>
+    <div class="ex-panel-body"><span class="cm">-- PK (bestellNr) wird automatisch vergeben → aus Spaltenliste weglassen</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Bestellung</span> (<span class="col">bestellDatum</span>, <span class="col">kNr</span>)
+<span class="kw">VALUES</span> (<span class="str">'2022-05-02'</span>, <span class="num">7654</span>);
+
+<span class="cm">-- Alternativ: NULL als Platzhalterwert für AUTO_INCREMENT</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Geschaeftsfuehrer</span> (<span class="col">vorname</span>, <span class="col">nachname</span>)
+<span class="kw">VALUES</span> (<span class="str">'Mira'</span>, <span class="str">'Bellenbaum'</span>);
+<span class="cm">-- → personalnr wird automatisch vergeben (z.B. 1, 2, 3, ...)</span></div>
+  </div>
+
+  <h3><span class="h3-num">2.3</span> INSERT mit Unterabfrage (FK-Wert unbekannt)</h3>
+  <div class="rule-card green">
+    <div class="rule-title">Erkennungsmerkmal: Fremdschlüssel-Wert ist nicht direkt im Text gegeben</div>
+    <div class="rule-body">
+      Wenn ein Fremdschlüssel (z.B. <code>fgid</code> einer Fluggesellschaft, <code>gid</code> eines Genres) eingefügt werden muss, aber nur der <em>Name</em> im Aufgabentext steht, muss der Wert per <code>SELECT</code>-Unterabfrage ermittelt werden.
+      <br>Erkennbar auch am Hinweis: <strong>„Die Primärschlüssel von X und Y sind zu ermitteln."</strong>
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">INSERT mit Unterabfrage für FK-Werte (ABI 2021 B, ABI 2022 C, ABI 2023 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- FK-Werte vid und gid sind unbekannt → per Unterabfrage ermitteln</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Film</span> (<span class="col">fid</span>, <span class="col">titel</span>, <span class="col">osprache</span>, <span class="col">fsk</span>, <span class="col">laenge</span>, <span class="col">vid</span>, <span class="col">gid</span>)
+<span class="kw">VALUES</span> (<span class="num">4723</span>, <span class="str">'Logo Movie'</span>, <span class="str">'English'</span>, <span class="num">0</span>, <span class="num">145</span>,
+    (<span class="kw">SELECT</span> <span class="col">vid</span> <span class="kw">FROM</span> <span class="tbl">Verleih</span>  <span class="kw">WHERE</span> <span class="col">name</span> <span class="op">=</span> <span class="str">'Logo Movie Production'</span>),
+    (<span class="kw">SELECT</span> <span class="col">gid</span> <span class="kw">FROM</span> <span class="tbl">Genre</span>   <span class="kw">WHERE</span> <span class="col">bezeichnung</span> <span class="op">=</span> <span class="str">'Animation'</span>)
+);</div>
+  </div>
+
+  <h3><span class="h3-num">2.4</span> Mehrstufiges INSERT (verkettete Abhängigkeiten)</h3>
+  <div class="rule-card green">
+    <div class="rule-title">Erkennungsmerkmal: Neuer Kunde + neue Bestellung + neue Position (+ Bestandsaktualisierung)</div>
+    <div class="rule-body">
+      Wenn eine neue Person <em>und</em> gleichzeitig eine erste Bestellung/Buchung/Verknüpfung angelegt werden soll, braucht man <strong>mehrere INSERT-Anweisungen in FK-Reihenfolge</strong> (Elterntabelle zuerst). Häufig wird danach noch ein UPDATE benötigt (z.B. Bestand verringern).
+      <br><br>
+      <strong>Typische Kette:</strong> INSERT Kunde → INSERT Bestellung → INSERT Position → UPDATE Bestand
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">Mehrstufiges INSERT mit FK-Abhängigkeit (ABI 2022 A)</div>
+    <div class="ex-panel-body"><span class="cm">-- Schritt 1: Kunde einfügen</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Kunde</span> (<span class="col">kNr</span>, <span class="col">vname</span>, <span class="col">nname</span>, <span class="col">plz</span>, <span class="col">ort</span>, <span class="col">strasse</span>, <span class="col">telefon</span>)
+<span class="kw">VALUES</span> (<span class="num">7654</span>, <span class="str">'Hans'</span>, <span class="str">'Hecht'</span>, <span class="str">'89075'</span>, <span class="str">'Ulm'</span>, <span class="str">'Donautor 1'</span>, <span class="str">'0177 1234567'</span>);
+
+<span class="cm">-- Schritt 2: Bestellung einfügen (AUTO_INCREMENT für bestellNr)</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Bestellung</span> (<span class="col">bestellDatum</span>, <span class="col">kNr</span>)
+<span class="kw">VALUES</span> (<span class="str">'2022-05-02'</span>, <span class="num">7654</span>);
+
+<span class="cm">-- Schritt 3: Position einfügen — bestellNr per Unterabfrage ermitteln</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Position</span>
+<span class="kw">VALUES</span> ((<span class="kw">SELECT</span> <span class="col">bestellNr</span> <span class="kw">FROM</span> <span class="tbl">Bestellung</span>
+         <span class="kw">WHERE</span> <span class="col">bestellDatum</span> <span class="op">=</span> <span class="str">'2022-05-02'</span> <span class="kw">AND</span> <span class="col">kNr</span> <span class="op">=</span> <span class="num">7654</span>),
+        <span class="num">277</span>, <span class="num">1</span>);
+
+<span class="cm">-- Schritt 4: Artikelbestand verringern</span>
+<span class="kw">UPDATE</span> <span class="tbl">Artikel</span> <span class="kw">SET</span> <span class="col">bestand</span> <span class="op">=</span> <span class="col">bestand</span> <span class="op">-</span> <span class="num">1</span>
+<span class="kw">WHERE</span> <span class="col">artNr</span> <span class="op">=</span> <span class="num">277</span>;</div>
+  </div>
+
+  <div class="note warn">
+    <strong>Reihenfolge ist entscheidend!</strong> Elterntabellen (ohne FK auf andere) immer zuerst befüllen. Kindtabellen (mit FK auf Eltern) danach. Falsche Reihenfolge → Integritätsfehler. Tipp: Beim Lesen des Relationen-Modells die FK-Pfeile (<code>#</code>-Markierung) zurückverfolgen.
+  </div>
+</div>
+
+<!-- ══ SECTION 3: UPDATE ═══════════════════════════════════════════════ -->
+<div class="section">
+  <h2>3 · UPDATE — Datensatz aktualisieren</h2>
+  <div class="section-desc">Tritt auf wenn bestehende Daten geändert werden sollen — Preis, Zuweisung, Ersetzung, Berechnung.</div>
+
+  <h3><span class="h3-num">3.1</span> Einfaches UPDATE mit bekannter WHERE-Bedingung</h3>
+  <div class="rule-card yellow">
+    <div class="rule-title">Erkennungsmerkmal: Konkreter Wert und klare Bedingung im Text</div>
+    <div class="rule-body">
+      Wenn ein konkreter Wert (z.B. Produktname, ID, Klasse) als Bedingung gegeben ist und ein Feld direkt gesetzt werden soll.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">UPDATE einfach — direkter Wert (ABI 2016 B, ABI 2025 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Klassenlehrer wechseln (ID direkt bekannt)</span>
+<span class="kw">UPDATE</span> <span class="tbl">klasse</span>
+<span class="kw">SET</span>   <span class="col">persNr_kl</span> <span class="op">=</span> <span class="num">101702</span>
+<span class="kw">WHERE</span> <span class="col">klBezeichnung</span> <span class="op">=</span> <span class="str">'10a'</span>
+<span class="kw">AND</span>   <span class="col">klSchuljahr</span>   <span class="op">=</span> <span class="str">'2014/15'</span>;
+
+<span class="cm">-- Produktname ändern</span>
+<span class="kw">UPDATE</span> <span class="tbl">Getraenk</span>
+<span class="kw">SET</span>   <span class="col">bezeichnung</span> <span class="op">=</span> <span class="str">'Hessen Cola'</span>
+<span class="kw">WHERE</span> <span class="col">bezeichnung</span> <span class="op">=</span> <span class="str">'Fratz Cola'</span>;</div>
+  </div>
+
+  <h3><span class="h3-num">3.2</span> UPDATE mit relativer Berechnung (Preis / Bestand)</h3>
+  <div class="rule-card yellow">
+    <div class="rule-title">Erkennungsmerkmal: „um X% erhöhen", „um 1 verringern", „wird überschrieben"</div>
+    <div class="rule-body">
+      Der neue Wert ergibt sich aus dem alten Wert durch eine Rechenoperation. Das <code>SET</code> referenziert die Spalte selbst.
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Preis um 5% erhöhen</span>
+<span class="kw">UPDATE</span> <span class="tbl">Komponente</span> <span class="kw">SET</span> <span class="col">preis</span> <span class="op">=</span> <span class="col">preis</span> <span class="op">* 1.05</span>  <span class="kw">WHERE</span> <span class="col">hersteller</span> <span class="op">=</span> <span class="str">'MANU'</span>;
+<span class="cm">-- Preis um 15% erhöhen</span>
+<span class="kw">UPDATE</span> <span class="tbl">Artikel</span>     <span class="kw">SET</span> <span class="col">vkpreis</span> <span class="op">=</span> <span class="col">vkpreis</span> <span class="op">* 1.15</span> <span class="kw">WHERE</span> <span class="col">typ</span> <span class="op">=</span> <span class="str">'Badetuch'</span>;
+<span class="cm">-- Bestand um 1 verringern</span>
+<span class="kw">UPDATE</span> <span class="tbl">Artikel</span>     <span class="kw">SET</span> <span class="col">istBestand</span> <span class="op">=</span> <span class="col">istBestand</span> <span class="op">- 1</span> <span class="kw">WHERE</span> <span class="col">artNr</span> <span class="op">=</span> <span class="num">277</span>;
+<span class="cm">-- Kettenwerte: alter Zählerstand → vorherigen Wert, neuer → konkreten Wert</span>
+<span class="kw">UPDATE</span> <span class="tbl">Vertrag</span>
+<span class="kw">SET</span>   <span class="col">verbrauch_vorjahr</span> <span class="op">=</span> (<span class="col">zaehlerstand_neu</span> <span class="op">-</span> <span class="col">zaehlerstand_alt</span>),
+      <span class="col">zaehlerstand_alt</span>  <span class="op">=</span> <span class="col">zaehlerstand_neu</span>,
+      <span class="col">zaehlerstand_neu</span>  <span class="op">=</span> <span class="num">9999</span>
+<span class="kw">WHERE</span> <span class="col">zaehlernummer</span> <span class="op">=</span> <span class="num">123456</span>;</div>
+  <div class="note warn">
+    <strong>Reihenfolge der SET-Spalten bei Kettenwerten:</strong> Wenn ein Feldwert (z.B. <code>zaehlerstand_neu</code>) gleichzeitig als Quelle <em>und</em> als Ziel verwendet wird, beachten — MySQL wertet alle rechten Seiten <em>vor</em> dem Schreiben aus. Die Reihenfolge der Felder im <code>SET</code> spielt keine Rolle für das Ergebnis, solange man die Logik korrekt modelliert.
+  </div>
+
+  <h3><span class="h3-num">3.3</span> UPDATE mit Unterabfrage (FK-Wert unbekannt)</h3>
+  <div class="rule-card yellow">
+    <div class="rule-title">Erkennungsmerkmal: „wird von [Name] übernommen" — ID von Person/Objekt nicht direkt gegeben</div>
+    <div class="rule-body">
+      Wenn eine Zuweisung geändert werden soll und der neue Wert (Fremdschlüssel) erst über eine andere Tabelle ermittelt werden muss — z.B. „Tim Weiss übernimmt alle Buchungen".
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">UPDATE mit Unterabfrage für neuen Wert (ABI 2016 B, ABI 2018 B, ABI 2024 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Neuer Fahrer (Name bekannt, ID unbekannt) übernimmt Einsätze</span>
+<span class="kw">UPDATE</span> <span class="tbl">Einsatz</span>
+<span class="kw">SET</span>   <span class="col">fahrerNr</span> <span class="op">=</span> (<span class="kw">SELECT</span> <span class="col">fahrerNr</span> <span class="kw">FROM</span> <span class="tbl">Fahrer</span>
+                   <span class="kw">WHERE</span> <span class="col">nachname</span> <span class="op">=</span> <span class="str">'Tischendorf'</span>
+                   <span class="kw">AND</span>   <span class="col">vorname</span>   <span class="op">=</span> <span class="str">'Tobias'</span>)
+<span class="kw">WHERE</span> <span class="col">fahrerNr</span> <span class="op">=</span> <span class="num">333</span>
+<span class="kw">AND</span>   <span class="col">beginn</span> <span class="kw">BETWEEN</span> <span class="str">'2023-05-01'</span> <span class="kw">AND</span> <span class="str">'2023-05-14'</span>;</div>
+  </div>
+
+  <h3><span class="h3-num">3.4</span> Mehrtabellen-UPDATE (MySQL-spezifisch)</h3>
+  <div class="rule-card yellow">
+    <div class="rule-title">Erkennungsmerkmal: Mehrere Tabellen müssen gleichzeitig aktualisiert werden</div>
+    <div class="rule-body">
+      MySQL erlaubt <code>UPDATE tabelle1, tabelle2 SET … WHERE …</code> — nützlich wenn ein Wert in Tabelle A von einem Wert in Tabelle B abhängt und man kein zweistufiges UPDATE verwenden möchte.
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Kontostand aller zahlungsfähigen Darlehenskunden abziehen (ABI 2022 B)</span>
+<span class="kw">UPDATE</span> <span class="tbl">Girokonto</span> g, <span class="tbl">Darlehen</span> d
+<span class="kw">SET</span>   g.<span class="col">kontostand</span> <span class="op">=</span> g.<span class="col">kontostand</span> <span class="op">-</span> d.<span class="col">rate</span>
+<span class="kw">WHERE</span> d.<span class="col">referenzkonto</span> <span class="op">=</span> g.<span class="col">iban</span>
+<span class="kw">AND</span>   d.<span class="col">turnus</span> <span class="op">=</span> <span class="num">12</span>
+<span class="kw">AND</span>   g.<span class="col">kontostand</span> <span class="op">-</span> d.<span class="col">rate</span> <span class="op">>=</span> <span class="num">0</span>;</div>
+</div>
+
+<!-- ══ SECTION 4: DELETE ═══════════════════════════════════════════════ -->
+<div class="section">
+  <h2>4 · DELETE — Datensatz löschen</h2>
+  <div class="section-desc">Kritisches Muster: Referentielle Integrität beachten! Kindtabellen zuerst löschen, dann die Elterntabelle.</div>
+
+  <h3><span class="h3-num">4.1</span> Einfaches DELETE</h3>
+  <div class="rule-card red">
+    <div class="rule-title">Erkennungsmerkmal: „soll gelöscht werden" — Abhängigkeiten wurden bereits bereinigt</div>
+    <div class="rule-body">
+      Wenn die Aufgabe explizit erwähnt, dass abhängige Datensätze bereits entfernt wurden oder keine bestehen.
+    </div>
+  </div>
+  <div class="code-block"><span class="kw">DELETE FROM</span> <span class="tbl">rechnung</span>
+<span class="kw">WHERE</span> <span class="col">rechnr</span> <span class="op">=</span> <span class="num">4743</span>;</div>
+
+  <h3><span class="h3-num">4.2</span> DELETE mit referentieller Integrität (mehrstufig)</h3>
+  <div class="rule-card red">
+    <div class="rule-title">Erkennungsmerkmal: „referentielle Integrität", „keine kaskadierende Löschung" im Hinweis</div>
+    <div class="rule-body">
+      Wenn ausdrücklich auf referentielle Integrität hingewiesen wird, müssen alle abhängigen Tabellen in <strong>umgekehrter FK-Reihenfolge</strong> zuerst bereinigt werden. Strategie: Im Relationen-Modell nachschauen, welche Tabellen einen FK auf die zu löschende Tabelle haben → diese zuerst löschen.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">Mehrstufiges DELETE — Bestellung mit allen Abhängigkeiten löschen (ABI 2025 A)</div>
+    <div class="ex-panel-body"><span class="cm">-- Schritt 0: Zu löschende bID per Variable ermitteln (Hinweis im Aufgabentext)</span>
+<span class="kw">SET</span> @bestellung <span class="op">=</span> (<span class="kw">SELECT</span> <span class="col">bID</span> <span class="kw">FROM</span> <span class="tbl">Bestellung</span> <span class="kw">ORDER BY</span> <span class="col">bID</span> <span class="kw">DESC LIMIT</span> <span class="num">1</span>);
+
+<span class="cm">-- Schritt 1: Kindtabellen löschen (alle, die bID als FK enthalten)</span>
+<span class="hi"><span class="kw">DELETE FROM</span> <span class="tbl">Position</span>              <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;</span>
+<span class="hi"><span class="kw">DELETE FROM</span> <span class="tbl">Bestellung_Lager</span>       <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;</span>
+<span class="hi"><span class="kw">DELETE FROM</span> <span class="tbl">Mitarbeiter_Bestellung</span> <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;</span>
+
+<span class="cm">-- Schritt 2: Elterntabelle löschen</span>
+<span class="hi"><span class="kw">DELETE FROM</span> <span class="tbl">Bestellung</span>            <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;</span></div>
+  </div>
+
+  <div class="note danger">
+    <strong>Vorgehen bei referentiellem Löschen:</strong><br>
+    1. Im Relationen-Modell alle Tabellen finden, die den PK der zu löschenden Tabelle als FK (<code>#</code>) eingetragen haben.<br>
+    2. Diese Kindtabellen zuerst löschen (ggf. auch deren Kindtabellen).<br>
+    3. Erst dann die Elterntabelle löschen.<br>
+    4. Wenn eine Spalte nur auf <code>NULL</code> gesetzt werden soll statt gelöscht: zuerst <code>UPDATE … SET … = NULL</code>, dann <code>DELETE</code>.
+  </div>
+
+  <h3><span class="h3-num">4.3</span> DELETE mit Unterabfrage (MySQL-Sonderregel)</h3>
+  <div class="rule-card red">
+    <div class="rule-title">Erkennungsmerkmal: „die fünf am wenigsten verkauften … löschen" — Auswahl per Aggregat</div>
+    <div class="rule-body">
+      MySQL erlaubt es <em>nicht</em>, dieselbe Tabelle in einem <code>DELETE … WHERE id IN (SELECT … FROM gleicheTabelle)</code> direkt zu verwenden. Workaround: Unterabfrage in eine weitere Unterabfrage einwickeln (Alias-Trick).
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">DELETE mit verschachtelter Unterabfrage — MySQL-Workaround (ABI 2025 B)</div>
+    <div class="ex-panel-body"><span class="kw">DELETE FROM</span> <span class="tbl">Getraenk</span>
+<span class="kw">WHERE</span> <span class="col">gid</span> <span class="kw">IN</span> (
+    <span class="kw">SELECT</span> <span class="col">gid</span> <span class="kw">FROM</span> (
+        <span class="kw">SELECT</span> <span class="col">gid</span>, <span class="fn">SUM</span>(<span class="col">anzahlGetraenke</span>)
+        <span class="kw">FROM</span> <span class="tbl">Kauf</span>
+        <span class="kw">GROUP BY</span> <span class="col">gid</span>
+        <span class="kw">ORDER BY</span> <span class="fn">SUM</span>(<span class="col">anzahlGetraenke</span>) <span class="kw">ASC</span>
+        <span class="kw">LIMIT</span> <span class="num">5</span>
+    ) <span class="kw">AS</span> x
+);</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 5: SELECT GRUNDABFRAGE ═════════════════════════════════ -->
+<div class="section">
+  <h2>5 · SELECT — Grundabfragen &amp; Filterung</h2>
+  <div class="section-desc">Einfache Abfragen aus einer oder wenigen Tabellen mit WHERE-Bedingungen.</div>
+
+  <h3><span class="h3-num">5.1</span> Textsuche mit LIKE</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: „enthält", „beginnt mit", „aus dem Bereich", Datumsfilterung nach Monat</div>
+    <div class="rule-body">
+      <code>%</code> = beliebig viele Zeichen (auch null). <code>_</code> = genau ein Zeichen (selten verwendet im Abitur).
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Enthält 'Drucker' irgendwo im Feld</span>
+<span class="kw">WHERE</span> <span class="col">beschreibung</span> <span class="kw">LIKE</span> <span class="str">'%Drucker%'</span>
+
+<span class="cm">-- PLZ beginnt mit 6 (PLZ-Bereich)</span>
+<span class="kw">WHERE</span> <span class="col">plz</span> <span class="kw">LIKE</span> <span class="str">'6%'</span>
+
+<span class="cm">-- Datum im Januar 2020 (Datumsformat YYYY-MM-DD)</span>
+<span class="kw">WHERE</span> <span class="col">datum</span> <span class="kw">LIKE</span> <span class="str">'2020-01-%'</span>
+
+<span class="cm">-- Alternativ mit BETWEEN für Datumsbereiche</span>
+<span class="kw">WHERE</span> <span class="col">datum</span> <span class="kw">BETWEEN</span> <span class="str">'2020-01-01'</span> <span class="kw">AND</span> <span class="str">'2020-01-31'</span></div>
+
+  <h3><span class="h3-num">5.2</span> IS NULL — fehlende / noch nicht gesetzte Werte</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: „noch nicht geliefert", „noch nicht besetzt", „nicht zugeordnet"</div>
+    <div class="rule-body">
+      Felder, die noch keinen Wert haben, sind in SQL <code>NULL</code>. Vergleich mit <code>= NULL</code> funktioniert <strong>nicht</strong> — immer <code>IS NULL</code> oder <code>IS NOT NULL</code> verwenden.
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Kartons, die noch nicht eingelagert sind (kein Segment zugeordnet)</span>
+<span class="kw">WHERE</span> <span class="col">segmentnr</span> <span class="kw">IS NULL</span>
+
+<span class="cm">-- Bestellungen, die noch nicht geliefert wurden</span>
+<span class="kw">WHERE</span> <span class="col">lieferDatum</span> <span class="kw">IS NULL</span>
+
+<span class="cm">-- Stellen, die noch nicht besetzt sind (mid noch nicht vergeben)</span>
+<span class="kw">WHERE</span> <span class="col">mid</span> <span class="kw">IS NULL</span></div>
+
+  <h3><span class="h3-num">5.3</span> DISTINCT — Mehrfachnennungen vermeiden</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: „Mehrfachnennung ist zu unterbinden", „soll jeder nur einmal erscheinen"</div>
+    <div class="rule-body">
+      Entsteht häufig bei Joins über n:m-Beziehungen, wo ein Datensatz durch mehrere Verbindungen mehrfach erscheint.
+    </div>
+  </div>
+  <div class="code-block"><span class="kw">SELECT DISTINCT</span> <span class="col">name</span>, <span class="col">vorname</span>
+<span class="kw">FROM</span> <span class="tbl">Mitglied</span>, <span class="tbl">Buchung</span>, <span class="tbl">Fahrzeug</span>
+<span class="kw">WHERE</span> <span class="col">Mitglied.mitgliedsnr</span> <span class="op">=</span> <span class="col">Buchung.mitgliedsnr</span>
+<span class="kw">AND</span>   <span class="col">Buchung.kennzeichen</span>  <span class="op">=</span> <span class="col">Fahrzeug.kennzeichen</span>
+<span class="kw">AND</span>   <span class="col">hersteller</span> <span class="op">=</span> <span class="str">'Mercedes'</span>
+<span class="kw">ORDER BY</span> <span class="col">name</span>, <span class="col">vorname</span>;</div>
+</div>
+
+<!-- ══ SECTION 6: JOIN ═════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>6 · SELECT über mehrere Tabellen — JOIN</h2>
+  <div class="section-desc">Wenn die Ausgabe Spalten aus mehr als einer Tabelle enthält, müssen die Tabellen verknüpft werden. Beide Schreibweisen sind im Abitur akzeptiert.</div>
+
+  <div class="decision-row">
+    <div class="decision-cell">
+      <div class="dc-label">Alte Syntax (impliziter Join)</div>
+      <div class="dc-body"><span class="kw">SELECT</span> ...
+<span class="kw">FROM</span> <span class="tbl">Tabelle1</span>, <span class="tbl">Tabelle2</span>
+<span class="kw">WHERE</span> <span class="tbl">Tabelle1</span>.<span class="col">key</span> <span class="op">=</span> <span class="tbl">Tabelle2</span>.<span class="col">key</span>
+<span class="kw">AND</span>   ... weitere Bedingungen</div>
+    </div>
+    <div class="decision-cell">
+      <div class="dc-label">JOIN-Syntax (explizit)</div>
+      <div class="dc-body"><span class="kw">SELECT</span> ...
+<span class="kw">FROM</span> <span class="tbl">Tabelle1</span>
+<span class="kw2">JOIN</span> <span class="tbl">Tabelle2</span> <span class="kw">ON</span> <span class="tbl">T1</span>.<span class="col">key</span> <span class="op">=</span> <span class="tbl">T2</span>.<span class="col">key</span>
+<span class="kw">WHERE</span> ... weitere Bedingungen</div>
+    </div>
+  </div>
+  <div class="note tip">
+    <strong>USING-Kurzschreibweise:</strong> Wenn der verknüpfte Spaltenname in beiden Tabellen <em>identisch</em> ist (z.B. <code>filialnr</code> in beiden), kann <code>JOIN Tabelle USING(filialnr)</code> statt <code>ON t1.filialnr = t2.filialnr</code> verwendet werden. Beide sind gleichwertig.
+  </div>
+
+  <h3><span class="h3-num">6.1</span> Mehrere Tabellen verknüpfen — Strategie</h3>
+  <div class="rule-card purple">
+    <div class="rule-title">Wie viele Tabellen brauche ich? — FK-Kette im Relationen-Modell verfolgen</div>
+    <div class="rule-body">
+      Ausgangspunkt: Welche Tabelle enthält die gewünschten Ausgabespalten? Welche weiteren Tabellen liefern die restlichen Spalten? Den Weg über die FK-Verbindungen (<code>#</code>-Markierung) im Relationen-Modell entlanggehen und jeden Zwischenschritt als JOIN hinzufügen.
+      <br><br>
+      <strong>Beispiel:</strong> Kundenname + Fluginfo → <code>Kunde → Ticket → Flug</code> = 3 JOINs nötig.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">3-Tabellen-JOIN (ABI 2021 A, ABI 2024 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Kennzeichen + Fahrerdaten für eine Bestellnummer ermitteln</span>
+<span class="kw">SELECT</span> <span class="col">kennzeichen</span>, <span class="col">vorname</span>, <span class="col">nachname</span>
+<span class="kw">FROM</span>  <span class="tbl">Fahrzeug</span>
+<span class="kw2">INNER JOIN</span> <span class="tbl">Lieferauftrag</span> <span class="kw">USING</span> (<span class="col">fahrzeugnr</span>)
+<span class="kw2">INNER JOIN</span> <span class="tbl">Fahrer</span>        <span class="kw">USING</span> (<span class="col">fahrernr</span>)
+<span class="kw">WHERE</span> <span class="col">bestellnr</span> <span class="op">=</span> <span class="num">4711</span>;</div>
+  </div>
+
+  <h3><span class="h3-num">6.2</span> Tabellenaliase</h3>
+  <div class="rule-card">
+    <div class="rule-title">Kürzere Schreibweise bei vielen Tabellen — immer nützlich</div>
+    <div class="rule-body">
+      Aliase mit <code>AS</code> (oder direkt ohne <code>AS</code>) nach dem Tabellennamen vergeben, dann mit dem Kürzel referenzieren. Wichtig bei gleichnamigen Spalten in mehreren Tabellen.
+    </div>
+  </div>
+  <div class="code-block"><span class="kw">SELECT</span> l.<span class="col">persNr</span>, l.<span class="col">name</span>, l.<span class="col">vorname</span>,
+       <span class="fn">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> Stundenzahl
+<span class="kw">FROM</span>  <span class="tbl">unterrichtsstunde</span> u, <span class="tbl">lehrer</span> l
+<span class="kw">WHERE</span> l.<span class="col">persNr</span> <span class="op">=</span> u.<span class="col">persNr</span>
+<span class="kw">AND</span>   <span class="col">klSchuljahr</span> <span class="op">=</span> <span class="str">'2014/15'</span>
+<span class="kw">GROUP BY</span> l.<span class="col">persNr</span>, l.<span class="col">name</span>, l.<span class="col">vorname</span>;</div>
+</div>
+
+<!-- ══ SECTION 7: LEFT JOIN ════════════════════════════════════════════ -->
+<div class="section">
+  <h2>7 · LEFT JOIN — Alle … auch die ohne Treffer</h2>
+  <div class="section-desc">Eines der wichtigsten Muster im Abitur. Sofort erkennen lernen!</div>
+
+  <div class="note tip">
+    <strong>Sofort-Erkenner:</strong> Wenn die Aufgabe explizit fordert, dass Datensätze <em>auch dann</em> ausgegeben werden sollen, wenn auf der anderen Seite <em>nichts</em> vorhanden ist — das ist <code>LEFT JOIN</code>. Typische Formulierungen:
+    <br>— „<em>Alle Fahrer sollen erscheinen, <strong>auch solche, die noch keinen Lieferauftrag</strong> hatten</em>"
+    <br>— „<em>Auch Rechnungen, <strong>für die noch keine Zahlungen</strong> vorliegen, sollen berücksichtigt werden</em>"
+    <br>— „<em>Es sollen auch alle Lager ausgegeben werden, <strong>welche noch keine Bestellung</strong> aufgegeben haben</em>"
+    <br>— „<em>Alle Kunden ausgeben, auch die, <strong>die nur ein Probetraining absolvieren</strong> und nicht durch einen Vertrag gebunden sind</em>"
+  </div>
+
+  <h3><span class="h3-num">7.1</span> Grundmuster LEFT JOIN</h3>
+  <div class="rule-card green">
+    <div class="rule-title">Die „volle" Tabelle steht links — die optionale rechts</div>
+    <div class="rule-body">
+      <code>FROM VolleTabelle LEFT JOIN OptionaleTabelle ON/USING (…)</code><br>
+      Alle Zeilen aus der linken Tabelle erscheinen im Ergebnis. Zeilen, für die in der rechten Tabelle kein Treffer existiert, erhalten dort <code>NULL</code>-Werte.
+      <br><br>
+      <strong>COUNT mit LEFT JOIN:</strong> <code>COUNT(rechteTabelle.spalte)</code> zählt nur echte Treffer (<code>NULL</code> wird nicht gezählt). <code>COUNT(*)</code> würde auch die <code>NULL</code>-Zeilen zählen — das ist fast immer falsch!
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">LEFT JOIN — Fahrer auch ohne Lieferauftrag (ABI 2021 A)</div>
+    <div class="ex-panel-body"><span class="cm">-- Alle Fahrer inkl. Anzahl ihrer Aufträge (0 wenn noch keine)</span>
+<span class="kw">SELECT</span> <span class="col">vorname</span>, <span class="col">nachname</span>, <span class="fn">COUNT</span>(<span class="col">bestellnr</span>) <span class="kw">AS</span> Anzahl
+<span class="cm">--                           ↑ COUNT auf die rechte Tabellenspalte!</span>
+<span class="kw">FROM</span>  <span class="tbl">Fahrer</span>
+<span class="hi"><span class="kw2">LEFT JOIN</span> <span class="tbl">Lieferauftrag</span> <span class="kw">USING</span> (<span class="col">fahrernr</span>)</span>
+<span class="kw">GROUP BY</span> <span class="col">fahrernr</span>
+<span class="kw">ORDER BY</span> Anzahl <span class="kw">DESC</span>;</div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">LEFT JOIN — Rechnungen auch ohne Zahlungen (ABI 2019 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Rechnungen mit Summe der Zahlungen — auch unbezahlte Rechnungen</span>
+<span class="kw">SELECT</span> r.<span class="col">rechnr</span>, r.<span class="col">betragRechnung</span>, <span class="fn">SUM</span>(<span class="col">betrag</span>) <span class="kw">AS</span> gezahlt
+<span class="kw">FROM</span>  <span class="tbl">rechnung</span> r
+<span class="hi"><span class="kw2">LEFT JOIN</span> <span class="tbl">zahlung</span> z <span class="kw">ON</span> r.<span class="col">rechnr</span> <span class="op">=</span> z.<span class="col">rechnr</span></span>
+<span class="kw">WHERE</span> r.<span class="col">knr</span> <span class="op">=</span> <span class="num">1073</span>
+<span class="kw">GROUP BY</span> r.<span class="col">rechnr</span>;</div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">LEFT JOIN — Nutzer auch ohne Beiträge (ABI 2023 A)</div>
+    <div class="ex-panel-body"><span class="cm">-- Alle Nutzer, auch solche ohne Beiträge (NULL in Beitragsspalten)</span>
+<span class="kw">SELECT</span> <span class="col">benutzerName</span> <span class="kw">AS</span> Benutzername,
+       <span class="col">titel</span>        <span class="kw">AS</span> Beitragstitel,
+       <span class="col">erstelltAm</span>   <span class="kw">AS</span> Erstellungsdatum
+<span class="kw">FROM</span>  <span class="tbl">Nutzer</span> N
+<span class="hi"><span class="kw2">LEFT JOIN</span> <span class="tbl">Beitrag</span> B <span class="kw">ON</span> N.<span class="col">benutzerName</span> <span class="op">=</span> B.<span class="col">autor</span></span></div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">HAVING mit IS NULL — unbezahlte Rechnungen herausfiltern</div>
+    <div class="rule-body">
+      Bei einem LEFT JOIN kann <code>SUM(betrag)</code> den Wert <code>NULL</code> ergeben, wenn gar keine Zahlungen vorliegen. Um diese Fälle mitzunehmen:
+      <br><code>HAVING (bishergezahlt &lt; r.betragRechnung OR bishergezahlt IS NULL)</code>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 8: NOT IN ═══════════════════════════════════════════════ -->
+<div class="section">
+  <h2>8 · WHERE NOT IN — Datensätze ohne Verbindung</h2>
+  <div class="section-desc">Wenn Datensätze gesucht werden, die zu keinem Eintrag in einer anderen Tabelle passen.</div>
+
+  <div class="note tip">
+    <strong>Sofort-Erkenner:</strong> Das Wort <strong>„noch nie"</strong>, <strong>„kein/keine"</strong>, <strong>„nicht"</strong> in Verbindung mit einer anderen Tabelle — das ist <code>WHERE id NOT IN (SELECT id FROM ...)</code>. Beispiele:
+    <br>— „<em>alle Kunden, die <strong>noch nie</strong> Tickets reserviert haben</em>"
+    <br>— „<em>alle Taxis, die <strong>noch keinen Einsatz</strong> am 30.05.2023 haben</em>"
+    <br>— „<em>Bilder, die <strong>nicht in Beiträgen</strong> verwendet werden</em>"
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Unterschied NOT IN vs. LEFT JOIN — beide sind im Abitur gleichwertig</div>
+    <div class="rule-body">
+      Musterlösungen nennen oft: <em>„Lösungen mit LEFT JOIN sind gleichwertig."</em> Welche du verwendest, ist egal — <code>NOT IN</code> ist intuitiver lesbar, <code>LEFT JOIN ... WHERE IS NULL</code> ist performanter (für das Abitur irrelevant).
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">NOT IN — Kunden ohne Rechnung (ABI 2019 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Alle Kunden, die noch nie eine Rechnung erhalten haben</span>
+<span class="kw">SELECT</span> <span class="op">*</span>
+<span class="kw">FROM</span>  <span class="tbl">Kunde</span>
+<span class="kw">WHERE</span> <span class="col">knr</span> <span class="hi"><span class="kw">NOT IN</span></span>
+    (<span class="kw">SELECT</span> <span class="col">knr</span> <span class="kw">FROM</span> <span class="tbl">rechnung</span>);</div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">NOT IN mit Datum-Filter — Taxis ohne Einsatz an einem Tag (ABI 2023 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Alle Taxis, die am 30.05.2023 keinen Einsatz haben</span>
+<span class="kw">SELECT</span> <span class="op">*</span>
+<span class="kw">FROM</span>  <span class="tbl">Taxi</span>
+<span class="kw">WHERE</span> <span class="col">wagenNr</span> <span class="hi"><span class="kw">NOT IN</span></span>
+    (<span class="kw">SELECT</span> <span class="col">wagenNr</span> <span class="kw">FROM</span> <span class="tbl">Einsatz</span>
+     <span class="kw">WHERE</span> <span class="col">beginn</span> <span class="kw">LIKE</span> <span class="str">'2023-05-30%'</span>
+     <span class="kw">OR</span>    <span class="col">ende</span>   <span class="kw">LIKE</span> <span class="str">'2023-05-30%'</span>);</div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">NOT IN korreliert — Unterricht ohne Lehrbefähigung (ABI 2016 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Einsätze, bei denen Lehrer Fächer unterrichten, für die sie keine Befähigung haben</span>
+<span class="cm">-- Korrelierte Unterabfrage: u.persNr wird im inneren SELECT genutzt</span>
+<span class="kw">SELECT</span> u.<span class="op">*</span>
+<span class="kw">FROM</span>  <span class="tbl">unterrichtsstunde</span> u
+<span class="kw">WHERE</span> <span class="col">fachkuerzel</span> <span class="kw">NOT IN</span>
+    (<span class="kw">SELECT</span> <span class="col">fachkuerzel</span> <span class="kw">FROM</span> <span class="tbl">darfunterrichten</span> d
+     <span class="kw">WHERE</span> u.<span class="col">persNr</span> <span class="op">=</span> d.<span class="col">persNr</span>)  <span class="cm">← korreliert!</span>
+<span class="kw">AND</span>   <span class="col">klSchuljahr</span> <span class="op">=</span> <span class="str">'2014/15'</span>;</div>
+  </div>
+  <div class="note">
+    <strong>Korrelierte Unterabfrage:</strong> Die innere Unterabfrage referenziert eine Spalte der äußeren Abfrage (<code>u.persNr</code>). Sie wird für jede Zeile der äußeren Abfrage neu ausgeführt. Erkennbar daran, dass der Ausschluss <em>personen-spezifisch</em> ist (nicht jeder Lehrer darf die gleichen Fächer).
+  </div>
+</div>
+
+<!-- ══ SECTION 9: AGGREGAT + GROUP BY ═════════════════════════════════ -->
+<div class="section">
+  <h2>9 · Aggregatfunktionen &amp; GROUP BY / HAVING</h2>
+  <div class="section-desc">Tritt auf wenn Mengen, Summen, Durchschnitte oder ähnliche Berechnungen über mehrere Zeilen nötig sind.</div>
+
+  <h3><span class="h3-num">9.1</span> Aggregatfunktionen im Überblick</h3>
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead><tr><th>Funktion</th><th>Aufgabentext-Signale</th><th>Beispiel</th></tr></thead>
+      <tbody>
+        <tr><td><code>COUNT(*)</code></td><td>„Anzahl", „wie viele"</td><td class="td-blue">COUNT(*) AS Anzahl</td></tr>
+        <tr><td><code>COUNT(spalte)</code></td><td>„Anzahl" + LEFT JOIN (zählt nur Non-NULL)</td><td class="td-blue">COUNT(bestellnr) AS Anzahl</td></tr>
+        <tr><td><code>SUM(ausdruck)</code></td><td>„Summe", „Gesamtbetrag", „Gesamtgewicht", „Umsatz"</td><td class="td-blue">SUM(preis * anzahl) AS Umsatz</td></tr>
+        <tr><td><code>AVG(spalte)</code></td><td>„Durchschnitt", „über dem Durchschnittlichen"</td><td class="td-blue">AVG(verbrauch_vorjahr)</td></tr>
+        <tr><td><code>MAX(spalte)</code></td><td>„höchste", „neueste", „letzter"</td><td class="td-blue">MAX(bID) → letzte Bestellung</td></tr>
+        <tr><td><code>MIN(spalte)</code></td><td>„niedrigste", „günstigste"</td><td class="td-blue">MIN(preis)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="h3-num">9.2</span> GROUP BY — Regel: alle nicht-aggregierten SELECT-Spalten</h3>
+  <div class="rule-card purple">
+    <div class="rule-title">Faustregel: Alles im SELECT, was keine Aggregatfunktion ist → muss ins GROUP BY</div>
+    <div class="rule-body">
+      Ausnahme: Spalten, die funktional vom Primärschlüssel abhängen (z.B. <code>GROUP BY persNr</code> reicht dann aus, auch wenn <code>name, vorname</code> im SELECT stehen — aber im Abitur werden sie trotzdem mitgenannt, um sicher zu gehen).
+    </div>
+  </div>
+  <div class="code-block"><span class="kw">SELECT</span> l.<span class="col">persNr</span>, l.<span class="col">name</span>, l.<span class="col">vorname</span>,
+       <span class="fn">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> Stundenzahl
+<span class="kw">FROM</span>  <span class="tbl">unterrichtsstunde</span> u, <span class="tbl">lehrer</span> l
+<span class="kw">WHERE</span> l.<span class="col">persNr</span> <span class="op">=</span> u.<span class="col">persNr</span>
+<span class="kw">AND</span>   <span class="col">klSchuljahr</span> <span class="op">=</span> <span class="str">'2014/15'</span>
+<span class="hi"><span class="kw">GROUP BY</span> l.<span class="col">persNr</span>, l.<span class="col">name</span>, l.<span class="col">vorname</span>;</span>
+<span class="cm">--       ↑ alle drei nicht-aggregierten Spalten aus dem SELECT</span></div>
+
+  <h3><span class="h3-num">9.3</span> HAVING — Filter auf Aggregatwerte</h3>
+  <div class="rule-card purple">
+    <div class="rule-title">WHERE filtert Zeilen vor dem Gruppieren — HAVING filtert Gruppen nach dem Aggregieren</div>
+    <div class="rule-body">
+      <code>HAVING</code> verwenden wenn die Bedingung auf einem Aggregatwert (<code>COUNT</code>, <code>SUM</code>, …) basiert.
+      <br><strong>Merkhilfe:</strong> Wenn du <code>WHERE COUNT(...)</code> oder <code>WHERE SUM(...)</code> schreiben würdest → es muss <code>HAVING</code> sein.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">GROUP BY + HAVING (ABI 2017 B, ABI 2022 B, ABI 2025 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Kunden, die mindestens 4× ein Mittelklasse-Fahrzeug gebucht haben</span>
+<span class="kw">SELECT</span> <span class="col">name</span>, <span class="col">vorname</span>, <span class="fn">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> Anzahl
+<span class="kw">FROM</span>  <span class="tbl">Mitglied</span>, <span class="tbl">Buchung</span>, <span class="tbl">Fahrzeug</span>
+<span class="kw">WHERE</span> <span class="col">Mitglied.mitgliedsnr</span> <span class="op">=</span> <span class="col">Buchung.mitgliedsnr</span>
+<span class="kw">AND</span>   <span class="col">Buchung.kennzeichen</span>  <span class="op">=</span> <span class="col">Fahrzeug.kennzeichen</span>
+<span class="kw">AND</span>   <span class="col">Fahrzeug.klasse</span> <span class="op">=</span> <span class="str">'Mittel'</span>
+<span class="kw">GROUP BY</span> <span class="col">name</span>, <span class="col">vorname</span>
+<span class="hi"><span class="kw">HAVING</span> Anzahl <span class="op">>=</span> <span class="num">4</span>;</span>
+
+<span class="cm">-- Umsatz je Getränkestand (ABI 2025 B)</span>
+<span class="kw">SELECT</span> <span class="tbl">Getraenkestand</span>.<span class="col">standort</span>,
+       <span class="fn">SUM</span>(<span class="tbl">Getraenk</span>.<span class="col">preis</span> <span class="op">*</span> <span class="tbl">Kauf</span>.<span class="col">anzahlGetraenke</span>) <span class="kw">AS</span> Umsatz
+<span class="kw">FROM</span>  <span class="tbl">Kauf</span>
+<span class="kw2">JOIN</span>  <span class="tbl">Getraenkestand</span> <span class="kw">USING</span>(<span class="col">gsid</span>)
+<span class="kw2">JOIN</span>  <span class="tbl">Getraenk</span> <span class="kw">USING</span>(<span class="col">gid</span>)
+<span class="kw">GROUP BY</span> <span class="tbl">Getraenkestand</span>.<span class="col">standort</span>;</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 10: ORDER BY + LIMIT ═══════════════════════════════════ -->
+<div class="section">
+  <h2>10 · ORDER BY &amp; LIMIT — Sortierung und Begrenzung</h2>
+  <div class="section-desc">Fast immer kombiniert. LIMIT taucht häufig bei Top-N-Abfragen auf.</div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr><th>Aufgabentext</th><th>SQL-Konstrukt</th><th>Beispiel</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>„aufsteigend sortiert", „alphabetisch", „nach … sortiert" (ohne Zusatz)</td>
+          <td class="td-blue">ORDER BY spalte ASC</td>
+          <td><code>ORDER BY name ASC</code></td>
+        </tr>
+        <tr>
+          <td>„absteigend sortiert", „die höchsten zuerst"</td>
+          <td class="td-blue">ORDER BY spalte DESC</td>
+          <td><code>ORDER BY Verbrauch DESC</code></td>
+        </tr>
+        <tr>
+          <td>„die drei / fünf / zehn … mit dem höchsten/letzten"</td>
+          <td class="td-blue">ORDER BY … DESC LIMIT N</td>
+          <td><code>ORDER BY Gesamtmenge DESC LIMIT 10</code></td>
+        </tr>
+        <tr>
+          <td>„die letzte Bestellung", „der neueste Eintrag"</td>
+          <td class="td-blue">ORDER BY id/datum DESC LIMIT 1</td>
+          <td><code>ORDER BY bID DESC LIMIT 1</code></td>
+        </tr>
+        <tr>
+          <td>„die nächsten fünf … chronologisch"</td>
+          <td class="td-blue">WHERE datum &gt;= NOW() ORDER BY datum ASC LIMIT 5</td>
+          <td>ABI 2024 A</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SECTION 11: UNTERABFRAGEN ══════════════════════════════════════ -->
+<div class="section">
+  <h2>11 · Unterabfragen (Subqueries)</h2>
+  <div class="section-desc">Unterabfragen ermitteln Werte, die in der Hauptabfrage als Vergleichswert oder Filter dienen.</div>
+
+  <h3><span class="h3-num">11.1</span> Vergleich mit Aggregat (AVG / MAX)</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: „über dem Durchschnitt", „unter dem Mindestbestand"</div>
+    <div class="rule-body">
+      Wenn eine Filterbedingung auf einem aggregierten Wert basiert, der erst berechnet werden muss.
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Kunden mit überdurchschnittlichem Verbrauch (ABI 2016 A)</span>
+<span class="kw">SELECT</span> <span class="col">name</span>, <span class="col">vorname</span>, <span class="col">verbrauch_vorjahr</span>
+<span class="kw">FROM</span>  <span class="tbl">Kunde</span>, <span class="tbl">Vertrag</span>
+<span class="kw">WHERE</span> <span class="col">Kunde.kundennummer</span> <span class="op">=</span> <span class="col">Vertrag.kundennummer</span>
+<span class="kw">AND</span>   <span class="col">verbrauch_vorjahr</span> <span class="op">></span>
+    (<span class="kw">SELECT</span> <span class="fn">AVG</span>(<span class="col">verbrauch_vorjahr</span>) <span class="kw">FROM</span> <span class="tbl">Vertrag</span>);</div>
+
+  <h3><span class="h3-num">11.2</span> „Beide Bedingungen erfüllen" (Schnittmenge via IN)</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: „Filme, in denen Schauspieler A <em>und</em> B mitgespielt haben"</div>
+    <div class="rule-body">
+      Wenn ein Datensatz gleichzeitig zwei verschiedene Bedingungen in einer n:m-Tabelle erfüllen muss (z.B. an zwei Wettbewerben gleichzeitig teilgenommen), löst man das über eine Unterabfrage mit <code>IN</code>.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">Schnittmenge — Filme mit zwei bestimmten Schauspielern (ABI 2021 B)</div>
+    <div class="ex-panel-body"><span class="cm">-- Filme, in denen Amy Bale (sid 114) UND Christian Adams (sid 111) mitgespielt haben</span>
+<span class="kw">SELECT</span> F.<span class="col">titel</span>
+<span class="kw">FROM</span>  <span class="tbl">Film</span> F, <span class="tbl">Besetzung</span> B
+<span class="kw">WHERE</span> F.<span class="col">fid</span> <span class="op">=</span> B.<span class="col">fid</span>
+<span class="kw">AND</span>   B.<span class="col">sid</span> <span class="op">=</span> <span class="num">111</span>
+<span class="kw">AND</span>   F.<span class="col">fid</span> <span class="kw">IN</span>
+    (<span class="kw">SELECT</span> F.<span class="col">fid</span> <span class="kw">FROM</span> <span class="tbl">Film</span> F, <span class="tbl">Besetzung</span> B
+     <span class="kw">WHERE</span> F.<span class="col">fid</span> <span class="op">=</span> B.<span class="col">fid</span> <span class="kw">AND</span> B.<span class="col">sid</span> <span class="op">=</span> <span class="num">114</span>);</div>
+  </div>
+
+  <h3><span class="h3-num">11.3</span> Unterabfrage im SELECT (skalare Unterabfrage)</h3>
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: Pro Gruppe soll ein separater aggregierter Wert aus einer anderen Tabelle erscheinen</div>
+    <div class="rule-body">
+      Wenn für jede Zeile des Ergebnisses ein Wert benötigt wird, der aus einer komplett anderen Abfrage stammt — z.B. „Benötigte Dosen" je Impfstoff, wobei die Daten aus einer anderen Tabelle kommen.
+    </div>
+  </div>
+  <div class="ex-panel">
+    <div class="ex-panel-title">Skalare Unterabfrage im SELECT (ABI 2021 C)</div>
+    <div class="ex-panel-body"><span class="cm">-- Vorrätige Dosen aus Standort, benötigte Dosen aus Impfung (andere Tabelle)</span>
+<span class="kw">SELECT</span> <span class="col">bezeichnung</span> <span class="kw">AS</span> Impfstoff,
+       <span class="fn">SUM</span>(<span class="col">istAnzahlImpfdosen</span>) <span class="kw">AS</span> <span class="str">'Vorrätige Dosen'</span>,
+       (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> <span class="tbl">impfung</span> i
+        <span class="kw">WHERE</span> (i.<span class="col">termin2</span> <span class="kw">IS NULL</span> <span class="kw">OR</span> i.<span class="col">termin2</span> <span class="op">></span> <span class="fn">NOW</span>())
+        <span class="kw">AND</span>   <span class="tbl">Standort</span>.<span class="col">bezeichnung</span> <span class="op">=</span> i.<span class="col">bezeichnung</span>
+        <span class="kw">GROUP BY</span> i.<span class="col">bezeichnung</span>
+       ) <span class="kw">AS</span> <span class="str">'Benötigte Dosen'</span>
+<span class="kw">FROM</span>  <span class="tbl">Standort</span>
+<span class="kw">GROUP BY</span> <span class="col">bezeichnung</span>;</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 12: DATUMSFUNKTIONEN ═══════════════════════════════════ -->
+<div class="section">
+  <h2>12 · Datumsfunktionen (MySQL)</h2>
+  <div class="section-desc">Werden fast immer als Hinweis im Aufgabentext eingeführt. Die Syntax ist nie auswendig zu lernen — sie wird gegeben.</div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr><th>Funktion</th><th>Rückgabe</th><th>Einsatz im Abitur</th><th>Jahr</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>NOW()</code></td>
+          <td>aktuelles Datum + Uhrzeit</td>
+          <td>„aktuelles Datum", Einfügen mit heutigem Datum, Vergleich mit Zukünftigem</td>
+          <td>alle Jahre</td>
+        </tr>
+        <tr>
+          <td><code>YEAR(datum)</code></td>
+          <td>Jahreszahl als Integer</td>
+          <td>„im vergangenen Jahr" → <code>YEAR(datum) = YEAR(NOW())-1</code>, Baujahr eintragen</td>
+          <td>2017–2025</td>
+        </tr>
+        <tr>
+          <td><code>MONTH(datum)</code></td>
+          <td>Monatszahl 1–12</td>
+          <td>„im Monat Januar" → <code>MONTH(datum) = 1</code></td>
+          <td>2019 B</td>
+        </tr>
+        <tr>
+          <td><code>datum LIKE 'YYYY-MM-%'</code></td>
+          <td>boolesch</td>
+          <td>Datumsfilter nach Monat — einfachste und häufigste Methode</td>
+          <td>alle Jahre</td>
+        </tr>
+        <tr>
+          <td><code>TIMEDIFF(t1, t2)</code></td>
+          <td>TIME-Differenz</td>
+          <td>„Lieferdauer mehr als 45 Minuten" → <code>HOUR(TIMEDIFF(…))</code> / <code>MINUTE(…)</code></td>
+          <td>2021 A</td>
+        </tr>
+        <tr>
+          <td><code>TIMESTAMPDIFF(MINUTE, t1, t2)</code></td>
+          <td>Minuten als Integer</td>
+          <td>„Anzahl Stunden" → <code>TIMESTAMPDIFF(MINUTE,…)/60</code></td>
+          <td>2023 B</td>
+        </tr>
+        <tr>
+          <td><code>datum BETWEEN d1 AND d2</code></td>
+          <td>boolesch</td>
+          <td>Zeitraum-Filter, z.B. „1. Quartal 2025" → <code>BETWEEN '2025-01-01' AND '2025-03-31'</code></td>
+          <td>2022–2025</td>
+        </tr>
+        <tr>
+          <td><code>IF(bedingung, wert1, wert2)</code></td>
+          <td>wert1 oder wert2</td>
+          <td>„gibt 'Ja' aus falls volljährig, sonst 'Nein'"</td>
+          <td>2025 B</td>
+        </tr>
+        <tr>
+          <td><code>INTERVAL N YEAR/MONTH/DAY</code></td>
+          <td>Datumsintervall</td>
+          <td>Volljährigkeitscheck: <code>gebDatum &lt;= NOW() - INTERVAL 18 YEAR</code></td>
+          <td>2025 B</td>
+        </tr>
+        <tr>
+          <td><code>CONCAT(arg1, arg2)</code></td>
+          <td>verknüpfter String</td>
+          <td>„Arbeitszeit von – bis" als Spalte: <code>CONCAT(beginn,' - ',ende)</code></td>
+          <td>2023 B</td>
+        </tr>
+        <tr>
+          <td><code>DATEADD(interval, n, datum)</code></td>
+          <td>neues Datum</td>
+          <td>„ein Jahr ab jetzt": <code>beginn &lt;= DATEADD(year,1,NOW())</code></td>
+          <td>2024 A</td>
+        </tr>
+        <tr>
+          <td><code>ROUND(x, n)</code>, <code>POWER(m,n)</code></td>
+          <td>gerundeter Wert, Potenz</td>
+          <td>Zinsberechnung (komplexe Formel direkt in SET): werden stets im Hinweis erklärt</td>
+          <td>2022 B</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>Hinweis-Prinzip:</strong> Alle nötigen Funktionen werden im Aufgabentext explizit als Hinweis mit Syntax erklärt. Du musst die Syntax nicht auswendig kennen — du musst nur verstehen, <em>wann</em> eine Funktion einzusetzen ist und die angegebene Syntax korrekt nutzen.
+  </div>
+</div>
+
+<!-- ══ SECTION 13: CREATE TABLE + ALTER TABLE ═════════════════════════ -->
+<div class="section">
+  <h2>13 · CREATE TABLE &amp; ALTER TABLE</h2>
+  <div class="section-desc">Tritt selten auf (bisher nur ABI 2021 A), aber wenn, dann mit vollem Umfang: Tabelle erstellen, Spalte hinzufügen, Fremdschlüssel setzen, Daten einfügen.</div>
+
+  <div class="note warn">
+    <strong>Erkennungsmerkmal:</strong> Die Aufgabe beschreibt eine komplett neue Tabelle mit Attributen, die in die Datenbank aufgenommen werden soll. Dazu wird oft auch gefordert, eine <em>bestehende</em> Tabelle um einen Fremdschlüssel zu ergänzen (<code>ALTER TABLE</code>).
+  </div>
+
+  <div class="ex-panel">
+    <div class="ex-panel-title">CREATE TABLE + ALTER TABLE + INSERT mit Unterabfrage (ABI 2021 A)</div>
+    <div class="ex-panel-body"><span class="cm">-- 1. Neue Tabelle anlegen</span>
+<span class="kw">CREATE TABLE</span> <span class="tbl">Geschaeftsfuehrer</span> (
+    <span class="col">personalnr</span> <span class="op">INTEGER</span> <span class="kw">AUTO_INCREMENT</span>,
+    <span class="col">vorname</span>    <span class="op">VARCHAR(64)</span>,
+    <span class="col">nachname</span>   <span class="op">VARCHAR(64)</span>,
+    <span class="kw">PRIMARY KEY</span> (<span class="col">personalnr</span>)
+);
+
+<span class="cm">-- 2. Bestehende Tabelle um FK-Spalte erweitern</span>
+<span class="kw">ALTER TABLE</span> <span class="tbl">Filiale</span>
+    <span class="kw">ADD</span> <span class="col">gf_personalnr</span> <span class="op">INTEGER</span>;
+<span class="kw">ALTER TABLE</span> <span class="tbl">Filiale</span>
+    <span class="kw">ADD FOREIGN KEY</span> (<span class="col">gf_personalnr</span>)
+    <span class="kw">REFERENCES</span> <span class="tbl">Geschaeftsfuehrer</span>(<span class="col">personalnr</span>);
+
+<span class="cm">-- 3. Neue Person einfügen (AUTO_INCREMENT → ID weglassen)</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Geschaeftsfuehrer</span> (<span class="col">vorname</span>, <span class="col">nachname</span>)
+<span class="kw">VALUES</span> (<span class="str">'Mira'</span>, <span class="str">'Bellenbaum'</span>);
+
+<span class="cm">-- 4. Filiale einfügen — FK-Wert per Unterabfrage ermitteln</span>
+<span class="kw">INSERT INTO</span> <span class="tbl">Filiale</span> (<span class="col">filialnr</span>, <span class="col">strassehausnr</span>, <span class="col">plz</span>, <span class="col">ort</span>, <span class="col">gf_personalnr</span>)
+<span class="kw">VALUES</span> (<span class="num">3</span>, <span class="str">'Bahnhofstr. 3'</span>, <span class="str">'37213'</span>, <span class="str">'Witzenhausen'</span>,
+    (<span class="kw">SELECT</span> <span class="col">personalnr</span> <span class="kw">FROM</span> <span class="tbl">Geschaeftsfuehrer</span>
+     <span class="kw">WHERE</span> <span class="col">vorname</span> <span class="op">=</span> <span class="str">'Mira'</span> <span class="kw">AND</span> <span class="col">nachname</span> <span class="op">=</span> <span class="str">'Bellenbaum'</span>));</div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">Reihenfolge bei CREATE + INSERT</div>
+    <div class="rule-body">
+      1. Neue Tabelle erstellen (<code>CREATE TABLE</code>)<br>
+      2. Bestehende Tabelle erweitern (<code>ALTER TABLE ADD</code>)<br>
+      3. FK-Constraint hinzufügen (<code>ALTER TABLE ADD FOREIGN KEY</code>)<br>
+      4. Datensatz in neue Tabelle einfügen (<code>INSERT</code>)<br>
+      5. Datensatz in erweiterte Tabelle einfügen (<code>INSERT</code> mit Unterabfrage für den neuen FK-Wert)
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 14: SET @VARIABLE ══════════════════════════════════════ -->
+<div class="section">
+  <h2>14 · SET @Variable (MySQL-spezifisch)</h2>
+  <div class="section-desc">Wird als expliziter Hinweis im Aufgabentext eingeführt. Dient dazu, einen Wert einmalig zu ermitteln und in mehreren Folgebefehlen wiederzuverwenden.</div>
+
+  <div class="rule-card">
+    <div class="rule-title">Erkennungsmerkmal: Hinweis auf SET @variablenName = (SELECT … FROM …) im Aufgabentext</div>
+    <div class="rule-body">
+      Wenn ein Wert (z.B. die ID der letzten Bestellung) erst ermittelt und dann in mehreren DELETE- oder UPDATE-Statements genutzt werden soll. Ohne Variable müsste man dieselbe Unterabfrage mehrfach wiederholen.
+    </div>
+  </div>
+  <div class="code-block"><span class="cm">-- Wert einmalig ermitteln und in Variable speichern</span>
+<span class="kw">SET</span> @bestellung <span class="op">=</span> (
+    <span class="kw">SELECT</span> <span class="col">bID</span> <span class="kw">FROM</span> <span class="tbl">Bestellung</span>
+    <span class="kw">ORDER BY</span> <span class="col">bID</span> <span class="kw">DESC</span>
+    <span class="kw">LIMIT</span> <span class="num">1</span>
+);
+
+<span class="cm">-- Variable in mehreren Folgebefehlen verwenden</span>
+<span class="kw">DELETE FROM</span> <span class="tbl">Position</span>  <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;
+<span class="kw">DELETE FROM</span> <span class="tbl">Bestellung_Lager</span> <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;
+<span class="kw">DELETE FROM</span> <span class="tbl">Bestellung</span> <span class="kw">WHERE</span> <span class="col">bID</span> <span class="op">=</span> @bestellung;</div>
+  <div class="note">
+    <strong>Hinweis der Musterlösung (ABI 2025 A):</strong> <em>„Eine Umsetzung ohne SET ist als gleichwertig anzusehen."</em> — Wenn du die Variable durch eine wiederholte Unterabfrage ersetzt, wird das genauso gewertet. Die Variable macht den Code nur lesbarer.
+  </div>
+</div>
+
+<!-- ══ SECTION 15: SQL ERLÄUTERN ══════════════════════════════════════ -->
+<div class="section">
+  <h2>15 · SQL-Anweisung erläutern (Sonderaufgabe)</h2>
+  <div class="section-desc">Tritt selten auf (ABI 2017 B). Eine vorgegebene SQL-Anweisung soll in eigenen Worten erklärt werden.</div>
+
+  <div class="rule-card purple">
+    <div class="rule-title">Vorgehen: Struktur beschreiben → Verbindungen erklären → Ergebnis formulieren</div>
+    <div class="rule-body">
+      1. <strong>Struktur:</strong> Aus wie vielen Tabellen werden Daten abgefragt? Wie werden sie verbunden (INNER JOIN, Bedingung)?<br>
+      2. <strong>Filter:</strong> Was macht die WHERE-Klausel? (z.B. IN-Liste beschreiben)<br>
+      3. <strong>Ergebnis:</strong> Welche Spalten werden ausgegeben und was bedeuten sie inhaltlich?
+    </div>
+  </div>
+  <div class="note">
+    <strong>Beispiel (ABI 2017 B):</strong> „Es werden Daten aus drei verbundenen Tabellen abgefragt. Durch <code>INNER JOIN</code> werden jeweils die Datensätze verknüpft, für die die in der <code>ON</code>-Bedingung angegebene Gleichheit gilt. Der <code>IN</code>-Operator in der <code>WHERE</code>-Klausel filtert auf Mitglieder mit bestimmten Nummern. Das Ergebnis enthält alle Buchungen dieser Mitglieder mit Buchungsnummer, Name, Vorname und Kennzeichen."
+  </div>
+
+  <div class="rule-card orange">
+    <div class="rule-title">Kartesisches Produkt — häufiger Erläuterungs-Fallstrick (ABI 2023 A)</div>
+    <div class="rule-body">
+      Wenn zwei Tabellen <code>FROM Tabelle1, Tabelle2</code> ohne Verknüpfungsbedingung kombiniert werden, entsteht das kartesische Produkt (jede Zeile aus T1 × jede Zeile aus T2). Das ist fast immer falsch und muss durch einen <code>JOIN</code> oder eine <code>WHERE</code>-Bedingung ersetzt werden.
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 16: SCHNELL-REFERENZ ═══════════════════════════════════ -->
+<div class="section">
+  <h2>16 · Schnell-Referenz: Schlüsselwörter → SQL-Muster</h2>
+  <div class="section-desc">Erkenne am Aufgabentext sofort, welches Muster gefragt ist.</div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Schlüsselwort / Phrase im Aufgabentext</th>
+          <th>→ SQL-Muster / Sektion</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>„<strong>neu</strong>", „wird aufgenommen", „wird hinzugefügt", „wird eingetragen", „erstmalig"</td><td>→ <span class="td-green">INSERT INTO</span> (<strong>Sektion 2</strong>)</td></tr>
+        <tr><td>„<strong>ID wird automatisch vergeben</strong>", „AUTO_INCREMENT"</td><td>→ INSERT ohne PK / mit <code>NULL</code> (<strong>Sektion 2.2</strong>)</td></tr>
+        <tr><td>Neuer FK-Wert nur per Name bekannt (ID unbekannt)</td><td>→ <code>INSERT … VALUES (…, (SELECT id FROM … WHERE name=…))</code> (<strong>Sektion 2.3</strong>)</td></tr>
+        <tr><td>Neuer Kunde + erste Bestellung gleichzeitig</td><td>→ mehrstufiges INSERT in FK-Reihenfolge (<strong>Sektion 2.4</strong>)</td></tr>
+        <tr><td>„soll aktualisiert werden", „wird übernommen von", „auf … gesetzt"</td><td>→ <span class="td-yellow">UPDATE … SET</span> (<strong>Sektion 3</strong>)</td></tr>
+        <tr><td>„um X% erhöhen/verringern", Bestand anpassen</td><td>→ <code>SET preis = preis * 1.X</code> (<strong>Sektion 3.2</strong>)</td></tr>
+        <tr><td>Neuer Wert kommt aus einer anderen Tabelle (Person, Objekt per Name)</td><td>→ <code>SET id = (SELECT id FROM … WHERE name=…)</code> (<strong>Sektion 3.3</strong>)</td></tr>
+        <tr><td>„soll gelöscht werden" — Abhängigkeiten bereits bereinigt</td><td>→ einfaches <span class="td-red">DELETE</span> (<strong>Sektion 4.1</strong>)</td></tr>
+        <tr><td>„<strong>referentielle Integrität</strong>", „<strong>keine kaskadierende Löschung</strong>"</td><td>→ mehrstufiges DELETE, Kindtabellen zuerst (<strong>Sektion 4.2</strong>)</td></tr>
+        <tr><td>Löschen der N am wenigsten / meisten X (Aggregat)</td><td>→ DELETE mit doppelter Unterabfrage-Schachtelung (<strong>Sektion 4.3</strong>)</td></tr>
+        <tr><td>„<strong>enthält</strong>", „<strong>beginnt mit</strong>", Datum nach Monat filtern</td><td>→ <code>LIKE '%…%'</code>, <code>LIKE '2020-01-%'</code> (<strong>Sektion 5.1</strong>)</td></tr>
+        <tr><td>„noch nicht geliefert", „noch nicht besetzt", „nicht zugeordnet"</td><td>→ <code>WHERE spalte IS NULL</code> (<strong>Sektion 5.2</strong>)</td></tr>
+        <tr><td>„Mehrfachnennung unterbinden", „soll nur einmal erscheinen"</td><td>→ <code>SELECT DISTINCT</code> (<strong>Sektion 5.3</strong>)</td></tr>
+        <tr><td>Ausgabe enthält Spalten aus &gt;1 Tabelle</td><td>→ JOIN / implizite Verknüpfung (<strong>Sektion 6</strong>)</td></tr>
+        <tr><td>„<strong>auch … die noch keine … haben</strong>", „<strong>auch ohne Treffer ausgeben</strong>"</td><td>→ <span class="td-blue">LEFT JOIN</span> (<strong>Sektion 7</strong>)</td></tr>
+        <tr><td>„<strong>noch nie</strong>", „<strong>keinen … haben</strong>", „<strong>nicht in … enthalten</strong>"</td><td>→ <code>WHERE id NOT IN (SELECT …)</code> (<strong>Sektion 8</strong>)</td></tr>
+        <tr><td>„Anzahl", „Summe", „je … die Summe", „Umsatz"</td><td>→ <code>COUNT/SUM</code> + <code>GROUP BY</code> (<strong>Sektion 9</strong>)</td></tr>
+        <tr><td>Filter auf aggregierten Wert: „die mehr als X … haben"</td><td>→ <code>HAVING COUNT/SUM > X</code> (<strong>Sektion 9.3</strong>)</td></tr>
+        <tr><td>„die drei … mit dem höchsten", „die letzten zehn"</td><td>→ <code>ORDER BY … DESC LIMIT N</code> (<strong>Sektion 10</strong>)</td></tr>
+        <tr><td>„über dem Durchschnitt", „unter dem Soll-Bestand"</td><td>→ <code>WHERE x > (SELECT AVG(x) …)</code> (<strong>Sektion 11.1</strong>)</td></tr>
+        <tr><td>„in denen Person A <em>und</em> Person B … mitwirkten"</td><td>→ <code>AND fid IN (SELECT fid … WHERE sid=…)</code> (<strong>Sektion 11.2</strong>)</td></tr>
+        <tr><td>„im Monat Januar", „im vergangenen Jahr", „aktuelles Datum"</td><td>→ <code>LIKE '…%'</code> oder <code>YEAR() = YEAR(NOW())-1</code> (<strong>Sektion 12</strong>)</td></tr>
+        <tr><td>Hinweis: <code>NOW()</code>, <code>TIMEDIFF</code>, <code>INTERVAL</code>, <code>IF()</code>, <code>BETWEEN</code></td><td>→ Datumsfunktionen gemäß Hinweis anwenden (<strong>Sektion 12</strong>)</td></tr>
+        <tr><td>„Tabelle … soll in der Datenbank ergänzt werden" + Attributbeschreibung</td><td>→ <code>CREATE TABLE</code> + <code>ALTER TABLE</code> (<strong>Sektion 13</strong>)</td></tr>
+        <tr><td>Hinweis: <code>SET @variablenName = (SELECT … FROM …);</code></td><td>→ MySQL-Variable nutzen (<strong>Sektion 14</strong>)</td></tr>
+        <tr><td>„<strong>Erläutern Sie</strong> den Aufbau und die inhaltliche Bedeutung"</td><td>→ Strukturbeschreibung in Text (<strong>Sektion 15</strong>)</td></tr>
+        <tr><td>Beschreibt zwei Tabellen ohne WHERE-Verknüpfung → Fehler identifizieren</td><td>→ kartesisches Produkt, durch LEFT JOIN lösen (<strong>Sektion 15</strong>)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  Datengrundlage: Offizielle Prüfungsvorschläge des hessischen Landesabiturs im Fach Praktische Informatik (Java), Jahrgänge 2016–2025 · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">23 Vorschläge aus 10 Jahrgängen</a> (Roh: <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/pi-abi-sql-coding.txt">1</a>)
+</footer>
+
+</div>
+</body>
+</html>
