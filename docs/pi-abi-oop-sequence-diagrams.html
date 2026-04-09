@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UML-Sequenzdiagramme: Abitur-Leitfaden</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --border-sub: #21262d;
+    --text:       #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim:   #484f58;
+    --green:      #3fb950;
+    --yellow:     #d29922;
+    --red:        #f85149;
+    --blue:       #58a6ff;
+    --orange:     #db6d28;
+    --purple:     #bc8cff;
+    --teal:       #39d353;
+    --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  a { color: #b388ff !important; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .ybadge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 11px;
+  }
+
+  /* ── NOTES / CALLOUTS ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+  .note.warn   { border-left-color: var(--yellow); }
+  .note.danger { border-left-color: var(--red); }
+  .note.tip    { border-left-color: var(--green); }
+  .note.purple { border-left-color: var(--purple); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 44px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 22px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .h3-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--blue);
+    padding: 1px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .rule-card.green  { border-left-color: var(--green); }
+  .rule-card.yellow { border-left-color: var(--yellow); }
+  .rule-card.red    { border-left-color: var(--red); }
+  .rule-card.purple { border-left-color: var(--purple); }
+  .rule-card.orange { border-left-color: var(--orange); }
+  .rule-card.teal   { border-left-color: var(--teal); }
+
+  .rule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .rule-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .rule-body strong { color: var(--text); }
+
+  /* ── TABLES ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 12px 0;
+  }
+  table.rtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.rtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 9px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.rtable td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: top;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  table.rtable tbody tr:last-child td { border-bottom: none; }
+  table.rtable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+  table.rtable td:first-child {
+    font-family: var(--mono);
+    color: var(--blue);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  table.rtable td:nth-child(2) { color: var(--text); font-weight: 600; }
+
+  /* ── PILLS ── */
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+  .pill-g  { background: rgba(63,185,80,0.15);   color: var(--green); }
+  .pill-y  { background: rgba(210,153,34,0.15);  color: var(--yellow); }
+  .pill-r  { background: rgba(248,81,73,0.15);   color: var(--red); }
+  .pill-b  { background: rgba(88,166,255,0.15);  color: var(--blue); }
+  .pill-p  { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .pill-o  { background: rgba(219,109,40,0.15);  color: var(--orange); }
+
+  /* ── NPILLS (notation inline tags) ── */
+  .npill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 2px 2px;
+    line-height: 1.6;
+  }
+  .npill-b { background: rgba(88,166,255,0.12);  border: 1px solid rgba(88,166,255,0.3);  color: var(--blue); }
+  .npill-g { background: rgba(63,185,80,0.10);   border: 1px solid rgba(63,185,80,0.3);   color: var(--green); }
+  .npill-y { background: rgba(210,153,34,0.10);  border: 1px solid rgba(210,153,34,0.3);  color: var(--yellow); }
+  .npill-p { background: rgba(188,140,255,0.10); border: 1px solid rgba(188,140,255,0.3); color: var(--purple); }
+  .npill-r { background: rgba(248,81,73,0.10);   border: 1px solid rgba(248,81,73,0.3);   color: var(--red); }
+  .npill-o { background: rgba(219,109,40,0.10);  border: 1px solid rgba(219,109,40,0.3);  color: var(--orange); }
+
+  /* ── STEP LIST ── */
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 26px;
+    height: 26px;
+    background: var(--blue);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .steps li .st { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+  .steps li .st strong { color: var(--text); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 36px 0; }
+
+  /* ── DIAGRAM WRAPPER ── */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .diagram-head {
+    padding: 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .diagram-body {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    background: #1a1a1a;
+  }
+  .diagram-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-caption {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    line-height: 1.55;
+  }
+
+  /* ── NOTATION CARDS GRID ── */
+  .notation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .notation-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .notation-card-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .notation-symbol {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .notation-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .notation-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── TASK TEXT BLOCK ── */
+  .task-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .task-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--purple);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .task-be {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: rgba(210,153,34,0.15);
+    border: 1px solid rgba(210,153,34,0.35);
+    color: var(--yellow);
+    margin-left: 6px;
+  }
+
+  /* ── EXAMPLE PANELS ── */
+  .ex-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 700px) { .ex-grid { grid-template-columns: 1fr; } }
+
+  .ex-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ex-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ex-panel-title.before { color: var(--yellow); border-left: 3px solid var(--yellow); }
+  .ex-panel-title.after  { color: var(--green);  border-left: 3px solid var(--green); }
+  .ex-panel-body { padding: 0; }
+  .ex-panel-body .diagram-body { padding: 12px; }
+
+  /* ── EXAM SECTION BLOCK ── */
+  .exam-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .exam-section-head {
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .exam-year {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .exam-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .exam-section-body { padding: 16px; }
+
+  /* ── BODY TEXT ── */
+  .body-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .body-text strong { color: var(--text); }
+  .body-text em { color: var(--text); font-style: italic; }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ── AI-Hinweis ── -->
+<div class="note warn" style="margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+   Die Daten dieser Statistik wurden mithilfe von KI analysiert und ausgewertet. Die Seite selbst wurde größtenteils von KI erstellt. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen überprüfen.
+</div>
+
+<!-- ── HEADER ── -->
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+    <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+    UML-Sequenzdiagramme
+  </div>
+  <h1>UML-Sequenzdiagramme zeichnen: Der Abitur-Leitfaden</h1>
+  <p>
+    Von null auf Abitur-Standard — alle Notationselemente, Zeichenregeln und
+    Lösungsstrategien, die du für die OOP-Sequenzdiagramm-Aufgaben in der
+    Praktischen Informatik (Hessen) brauchst. Abgeleitet aus den offiziellen
+    Abitur-Lösungen <strong>2022–2025</strong>.
+  </p>
+  <div class="badge-row">
+    <span class="ybadge">ABI 2022 B</span>
+    <span class="ybadge">ABI 2023 B</span>
+    <span class="ybadge">ABI 2023 C</span>
+    <span class="ybadge">ABI 2025 A</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     1 · WAS IST EIN UML-SEQUENZDIAGRAMM?
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>1 · Was ist ein UML-Sequenzdiagramm?</h2>
+  <div class="section-desc">Grundlage — Wozu dient ein Sequenzdiagramm?</div>
+
+  <p class="body-text">
+    In der objektorientierten Programmierung (OOP) besteht ein Programm aus mehreren <strong>Objekten</strong>, die miteinander kommunizieren — indem sie gegenseitig Methoden aufrufen. Ein <strong>UML-Sequenzdiagramm</strong> macht genau diese Kommunikation sichtbar: Es zeigt, <em>wer</em> wen anruft, <em>welche Methode</em> aufgerufen wird und — ganz wichtig — <em>in welcher Reihenfolge</em> das alles passiert. Die Zeit läuft dabei immer von oben nach unten.
+  </p>
+  <p class="body-text">
+    Stell dir vor, ein Arzt nimmt einen neuen Patienten in eine Abteilung auf. Intern passiert dabei einiges: Die Abteilung fragt jedes ihrer Zimmer, ob es noch frei ist. Ein freies Zimmer fügt den Patienten zu seiner Patientenliste hinzu und meldet zurück, ob das geklappt hat. Diesen gesamten Ablauf — wer mit wem spricht und in welcher Reihenfolge — visualisiert ein Sequenzdiagramm.
+  </p>
+
+  <div class="rule-card green">
+    <div class="rule-title">Kernidee</div>
+    <div class="rule-body">
+      Ein Sequenzdiagramm beschreibt den internen Ablauf <strong>genau einer Methode</strong> — nämlich der Methode, die in der Aufgabe genannt wird. Horizontale Pfeile von links nach rechts sind Methodenaufrufe. Die Zeit läuft wie bereits erwähnt von <strong>oben nach unten</strong>.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Im Abitur Hessen</div>
+    <div class="rule-body">
+      Du bekommst immer eine <strong>Vorlage</strong> (Zeichenvorlage in Material X), die bereits alle (anfangs) beteiligten Objekte eingezeichnet und den ersten Aufruf der Methode angedeutet hat. Deine Aufgabe: Die Vorlage per Hand vervollständigen, indem du Pfeile, Aktivierungsbalken und Fragmente ergänzt.<br><br>
+      <strong>Bewertung:</strong> Typisch 7–10 Bewertungseinheiten (BE) pro Aufgabe. Da Sequenzdiagramme in den meisten Vorschlägen der letzten 10 Jahre vorkamen, lohnt es sich, diese Aufgabe sicher zu beherrschen.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     2 · GRUNDELEMENTE AUF EINEN BLICK
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>2 · Grundelemente auf einen Blick</h2>
+  <div class="section-desc">Alle Notationselemente, die du kennen musst — auf einen Blick.</div>
+
+  <div class="notation-grid">
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">[ ] + ┆ Lebenslinie</span>
+        <span class="notation-name">Teilnehmer (Objekt)</span>
+      </div>
+      <div class="notation-desc">
+        Ein Rechteck oben repräsentiert ein Objekt. Darunter hängt eine gestrichelte senkrechte Linie — die <em>Lebenslinie</em>. Der Name steht in der Form <code>: Klasse</code> (anonym) oder <code>name : Klasse</code> (benannt).
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">▐ Schmales Rechteck</span>
+        <span class="notation-name">Aktivierungsbalken</span>
+      </div>
+      <div class="notation-desc">
+        Ein schmales Rechteck auf der Lebenslinie zeigt, dass das Objekt gerade aktiv ist (eine Methode ausführt). Er beginnt beim eingehenden Aufrufpfeil und endet, wenn der Rückgabepfeil gesendet wird. Da im Abitur eine Methode skizziert werden muss, ist dieses Objekt auch konstant aktiv.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">——▶ Voller Pfeil</span>
+        <span class="notation-name">Synchroner Methodenaufruf</span>
+      </div>
+      <div class="notation-desc">
+        Ein durchgezogener Pfeil mit <strong>ausgefüllter dreieckiger Pfeilspitze</strong> von links nach rechts. Beschriftung: <code>methode(parameter)</code>. Das aufrufende Objekt wartet, bis die Methode zurückkehrt.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">← - - - Gestrichelter Pfeil</span>
+        <span class="notation-name">Rückgabepfeil</span>
+      </div>
+      <div class="notation-desc">
+        Zeigt die Rückgabe einer Methode an — immer von rechts nach links. <strong>Wird im Abitur immer eingezeichnet</strong>, auch bei void. Bei einem Rückgabewert lautet die Beschriftung <code>{ wert }</code>; bei void bleibt sie leer.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">↩ Pfeil zu sich selbst</span>
+        <span class="notation-name">Selbstaufruf</span>
+      </div>
+      <div class="notation-desc">
+        Wenn ein Objekt eine eigene Hilfsmethode aufruft, zeigt ein Pfeil zurück auf die eigene Lebenslinie. Der zweite Aktivierungsbalken liegt leicht rechts versetzt auf derselben Lebenslinie.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">——▶ &laquo;create&raquo;</span>
+        <span class="notation-name">Objekt erstellen</span>
+      </div>
+      <div class="notation-desc">
+        Ein Pfeil mit dem Stereotyp <code>&laquo;create&raquo;</code> und dem Konstruktoraufruf zeigt auf ein neu erstelltes Objektrechteck. Das neue Objekt erscheint auf der Höhe des Pfeils, nicht oben. Diese Objekte sind oft nicht von Anfang an existent und müssen dann eigenständig eingezeichnet werden.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">●——▶ Startpfeil</span>
+        <span class="notation-name">Initialer Aufruf (von außen)</span>
+      </div>
+      <div class="notation-desc">
+        Ein Pfeil mit kleinem geschlossenen Kreis links am Rand signalisiert, dass die Methode von außen gestartet wird (z.B. durch das Hauptprogramm). Dieser Pfeil ist in jeder Vorlage bereits eingezeichnet.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">← - - - Rückgabe außen</span>
+        <span class="notation-name">Abschließende Rückgabe</span>
+      </div>
+      <div class="notation-desc">
+        Am Ende der Methode zeigt ein gestrichelter Pfeil nach links aus dem Diagramm heraus. Bei einem Rückgabewert trägt er <code>{ wert }</code>; bei void ist er unbeschriftet — er wird aber (besser) immer eingezeichnet.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">┌─ loop / opt / alt ─┐</span>
+        <span class="notation-name">Fragmente</span>
+      </div>
+      <div class="notation-desc">
+        Rechteckige Rahmen mit einem Schlüsselwort in der Ecke. <code>loop</code> = Schleife, <code>opt</code> = optionaler Block (nur wenn Bedingung gilt – if), <code>alt</code> = Fallunterscheidung (if/else). Mehr dazu in Abschnitt 4.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note tip">
+    <strong>Alle Basis-Elemente auf einen Blick:</strong> Das folgende Diagramm zeigt ein einfaches, vollständiges Sequenzdiagramm mit initialer Anfrage, synchronem Aufruf, Rückgabepfeil und abschließender Rückgabe an den Aufrufer.
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Beispiel</span>
+      Grundelemente eines UML-Sequenzdiagramms
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-01-grundelemente.png" alt="Grundelemente eines UML-Sequenzdiagramms">
+    </div>
+    <div class="diagram-caption">
+      Von oben nach unten: Initialer Aufruf (Kreis-Pfeil von links), Aktivierungsbalken auf <code>: A</code>, synchroner Aufruf auf <code>: B</code> (ausgefüllte Dreieckspfeilspitze ▶), Rückgabepfeil (gestrichelt, mit <code>{ rueckgabe }</code>), abschließende Rückgabe nach außen.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     3 · NOTATION IM DETAIL
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>3 · Notation im Detail</h2>
+  <div class="section-desc">Jedes Element genau erklärt — inklusive der Abitur-spezifischen Regeln.</div>
+
+  <!-- 3.1 Teilnehmer -->
+  <h3><span class="h3-num">3.1</span> Teilnehmer &amp; Lebenslinien</h3>
+  <p class="body-text">
+    Jedes Objekt, das an der Kommunikation beteiligt ist, wird als <strong>Teilnehmer</strong> dargestellt: ein Rechteck oben mit einem Namen, darunter eine gestrichelte senkrechte Linie. In der Vorlage sind alle Teilnehmer immer bereits vorgegeben — du musst keine eigenen erfinden (außer wenn die Aufgabe ausdrücklich ein neues Objekt verlangt, → Abschnitt 3.6).
+  </p>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Schreibweise</th>
+          <th>Bedeutung</th>
+          <th>Beispiel aus dem Abitur</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>: Klasse</td>
+          <td>Anonymes Objekt dieser Klasse</td>
+          <td><code>: Abteilung</code>, <code>: TaxiZentrale</code>, <code>: CanastaManager</code></td>
+        </tr>
+        <tr>
+          <td>name : Klasse</td>
+          <td>Benanntes Objekt (Variablenname)</td>
+          <td><code>haufen : List&lt;Karte&gt;</code>, <code>sp : Spieler</code>, <code>taxi : Taxi</code></td>
+        </tr>
+        <tr>
+          <td>name : Klasse&lt;T&gt;</td>
+          <td>Generisches Objekt</td>
+          <td><code>aktuelleHandkarten : List&lt;Karte&gt;</code>, <code>stapel : List&lt;Karte&gt;</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3.2 Aktivierungsbalken -->
+  <h3><span class="h3-num">3.2</span> Aktivierungsbalken</h3>
+  <p class="body-text">
+    Der <strong>Aktivierungsbalken</strong> (auch Ausführungsbalken) ist ein schmales, hohes Rechteck auf der Lebenslinie. Er zeigt an, dass das Objekt in diesem Zeitraum aktiv ist, also gerade eine Methode ausführt.
+  </p>
+
+  <div class="rule-card">
+    <div class="rule-title">Beginn und Ende des Balkens</div>
+    <div class="rule-body">
+      Der Balken beginnt, wenn der Aufrufpfeil eintrifft, und endet, wenn die Methode ihren Rückgabepfeil sendet. Bei einem <strong>Selbstaufruf</strong> entsteht ein zweiter, leicht nach rechts versetzter Balken auf derselben Lebenslinie — er stellt die innere Methode dar. Dem Stack ähnelnd, wer sich damit auskennt.
+    </div>
+  </div>
+
+  <!-- 3.3 Synchroner Aufruf -->
+  <h3><span class="h3-num">3.3</span> Synchroner Methodenaufruf</h3>
+  <p class="body-text">
+    Alle Methodenaufrufe im Abitur sind <strong>synchron</strong> — das aufrufende Objekt wartet, bis die aufgerufene Methode beendet ist. Dargestellt wird das durch einen <strong>durchgezogenen Pfeil mit ausgefüllter, dreieckiger Pfeilspitze (▶)</strong> von links nach rechts.
+  </p>
+
+  <div class="note warn">
+    <strong>⚠ Abitur-spezifische Pfeilspitze:</strong> Das Abitur Hessen verwendet eine <strong>ausgefüllte dreieckige Pfeilspitze</strong> für synchrone Aufrufe — nicht den üblichen einfachen Pfeil (→). Achte beim Handzeichnen darauf, die Spitze als solides, ausgefülltes Dreieck zu zeichnen, nicht als offene Kontur.
+  </div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead><tr><th>Beschriftung</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
+      <tbody>
+        <tr><td>methode()</td><td>Aufruf ohne Parameter</td><td><code>istVoll()</code>, <code>waehleKarte()</code></td></tr>
+        <tr><td>methode(param)</td><td>Aufruf mit einem Parameter</td><td><code>belegen(patient)</code>, <code>add(karte)</code></td></tr>
+        <tr><td>methode(p1, p2)</td><td>Mehrere Parameter</td><td><code>anfragenBereitschaft(f, von, nach)</code></td></tr>
+        <tr><td>methode(p : Typ)</td><td>Typisierter Parameter (optional)</td><td><code>Socket(hostname : String, port : int)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3.4 Rückgabepfeil -->
+  <h3><span class="h3-num">3.4</span> Rückgabepfeil — immer einzeichnen!</h3>
+
+  <div class="note danger">
+    <strong>⚠ Wichtige Abitur-Pflicht-Regel:</strong> In allen offiziellen Abitur-Musterlösungen (Hessen) wird nach <em>jedem einzelnen</em> Methodenaufruf ein Rückgabepfeil eingezeichnet — auch wenn die Methode <code>void</code> ist und gar keinen Wert zurückgibt. Lass diesen Pfeil <strong>niemals</strong> weg.
+  </div>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead><tr><th>Situation</th><th>Beschriftung des Pfeils</th><th>Beispiel aus Abitur</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Void — kein Rückgabewert</td>
+          <td><em>kein Text, Pfeil bleibt leer</em></td>
+          <td>Nach <code>add(patient)</code>, <code>write(...)</code></td>
+        </tr>
+        <tr>
+          <td>Kurze Rückgabevariable</td>
+          <td><code>{ wert }</code></td>
+          <td><code>{ ok }</code>, <code>{ k }</code>, <code>{ pos }</code>, <code>{ belegt }</code></td>
+        </tr>
+        <tr>
+          <td>Rückgabevariable mit Typ</td>
+          <td><code>{ wert : Typ }</code></td>
+          <td><code>{ ok : boolean }</code>, <code>{ k : Konto }</code></td>
+        </tr>
+        <tr>
+          <td>Aussagekräftiger Variablenname</td>
+          <td><code>{ variablenname }</code></td>
+          <td><code>{ taxiListe }</code>, <code>{ karte }</code>, <code>{ daten : String }</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-r">Pflicht</span>
+      Rückgabepfeil — void vs. mit Rückgabewert
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-02-rueckgabepfeil.png" alt="Rückgabepfeil void vs. mit Wert">
+    </div>
+    <div class="diagram-caption">
+      <strong>Links:</strong> Void-Methode — gestrichelter Pfeil ohne Beschriftung (trotzdem Pflicht!).
+      <strong>Rechts:</strong> Methode mit Rückgabewert — Beschriftung in geschweiften Klammern <code>{ ergebnis }</code>.
+    </div>
+  </div>
+
+  <!-- 3.5 Selbstaufruf -->
+  <h3><span class="h3-num">3.5</span> Selbstaufruf (Self-Call)</h3>
+  <p class="body-text">
+    Wenn ein Objekt eine <strong>eigene Hilfsmethode</strong> aufruft, zeichnet man einen Pfeil, der vom Aktivierungsbalken des Objekts ausgeht und wieder auf ihn zurückzeigt. Ein zweiter, leicht nach rechts versetzter Aktivierungsbalken repräsentiert die aufgerufene Hilfsmethode.
+  </p>
+  <p class="body-text">
+    Selbstaufrufe kommen im Abitur häufig vor, wenn eine Klasse komplexere Logik in private Hilfsmethoden auslagert.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Notation</span>
+      Selbstaufruf
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-03-selbstaufruf.png" alt="Selbstaufruf-Notation">
+    </div>
+    <div class="diagram-caption">
+      Objekt <code>: A</code> ruft seine eigene Methode <code>hilfsMethode()</code> auf. Der Pfeil kehrt auf einen zweiten, leicht rechts versetzten Aktivierungsbalken zurück. Der Rückgabepfeil der Hilfsmethode ist ebenfalls Pflicht.
+    </div>
+  </div>
+
+  <!-- 3.6 Neues Objekt erstellen -->
+  <h3 id="new-objects"><span class="h3-num">3.6</span> Neues Objekt erstellen (&laquo;create&raquo;)</h3>
+  <p class="body-text">
+    Manchmal muss im Verlauf einer Methode ein komplett neues Objekt erstellt werden, das vorher nicht existierte. Das neue Objekt wird als neues Rechteck auf seiner eigenen Lebenslinie eingezeichnet — auf der Höhe, auf der es erstellt wird, nicht oben. Der Konstruktoraufruf wird durch einen Pfeil mit dem Stereotyp <strong>&laquo;create&raquo;</strong> dargestellt.
+  </p>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">Wann ist das nötig?</div>
+    <div class="rule-body">
+      Eher selten, aber es kommt vor. Die Aufgabenstellung macht es klar — durch Formulierungen wie <em>„wird eine neue Vorstellung erzeugt"</em>, <em>„erstellt schließlich den Lieferauftrag"</em> oder <em>„erzeugt ein Socket-Objekt"</em>. Wenn ein Objekt nicht in der Vorlage vorhanden ist, die Methode es aber laut Aufgabe erstellt, musst du es vollständig mit Rechteck und Lebenslinie einzeichnen.
+    </div>
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">Kleiner Aktivierungsbalken direkt nach der Erstellung</div>
+    <div class="rule-body">
+      In den offiziellen Abitur-Musterlösungen erhält ein neu erstelltes Objekt <strong>direkt nach der Erstellung einen kurzen Aktivierungsbalken</strong>, auch wenn es in diesem Moment noch keine weitere Methode ausführt. Dieser kurze Balken steht symbolisch für die Konstruktorausführung. Zeichne ihn immer ein.
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-g">Notation</span>
+      Neues Objekt erstellen mit &laquo;create&raquo;
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-04-objekt-erstellen.png" alt="Object Creation Notation">
+    </div>
+    <div class="diagram-caption">
+      Objekt <code>: A</code> erstellt ein neues <code>: B</code> mit <code>&laquo;create&raquo; B(param)</code>. Das Objektrechteck erscheint auf der Höhe des Pfeils. Der kleine Aktivierungsbalken danach ist Pflicht laut Abitur-Musterlösung.
+    </div>
+  </div>
+
+  <!-- 3.7 Destruktionsmarkierung -->
+  <h3><span class="h3-num">3.7</span> Destruktionsmarkierung (X)</h3>
+  <p class="body-text">
+    In sehr seltenen Fällen wird das Ende der Lebenslinie eines Objekts mit einem <strong>X</strong> markiert, das anzeigt, dass das Objekt zerstört wurde — typischerweise nach einem <code>close()</code>-Aufruf. Du musst dieses X <strong>nur dann selbst einzeichnen</strong>, wenn die Aufgabe es explizit verlangt, zum Beispiel durch die Formulierung <em>„Schließlich wird das Objekt geschlossen."</em> In allen anderen Fällen ist die Destruktionsmarkierung nicht erforderlich. Jedoch war dies nur ein einzelnes Mal in den letzten 10 Jahren nötig (2016 A).
+  </p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     4 · FRAGMENTE
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>4 · Fragmente — Schleifen und Bedingungen</h2>
+  <div class="section-desc">Mit Fragmenten stellst du Wiederholungen und bedingte Ausführung dar.</div>
+
+  <p class="body-text">
+    Wenn ein Teil des Ablaufs wiederholt oder nur unter bestimmten Bedingungen ausgeführt wird, verwendet man <strong>kombinierte Fragmente</strong>. Ein Fragment ist ein rechteckiger Rahmen, der die betroffenen Nachrichten einschließt. In der oberen linken Ecke steht das Schlüsselwort (<code>loop</code>, <code>opt</code> oder <code>alt</code>), danach folgt die Bedingung in eckigen Klammern.
+  </p>
+
+  <!-- 4.1 loop -->
+  <h3><span class="h3-num">4.1</span> loop — Wiederholung</h3>
+
+  <div class="rule-card">
+    <div class="rule-title">loop [Bedingung] — alles im Rahmen wird wiederholt</div>
+    <div class="rule-body">
+      Die Bedingung ist frei formulierbar, solange sie verständlich ist. Aus dem Abitur bekannte Formulierungen:<br><br>
+      <span class="npill npill-b">loop [für jedes zimmer aus zimmerListe]</span><br>
+      <span class="npill npill-b">loop [für jedes taxi aus taxis und Auftrag nicht vergeben]</span><br>
+      <span class="npill npill-b">loop [true]</span> — Endlosschleife<br>
+      <span class="npill npill-b">loop [anforderung &lt;&gt; "quit"]</span> — <code>&lt;&gt;</code> bedeutet das selbe wie <code>!=</code>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Fragment</span>
+      loop — Wiederholung
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-05-loop.png" alt="Loop-Fragment">
+    </div>
+    <div class="diagram-caption">
+      Alle Methodenaufrufe innerhalb des loop-Rahmens werden für jedes Element der Liste wiederholt. Der Rahmen zeigt klar die Grenzen der Schleife.
+    </div>
+  </div>
+
+  <!-- 4.2 opt -->
+  <h3><span class="h3-num">4.2</span> opt — Optionaler Block</h3>
+
+  <div class="rule-card green">
+    <div class="rule-title">opt [Bedingung] — wird nur ausgeführt, wenn Bedingung wahr ist</div>
+    <div class="rule-body">
+      Der gesamte Inhalt des Fragments wird übersprungen, wenn die Bedingung nicht gilt. Es gibt <strong>keinen else-Zweig</strong> — das ist der Unterschied zu <code>alt</code>. Aus dem Abitur:<br><br>
+      <span class="npill npill-g">opt [belegt = false]</span><br>
+      <span class="npill npill-g">opt [ok = true]</span><br>
+      <span class="npill npill-g">opt [antwort = "+OK..."]</span> — Das bedeutet <code>antwort</code> soll mit "+OK" beginnen (<code>antwort.StartsWith("+OK")</code>)
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-g">Fragment</span>
+      opt — Optionaler Block
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-06-opt.png" alt="Opt-Fragment">
+    </div>
+    <div class="diagram-caption">
+      Nur wenn <code>ok = true</code> gilt, wird der enthaltene Block ausgeführt. Kein else-Zweig — entweder der Block läuft, oder er wird komplett übersprungen.
+    </div>
+  </div>
+
+  <!-- 4.3 alt -->
+  <h3><span class="h3-num">4.3</span> alt — Fallunterscheidung (if/else)</h3>
+
+  <div class="rule-card purple">
+    <div class="rule-title">alt [Bedingung] / else — echte Verzweigung mit zwei Zweigen</div>
+    <div class="rule-body">
+      Das <code>alt</code>-Fragment zeigt eine Fallunterscheidung: Genau einer der Zweige wird ausgeführt. Die Zweige sind durch eine <strong>gestrichelte Trennlinie</strong> getrennt. Der <code>else</code>-Zweig ist im Abitur oft einfach nur mit „else" beschriftet. Aus dem Abitur:<br><br>
+      <span class="npill npill-p">alt [k &lt;&gt; null]</span> / <span class="npill npill-p">[else]</span><br>
+      <span class="npill npill-p">alt [ok = true]</span> / <span class="npill npill-p">[else]</span>
+    </div>
+	<br>
+	<div class="rule-body"> Man kann jedoch auch beispielweise <span class="npill npill-p">alt [code = 1]</span> / <span class="npill npill-p">[code = 2]</span> / <span class="npill npill-p">[else]</span> damit darstellen. Dann hat man mehrere <code>else</code>-Zweige (else-if).</div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-p">Fragment</span>
+      alt — Fallunterscheidung
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-07-alt.png" alt="Alt-Fragment">
+    </div>
+    <div class="diagram-caption">
+      Zwei Zweige, getrennt durch eine gestrichelte Linie. Nur einer wird ausgeführt. Im Abitur ist der else-Zweig oft mit „else" beschriftet, da meistens nur ein gewöhnlicher <code>bool</code> für die Bedingung verwendet wird.
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Schachtelung von Fragmenten:</strong> Im Abitur kommen Fragmente häufig <strong>ineinandergeschachtelt</strong> vor — z.B. ein <code>opt</code> innerhalb eines <code>loop</code>, oder ein <code>alt</code> innerhalb eines <code>loop</code> innerhalb eines <code>opt</code>. Das ist vollkommen normal und spiegelt die tatsächliche Programmlogik wider. Plane vor dem Zeichnen, wie viel Platz jedes Fragment auf dem Blatt benötigt.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     5 · DIE VORLAGE VERSTEHEN
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>5 · Die Vorlage (Zeichenvorlage) verstehen</h2>
+  <div class="section-desc">Was dir die Vorlage bereits gibt — und was du selbst ergänzen musst.</div>
+
+  <p class="body-text">
+    In jedem Abitur-Vorschlag der letzten 10 Jahre war eine <strong>Zeichenvorlage</strong> gegeben — du zeichnest nie auf einem leeren Blatt. Die Vorlage (im Material als „Material X" bezeichnet) liefert dir immer Folgendes:
+  </p>
+
+  <div class="rule-card green">
+    <div class="rule-title">Was die Vorlage immer enthält:</div>
+    <div class="rule-body">
+      <strong>1. Alle Teilnehmer (Objekte):</strong> Sämtliche Objekte, die du im Diagramm verwenden sollst, sind als Rechtecke mit Lebenslinien bereits eingezeichnet. Du erfindest keine neuen Teilnehmer — außer wenn die Aufgabe explizit ein neues Objekt verlangt (→ Abschnitt 3.6) und musst immer alle mindestens einmal aktivieren (benutzen).<br><br>
+      <strong>2. Den initialen Aufruf:</strong> Der erste Pfeil von außen — also der Aufruf der Methode, um die es geht — ist bereits eingezeichnet (Pfeil mit dem kleinen Kreis von links). Meistens beginnt auch der erste Aktivierungsbalken bereits.<br><br>
+      <strong>3. Manchmal mehr:</strong> In manchen Vorlagen sind bereits ein oder zwei weitere Schritte vorgegeben, z.B. ein Selbstaufruf der ersten Methode (wie in ABI 2023 B). Das könnte dir helfen einen Ansatz zu bilden, falls du dir nicht sicher bist, was die Aufgabe von dir will.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">Was du selbst ergänzen musst:</div>
+    <div class="rule-body">
+      Alle weiteren Methodenaufrufe, Rückgabepfeile, Aktivierungsbalken und Fragmente. Du zeichnest direkt <em>auf</em> die gedruckte Vorlage, du kopierst sie nicht. Wenn du einen Fehler gemacht hast und alles nochmal neu zeichnen willst, musst du auf einem neuen, leeren Blatt bei der Vorlage beginnen.
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Teilnehmer-Namen genau lesen!</strong> Die Namen in der Vorlage sind kein Zufall. Ein Teilnehmer namens <code>haufen : List&lt;Karte&gt;</code> zeigt dir: Es gibt eine spezifische Liste (den Haufen), auf der du Methoden wie <code>remove(0)</code> aufrufen sollst. Ein Teilnehmer <code>stapel : List&lt;Karte&gt;</code> ist eine andere Liste — der Stapel. Beide existieren separat, obwohl sie vom selben Typ sind. Achte hierbei dann ausdrücklich darauf, <b>welche Liste zu welchem Objekt gehört</b>.
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-y">Vorlage</span>
+      Typische Zeichenvorlage — ABI 2025 A
+    </div>
+    <div class="diagram-body">
+      <img src="img/seq-08-vorlage-2025a.png" alt="Zeichenvorlage ABI 2025 A">
+    </div>
+    <div class="diagram-caption">
+      Drei Teilnehmer sind bereits eingezeichnet: <code>: Abteilung</code>, <code>: Zimmer</code> und <code>: List&lt;Patient&gt;</code>. Der initiale Aufruf <code>aufnehmenPatient(patient)</code> und der Aktivierungsbalken des Abteilung-Objekts sind vorgegeben. Alles weitere muss der Schüler selbst ergänzen.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     6 · AUFGABENTYPEN
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>6 · Aufgabentypen — Wie viel wird dir erklärt?</h2>
+  <div class="section-desc">Zwei grundlegende Arten von Sequenzdiagramm-Aufgaben im Abitur.</div>
+
+  <p class="body-text">
+    Nicht jede Aufgabe erklärt dir gleich viel darüber, was die Methode eigentlich tut. Es gibt zwei Grundszenarien:
+  </p>
+
+  <!-- Typ A -->
+  <h3><span class="h3-num">6.1</span> Typ A — Die Methode ist beschrieben</h3>
+
+  <div class="rule-card">
+    <div class="rule-title">Die Aufgabe erklärt dir Schritt für Schritt, was die Methode tut.</div>
+    <div class="rule-body">
+      Im Aufgabentext findest du einen detaillierten Ablauf, z.B. „sucht nach freien Taxis … fragt beim Fahrer an … vergebe Auftrag". Deine Aufgabe ist es, diesen Ablauf Schritt für Schritt in Pfeilnotation zu übersetzen. Du musst noch die richtigen Methoden aus dem Klassendiagramm zuordnen, aber der "<em>Was passiert wann</em>-Teil" ist gegeben.
+    </div>
+  </div>
+
+  <div class="task-block">
+    <span class="task-label">Beispiel — ABI 2023 B (Typ A)</span>
+    „Die Methode <code>bearbeiteAuftrag()</code> der Klasse TaxiZentrale <strong>sucht nach freien Taxis</strong>, die sich zur angefragten Zeit am nächsten an der Startadresse befinden. Für die ermittelten Taxis wird <strong>beim Fahrer angefragt</strong>, ob er bereit ist für die Annahme des Auftrags. <strong>Signalisiert der Fahrer seine Bereitschaft, wird der Auftrag an ihn vergeben</strong>. Konnte ein Taxi ermittelt werden, gibt die Methode <code>true</code> zurück, ansonsten <code>false</code>."
+    <span class="task-be">8 BE</span>
+  </div>
+
+  <!-- Typ B -->
+  <h3><span class="h3-num">6.2</span> Typ B — Die Methode muss erschlossen werden</h3>
+
+  <div class="rule-card purple">
+    <div class="rule-title">Die Aufgabe nennt nur den Methodennamen — du leitest den Ablauf selbst her.</div>
+    <div class="rule-body">
+      Hier steht in der Aufgabe nur sinngemäß: „Entwickeln und zeichnen Sie ein Sequenzdiagramm für die Methode <code>aufnehmenPatient()</code>." Was die Methode intern tut, musst du vollständig selbst herleiten. Dabei helfen dir vier Quellen:<br><br>
+      <strong>1. Der Methodenname:</strong> <code>aufnehmenPatient()</code> → einen Patienten zuweisen.<br>
+      <strong>2. Die Teilnehmer in der Vorlage:</strong> <code>: Zimmer</code> und <code>: List&lt;Patient&gt;</code> vorhanden → einem Patienten <b>ein Zimmer</b> zuweisen und da das Zimmer Patienten enthält, die Patienten-Liste des Zimmers mit dem Patienten befüllen.<br>
+      <strong>3. Das Klassendiagramm:</strong> Welche Methoden hat <code>Zimmer</code>? → <code>belegen(patient)</code>, <code>istVoll()</code>.<br>
+      <strong>4. Die Assoziationen:</strong> Welche Klassen kennen welche? → bestimmt, wer wen anrufen darf – <code>Abteilung</code> und <code>Zimmer</code> kennen <code>Patient</code>. Also <code>Patient</code> aus dem Parameter in die Patienten-Liste der Klasse <code>Zimmer</code> zuweisen.
+    </div>
+  </div>
+
+  <div class="task-block">
+    <span class="task-label">Beispiel — ABI 2025 A (Typ B)</span>
+    „Die Methode <code>aufnehmenPatient(patient : Patient)</code> der Klasse Abteilung <strong>nimmt einen neuen Patienten in der Abteilung auf</strong>, sofern ein freies Zimmer gefunden wurde. Entwickeln und zeichnen Sie ein Sequenzdiagramm für diese Methode."
+    <span class="task-be">7 BE</span>
+  </div>
+
+  <div class="note tip">
+    <strong>Tipp für Typ B:</strong> Denk aus der Perspektive der Methode heraus: Was <em>muss</em> sie tun, damit ihr Name Sinn ergibt? Kombiniere den Methodennamen mit dem, was die Vorlage dir zeigt (welche Objekte gibt es?) und dem, was das Klassendiagramm verrät (welche Methoden haben diese Objekte?). Meist ist der Ablauf damit eindeutig erschließbar.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     7 · SCHRITT-FÜR-SCHRITT-VORGEHEN
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>7 · Schritt-für-Schritt-Vorgehen</h2>
+  <div class="section-desc">So gehst du systematisch vor, wenn du eine Sequenzdiagramm-Aufgabe löst.</div>
+
+  <ol class="steps">
+    <li>
+      <div class="st">
+        <strong>Vorlage analysieren.</strong> Notiere alle Teilnehmer und ihre Klassen. Welche Methoden haben diese Klassen laut Klassendiagramm? Welche Assoziationen bestehen (wer kennt wen)?
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Aufgabentext auswerten.</strong> Ist die Methode beschrieben (Typ A) oder nur benannt (Typ B)? Bei Typ A: Markiere alle Handlungsschritte im Text. Bei Typ B: Leite den Ablauf aus Methodenname, Vorlage und Klassendiagramm ab.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Ablauf in Teilschritte aufteilen.</strong> Ordne jedem Schritt den richtigen Teilnehmer und die richtige Methode zu: Wer ruft wen auf? Welche Methode mit welchen Parametern? Gibt die Methode etwas zurück, und wenn ja was?
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Fragmente identifizieren.</strong> Gibt es Schleifen (<code>loop</code>) oder Bedingungen (<code>opt</code>, <code>alt</code>)? Erkennungsworte: <em>„für jedes …"</em> → <code>loop</code>; <em>„sofern …"</em>, <em>„falls …"</em> → <code>opt</code> oder <code>alt</code>; <em>„… ansonsten …"</em> → <code>alt</code>.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Platz einteilen.</strong> Plane vor dem Zeichnen grob, wie viel Platz du für jeden Abschnitt brauchst — besonders bei verschachtelten Fragmenten. Das verhindert, dass du am Ende nicht mehr genug Platz hast.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Von oben nach unten zeichnen.</strong> Beginne beim initialen Aufruf (bereits vorgegeben) und füge Schritt für Schritt hinzu: erst Aufrufpfeil, dann Aktivierungsbalken des Empfängers, dann ggf. Unteraufrufe, dann Rückgabepfeil.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Kontrollieren: Kein offener Balken.</strong> Am Ende prüfst du systematisch: Jeder Aktivierungsbalken muss mit einem Rückgabepfeil abschließen — auch void-Methoden. Kein Balken darf ohne Rückgabe enden.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Abschließende Rückgabe zeichnen.</strong> Ganz am Ende der Methode: Rückgabepfeil nach links aus dem Diagramm heraus, ggf. mit <code>{ wert }</code> beschriftet. Auch bei void wird dieser Pfeil gezeichnet.
+      </div>
+    </li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     8 · VOLLSTÄNDIGE BEISPIELE AUS DEM ABITUR
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>8 · Vollständige Beispiele aus dem Abitur</h2>
+  <div class="section-desc">Vier echte Abituraufgaben — mit Vorlage, Analyse und Musterlösung.</div>
+
+  <!-- ── 8.1 ABI 2025 A ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2025 A</span>
+      <span class="exam-title">aufnehmenPatient() · Klasse Abteilung</span>
+      <span class="task-be">7 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">8.1.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.7 — Typ B (Methode erschließen)</span>
+        Die Methode <code>aufnehmenPatient(patient : Patient)</code> der Klasse Abteilung nimmt einen neuen Patienten in der Abteilung auf, sofern ein freies Zimmer gefunden wurde. Entwickeln und zeichnen Sie ein Sequenzdiagramm für diese Methode.<br>
+        <em>Hinweis: Eine Vorlage ist in Material 4 zu finden.</em>
+      </div>
+
+      <h3><span class="h3-num">8.1.2</span> Analyse — Was die Aufgabe nicht sagt, aber du weißt</h3>
+
+      <div class="rule-card">
+        <div class="rule-title">Was sagt die Vorlage?</div>
+        <div class="rule-body">
+          Drei Teilnehmer: <code>: Abteilung</code>, <code>: Zimmer</code> und <code>: List&lt;Patient&gt;</code>. → Die Methode interagiert mit Zimmer-Objekten und einer Patientenliste.
+        </div>
+      </div>
+      <div class="rule-card purple">
+        <div class="rule-title">Was musst du selbst herleiten?</div>
+        <div class="rule-body">
+          „Aufnehmen" bedeutet: Einem Patienten wird ein Zimmer zugewiesen. Aus dem Klassendiagramm: <code>Zimmer</code> hat <code>istVoll() : boolean</code> und <code>belegen(patient : Patient) : boolean</code>. Da die Abteilung mehrere Zimmer hat, wird per Schleife (<code>loop</code>) über alle Zimmer iteriert. Für jedes Zimmer: Prüfe ob es voll ist (<code>istVoll()</code> → <code>{ belegt }</code>). Ist es frei (<code>opt belegt = false</code>): Füge den Patienten zur Liste hinzu (<code>add(patient)</code>). Das Zimmer gibt zurück, ob die Aufnahme geklappt hat (<code>{ ok }</code>). Die Methode gibt am Ende <code>{ ok : boolean }</code> zurück.
+        </div>
+      </div>
+
+      <h3><span class="h3-num">8.1.3</span> Vorlage und Musterlösung</h3>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-08-vorlage-2025a.png" alt="Vorlage ABI 2025 A">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-09-loesung-2025a.png" alt="Musterlösung ABI 2025 A">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">8.1.4</span> Aufschlüsselung der Lösung</h3>
+      <div class="rule-card">
+        <div class="rule-title">loop für jedes zimmer aus zimmerListe</div>
+        <div class="rule-body">Die Abteilung hat mehrere Zimmer (<code>Abteilung</code> kennt mehrere '*' <code>Zimmer</code>, also hat sie eine Liste von Zimmern), daher wird über alle iteriert. Der <code>loop</code>-Rahmen umschließt alle Aufrufe, die pro Zimmer wiederholt werden.</div>
+      </div>
+      <div class="rule-card purple">
+        <div class="rule-title">Zimmer ruft sich selbst auf: istVoll()</div>
+        <div class="rule-body">Das <code>Zimmer</code>-Objekt überprüft mit einem Selbstaufruf (<code>Zimmer → Zimmer: istVoll()</code>), ob es noch freie Plätze hat. Das Ergebnis <code>{ belegt }</code> wird als Rückgabepfeil zurück an sich selbst eingezeichnet — und dann weiter aufwärts an <code>: Abteilung</code> als Rückgabe von <code>belegen()</code>.</div>
+      </div>
+      <div class="rule-card green">
+        <div class="rule-title">opt belegt = false → Liste: add(patient)</div>
+        <div class="rule-body">Nur wenn das Zimmer nicht voll ist, wird der Patient der Liste hinzugefügt. Das <code>opt</code>-Fragment enthält den <code>add()</code>-Aufruf auf der Liste. Da <code>add()</code> void zurückgibt, ist der Rückgabepfeil leer (aber trotzdem einzuzeichnen!).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8.2 ABI 2023 C ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2023 C</span>
+      <span class="exam-title">ausfuehrenSpielzug() · Klasse CanastaManager</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">8.2.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.3 — Typ A (detailliert beschrieben) — Selber die einzelnen Schritte farbig markiert</span>
+        Die Methode <code>ausfuehrenSpielzug(sp : Spieler)</code> der Klasse CanastaManager <span style="color: var(--blue);">zieht die oberste Karte vom Haufen</span> (1. Position im Container <code>haufen</code>) und <span style="color: var(--green);">fügt sie sortiert in die Handkarten des Spielers ein</span>. Dann wählt der Spieler eine Karte auf seiner Hand aus, die er ablegen möchte. Dazu <span style="color: var(--purple);">wählt er den Index dieser Karte und entfernt sie somit von seiner Hand</span>. Anschließend wird <span style="color: var(--orange);">diese Karte als oberste auf den Stapel</span> (<code>stapel</code>) <span style="color: var(--orange);">abgelegt</span>.
+      </div>
+
+      <h3><span class="h3-num">8.2.2</span> Analyse — Vier Hauptschritte</h3>
+
+      <div class="rule-card">
+        <div class="rule-title">Schritt 1: Karte vom Haufen ziehen</div>
+        <div class="rule-body">Selbstaufruf: <code>CanastaManager → CanastaManager: holeVomHaufen()</code>. Im Innern: <code>haufen.remove(0)</code> (Listen sind 0-Indexed, das heißt sie beginnen bei 0, die 1. Position ist deshalb 0) → gibt die oberste Karte <code>{ k }</code> zurück. Die Hilfsmethode gibt dann <code>{ k }</code> zurück an den äußeren Aufruf.<br><b>Merke:</b> Zusatz Infos in Klammern sind oft sehr hilfreich!</div>
+      </div>
+      <div class="rule-card green">
+        <div class="rule-title">Schritt 2: Karte sortiert einfügen</div>
+        <div class="rule-body"><code>sp.fuegeSortiertEin(k)</code> → Der Spieler ruft intern <code>aktuelleHandkarten.add(index, k)</code> auf. Beide Rückgabepfeile sind void (leer, aber Pflicht).</div>
+      </div>
+      <div class="rule-card purple">
+        <div class="rule-title">Schritt 3: Karte auswählen und entfernen</div>
+        <div class="rule-body"><code>sp.waehleKarte()</code> → gibt <code>{ pos }</code> zurück. Danach: <code>sp.entferneKarte(pos)</code> → intern <code>aktuelleHandkarten.remove(pos)</code> → gibt <code>{ karte }</code> zurück. Beides wird aufwärts weitergegeben.</div>
+      </div>
+      <div class="rule-card orange">
+        <div class="rule-title">Schritt 4: Karte auf den Stapel legen</div>
+        <div class="rule-body">Selbstaufruf: <code>CanastaManager → CanastaManager: legeAufStapel(karte)</code>. Im Innern: <code>stapel.add(karte)</code>. Void-Rückgaben auf beiden Ebenen.</div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-head">
+          <span class="pill pill-g">✓ Musterlösung</span>
+          ABI 2023 C — ausfuehrenSpielzug()
+        </div>
+        <div class="diagram-body">
+          <img src="img/seq-10-loesung-2023c.png" alt="Musterlösung ABI 2023 C">
+        </div>
+        <div class="diagram-caption">
+          Zwei Selbstaufrufe (<code>holeVomHaufen()</code>, <code>legeAufStapel()</code>) mit je einem verschachtelten Listenaufruf im Innern. Alle Rückgabepfeile sind eingezeichnet — auch die leeren void-Rückgaben auf Listenebene. Kein Fragment benötigt (kein loop, kein opt).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8.3 ABI 2023 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2023 B</span>
+      <span class="exam-title">bearbeiteAuftrag() · Klasse TaxiZentrale</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">8.3.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.3.2 — Typ A (beschrieben, Vorlage bereits teilweise ausgefüllt)</span>
+        Die Methode <code>bearbeiteAuftrag(von : Adresse, nach : Adresse)</code> der Klasse TaxiZentrale sucht nach freien Taxis, die sich zur angefragten Zeit am nächsten an der Startadresse befinden. Für die ermittelten Taxis wird beim Fahrer angefragt, ob er bereit ist für die Annahme des Auftrags. Signalisiert der Fahrer seine Bereitschaft, wird der Auftrag an ihn vergeben. Konnte ein Taxi ermittelt werden, gibt die Methode <code>true</code> zurück, ansonsten <code>false</code>.
+      </div>
+
+      <h3><span class="h3-num">8.3.2</span> Besonderheit: Teilweise vorgefertigte Vorlage</h3>
+
+      <div class="note warn">
+        <strong>Bereits vorgefertigter Schritt:</strong> Die Vorlage für diese Aufgabe enthielt bereits den Selbstaufruf <code>TaxiZentrale → TaxiZentrale: getTaxiSortiertNachStandort(von)</code> inklusive Rückgabepfeil <code>{ taxiListe }</code> als vorgezeichneten Bestandteil. Dieser Schritt war gegeben — du musstest ihn nicht selbst erfinden, nur fortsetzen. Das ist ein gutes Beispiel dafür, wie eine Vorlage dir schon einen Teil der Lösung verrät.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage (mit vorgez. Selbstaufruf)</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-11-vorlage-2023b.png" alt="Vorlage ABI 2023 B">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-12-loesung-2023b.png" alt="Musterlösung ABI 2023 B">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">8.3.3</span> Aufschlüsselung der Lösung</h3>
+      <div class="rule-card">
+        <div class="rule-title">Vorgabe: getTaxiSortiertNachStandort(von)</div>
+        <div class="rule-body">Dieser Selbstaufruf war bereits auf der Vorlage eingezeichnet — du übernimmst ihn unverändert und baust ab dort weiter.</div>
+      </div>
+      <div class="rule-card green">
+        <div class="rule-title">loop — für jedes taxi, solange Auftrag nicht vergeben</div>
+        <div class="rule-body">Die Schleifenbedingung kombiniert zwei Teile: Die Iteration über die Liste <em>und</em> eine Abbruchbedingung (Auftrag noch nicht vergeben). Das ist ein typisches Muster im Abitur — die Schleife bricht ab, sobald ein Fahrer gefunden wurde.</div>
+      </div>
+      <div class="rule-card purple">
+        <div class="rule-title">getFahrer() → Selbstaufruf anfragenBereitschaft() → opt: vergebeAuftrag()</div>
+        <div class="rule-body">Erst wird der Fahrer des Taxis abgefragt (<code>{ f }</code>). Dann wird per Selbstaufruf die Bereitschaft beim Fahrer angefragt (<code>{ ok }</code>). Nur wenn <code>ok = true</code>, wird per weiterem Selbstaufruf der Auftrag vergeben. <code>vergebeAuftrag()</code> ist void — leerer Rückgabepfeil.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8.4 ABI 2022 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2022 B</span>
+      <span class="exam-title">start() · Klasse EBClient (Client-Seite)</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">8.4.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.6.3 — Typ A (mit Protokoll &amp; Server-Referenzdiagramm)</span>
+        Entwickeln und zeichnen Sie das UML-Sequenzdiagramm für die Client-Seite unter Berücksichtigung des Sitzungsprotokolls sowie des UML-Sequenzdiagramms für die Server-Seite (Material 4).<br><em>Hinweis:</em> Die Methode <code>getAnmeldeDaten()</code> der Klasse EBClient liefert einen String in der Form <code>anmelden;[iban];[pin]</code>, die Methode <code>getUeberweisungsDaten()</code> liefert einen String <code>ueberweisen;[iban];[betrag]</code> bzw. <code>quit</code> für das Beenden der Sitzung.
+      </div>
+
+      <h3><span class="h3-num">8.4.2</span> Besonderheiten dieser Aufgabe</h3>
+
+      <div class="note">
+        <strong>Objekterstellung war bereits in der Vorlage:</strong> Die Vorlage enthielt bereits die Erstellung des <code>: Socket</code>-Objekts mit <code>&laquo;create&raquo; Socket(hostname : String, port : int)</code>. Du musstest dieses Objekt nicht von Grund auf neu hinzufügen — der Erstellungsschritt war vorgegeben. Dein Einstiegspunkt war der Aufruf von <code>connect()</code> auf dem Socket. Normalerweise sollte man jedoch auch selbst darauf kommen.
+      </div>
+      <div class="note warn">
+        <strong>Destruktionsmarkierung (X):</strong> Das Socket-Objekt wird am Ende der Methode mit <code>close()</code> geschlossen und seine Lebenslinie endet mit einem "X". Da das Schließen des Sockets nicht explizit Teil der Aufgabe war (aber auch zu deuten wäre), war es bereits in der Vorlage angegeben, musste also nicht selbst eingezeichnet werden.
+      </div>
+      <div class="note purple">
+        <strong>Starke Schachtelung:</strong> Diese Aufgabe hat mehrere Ebenen von Fragmenten: <code>opt ok = true</code> (äußere Ebene, ob Verbindung aufgebaut) → <code>opt antwort = "+OK..."</code> (ob Anmeldung erfolgreich) → <code>loop daten &lt;&gt; "quit"</code> (Überweisungsschleife). Das ist das komplexeste Beispiel der letzten Jahre — eine gute Übungsaufgabe.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-13-vorlage-2022b.png" alt="Vorlage ABI 2022 B Client">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/seq-14-loesung-2022b.png" alt="Musterlösung ABI 2022 B Client">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">8.4.3</span> Aufschlüsselung der Lösung</h3>
+      <div class="rule-card">
+        <div class="rule-title">Selbstaufrufe: getAnmeldeDaten() und getUeberweisungsDaten()</div>
+        <div class="rule-body">Der EBClient holt seine eigenen Eingaben per Selbstaufruf — <code>getAnmeldeDaten()</code> gibt einen String zurück, der direkt als Argument für <code>write()</code> verwendet wird. Dasselbe Muster für <code>getUeberweisungsDaten()</code>.</div>
+      </div>
+      <div class="rule-card green">
+        <div class="rule-title">Dreifach geschachtelte Fragmente</div>
+        <div class="rule-body">Äußerer <code>opt ok = true</code>-Block (Verbindungserfolg) enthält einen inneren <code>opt antwort = "+OK..."</code>-Block (Login-Erfolg), der wiederum einen <code>loop daten &lt;&gt; "quit"</code>-Block enthält (Überweisungsschleife). Plane beim Zeichnen genug vertikalen Platz ein.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     9 · HÄUFIGE FEHLER
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>9 · Häufige Fehler</h2>
+  <div class="section-desc">Diese Punkte kosten oft unnötig BE — besser vorher kennen.</div>
+
+  <div class="rule-card red">
+    <div class="rule-title">1. Rückgabepfeil vergessen — auch bei void!</div>
+    <div class="rule-body">
+      Der häufigste Fehler. Nach jedem Methodenaufruf muss ein gestrichelter Rückgabepfeil eingezeichnet werden, auch wenn die Methode void ist. Kontrolliere nach dem Zeichnen systematisch jeden einzelnen Aktivierungsbalken: Hat er einen Rückgabepfeil? Fehlt einer, kostet es Punkte.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">2. Falsche Pfeilspitze für synchrone Aufrufe</div>
+    <div class="rule-body">
+      Synchrone Aufrufe müssen eine <strong>ausgefüllte dreieckige Pfeilspitze (▶)</strong> haben — kein einfacher Strich mit offenem Pfeilkopf (→). Beim Handzeichnen unbedingt auf ein solides, ausgefülltes Dreieck achten.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">3. Aktivierungsbalken offen gelassen</div>
+    <div class="rule-body">
+      Jeder Aktivierungsbalken muss klar anfangen und enden. Vergiss nicht, ihn zu „schließen", sobald der Rückgabepfeil gesendet wird. Ein Balken, der bis zum Ende des Diagramms durchgeht ohne abzuschließen, ist falsch.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">4. opt statt alt oder umgekehrt verwendet</div>
+    <div class="rule-body">
+      <code>opt</code> = nur ein Zweig (kein else) — der Block wird entweder ausgeführt oder komplett übersprungen. <code>alt</code> = zwei (oder mehr) Zweige — genau einer wird ausgeführt. Wähle das richtige Fragment basierend auf der Aufgabenbeschreibung.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">5. Rückgabewert-Beschriftung fehlt</div>
+    <div class="rule-body">
+      Wenn eine Methode einen Wert zurückgibt (laut Klassendiagramm oder Aufgabentext), muss der Rückgabepfeil mit <code>{ wert }</code> beschriftet sein. Ein leerer Rückgabepfeil bei einer nicht-void-Methode ist unvollständig.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">6. Aufrufe zwischen nicht-assoziierten Objekten</div>
+    <div class="rule-body">
+      Zeichne nur Methodenaufrufe ein, die laut Klassendiagramm möglich sind — also wo eine Assoziation zwischen den Klassen besteht. Ein Objekt kann keine Methode bei einem anderen aufrufen, das es nicht kennt (keine Assoziation hat).
+    </div>
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">7. Kleiner Aktivierungsbalken nach Objekterstellung</div>
+    <div class="rule-body">
+      Wenn du ein neues Objekt mit <code>&laquo;create&raquo;</code> erstellst, zeichne direkt danach einen kurzen Aktivierungsbalken ein — auch wenn das neue Objekt in diesem Moment noch nichts tut. Das entspricht dem Stil der offiziellen Abitur-Musterlösungen.
+    </div>
+  </div>
+
+  <div class="rule-card teal">
+    <div class="rule-title">8. Auf Platz achten bei verschachtelten Fragmenten</div>
+    <div class="rule-body">
+      Plane vor dem Zeichnen den vertikalen Platzbedarf. Jedes Fragment-Rechteck muss groß genug sein, um alle enthaltenen Nachrichten aufzunehmen. Bei mehrfacher Schachtelung kann der Platzbedarf unterschätzt werden.
+    </div>
+  </div>
+</div>
+
+
+<!-- ── FOOTER ── -->
+<footer>
+  Leitfaden erstellt auf Basis der offiziellen Abitur-Lösungen 2022–2025 (Hessen) · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">Vorschläge aus 4 Jahrgängen analysiert</a> (jedoch mit den der letzten 10 Jahrgängen verglichen) (Roh: <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/pi-abi-oop-sequence-diagrams.txt">1</a>)
+</footer>
+
+</div>
+</body>
+</html>

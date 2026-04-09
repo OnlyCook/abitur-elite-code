@@ -1,0 +1,590 @@
+## Notizen: 
+- Noch nie (in der letzten 10 Jahren) gab es in irgendeinem Vorschlag eine Sequenzdiagramm-Zeichen-Aufgabe ohne eine Zeichen-Vorlage die bereits alle Objekte vorgab
+- Aus diesen vorgegebenen Objekten lässt sich viel der erwarteten Zeichnung deuten
+- Aus dem Klassendiagramm, lassen sich viele Details schließen
+- "\\n" sind reguläre '\n', PlantUML ließt diese jedoch dann ein
+-- Der PlantUML-Code ist nur zu visualisierung der Diagramme durch Text und nicht wirklich gegeben, Schüler sollten nicht über PlantUML können oder hierdurch lernen, es wird wirklich nur zur Visualisierung verwendet
+-- WICHTIG: Das Abitur benutzt eine ausgefüllt dreieckige Pfeilspitze für synchrone Aufrufe, in PlantUML lässt sich dies nicht darstellen, jedoch soll "->" immer "-▶" (oder "-|>" bedeuten).
+
+[ABI 2025 A]
+
+# Aufgabe
+1.7 Die Methode aufnehmenPatient() der Klasse Abteilung nimmt einen neuen Patienten in
+der Abteilung auf, sofern ein freies Zimmer gefunden wurde.
+Entwickeln und zeichnen Sie ein Sequenzdiagramm für diese Methode.
+Hinweis: Eine Vorlage ist in Material 4 zu finden.
+(7 BE)
+
+# Schema aus Klassendiagramm
++ aufnehmen Patient(patient: Patient): boolean
+
+# Notiz:
+- Methode war nicht vorher zu implementieren -> Struktur muss selbst herausgefunden werden
+- Klasse Abteilung ist mit einer Liste von Patienten sowie aller Zimmer assoziiert (auch ablesbar von der Vorlage)
+- Man muss selbst darauf kommen, dass "aufnehmen" einem Patienten ein Zimmer zuweisen bedeutet, dies tut man mit der Methode "belegen(patient : Patient) : bool" der Klasse "Zimmer"
+- Auch muss herausgefunden werden, dass ein Zimmer voll sein kann deshalb sollte die "istVoll" Methode der Klasse "Zimmer" zur Überprüfung verwendet werden
+- Den als Parameter übergebenenden Patienten muss man dann (bedingt) der Liste von Patienten der Klasse "Zimmer" zuweisen
+
+# Gegebene Vorlage
+@startuml
+participant ": Abteilung" as Abteilung
+participant ": Zimmer" as Zimmer
+participant ": List<Patient>" as Liste
+
+[o-> Abteilung: aufnehmenPatient(patient)
+activate Abteilung
+deactivate Abteilung
+
+@enduml
+
+# Loesung
+@startuml
+participant ": Abteilung" as Abteilung
+participant ": Zimmer" as Zimmer
+participant ": List<Patient>" as Liste
+
+[o-> Abteilung: aufnehmenPatient(patient)
+activate Abteilung
+
+loop für jedes zimmer aus zimmerListe
+    Abteilung -> Zimmer: belegen(patient)
+    activate Zimmer
+    
+    Zimmer -> Zimmer: istVoll()
+    activate Zimmer
+    Zimmer -->> Zimmer: {belegt}
+    deactivate Zimmer
+    
+    opt belegt = false
+        Zimmer -> Liste: add(patient)
+        activate Liste
+        Liste -->> Zimmer
+        deactivate Liste
+    end
+    
+    Zimmer -->> Abteilung: {ok}
+    deactivate Zimmer
+end
+
+[<-- Abteilung: {ok}
+deactivate Abteilung
+
+@enduml
+
+[ABI 2023 C]
+
+# Aufgabe
+1.3 Die Methode ausfuehrenSpielzug() der Klasse CanastaManager wird abwechselnd für
+jeden Spieler durchgeführt. Sie zieht die oberste Karte vom Haufen (1. Position im Container
+haufen) und fügt sie sortiert in die Handkarten des Spielers ein. Dann wählt der Spieler eine
+Karte auf seiner Hand aus, die er ablegen möchte. Dazu wählt er den Index dieser Karte und
+entfernt sie somit von seiner Hand. Anschließend wird diese Karte als oberste auf den Stapel
+(Container stapel) abgelegt. Entwickeln und zeichnen Sie ein Sequenzdiagramm für die
+Methode ausfuehrenSpielzug(spieler).
+Hinweise: Verwenden Sie die Vorlage in Material 4, die Hinweise in Material 1 sowie die
+Klassendokumentation der Klasse List in Material 2.
+(8 BE)
+
+# Schema aus Klassendiagramm
++ ausfuehrenSpielzug(sp : Spieler)
+
+# Notiz:
+- Methode war nicht vorher zu implementieren, jedoch beschreib die Aufgabe die erwartete Zeichnung recht detailliert
+- Was nicht explizit in der Aufgabe stand, musste man mithilfe der Assoziationen im Klassediagramm und den vorgegebenen Objekten herausschließen
+
+# Gegebene Vorlage
+@startuml
+participant ": CanastaManager" as CanastaManager
+participant "haufen : List<Karte>" as Haufen
+participant "sp : Spieler" as Sp
+participant "aktuelleHandkarten : List<Karte>" as AktuelleHandkarten
+participant "stapel : List<Karte>" as Stapel
+
+[o-> CanastaManager: ausfuehrenSpielzeug(sp : Spieler)
+activate CanastaManager
+deactivate CanastaManager
+
+@enduml
+
+# Loesung
+@startuml
+participant ": CanastaManager" as CanastaManager
+participant "haufen : List<Karte>" as haufen
+participant "sp : Spieler" as sp
+participant "aktuelleHandkarten : List<Karte>" as aktuelleHandkarten
+participant "stapel : List<Karte>" as stapel
+
+[o-> CanastaManager: ausfuehrenSpielzeug(sp : Spieler)
+activate CanastaManager
+
+CanastaManager -> CanastaManager : holeVomHaufen()
+activate CanastaManager
+CanastaManager -> haufen : remove(0)
+activate haufen
+haufen -->> CanastaManager : { k }
+deactivate haufen
+CanastaManager -->> CanastaManager : { k }
+deactivate CanastaManager
+
+CanastaManager -> sp : fuegeSortiertEin(k)
+activate sp
+sp -> aktuelleHandkarten : add(index, k)
+activate aktuelleHandkarten
+aktuelleHandkarten -->> sp
+deactivate aktuelleHandkarten
+sp -->> CanastaManager
+deactivate sp
+
+CanastaManager -> sp : waehleKarte()
+activate sp
+sp -->> CanastaManager : { pos }
+deactivate sp
+
+CanastaManager -> sp : entferneKarte(pos)
+activate sp
+sp -> aktuelleHandkarten : remove(pos)
+activate aktuelleHandkarten
+aktuelleHandkarten -->> sp : { karte }
+deactivate aktuelleHandkarten
+sp -->> CanastaManager : { karte }
+deactivate sp
+
+CanastaManager -> CanastaManager : legeAufStapel(karte)
+activate CanastaManager
+CanastaManager -> stapel : add(karte)
+activate stapel
+stapel -->> CanastaManager
+deactivate stapel
+CanastaManager -->> CanastaManager
+deactivate CanastaManager
+
+deactivate CanastaManager
+
+@enduml
+
+[ABI 2023 B]
+
+# Aufgabe
+1.3.2 Die Methode bearbeiteAuftrag() der Klasse TaxiZentrale sucht nach freien Taxis, die
+sich zur angefragten Zeit am nächsten an der Startadresse (Parameter von) befinden. Für die
+ermittelten Taxis wird beim Fahrer angefragt, ob er bereit ist für die Annahme des Auftrags.
+Signalisiert der Fahrer seine Bereitschaft, wird der Auftrag an ihn vergeben. Konnte ein Taxi
+ermittelt werden, gibt die Methode true zurück, ansonsten false.
+Entwickeln und zeichnen Sie ein Sequenzdiagramm für die Methode.
+Hinweis: Eine Vorlage ist in Material 4 zu finden.
+(8 BE)
+
+# Schema aus Klassendiagramm
++ bearbeiteAuftrag(von : Adresse, nach : Adresse) : boolean
+
+# Notiz:
+- Methode war nicht vorher zu implementieren, jedoch beschreib die Aufgabe die erwartete Zeichnung recht detailliert
+- Was nicht explizit in der Aufgabe stand, musste man mithilfe der Assoziationen im Klassediagramm und den vorgegebenen Objekten herausschließen
+
+# Gegebene Vorlage
+@startuml
+participant ": TaxiZentrale" as TaxiZentrale
+participant "taxi : Taxi" as taxi
+
+[o-> TaxiZentrale: bearbeiteAuftarg(von, nach)
+activate TaxiZentrale
+
+TaxiZentrale -> TaxiZentrale : getTaxiSortiertNachStandort(von)
+activate TaxiZentrale
+TaxiZentrale -->> TaxiZentrale : {taxiListe}
+deactivate TaxiZentrale
+
+deactivate TaxiZentrale
+
+@enduml
+
+# Loesung
+@startuml
+participant ": TaxiZentrale" as TaxiZentrale
+participant "taxi : Taxi" as taxi
+
+[o-> TaxiZentrale: bearbeiteAuftrag(von, nach)
+activate TaxiZentrale
+
+TaxiZentrale -> TaxiZentrale : getTaxiSortiertNachStandort(von)
+activate TaxiZentrale
+TaxiZentrale -->> TaxiZentrale : { taxiListe }
+deactivate TaxiZentrale
+
+loop für jedes taxi aus taxis und Auftrag nicht vergeben
+  TaxiZentrale -> taxi : getFahrer()
+  activate taxi
+  taxi -->> TaxiZentrale : { f }
+  deactivate taxi
+  
+  TaxiZentrale -> TaxiZentrale : anfragenBereitschaft(f, von, nach)
+  activate TaxiZentrale
+  TaxiZentrale -->> TaxiZentrale : { ok }
+  deactivate TaxiZentrale
+  
+  opt ok = true
+    TaxiZentrale -> TaxiZentrale : vergebeAuftrag(f, von, nach)
+    activate TaxiZentrale
+    deactivate TaxiZentrale
+  end
+end
+
+[<-- TaxiZentrale : { ok }
+
+deactivate TaxiZentrale
+
+@enduml
+
+[ABI 2022 B]
+
+# Aufgabe
+1.6.3 Entwickeln und zeichnen Sie das UML-Sequenzdiagramm für die Client-Seite unter
+Berücksichtigung des in Aufgabe 1.6 wiedergegebenen Sitzungsprotokolls sowie des
+UML-Sequenzdiagramms für die Server-Seite (Material 4) in Material 5.
+Hinweise: Die Methode getAnmeldeDaten() der Klasse EBClient liefert einen String in der
+Form anmelden;[iban];[pin], die Methode getUeberweisungsDaten() liefert einen
+String in der Form ueberweisen;[iban];[betrag] bzw. quit für das Beenden der
+Sitzung.
+(8 BE)
+
+# Schema aus Klassendiagramm
++ getAnmeldeDaten() : String
+
+# Notiz:
+- Methode war nicht vorher zu implementieren, jedoch beschreib die Aufgabe die erwartete Zeichnung recht detailliert
+- Was nicht explizit in der Aufgabe stand, musste man mithilfe der Assoziationen im Klassediagramm und den vorgegebenen Objekten herausschließen
+- Am Ende wird an der Lebenslinie des ": socket" ein Kreuz dargestellt, jedoch müsste man dies nicht selbst tun denn es war bereits in der Vorlag eingezeichnet
+
+# Gegebene Vorlage
+@startuml
+participant ": EBClient" as EBClient
+
+[o-> EBClient : start()
+activate EBClient
+
+create ": Socket" as socket
+EBClient -> socket : <<create>> Socket(hostname : String, port : int)
+activate socket
+deactivate socket
+
+deactivate EBClient
+
+@enduml
+
+# Loesung
+@startuml
+participant ": EBClient" as EBClient
+
+[o-> EBClient : start()
+activate EBClient
+
+create ": Socket" as socket
+EBClient -> socket : <<create>> Socket(hostname : String, port : int)
+activate socket
+EBClient -> socket : connect()
+socket -->> EBClient : { ok : boolean }
+deactivate socket
+
+opt ok = true
+  EBClient -> socket : readLine()
+  activate socket
+  socket -->> EBClient : { "+OK E-Banking" }
+  deactivate socket
+  
+  EBClient -> EBClient : getAnmeldeDaten()
+  activate EBClient
+  EBClient -->> EBClient : { daten : String }
+  deactivate EBClient
+  
+  EBClient -> socket : write(daten + "\\n")
+  activate socket
+  socket -->> EBClient
+  deactivate socket
+  
+  EBClient -> socket : readLine()
+  activate socket
+  socket -->> EBClient : { antwort }
+  deactivate socket
+  
+  opt antwort = "+OK..."
+    EBClient -> EBClient : getUeberweisungsDaten()
+    activate EBClient
+    EBClient -->> EBClient : { daten : String }
+    deactivate EBClient
+    
+    loop daten <> "quit"
+      EBClient -> socket : write(daten + "\\n")
+      activate socket
+      socket -->> EBClient
+      deactivate socket
+      
+      EBClient -> socket : readLine()
+      activate socket
+      socket -->> EBClient : { ergebnis : String }
+      deactivate socket
+      
+      EBClient -> socket : readLine()
+      activate socket
+      socket -->> EBClient : { kontostand ... String }
+      deactivate socket
+      
+      EBClient -> EBClient : getUeberweisungsDaten()
+      activate EBClient
+      EBClient -->> EBClient : { daten : String }
+      deactivate EBClient
+    end
+  end
+  
+  EBClient -> socket : write("quit\\n")
+  activate socket
+  socket -->> EBClient
+  deactivate socket
+  
+  EBClient -> socket : close()
+  activate socket
+  socket -->> EBClient
+  deactivate socket
+  
+end
+deactivate socket
+deactivate EBClient
+
+@enduml
+
+[ABI 2022 B] (immer noch, jedoch hat man hier ein Sequenzdiagramm bekommen und müsste dieses in Code implementieren, dies ist aber recht selten)
+
+# Aufgabe
+1.6.2 Implementieren Sie die Klasse EBServer aus Material 1 unter Berücksichtigung des in
+Aufgabe 1.6 wiedergegebenen Sitzungsprotokolls sowie des UML-Sequenzdiagramms für die
+Server-Seite aus Material 4.
+Hinweise: Die Dokumentationen der Klassen Socket, ServerSocket und String sind in
+Material 3 zu finden. Zur Umwandlung eines Strings in eine Integer-Zahl bzw. Fließkommazahl
+stehen die Methoden Integer.parseInt(s: String): int und
+Double.parseDouble(s:String): double zur Verfügung.
+(9 BE)
+
+# Material 3
+Material 3
+Klassendokumentationen
+Klasse Date
+Date()
+erzeugt ein Date-Objekt mit dem aktuellen
+Systemdatum.
+Date(day: int, month: int, year: int)
+erzeugt ein Date-Objekt mit den Werten von
+day, month und year.
+addDays(numberOfDays: int): Date
+liefert eine Kopie des Date-Objekts mit der addierten Anzahl von Tagen.
+isBefore(d: Date): boolean
+liefert true, wenn das Date-Objekt vor dem des Parameters d liegt
+isAfter(d: Date): boolean
+liefert true, wenn das Date-Objekt nach dem des Parameters d liegt
+isBeetween(d1: Date, d2: Date): boolean
+liefert true, wenn das Date-Objekt zwischen den Parametern d1 und d2 liegt.
+toString(): String
+liefert eine String-Repräsentanz des Date-Objekts im Format dd.mm.yyyy.
+Klasse List
+List<T>()
+erzeugt eine generische Liste mit Elementen des Typs T.
+add(obj: T)
+hängt das Objekt obj vom Typ T am Ende der Liste an.
+add(index: int, obj: T)
+fügt das Objekt obj vom Typ T an der Position index in die Liste ein.
+contains(obj: T): boolean
+liefert true, wenn das Objekt obj in der Liste enthalten ist, ansonsten false.
+get(index: int): T
+liefert das Listenelement an der Position index zurück bzw. null, falls index negativ oder größer
+gleich der Anzahl der momentan enthaltenen Elemente ist. 
+
+Material 3 (Fortsetzung)
+remove(index: int): T
+entfernt das Objekt vom Typ T an der Position index aus der Liste und gibt es zurück.
+remove(obj: T): boolean
+entfernt das Objekt obj aus der Liste. Falls obj mehrmals in der Liste enthalten ist, wird nur das erste
+Vorkommen entfernt. Der Rückgabewert ist true, falls das Objekt gefunden und entfernt wurde, sonst
+false.
+size(): int
+liefert die Anzahl der Elemente in der Liste zurück.
+Klasse ServerSocket
+ServerSocket(localPort: int)
+erzeugt einen Server-Socket und bindet ihn an den angegebenen
+Port.
+accept(): Socket
+wartet darauf, dass ein Client eine Verbindung aufbauen will.
+Wurde eine Verbindung aufgebaut, liefert die Methode das entsprechende Socket-Objekt.
+close()
+schließt den Server-Socket.
+Klasse Socket
+Socket(hostname: String, port int)
+erzeugt ein Socket-Objekt.
+connect(): boolean
+stellt eine Verbindung zum Remote Host her; liefert
+true, wenn eine Verbindung hergestellt werden
+konnte, ansonsten false.
+readLine(): String
+liest eine Zeile vom Socket, bzw. liefert null, wenn der Socket nicht geöffnet ist. Eine Zeile wird
+durch ein Zeilenendezeichen abgeschlossen; das Zeilenendezeichen wird jedoch nicht in den
+zurückgegebenen String übernommen. Die Methode blockiert, bis eine komplette Zeile eingelesen ist.
+write(s: String)
+schreibt einen String zum Socket; ist die Schnittstelle nicht geöffnet geschieht nichts.
+close()
+löst die Verbindung auf.
+Klasse String
+contains(sequence: String): boolean
+liefert true, wenn der String den übergebenen String
+sequence enthält, ansonsten false.
+equals(str: String): boolean
+liefert true, wenn beide Strings gleich sind, andernfalls false.
+split(str: String): String[]
+teilt einen String am Trennzeichen str. Die Teil-Strings werden in einem Feld zurückgeliefert.
+startsWith(str: String): boolean
+liefert true, wenn der String mit str beginnt, andernfalls false. 
+
+# Vorgegebenen vollständig gezeichnetes Sequendiagramm (Material 4)
+@startuml
+
+participant ": EBVerwaltung" as EBV
+participant "k : Konto" as K
+participant ": EBServer" as Server
+
+[o-> Server : startServer()
+activate Server
+
+create ": ServerSocket" as SS
+Server -> SS : <<create>> new(port : int)
+
+loop true
+    Server -> SS : accept()
+    activate SS
+    create  "s : Socket" as S
+    SS -> S : <<create>>
+    SS -->> Server : s : Socket
+    deactivate SS
+
+    Server -> S : write("+OK E-Banking\\n")
+    activate S
+    S -->> Server
+    deactivate S
+    Server -> S : readLine()
+    activate S
+    S -->> Server : {anforderung : String}
+    deactivate S
+
+    Server -> EBV : anmelden(iban : String, pin : int)
+    activate EBV
+    EBV -->> Server : { k : Konto }
+    deactivate EBV
+
+    alt k <> null
+        Server -> S : write("+OK Willkommen\\n")
+        activate S
+        S -->> Server
+        deactivate S
+        Server -> S : readLine()
+        activate S
+        S -->> Server : { anforderung : String }
+        deactivate S
+
+        loop anforderung <> "quit"
+            Server -> EBV : sucheKonto(iban : String)
+            activate EBV
+            EBV -->> Server : { ak : Konto }
+            deactivate EBV
+
+            alt ak <> null
+                Server -> EBV : ueberweisen(k : Konto, ak : Konto, text : String, betrag : double)
+                activate EBV
+                EBV -->> Server : { ok : boolean }
+                deactivate EBV
+
+                alt ok = true
+                    Server -> S : write("+OK Überweisung erfolgt\\n")
+                    activate S
+                    S -->> Server
+                    deactivate S
+                else else
+                    Server -> S : write("-ERR Überweisung nicht erfolgt\\n")
+                    activate S
+                    S -->> Server
+                    deactivate S
+                end
+            else else
+                Server -> S : write("-ERR Ungültige IBAN\\n")
+                activate S
+                S -->> Server
+                deactivate S
+            end
+
+            Server -> K : getKontostand()
+            activate K
+            K -->> Server : { kontostand : double }
+            deactivate K
+
+            Server -> S : write("Aktuell..." + kontostand + "\\n")
+            activate S
+            S -->> Server
+            deactivate S
+            Server -> S : readLine()
+            activate S
+            S -->> Server : { anforderung : String }
+            deactivate S
+        end
+
+    else else
+        Server -> S : write("-ERR Anmeldung fehlgeschlagen\\n")
+        activate S
+        S -->> Server
+        deactivate S
+    end
+
+    Server -> S !! : close()
+end
+
+deactivate Server
+
+@enduml
+
+# Loesung (Java Code)
+public class EBServer {
+ private ServerSocket server = null;
+ private EBVerwaltung eb;
+
+ public EBServer(int port, EBVerwaltung eb){
+ this.port = port;
+ this.eb = eb;
+ }
+
+ public void startServer(){
+ server = new ServerSocket(port);
+ while(true){
+ Socket sc = server.accept();
+ sc.write("+OK E-Banking\n");
+ String anforderung = sc.readLine();
+ String[] werte = anforderung.split(";");
+ Konto k = null;
+ k = eb.anmelden(werte[1], Integer.parseInt(werte[2]));
+ if(k == null) {
+ sc.write("-ERR Login fehlgeschlagen!\n");
+ } else {
+ sc.write("+OK Willkommen\n");
+ anforderung = sc.readLine();
+ while (!anforderung.equals("quit")){
+ werte = anforderung.split(";");
+ Konto anderesKonto = eb.sucheKonto(werte[1]);
+ if(anderesKonto != null ){
+ if(eb.ueberweisen(k, anderesKonto, werte[2],
+ Double.parseDouble(werte[3])))
+ sc.write("+OK Überweisung erfolgt\n");
+ else
+ sc.write("-ERR Überweisung nicht erfolgt\n");
+ } else {
+ sc.write("-ERR Ungültige IBAN\n");
+ }
+ sc.write("Aktueller Kontostand: " +
+ k.getKontostand() + " EURO\n");
+ anforderung = sc.readLine();
+ }
+  sc.close();
+ }
+ }
+}

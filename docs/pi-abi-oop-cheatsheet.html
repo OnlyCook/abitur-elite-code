@@ -677,7 +677,7 @@
           <tr><td><code>list.get(index)</code></td><td><code>list[index]</code></td><td>Element an Position <code>index</code> lesen (0-basiert)</td></tr>
           <tr><td><code>list.remove(element)</code></td><td><code>list.Remove(element)</code></td><td>Objekt aus Liste entfernen</td></tr>
           <tr><td><code>list.remove(index)</code></td><td><code>list.RemoveAt(index)</code></td><td>Element an Position entfernen, gibt Element zurück</td></tr>
-          <tr><td><code>list.size()</code></td><td><code>list.Count()</code></td><td>Anzahl der Elemente</td></tr>
+          <tr><td><code>list.size()</code></td><td><code>list.Count</code></code></td><td>Anzahl der Elemente</td></tr>
           <tr><td><code>list.isEmpty()</code></td><td><code>list.IsEmpty()</code></td><td>Prüft ob leer</td></tr>
           <tr><td><code>list.contains(element)</code></td><td><code>list.Contains(element)</code></td><td>Prüft ob Element enthalten</td></tr>
           <tr><td><code>for (Typ t : list)</code></td><td><code>foreach (Typ t in list)</code></td><td>For-each-Schleife (sehr häufig im Abi)</td></tr>
@@ -736,7 +736,7 @@
 liste.<span class="meth">add</span>(i, neuesElement);  <span class="cm">// an gefundener Position einfügen</span></div></div>
   <div style="display:none"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Bsp: Liste aufsteigend nach Datum sortiert halten</span>
 <span class="kw">int</span> i = <span class="num">0</span>;
-<span class="kw">while</span> (i &lt; liste.<span class="meth">Count</span>() &amp;&amp; liste[i].<span class="meth">getDatum</span>().<span class="meth">isBefore</span>(neuesDatum)) {
+<span class="kw">while</span> (i &lt; liste.Count &amp;&amp; liste[i].<span class="meth">getDatum</span>().<span class="meth">isBefore</span>(neuesDatum)) {
     i++;
 }
 liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an gefundener Position einfügen</span></div></div>
@@ -1337,7 +1337,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
     <span class="kw">if</span> (tickets.<span class="meth">IsEmpty</span>()) <span class="kw">return null</span>;
 
     <span class="kw">int</span> low = <span class="num">0</span>;
-    <span class="kw">int</span> max = tickets.<span class="meth">Count</span>() - <span class="num">1</span>;  <span class="cm">// Achtung: Count()-1, nicht Count()</span>
+    <span class="kw">int</span> max = tickets.Count - <span class="num">1</span>;  <span class="cm">// Achtung: Count-1, nicht Count</span>
 
     <span class="kw">while</span> (low != max) {
         <span class="kw">int</span> pointer = (low + max) / <span class="num">2</span>;
