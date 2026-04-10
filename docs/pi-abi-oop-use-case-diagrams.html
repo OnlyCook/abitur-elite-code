@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UML-Anwendungsfalldiagramme: Abitur-Leitfaden</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --border-sub: #21262d;
+    --text:       #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim:   #484f58;
+    --green:      #3fb950;
+    --yellow:     #d29922;
+    --red:        #f85149;
+    --blue:       #58a6ff;
+    --orange:     #db6d28;
+    --purple:     #bc8cff;
+    --teal:       #39d353;
+    --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+
+  .page { max-width: 1012px; margin: 0 auto; }
+
+  a { color: #b388ff !important; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+  .breadcrumb span { margin: 0 4px; color: var(--text-dim); }
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .ybadge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 11px;
+  }
+
+  /* ── NOTES / CALLOUTS ── */
+  .note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--text); }
+  .note.warn   { border-left-color: var(--yellow); }
+  .note.danger { border-left-color: var(--red); }
+  .note.tip    { border-left-color: var(--green); }
+  .note.purple { border-left-color: var(--purple); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 44px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 22px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .h3-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--blue);
+    padding: 1px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .rule-card.green  { border-left-color: var(--green); }
+  .rule-card.yellow { border-left-color: var(--yellow); }
+  .rule-card.red    { border-left-color: var(--red); }
+  .rule-card.purple { border-left-color: var(--purple); }
+  .rule-card.orange { border-left-color: var(--orange); }
+  .rule-card.teal   { border-left-color: var(--teal); }
+
+  .rule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .rule-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .rule-body strong { color: var(--text); }
+
+  /* ── TABLES ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 12px 0;
+  }
+  table.rtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.rtable th {
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 9px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.rtable td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: top;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  table.rtable tbody tr:last-child td { border-bottom: none; }
+  table.rtable tbody tr:hover td { background: rgba(88,166,255,0.04); }
+  table.rtable td:first-child {
+    font-family: var(--mono);
+    color: var(--blue);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  table.rtable td:nth-child(2) { color: var(--text); font-weight: 600; }
+
+  /* ── PILLS ── */
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+  .pill-g  { background: rgba(63,185,80,0.15);   color: var(--green); }
+  .pill-y  { background: rgba(210,153,34,0.15);  color: var(--yellow); }
+  .pill-r  { background: rgba(248,81,73,0.15);   color: var(--red); }
+  .pill-b  { background: rgba(88,166,255,0.15);  color: var(--blue); }
+  .pill-p  { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .pill-o  { background: rgba(219,109,40,0.15);  color: var(--orange); }
+
+  /* ── NPILLS (notation inline tags) ── */
+  .npill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 2px 2px;
+    line-height: 1.6;
+  }
+  .npill-b { background: rgba(88,166,255,0.12);  border: 1px solid rgba(88,166,255,0.3);  color: var(--blue); }
+  .npill-g { background: rgba(63,185,80,0.10);   border: 1px solid rgba(63,185,80,0.3);   color: var(--green); }
+  .npill-y { background: rgba(210,153,34,0.10);  border: 1px solid rgba(210,153,34,0.3);  color: var(--yellow); }
+  .npill-p { background: rgba(188,140,255,0.10); border: 1px solid rgba(188,140,255,0.3); color: var(--purple); }
+  .npill-r { background: rgba(248,81,73,0.10);   border: 1px solid rgba(248,81,73,0.3);   color: var(--red); }
+  .npill-o { background: rgba(219,109,40,0.10);  border: 1px solid rgba(219,109,40,0.3);  color: var(--orange); }
+
+  /* ── STEP LIST ── */
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 26px;
+    height: 26px;
+    background: var(--blue);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .steps li .st { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+  .steps li .st strong { color: var(--text); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 36px 0; }
+
+  /* ── DIAGRAM WRAPPER ── */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .diagram-head {
+    padding: 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .diagram-body {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    background: #1b1b1b;
+  }
+  .diagram-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-caption {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    line-height: 1.55;
+  }
+
+  /* ── NOTATION CARDS GRID ── */
+  .notation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .notation-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .notation-card-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .notation-symbol {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .notation-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .notation-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── TASK TEXT BLOCK ── */
+  .task-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .task-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--purple);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .task-be {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: rgba(210,153,34,0.15);
+    border: 1px solid rgba(210,153,34,0.35);
+    color: var(--yellow);
+    margin-left: 6px;
+  }
+
+  /* ── EXAMPLE PANELS ── */
+  .ex-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 700px) { .ex-grid { grid-template-columns: 1fr; } }
+
+  .ex-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ex-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ex-panel-title.before { color: var(--yellow); border-left: 3px solid var(--yellow); }
+  .ex-panel-title.after  { color: var(--green);  border-left: 3px solid var(--green); }
+  .ex-panel-body { padding: 0; }
+  .ex-panel-body .diagram-body { padding: 12px; }
+
+  /* ── EXAM SECTION BLOCK ── */
+  .exam-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .exam-section-head {
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .exam-year {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .exam-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .exam-section-body { padding: 16px; }
+
+  /* ── BODY TEXT ── */
+  .body-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .body-text strong { color: var(--text); }
+  .body-text em { color: var(--text); font-style: italic; }
+
+  /* ── TYPE BADGE ── */
+  .type-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .type-a { background: rgba(63,185,80,0.15); border: 1px solid rgba(63,185,80,0.3); color: var(--green); }
+  .type-b { background: rgba(248,81,73,0.15); border: 1px solid rgba(248,81,73,0.3); color: var(--red); }
+  .type-c { background: rgba(188,140,255,0.15); border: 1px solid rgba(188,140,255,0.3); color: var(--purple); }
+
+  /* ── ARROW ILLUSTRATION ── */
+  .arrow-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .arrow-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 220px;
+  }
+  .arrow-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .arrow-text {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  /* ── SOLUTION ANALYSIS ── */
+  .analysis-list { list-style: none; margin: 10px 0; }
+  .analysis-list li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-sub);
+    display: flex;
+    gap: 10px;
+    line-height: 1.55;
+  }
+  .analysis-list li:last-child { border-bottom: none; }
+  .analysis-list li .al-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-top: 2px;
+  }
+  .analysis-list li strong { color: var(--text); }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+
+<!-- ── AI-Hinweis ── -->
+<div class="note warn" style="margin-bottom: 24px;">
+  <strong>⚠ Hinweis zur Datenqualität:</strong>
+  Die Daten dieser Seite wurden mithilfe von KI analysiert und ausgewertet. Die Seite selbst wurde größtenteils von KI erstellt. Trotz sorgfältiger Prüfung können einzelne Einträge fehlerhaft oder unvollständig sein. Im Zweifelsfall mit den offiziellen Prüfungsunterlagen überprüfen.
+</div>
+
+
+<!-- ── HEADER ── -->
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="https://github.com/OnlyCook/abitur-elite-code">abitur-elite-code</a><span>/</span>
+    <a href="https://github.com/OnlyCook/abitur-elite-code/wiki">Wiki</a><span>/</span>
+    UML-Anwendungsfalldiagramme
+  </div>
+  <h1>UML-Anwendungsfalldiagramme zeichnen: Der Abitur-Leitfaden</h1>
+  <p>
+    Von null auf Abitur-Standard — alle Notationselemente, Aufgabentypen und Lösungsstrategien
+    für die OOP-Anwendungsfalldiagramm-Aufgaben in der Praktischen Informatik (Hessen).
+    Abgeleitet aus den offiziellen Abitur-Lösungen <strong>2021–2025</strong>.
+  </p>
+  <div class="badge-row">
+    <span class="ybadge">ABI 2021 C</span>
+    <span class="ybadge">ABI 2022 B</span>
+    <span class="ybadge">ABI 2022 C</span>
+	<span class="ybadge">ABI 2023 B</span>
+    <span class="ybadge">ABI 2024 A</span>
+    <span class="ybadge">ABI 2024 B</span>
+    <span class="ybadge">ABI 2025 A</span>
+    <span class="ybadge">ABI 2025 B</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     1 · WAS IST EIN UML-ANWENDUNGSFALLDIAGRAMM?
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>1 · Was ist ein UML-Anwendungsfalldiagramm?</h2>
+  <div class="section-desc">Grundlage — Zweck und Einordnung des Diagrammtyps</div>
+
+  <p class="body-text">
+    Ein <strong>UML-Anwendungsfalldiagramm</strong> (englisch: <em>Use Case Diagram</em>) modelliert die Anforderungen an ein Software-System aus der Sicht seiner Benutzer. Es beantwortet die Frage: <em>„Was soll das System leisten?"</em> — nicht wie es das intern umsetzt. Es zeigt, welche Funktionen (<strong>Anwendungsfälle</strong>) das System anbietet und welche Personen oder externe Systeme (<strong>Akteure</strong>) damit interagieren.
+  </p>
+
+  <div class="rule-card green">
+    <div class="rule-title">Kernidee: Was, nicht Wie</div>
+    <div class="rule-body">
+      Das Anwendungsfalldiagramm beschreibt das <strong>externe, sichtbare Verhalten</strong> eines Systems — aus der Perspektive der Nutzer. Es ist kein Ablaufdiagramm und zeigt keine internen Methodenaufrufe. Sequenzdiagramme (die innere Logik) und Anwendungsfalldiagramme (die äußeren Anforderungen) ergänzen sich.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Im Abitur Hessen</div>
+    <div class="rule-body">
+      Anwendungsfalldiagramme erscheinen regelmäßig im Abitur — meist mit <strong>7–8 Bewertungseinheiten (BE)</strong>. Es gibt drei verschiedene Aufgabentypen (→ Abschnitt 11). Der häufigste ist <strong>Typ A</strong>: eine Beschreibung der Anforderungen ist gegeben, du erhältst eine Zeichenvorlage und musst das Diagramm entwickeln und vervollständigen. Für alle Aufgabentypen gilt: Die Notationsregeln müssen sicher sitzen.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     2 · NOTATIONSELEMENTE AUF EINEN BLICK
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>2 · Notationselemente auf einen Blick</h2>
+  <div class="section-desc">Alle Bestandteile eines UML-Anwendungsfalldiagramms — kompakt zusammengefasst.</div>
+
+  <div class="notation-grid">
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">[ Rechteck ]</span>
+        <span class="notation-name">Systemgrenze</span>
+      </div>
+      <div class="notation-desc">
+        Ein Rechteck umschließt alle Anwendungsfälle des Systems. Der <strong>Systemname steht innen</strong>, Akteure stehen außerhalb. Sie definiert den Geltungsbereich des modellierten Systems.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">&#x1F464; Strichmännchen</span>
+        <span class="notation-name">Akteur</span>
+      </div>
+      <div class="notation-desc">
+        Ein Strichmännchen mit dem Namen darunter. Repräsentiert eine <strong>Rolle</strong>, die ein Benutzer oder ein externes System übernimmt. Akteure stehen immer außerhalb der Systemgrenze.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">( Ellipse )</span>
+        <span class="notation-name">Anwendungsfall (UC)</span>
+      </div>
+      <div class="notation-desc">
+        Eine Ellipse (Oval) innerhalb der Systemgrenze mit einem beschreibenden Namen (Verb + Objekt). Kann einen abgetrennten Abschnitt für <strong>Erweiterungspunkte</strong> enthalten, wenn er Basis einer extend-Beziehung ist.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">————— Linie</span>
+        <span class="notation-name">Assoziation</span>
+      </div>
+      <div class="notation-desc">
+        Eine durchgezogene Linie <strong>ohne Pfeilspitze</strong> zwischen einem Akteur und einem Anwendungsfall. Bedeutet: der Akteur ist an diesem Anwendungsfall beteiligt oder kann ihn auslösen.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">- - &#x276F; &laquo;include&raquo;</span>
+        <span class="notation-name">&laquo;include&raquo;-Beziehung</span>
+      </div>
+      <div class="notation-desc">
+        Ein gestrichelter Pfeil mit offenem Pfeilkopf und dem Stereotyp <code>&laquo;include&raquo;</code>. Der Pfeil zeigt <strong>vom Basisanwendungsfall auf den inkludierten</strong>. <em>Muss-Beziehung</em> — immer ausgeführt.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">- - &#x276F; &laquo;extend&raquo;</span>
+        <span class="notation-name">&laquo;extend&raquo;-Beziehung</span>
+      </div>
+      <div class="notation-desc">
+        Ein gestrichelter Pfeil mit offenem Pfeilkopf und dem Stereotyp <code>&laquo;extend&raquo;</code>. Der Pfeil zeigt <strong>vom erweiternden auf den Basisanwendungsfall</strong>. <em>Kann-Beziehung</em> — nur bei erfüllter Bedingung. Der Basisanwendungsfall hat Erweiterungspunkte.
+      </div>
+    </div>
+
+    <div class="notation-card">
+      <div class="notation-card-top">
+        <span class="notation-symbol">——&#x25B7; Generalisierung</span>
+        <span class="notation-name">Generalisierung (Sonderfall)</span>
+      </div>
+      <div class="notation-desc">
+        Ein durchgezogener Pfeil mit offenem Dreieck. Zeigt eine Spezialisierungsbeziehung zwischen zwei Akteuren (oder Anwendungsfällen). Sehr selten im Abitur — nur einmal in den letzten 10 Jahren aufgetreten. Details in Abschnitt 9.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     3 · DIE SYSTEMGRENZE
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>3 · Die Systemgrenze</h2>
+  <div class="section-desc">Das Rechteck, das das modellierte System umschließt.</div>
+
+  <p class="body-text">
+    Ein System wird durch die Gesamtheit seiner Anwendungsfälle beschrieben. Diese werden durch die <strong>Systemgrenze</strong> zusammengefasst — ein einfaches Rechteck. Der <strong>Name des Systems steht innerhalb</strong> des Rechtecks, immer oben. Alle Anwendungsfälle (Ellipsen) befinden sich innerhalb dieses Rechtecks. Akteure stehen immer außerhalb.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Notation</span>
+      Systemgrenze mit Anwendungsfällen
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-02-systemgrenze.png" alt="Systemgrenze mit Anwendungsfällen">
+    </div>
+    <div class="diagram-caption">
+      Das Rechteck definiert den Geltungsbereich. Der Systemname steht innen. Anwendungsfälle befinden sich innerhalb, Akteure außerhalb der Grenze.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Systemname bestimmen</div>
+    <div class="rule-body">
+      Der Systemname ergibt sich oft direkt aus der Aufgabenstellung — meistens als zusammengesetztes Substantiv wie <strong>„Festivalverwaltung"</strong>, <strong>„Krankenhausverwaltung"</strong> oder <strong>„EB-System"</strong>. Bei Typ-B-Aufgaben (keine Vorlage gegeben) musst du den Systemnamen selbst aus dem Aufgabentext ableiten.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     4 · DER AKTEUR
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>4 · Der Akteur</h2>
+  <div class="section-desc">Wer oder was interagiert mit dem System?</div>
+
+  <p class="body-text">
+    Ein Akteur modelliert einen Typ oder eine Rolle, die ein externer Benutzer oder ein externes System während der Interaktion mit dem System einnimmt. Im Abitur sind Akteure fast immer <strong>Personen in einer Berufs- oder Nutzerrolle</strong> (z.B. „Kunde", „Mitarbeiter", „Arzt").
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Notation</span>
+      Akteure: Standardfall und Sonderfall
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-01-akteur.png" alt="Akteur-Notation: Strichmännchen und System-Akteur">
+    </div>
+    <div class="diagram-caption">
+      <strong>Oben:</strong> Standardfall — Strichmännchen mit Name darunter.<br>
+      <strong>Unten (Sonderfall):</strong> System-Akteur als Rechteck mit Stereotyp <code>&laquo;actor&raquo;</code> — wurde im Abitur bisher nur einmal verwendet (ABI 2020 B, bereits in der Vorlage gegeben).
+    </div>
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">Akteur steht immer außerhalb der Systemgrenze</div>
+    <div class="rule-body">
+      Akteure stehen per Definition außerhalb des Systems — sie sind externe Nutzer. Sie werden nie innerhalb des Systemrechtecks platziert. Ein häufiger Fehler im Abitur ist das versehentliche Einzeichnen von Akteuren innerhalb der Systemgrenze.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Mehrere Akteure am gleichen Anwendungsfall</div>
+    <div class="rule-body">
+      Mehrere Akteure können mit demselben Anwendungsfall verbunden sein. Das ist erlaubt und kommt im Abitur regelmäßig vor — zum Beispiel sind „Mitarbeiter" und Wissensdatenbank" beide mit „Eintrag hinzufügen" verbunden (ABI 2020 B). Jeder Akteur bekommt seine eigene Assoziationslinie zu diesem Anwendungsfall.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">Akteure aus dem Aufgabentext identifizieren</div>
+    <div class="rule-body">
+      Im Abitur werden Akteure im Aufgabentext häufig mit einer Klammererklärung eingeführt, z.B.: <em>„Mitarbeiterinnen und Mitarbeiter (im Folgenden Mitarbeiter genannt)"</em> oder <em>„Ärztinnen und Ärzte (im Folgenden Arzt genannt)"</em>. Diese Formulierung ist das Erkennungszeichen: Das Wort in der Klammer ist der Akteurname im Diagramm.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     5 · DER ANWENDUNGSFALL
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>5 · Der Anwendungsfall (Use Case)</h2>
+  <div class="section-desc">Die Hauptfunktionen des Systems — als Ellipse dargestellt.</div>
+
+  <p class="body-text">
+    Ein Anwendungsfall wird durch eine <strong>Ellipse (Oval) innerhalb der Systemgrenze</strong> dargestellt. In der Ellipse steht die Funktionsbeschreibung — typischerweise ein Verb mit Objekt, z.B. <em>„Ticket buchen"</em>, <em>„Patientenakte aktualisieren"</em> oder <em>„Inventur durchführen"</em>.
+  </p>
+
+  <p class="body-text">
+    Wenn ein Anwendungsfall die <strong>Basis einer &laquo;extend&raquo;-Beziehung</strong> ist, enthält seine Ellipse einen zusätzlichen Abschnitt: einen horizontalen Trennstrich und darunter den oder die <strong>Erweiterungspunkte</strong> (extension points). Der Erweiterungspunkt beschreibt, an welcher Stelle und unter welcher Bedingung die Erweiterung erfolgen kann.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Notation</span>
+      Anwendungsfall — einfach vs. mit Erweiterungspunkt
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-03-anwendungsfall.png" alt="Anwendungsfall einfach und mit Extension Point">
+    </div>
+    <div class="diagram-caption">
+      <strong>Links:</strong> Einfacher Anwendungsfall ohne Erweiterungspunkt.<br>
+      <strong>Rechts:</strong> Basisanwendungsfall einer &laquo;extend&raquo;-Beziehung — horizontaler Trennstrich und Erweiterungspunkt darunter.
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Erweiterungspunkte (Extension Points):</strong> Der Erweiterungspunkt benennt den Punkt im Basisanwendungsfall, an dem die Erweiterung eingreifen kann. Im Abitur entspricht der Erweiterungspunkt oft dem Namen der Bedingung oder des erweiternden Anwendungsfalls. Er ist <strong>nur im Basisanwendungsfall</strong> einer &laquo;extend&raquo;-Beziehung einzutragen — nicht bei &laquo;include&raquo; und nicht im erweiternden Anwendungsfall.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     6 · DIE ASSOZIATION
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>6 · Die Assoziation</h2>
+  <div class="section-desc">Die Verbindungslinie zwischen Akteur und Anwendungsfall.</div>
+
+  <p class="body-text">
+    Akteure werden über <strong>Verbindungslinien (Assoziationen)</strong> mit den Anwendungsfällen verbunden. Eine Assoziation zwischen einem Akteur und einem Anwendungsfall besagt, dass der Akteur <strong>am Anwendungsfall beteiligt ist</strong> oder diesen <strong>auslösen kann</strong>.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">Notation</span>
+      Assoziationen zwischen Akteur und Anwendungsfall
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-04-assoziation.png" alt="Assoziation zwischen Akteur und Anwendungsfall">
+    </div>
+    <div class="diagram-caption">
+      Durchgezogene Linie ohne Pfeilspitze. Ein Akteur kann mit mehreren Anwendungsfällen verbunden sein. Mehrere Akteure können denselben Anwendungsfall teilen.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">Keine Pfeilspitze bei Assoziationen!</div>
+    <div class="rule-body">
+      Die Verbindung zwischen Akteur und Anwendungsfall ist immer eine <strong>einfache, pfeilspitzenlose Linie</strong>. Pfeilspitzen kommen <em>nur</em> bei &laquo;include&raquo;- und &laquo;extend&raquo;-Beziehungen vor. Eine Assoziation mit Pfeilspitze wird ungern im Abitur gesehen.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     7 · DIE <<INCLUDE>>-BEZIEHUNG
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>7 · Die &laquo;include&raquo;-Beziehung</h2>
+  <div class="section-desc">Die unbedingte Einbindung — die „Muss-Beziehung".</div>
+
+  <p class="body-text">
+    Eine <strong>&laquo;include&raquo;-Beziehung</strong> modelliert die <em>unbedingte</em> Einbindung der Funktionalität eines Anwendungsfalls in einen anderen. Der inkludierte Anwendungsfall wird <strong>immer und zwingend ausgeführt</strong>, wenn der Basisanwendungsfall ausgeführt wird. Deshalb spricht man von einer <em>„Muss-Beziehung"</em>.
+  </p>
+
+  <p class="body-text">
+    Typische Verwendung: Gemeinsame Funktionalität, die von mehreren Anwendungsfällen benötigt wird, wird in einen eigenen Anwendungsfall ausgelagert. So wird Redundanz vermieden. <b>Merke</b> dir auch, dass ein inkludierter Anwendungsfall für den Akteur eigenständig verfügbar ist, auch wenn der Zugriff nicht explizit dargestellt ist.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-g">Notation</span>
+      &laquo;include&raquo;-Beziehung
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-05-include.png" alt="include-Beziehung Notation">
+    </div>
+    <div class="diagram-caption">
+      Gestrichelter Pfeil mit offenem Pfeilkopf und Beschriftung <code>&laquo;include&raquo;</code>. Der Pfeil zeigt vom Basisanwendungsfall auf den inkludierten — „A inkludiert B" bedeutet, der Pfeil geht von A nach B.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">7.1</span> Pfeilrichtung — die wichtigste Regel</h3>
+
+  <div class="rule-card green">
+    <div class="rule-title">Pfeilrichtung bei &laquo;include&raquo;: Basis → Inkludiert</div>
+    <div class="rule-body">
+      Der Pfeil zeigt <strong>vom Basisanwendungsfall auf den inkludierten Anwendungsfall</strong>. Leserichtung: <em>„A inkludiert B"</em> — der Pfeil geht von A nach B, die Pfeilspitze zeigt auf B.<br><br>
+      Beispiel aus ABI 2022 B: „überweisen" <strong>inkludiert</strong> „Kontostand abfragen" → Pfeil von „überweisen" auf „Kontostand abfragen".
+    </div>
+  </div>
+
+  <h3><span class="h3-num">7.2</span> Erkennungsmerkmale im Aufgabentext</h3>
+
+  <p class="body-text">Im Aufgabentext verraten bestimmte Formulierungen, dass eine &laquo;include&raquo;-Beziehung vorliegt:</p>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead><tr><th>Formulierung im Text</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>„...welches er anschließend ... muss"</td>
+          <td>Das Folgende ist eine zwingend notwendige Funktion → include</td>
+        </tr>
+        <tr>
+          <td>„Dabei wird X aktualisiert"</td>
+          <td>X wird immer im Rahmen des übergeordneten Vorgangs ausgeführt → include</td>
+        </tr>
+        <tr>
+          <td>„was voraussetzt, dass X"</td>
+          <td>X ist eine Voraussetzung/Bedingung, die immer erfüllt sein muss → include</td>
+        </tr>
+        <tr>
+          <td>„bindet die Funktionalität von X ein"</td>
+          <td>Direkte UML-Beschreibung einer include-Beziehung</td>
+        </tr>
+        <tr>
+          <td>„muss/wird immer ... ausgeführt"</td>
+          <td>Keine Ausnahme, keine Bedingung → include</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="h3-num">7.3</span> Beispiele aus dem Abitur</h3>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2025 B — Festivalverwaltung</div>
+    <div class="rule-body">
+      <em>„Ein Besucher kann ein Bändchen ausleihen, welches er anschließend mit Guthaben <strong>aufladen muss</strong>."</em> → „Armband ausleihen" <code>&laquo;include&raquo;</code> „Guthaben ändern"<br><br>
+      <em>„Ein Besucher gibt sein Armband zurück. Das Guthaben auf dem Armband wird dann <strong>ausgezahlt</strong>."</em> → „Armband zurückgeben" <code>&laquo;include&raquo;</code> „Guthaben ändern" (dieselbe Funktion wird von zwei verschiedenen Basisanwendungsfällen inkludiert — das ist erlaubt!)
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2025 A — Krankenhausverwaltung</div>
+    <div class="rule-body">
+      <em>„Patienten können sich im Krankenhaus an- und abmelden. <strong>Dabei wird deren Patientenakte aktualisiert.</strong>"</em> → „Patient anmelden" <code>&laquo;include&raquo;</code> „Patientenakte aktualisieren" und „Patient abmelden" <code>&laquo;include&raquo;</code> „Patientenakte aktualisieren"
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2022 B — EB-System</div>
+    <div class="rule-body">
+      <em>„– [Der Kunde] kann den aktuellen <strong>Kontostand abfragen</strong>.
+      <br>– Der Kunde kann <strong>Überweisungen tätigen</strong>, wobei eine Überweisung nur ausgeführt wird, wenn das <u>Konto des Kunden eine entsprechende Deckung aufweist</u>."</em><br>
+      Dieses Beispiel ist kniffliger, lässt sich aber mit logischem Denken lösen. Denn hier wird nicht mehr geäußert als dass wir zwei Anwendungsfälle haben („überweisen" und „Kontostand abfragen") und beim Überweisen der Kontostand geprüft werden muss, also „überweisen" <code>&laquo;include&raquo;</code> „Kontostand abfragen".
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     8 · DIE <<EXTEND>>-BEZIEHUNG
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>8 · Die &laquo;extend&raquo;-Beziehung</h2>
+  <div class="section-desc">Die bedingte Erweiterung — die „Kann-Beziehung".</div>
+
+  <p class="body-text">
+    Eine <strong>&laquo;extend&raquo;-Beziehung</strong> modelliert die <em>bedingte</em> Einbindung der Funktionalität eines Anwendungsfalls in einen anderen. Der erweiternde Anwendungsfall wird <strong>nur dann ausgeführt, wenn eine bestimmte Bedingung erfüllt ist</strong>. Deshalb spricht man von einer <em>„Kann-Beziehung"</em>. Der <strong>Basisanwendungsfall</strong> (der die Erweiterung möglich macht) enthält dazu einen <strong>Erweiterungspunkt</strong> in seiner Ellipse.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-p">Notation</span>
+      &laquo;extend&raquo;-Beziehung mit Erweiterungspunkt und Bedingung
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-06-extend.png" alt="extend-Beziehung Notation">
+    </div>
+    <div class="diagram-caption">
+      Gestrichelter Pfeil mit offenem Pfeilkopf und Beschriftung <code>&laquo;extend&raquo;</code>. Der Pfeil zeigt vom <em>erweiternden</em> auf den <em>Basisanwendungsfall</em>. Der Basisanwendungsfall enthält den Erweiterungspunkt (abgetrennt durch einen Trennstrich). Die Bedingungsnotiz ist über einen gestrichelten Pfeil direkt am <code>&laquo;extend&raquo;</code>-Pfeil befestigt.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">8.1</span> Pfeilrichtung — der häufigste Fehler im Abitur</h3>
+
+  <div class="rule-card red">
+    <div class="rule-title">Pfeilrichtung bei &laquo;extend&raquo;: Erweiternd → Basis</div>
+    <div class="rule-body">
+      Der Pfeil zeigt <strong>vom erweiternden Anwendungsfall</strong> (der eine Erweiterung ist) <strong>auf den Basisanwendungsfall</strong> (der erweitert wird). Leserichtung: <em>„B erweitert A"</em> — der Pfeil geht von B nach (→) A, die Pfeilspitze zeigt auf A.<br><br>
+      Merkhilfe: Die Pfeilspitze zeigt immer auf den Anwendungsfall, der die <strong>Erweiterungspunkte</strong> enthält — also auf den Basisanwendungsfall. Die Ausrichtung der Pfeilspitze kann man sich auch wie die der Vererbung vorstellen, das „Kind" (Zusatz, erweiterter Anwendungsfall) zeigt auf das „Elternteil" (ermöglicht die Erweiterung).<br><br>
+      Beispiel aus ABI 2025 B: „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> (erweitert) „Inventur durchführen". Pfeil von „Getränke nachbestellen" auf (→) „Inventur durchführen". Wenn wir das in Worte fassen, bedeutet das: Der Mitarbeiter kann eine „Inventur durchführen". Wenn wir dies tun, wird auch der Lagerbestand überprüft (dies ist die Bedingung), wenn dieser unter 20% liegt werden zusätzlich automatisch Getränke nachbestellt („Getränke nachbestellen" wird auch ausgeführt). Wenn der Lagerbestand bei 20% oder mehr liegt, passiert das nicht.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">8.2</span> Erweiterungspunkt (Extension Point)</h3>
+
+  <div class="rule-card">
+    <div class="rule-title">Aufbau des Basisanwendungsfalls bei &laquo;extend&raquo;</div>
+    <div class="rule-body">
+      Der Basisanwendungsfall enthält einen zusätzlichen Bereich, abgetrennt durch einen horizontalen Trennstrich:
+      <br><br>
+      <span class="npill npill-b">Name des Anwendungsfalls</span><br>
+      <span class="npill npill-p">━━━━━━━━━━━━━━</span><br>
+      <span class="npill npill-p">extension points</span><br>
+      <span class="npill npill-p">Name des Erweiterungspunkts</span><br>
+      <span class="npill npill-p">(Name des zweiten Erweiterungspunkts)</span><br><br>
+      Der Name des Erweiterungspunkts bezeichnet die Stelle oder die Bedingung, an der die Erweiterung eingreifen kann. Im Abitur entspricht er einfach nur der Bedingung.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">8.3</span> Die Bedingungsnotiz</h3>
+
+  <div class="rule-card purple">
+    <div class="rule-title">Bedingung am extend-Pfeil — nicht am Anwendungsfall!</div>
+    <div class="rule-body">
+      Im Abitur ist die Bedingung <strong>direkt am &laquo;extend&raquo;-Pfeil</strong> befestigt — nicht an einem der Anwendungsfälle. Eine rechteckige Notiz mit dem Text der Bedingung ist über einen gestrichelten Pfeil ohne Pfeilspitze mit dem &laquo;extend&raquo;-Pfeil verbunden. Die Notiz enthält die Bedingung, unter der die Erweiterung stattfindet.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">8.4</span> Erkennungsmerkmale im Aufgabentext</h3>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead><tr><th>Formulierung im Text</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>„Sollten weniger als X ... vorhanden sein, wird Y"</td>
+          <td>Bedingte Erweiterung — Y erweitert den UC, unter dem Y möglicherweise nötig wird → extend</td>
+        </tr>
+        <tr>
+          <td>„Bei Bedarf" / „falls gewünscht"</td>
+          <td>Optionale Ausführung, nicht immer → extend</td>
+        </tr>
+        <tr>
+          <td>„Wenn der Kunde X wünscht, wird Y"</td>
+          <td>Bedingungsabhängige Erweiterung → extend</td>
+        </tr>
+        <tr>
+          <td>„Bei Kreditkartennutzung kann ..."</td>
+          <td>Optionale, bedingte Zusatzfunktion → extend</td>
+        </tr>
+        <tr>
+          <td>„Sollte sich dabei zeigen, dass ..."</td>
+          <td>Nachgelagerte optionale Aktion bei Erfüllung einer Bedingung → extend</td>
+        </tr>
+        <tr>
+          <td>„Bei Unvollständigkeit muss ..."</td>
+          <td>Trotz „muss" — es ist nur nötig, wenn die Bedingung eintritt → extend</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="h3-num">8.5</span> Beispiele aus dem Abitur</h3>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2025 B — Festivalverwaltung</div>
+    <div class="rule-body">
+      <em>„Ein Mitarbeiter kann jederzeit Getränke telefonisch nachbestellen."</em><br>
+      <em>„<strong>Sollten weniger als 20 Prozent des Getränkevorrats vorhanden sein, müssen Getränke nachbestellt werden.</strong>"</em><br><br>
+      → „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> „Inventur durchführen"<br>
+      Basisanwendungsfall: „Inventur durchführen" mit extension point „Lagerbestand &lt; 20%"<br>
+      Bedingung: <em>Lagerbestand &lt; 20%</em>
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2025 A — Krankenhausverwaltung</div>
+    <div class="rule-body">
+      <em>„Ein Arzt erstellt einen Behandlungsplan und aktualisiert die Patientenakte <strong>bei Bedarf</strong>."</em><br><br>
+      → „Patientenakte aktualisieren" <code>&laquo;extend&raquo;</code> „Behandlungsplan erstellen"<br>
+      Basisanwendungsfall: „Behandlungsplan erstellen" mit extension point „Patientenakte aktualisieren"<br>
+      Bedingung: <em>bei Bedarf</em>
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2024 A — Wettbewerbsverwaltung</div>
+    <div class="rule-body">
+      <em>„Bei <strong>Unvollständigkeit</strong> muss der Mitarbeiter den Chor anschreiben."</em><br><br>
+      → „Chor anschreiben" <code>&laquo;extend&raquo;</code> „Noten / MP3 hochladen"<br>
+      Basisanwendungsfall: „Noten / MP3 hochladen" mit extension point „Chor anschreiben"<br>
+      Bedingung: <em>Noten / MP3 sind unvollständig</em>
+    </div>
+  </div>
+
+  <h3><span class="h3-num">8.6</span> include vs. extend — der direkte Vergleich</h3>
+
+  <div class="table-wrap">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Merkmal</th>
+          <th>&laquo;include&raquo;</th>
+          <th>&laquo;extend&raquo;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Art</td>
+          <td>Muss-Beziehung (immer)</td>
+          <td>Kann-Beziehung (bedingt)</td>
+        </tr>
+        <tr>
+          <td>Pfeilrichtung</td>
+          <td>Basis → Inkludiert</td>
+          <td>Erweiternd → Basis</td>
+        </tr>
+        <tr>
+          <td>Erweiterungspunkte</td>
+          <td>Nicht vorhanden</td>
+          <td>Im Basisanwendungsfall (Pflicht)</td>
+        </tr>
+        <tr>
+          <td>Bedingungsnotiz</td>
+          <td>Nicht vorhanden</td>
+          <td>Am &laquo;extend&raquo;-Pfeil (Pflicht)</td>
+        </tr>
+        <tr>
+          <td>Typische Schlüsselwörter</td>
+          <td>„muss", „immer", „dabei wird"</td>
+          <td>„kann", „falls", „bei Bedarf", „sollte"</td>
+        </tr>
+        <tr>
+          <td>Zweck</td>
+          <td>Gemeinsame Funktionalität auslagern</td>
+          <td>Optionale Erweiterung modellieren</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     9 · GENERALISIERUNG (SONDERFALL)
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>9 · Generalisierung (Sonderfall)</h2>
+  <div class="section-desc">Sehr selten im Abitur — aber gut zu kennen.</div>
+
+  <p class="body-text">
+    Die <strong>Generalisierung</strong> modelliert eine Spezialisierungsbeziehung zwischen zwei Akteuren (oder zwei Anwendungsfällen). Sie bedeutet: Der spezialisierte Akteur erbt alle Eigenschaften und Verbindungen des generalisierten Akteurs — er kann alle Anwendungsfälle nutzen, die auch der allgemeinere Akteur nutzen kann, und besitzt zusätzlich eigene.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-y">Sonderfall</span>
+      Generalisierung zwischen Akteuren
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-07-generalisierung.png" alt="Generalisierung zwischen Akteuren">
+    </div>
+    <div class="diagram-caption">
+      Durchgezogener Pfeil mit offenem (nicht gefülltem) Dreieck als Pfeilspitze. Die Pfeilspitze zeigt auf den generalisierten (übergeordneten) Akteur. In diesem Beispiel erbt „Mitglied" alle Anwendungsfälle von „Benutzer", hat aber zusätzliche eigene.
+    </div>
+  </div>
+
+  <div class="note warn">
+    <strong>Wichtiger Hinweis zur Häufigkeit:</strong> Die Generalisierung zwischen Akteuren ist in den letzten 10 Jahren im Abitur Hessen <strong>nur ein einziges Mal aufgetreten</strong> (ABI 2017 B) — und war bereits in der Vorlage eingezeichnet. Es ist sehr unwahrscheinlich, dass du sie im Abitur selbst einzeichnen musst. Dennoch musst du sie erkennen und erklären können, falls ein vollständiges Diagramm mit ihr gegeben ist.
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Bedeutung der Generalisierung (aus der offiziellen Abitur-Lösung)</div>
+    <div class="rule-body">
+      Die Generalisierung kann zwischen Akteuren und zwischen Anwendungsfällen modelliert werden. Die Pfeilspitze zeigt auf den Akteur oder Anwendungsfall, der <em>spezialisiert</em> wird (den Elternteil). Im Abitur-Beispiel 2017 B: „Der Akteur Mitarbeiter kann alle Anwendungsfälle verwenden, die auch ein Mitglied verwenden kann — darüber hinaus ist es aber nur dem Mitarbeiter möglich, Rechnungen auszustellen."
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     10 · VOLLSTÄNDIGES DIAGRAMM VERSTEHEN UND ERLÄUTERN
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>10 · Ein vollständiges Diagramm verstehen und erläutern</h2>
+  <div class="section-desc">Aufgabentyp C — Anhand der Taxizentrale (ABI 2023 B) erklärt.</div>
+
+  <p class="body-text">
+    Beim Aufgabentyp C (→ Abschnitt 11) wird dir ein fertiges, vollständiges Anwendungsfalldiagramm gegeben. Du musst es entweder <strong>inhaltlich erläutern</strong> (was zeigt das Diagramm?), die <strong>Notationselemente beschreiben</strong> (was bedeuten die verschiedenen Symbole?), oder beides. Das folgende Diagramm der Taxizentrale (ABI 2023 B) dient als Grundlage.
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-head">
+      <span class="pill pill-b">ABI 2023 B</span>
+      Vollständiges Anwendungsfalldiagramm — Taxizentrale
+    </div>
+    <div class="diagram-body">
+      <img src="img/uc-08-volldiagramm-taxizentrale.png" alt="Vollständiges Anwendungsfalldiagramm Taxizentrale ABI 2023 B">
+    </div>
+    <div class="diagram-caption">
+      Das vollständige Anwendungsfalldiagramm der Taxizentrale aus ABI 2023 B. Es enthält alle Notationselemente: Systemgrenze, Akteure, Anwendungsfälle, Assoziationen, eine include-Beziehung und zwei extend-Beziehungen mit Erweiterungspunkten und Bedingungsnotizen.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">10.1</span> Notationselemente beschreiben</h3>
+
+  <p class="body-text">
+    Wenn die Aufgabe lautet <em>„Beschreiben Sie die wesentlichen Notationselemente"</em>, musst du <strong>alle</strong> relevanten Elemente einzeln benennen und ihre Bedeutung erklären. Die offizielle Abitur-Lösung liefert die exakten Formulierungen — lerne diese, sie geben maximale Punkte:
+  </p>
+
+  <div class="rule-card">
+    <div class="rule-title">Systemgrenze</div>
+    <div class="rule-body">Ein System wird durch die Summe aller Anwendungsfälle beschrieben. Diese werden durch die Systemgrenze zusammengefasst. Der Name des Systems steht innerhalb der Systemgrenze.</div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Akteur</div>
+    <div class="rule-body">Ein Akteur modelliert einen Typ oder eine Rolle, die ein externer Benutzer oder ein externes System während der Interaktion mit dem System einnimmt.</div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Anwendungsfall</div>
+    <div class="rule-body">Ein Anwendungsfall wird durch eine Ellipse innerhalb der Systemgrenze dargestellt. In der Ellipse steht die Funktionsbeschreibung.</div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">Assoziation (Verbindungslinie)</div>
+    <div class="rule-body">Die Akteure werden über Verbindungslinien (Beziehungen) mit den Anwendungsfällen verbunden. Eine Beziehung zwischen einem Akteur und einem Anwendungsfall besagt, dass der Akteur am Anwendungsfall beteiligt ist oder diesen Anwendungsfall auslösen kann.</div>
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">&laquo;include&raquo;-Beziehung</div>
+    <div class="rule-body">Eine include-Beziehung modelliert die <strong>unbedingte</strong> Einbindung der Funktionalität eines Anwendungsfalls in einen anderen Anwendungsfall (<em>Muss-Beziehung</em>). Dargestellt wird die include-Beziehung durch einen gestrichelten Pfeil, wobei der Pfeil auf den inkludierten Anwendungsfall zeigt.</div>
+  </div>
+
+  <div class="rule-card purple">
+    <div class="rule-title">&laquo;extend&raquo;-Beziehung</div>
+    <div class="rule-body">Eine extend-Beziehung modelliert die <strong>bedingte</strong> Einbindung der Funktionalität eines Anwendungsfalls in einen anderen Anwendungsfall (<em>Kann-Beziehung</em>). Der erweiterte Anwendungsfall wird durch sogenannte Erweiterungspunkte (extension points) detailliert beschrieben. Die Bedingung wird definiert. Tritt die Bedingung ein, wird die Erweiterung ausgeführt. Dargestellt wird die extend-Beziehung durch einen gestrichelten Pfeil, wobei der Pfeil auf den erweiterten Anwendungsfall zeigt.</div>
+  </div>
+
+  <h3><span class="h3-num">10.2</span> Inhalt des Diagramms erläutern</h3>
+
+  <p class="body-text">
+    Bei <em>„Erläutern Sie die inhaltliche Bedeutung"</em> gehst du systematisch durch das Diagramm: Wer sind die Akteure? Was kann jeder Akteur tun? Welche Abhängigkeiten bestehen? Die offizielle Lösung für die Taxizentrale (ABI 2023 B) lautet:
+  </p>
+
+  <div class="task-block">
+    <span class="task-label">Musterlösung — Inhaltliche Erläuterung Taxizentrale</span>
+    Im System „Taxizentrale" löst der Kunde den Anwendungsfall „Taxi bestellen" durch Anruf bei der Taxizentrale aus. Der Mitarbeiter ist an diesem Anwendungsfall beteiligt, da er den Anruf entgegennimmt. Der Anwendungsfall „Taxi bestellen" bindet die Funktionalität des Anwendungsfalls „Auftrag mit Ortsangaben erfassen" zwingend ein. Der Mitarbeiter kann die Verfügbarkeit der Taxis prüfen. Wenn ein Taxi verfügbar ist, kann der Mitarbeiter die Bereitschaft zur Übernahme des Auftrags bei dem Fahrer des Taxis anfragen. Signalisiert der Fahrer seine Bereitschaft, kann der Mitarbeiter den Auftrag an den Fahrer vergeben.
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">Aufbau einer guten inhaltlichen Erläuterung</div>
+    <div class="rule-body">
+      1. <strong>Welches System</strong> wird modelliert (Systemname nennen)?<br>
+      2. <strong>Akteure vorstellen</strong> — wer agiert mit dem System?<br>
+      3. <strong>Für jeden Akteur</strong>: Welche Anwendungsfälle löst er aus / ist er beteiligt?<br>
+      4. <strong>include-Beziehungen</strong>: Welcher UC bindet welchen anderen zwingend ein?<br>
+      5. <strong>extend-Beziehungen</strong>: Welcher UC erweitert welchen — und unter welcher Bedingung?
+    </div>
+  </div>
+
+  <h3><span class="h3-num">10.3</span> Zweck von Anwendungsfalldiagrammen (Sonderfrage)</h3>
+
+  <p class="body-text">
+    Vereinzelt wird auch der <strong>Zweck des Diagrammtyps</strong> abgefragt. Diese Frage kam in den letzten 10 Jahren nur einmal vor (ABI 2017 A). Die offizielle Antwort:
+  </p>
+
+  <div class="task-block">
+    <span class="task-label">Musterlösung — Zweck von UML-Anwendungsfalldiagrammen</span>
+    Ein UML-Anwendungsfalldiagramm modelliert die Anforderungen an ein System — „Was" ein System leistet. Es dient der Absprache zwischen Kunden und Software-Entwicklungsteam.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     11 · DIE DREI AUFGABENTYPEN IM ABITUR
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>11 · Die drei Aufgabentypen im Abitur</h2>
+  <div class="section-desc">Was dich in der Prüfung erwartet — und wie häufig jeder Typ vorkommt.</div>
+
+  <div class="rule-card green">
+    <div class="rule-title">
+      <span class="type-badge type-a">Typ A</span> &nbsp; Entwickeln und zeichnen — mit Vorlage
+      <span class="task-be">häufigster Typ</span>
+    </div>
+    <div class="rule-body">
+      Du erhältst eine <strong>textliche Beschreibung der Anforderungen</strong> (als Aufzählung) und eine <strong>Zeichenvorlage</strong> in den Materialien. Die Vorlage enthält bereits einige Akteure und meist 1–2 Anwendungsfälle, die du nicht neu erfinden musst — du erkennst sofort Systemname und Akteure. Deine Aufgabe: Das Diagramm vollständig entwickeln und einzeichnen.<br><br>
+      <strong>Aufgetreten in:</strong> ABI 2020 B, 2021 C, 2024 A, 2024 B, 2025 A, 2025 B — mit Abstand der häufigste Typ.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">
+      <span class="type-badge type-b">Typ B</span> &nbsp; Entwickeln und zeichnen — ohne Vorlage
+      <span class="task-be">schwierigster Typ</span>
+    </div>
+    <div class="rule-body">
+      Du erhältst nur die <strong>textliche Beschreibung der Anforderungen</strong> — keine Vorlage, keine Akteure, keinen Systemnamen als gegeben. Du musst das komplette Diagramm eigenständig konzipieren und zeichnen: Systemname ableiten, Akteure identifizieren, Anwendungsfälle bestimmen, Layout selbst wählen.<br><br>
+      <strong>Aufgetreten in:</strong> ABI 2022 B und ABI 2022 C — nur 2 Mal in den letzten 10 Jahren. Beide Male im selben Jahr (2022, zwei verschiedene Vorschläge).
+    </div>
+  </div>
+
+  <div class="rule-card purple">
+    <div class="rule-title">
+      <span class="type-badge type-c">Typ C</span> &nbsp; Vollständiges Diagramm erklären
+      <span class="task-be">selten</span>
+    </div>
+    <div class="rule-body">
+      Dir wird ein <strong>fertiges, vollständiges Anwendungsfalldiagramm</strong> gegeben. Du musst es entweder inhaltlich erläutern, die Notationselemente beschreiben, oder beides — je nach Aufgabenstellung. Manchmal wird auch der Zweck von Anwendungsfalldiagrammen abgefragt.<br><br>
+      <strong>Aufgetreten in:</strong> ABI 2023 B (Notationselemente beschreiben + Inhalt erläutern) und ABI 2017 A (nur Inhalt erläutern) — 2 Mal in 10 Jahren. Detaillierte Vorbereitung dazu in Abschnitt 10.
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Tipp für die Prüfung:</strong> Auch wenn Typ A der häufigste Typ ist, lohnt sich die Vorbereitung auf alle drei Typen. Das Wissen für Typ B und C kommt automatisch, wenn man Typ A gründlich beherrscht — man braucht nur die Strategie anzupassen.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     12 · LÖSUNGSSTRATEGIE: SCHRITT FÜR SCHRITT
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>12 · Lösungsstrategie: Schritt für Schritt</h2>
+  <div class="section-desc">Ein systematisches Vorgehen für alle drei Aufgabentypen.</div>
+
+  <h3><span class="h3-num">12.1</span> Vorgehen für Typ A und Typ B (Zeichenaufgaben)</h3>
+
+  <ul class="steps">
+    <li>
+      <div class="st">
+        <strong>Systemname und Akteure bestimmen.</strong> Bei <b>Typ A:</b> Vorlage anschauen — Systemname und <b>alle</b> Akteure sind hier immer bereits gegeben (keine Ausnahme in den letzten 10 Jahren). Bei <b>Typ B:</b> Den Aufgabentext lesen und Akteure anhand der Rollenbezeichnungen identifizieren. Merke: Akteure werden im Abitur häufig mit einer Klammerdefinition eingeführt (<em>„im Folgenden Mitarbeiter genannt"</em>).
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Alle Anwendungsfälle aus dem Text ableiten.</strong> Jeder Aufzählungspunkt im Aufgabentext beschreibt in der Regel einen oder mehrere Anwendungsfälle. Benenne sie als knappe Verb-Objekt-Phrase. Vorsicht: Manche Sätze enthalten versteckte Anwendungsfälle (z.B. der inkludierte UC ist oft nicht als eigener Aufzählungspunkt formuliert). Lies jeden Satz genau.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Assoziationen einzeichnen.</strong> Welcher Akteur ist an welchem Anwendungsfall beteiligt oder löst ihn aus? Einfache durchgezogene Linie, keine Pfeilspitze. Ein Anwendungsfall kann von mehreren Akteuren aus erreichbar sein.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>&laquo;include&raquo;-Beziehungen erkennen und einzeichnen.</strong> Suche nach Schlüsselwörtern wie „muss", „immer", „dabei wird", „voraussetzt". Pfeilrichtung: Basis → Inkludiert. Kein Erweiterungspunkt nötig.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>&laquo;extend&raquo;-Beziehungen erkennen und einzeichnen.</strong> Suche nach Schlüsselwörtern wie „kann", „falls", „bei Bedarf", „sollte", „wenn ... gewünscht". Pfeilrichtung: Erweiternd → Basis. Erweiterungspunkt im Basisanwendungsfall eintragen. Bedingungsnotiz an den &laquo;extend&raquo;-Pfeil befestigen.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Alles überprüfen.</strong> Sind alle Anwendungsfälle aus der Aufgabe abgedeckt? Haben alle &laquo;extend&raquo;-Beziehungen einen Erweiterungspunkt und eine Bedingung? Haben alle &laquo;include&raquo;- und &laquo;extend&raquo;-Pfeile die richtige Richtung? Stehen alle Akteure außerhalb der Systemgrenze?
+      </div>
+    </li>
+  </ul>
+
+  <h3><span class="h3-num">12.2</span> Vorgehen für Typ B (zusätzlich)</h3>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">Ohne Vorlage: Layout selbst wählen</div>
+    <div class="rule-body">
+      Bei Typ-B-Aufgaben gibt es keine Vorlage. Empfohlenes Layout: Akteure links und rechts außerhalb des Rechtecks, Anwendungsfälle in der Mitte innerhalb des Rechtecks. Der Systemname steht oben innerhalb des Rechtecks. Wähle eine übersichtliche Anordnung — Überschneidungen von Pfeilen minimieren.
+    </div>
+  </div>
+
+  <h3><span class="h3-num">12.3</span> Vorgehen für Typ C (Erklärungsaufgaben)</h3>
+
+  <ul class="steps">
+    <li>
+      <div class="st">
+        <strong>Aufgabenstellung genau lesen.</strong> Wird verlangt: (a) Notationselemente beschreiben, (b) Inhalt erläutern, (c) Zweck des Diagrammtyps angeben, oder eine Kombination? Jede Teilaufgabe hat eigene Antworten.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Notationselemente beschreiben</strong> (wenn gefragt): Systemgrenze → Akteur → Anwendungsfall → Assoziation → include → extend. Verwende die offiziellen Formulierungen aus Abschnitt 10.1.
+      </div>
+    </li>
+    <li>
+      <div class="st">
+        <strong>Inhalt erläutern</strong> (wenn gefragt): Systematisch durch das Diagramm gehen — Akteure vorstellen, für jeden die möglichen Anwendungsfälle beschreiben, include-Beziehungen als „zwingende Einbindung" erklären, extend-Beziehungen mit Bedingung erläutern.
+      </div>
+    </li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     13 · ABITURAUFGABEN 2021–2025
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>13 · Abituraufgaben 2021–2025</h2>
+  <div class="section-desc">Alle Anwendungsfalldiagramm-Aufgaben der letzten Jahrgänge — mit Musterlösungen und Aufschlüsselung.</div>
+
+  <!-- ── 13.1 ABI 2025 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2025 B</span>
+      <span class="exam-title">Festivalverwaltung</span>
+      <span class="type-badge type-a">Typ A</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.1.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.2 — Typ A (Vorlage gegeben, 2 Akteure + 2 UCs vorgegeben)</span>
+        Für die Dokumentation der Software sollen die folgenden Anwendungsfälle dargestellt werden.<br><br>
+        – Ein Besucher kann ein Bändchen ausleihen, welches er anschließend mit Guthaben aufladen muss.<br>
+        – Das Guthaben auf einem Bändchen kann jederzeit geändert werden.<br>
+        – Ein Besucher gibt beim Verlassen des Festivals sein Armband zurück. Das Guthaben auf dem Armband wird dann ausgezahlt.<br>
+        – Ein Besucher kann bei Mitarbeiterinnen und Mitarbeitern (im Folgenden Mitarbeiter) eines Getränkestandes ein Getränk kaufen.<br>
+        – Ein Mitarbeiter kann jederzeit Getränke telefonisch nachbestellen.<br>
+        – Ein Mitarbeiter eines Getränkestandortes kann eine Inventur durchführen, um zu ermitteln, wie viele Getränke noch vorhanden sind. Sollten weniger als 20 Prozent des Getränkevorrats vorhanden sein, müssen Getränke nachbestellt werden.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage (Material 2)</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-09-vorlage-2025b.png" alt="Vorlage ABI 2025 B Festivalverwaltung">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-10-loesung-2025b.png" alt="Musterlösung ABI 2025 B Festivalverwaltung">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.1.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>6 Anwendungsfälle:</strong> Armband ausleihen, Armband zurückgeben (vorgegeben), Guthaben ändern, Getränk kaufen, Getränke nachbestellen, Inventur durchführen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div><strong>Besucher</strong> ist mit: Armband ausleihen, Armband zurückgeben, Getränk kaufen verbunden. <strong>Mitarbeiter</strong> ist mit: Getränk kaufen, Getränke nachbestellen, Inventur durchführen verbunden.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>3 include-Beziehungen:</strong> „Armband ausleihen" inkludiert „Guthaben ändern" (Aufladen ist Pflicht). „Armband zurückgeben" inkludiert „Guthaben ändern" (Auszahlung ist Pflicht). „Getränk kaufen" inkludiert „Guthaben ändern" (Bezahlung via Guthaben ist Pflicht).</div>
+        </li>
+        <li>
+          <span class="al-tag npill-p" style="background:rgba(188,140,255,0.10);border:1px solid rgba(188,140,255,0.3);color:var(--purple);">EXT</span>
+          <div><strong>1 extend-Beziehung:</strong> „Getränke nachbestellen" erweitert „Inventur durchführen" — Bedingung: Lagerbestand &lt; 20%. Extension point in der Ellipse „Inventur durchführen".</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.2 ABI 2025 A ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2025 A</span>
+      <span class="exam-title">Krankenhausverwaltung</span>
+      <span class="type-badge type-a">Typ A</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.2.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.2 — Typ A (leere Vorlage mit 2 Akteuren gegeben)</span>
+        Die Interaktionen von Patientinnen und Patienten (im Folgenden Patient genannt) sowie dem Krankenhauspersonal mit dem System soll dargestellt werden.<br><br>
+        – Patienten können sich im Krankenhaus an- und abmelden. Dabei wird deren Patientenakte aktualisiert.<br>
+        – Ärztinnen und Ärzte (im Folgenden Arzt genannt) können sich die Akten der Patienten jederzeit ansehen und auch ändern.<br>
+        – Ein Arzt kann sich die Zimmerbelegung ansehen.<br>
+        – Ein Arzt führt eine Operation aus.<br>
+        – Ein Arzt erstellt einen Behandlungsplan und aktualisiert die Patientenakte bei Bedarf.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage (Material 1)</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-11-vorlage-2025a.png" alt="Vorlage ABI 2025 A Krankenhausverwaltung">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-12-loesung-2025a.png" alt="Musterlösung ABI 2025 A Krankenhausverwaltung">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.2.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>7 Anwendungsfälle:</strong> Patient anmelden, Patient abmelden, Patientenakte aktualisieren, Patientenakte anzeigen, Zimmerbelegung ansehen, Operation ausführen, Behandlungsplan erstellen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div><strong>Patient</strong> ist mit: Patient anmelden, Patient abmelden verbunden. <strong>Arzt</strong> ist mit: Patientenakte aktualisieren, Patientenakte anzeigen, Zimmerbelegung ansehen, Operation ausführen, Behandlungsplan erstellen verbunden.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>2 include-Beziehungen:</strong> „Patient anmelden" inkludiert „Patientenakte aktualisieren". „Patient abmelden" inkludiert „Patientenakte aktualisieren" (Schlüsselwort: „Dabei wird deren Patientenakte aktualisiert" — immer, ohne Ausnahme).</div>
+        </li>
+        <li>
+          <span class="al-tag npill-p" style="background:rgba(188,140,255,0.10);border:1px solid rgba(188,140,255,0.3);color:var(--purple);">EXT</span>
+          <div><strong>1 extend-Beziehung:</strong> „Patientenakte aktualisieren" erweitert „Behandlungsplan erstellen" — Bedingung: bei Bedarf. Erweiterungspunkt in der Ellipse „Behandlungsplan erstellen". Beachte: Arzt ist zusätzlich direkt mit „Patientenakte aktualisieren" verbunden, da er die Akte auch direkt ändern kann.</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.3 ABI 2024 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2024 B</span>
+      <span class="exam-title">Flugticketverwaltung</span>
+      <span class="type-badge type-a">Typ A</span>
+      <span class="task-be">7 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.3.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.2 — Typ A (leere Vorlage mit 2 Akteuren gegeben)</span>
+        Für die Kundenabwicklung am Flughafen sollen einige Anwendungsfälle von Kunde sowie Mitarbeiterinnen und Mitarbeitern (im Folgenden Mitarbeiter genannt) dargestellt werden.<br><br>
+        – Ein Kunde kann ein Kundenkonto beim Flughafen anlegen. Die persönlichen Daten müssen dazu eingegeben werden, welche auch später geändert werden können.<br>
+        – Ein Kunde kann einen Flug suchen.<br>
+        – Ein Kunde kann ein Ticket buchen. Bei Kreditkartennutzung kann jenes direkt bezahlt werden. Der Bezahlvorgang kann aber auch am Flughafenschalter erfolgen.<br>
+        – Ein Ticket wird vom Mitarbeiter gedruckt.<br>
+        – Ein Kunde muss sein Gepäck aufgeben. Der Kunde wird nach dem Druck des Tickets danach gefragt, ob er sein Gepäck komplett bzw. anteilig abgeben möchte oder dies zu einem späteren Zeitpunkt erledigt.<br>
+        – Ein Mitarbeiter kann das Ticket stornieren.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage (Material 2)</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-13-vorlage-2024b.png" alt="Vorlage ABI 2024 B Flugticketverwaltung">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-14-loesung-2024b.png" alt="Musterlösung ABI 2024 B Flugticketverwaltung">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.3.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>8 Anwendungsfälle:</strong> Flug suchen, Kundenkonto anlegen, Kundendaten ändern, Ticket buchen, Ticket bezahlen, Gepäck aufgeben, Ticket drucken, Ticket stornieren.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div><strong>Kunde</strong>: Flug suchen, Kundenkonto anlegen, Kundendaten ändern, Ticket buchen, Ticket bezahlen, Gepäck aufgeben. <strong>Mitarbeiter</strong>: Ticket drucken, Ticket stornieren.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>2 include-Beziehungen:</strong> „Kundenkonto anlegen" inkludiert „Kundendaten ändern" (Daten müssen eingegeben werden). „Ticket drucken" inkludiert „Gepäck aufgeben" (nach dem Druck wird immer danach gefragt).</div>
+        </li>
+        <li>
+          <span class="al-tag npill-p" style="background:rgba(188,140,255,0.10);border:1px solid rgba(188,140,255,0.3);color:var(--purple);">EXT</span>
+          <div><strong>1 extend-Beziehung:</strong> „Ticket bezahlen" erweitert „Ticket buchen" — Bedingung: Kreditkarte vorhanden. Erweiterungspunkt in „Ticket buchen". Beachte: Der Bezahlvorgang am Schalter ist eine separate Assoziationsmöglichkeit des Kunden mit „Ticket bezahlen".</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.4 ABI 2024 A ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2024 A</span>
+      <span class="exam-title">Wettbewerbsverwaltung</span>
+      <span class="type-badge type-a">Typ A</span>
+      <span class="task-be">7 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.4.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.8 — Typ A (Vorlage mit 2 Akteuren + 2 UCs gegeben)</span>
+        Die Chöre evaluieren am Ende eines Wettbewerbs die Wettbewerbsorganisation. Zu diesem Zweck sollen die evaluierten Anwendungsfälle abgebildet werden.<br><br>
+        – Bei der Anmeldung gibt ein Chor an, mit wieviel Teilnehmern und an welchen Kategorien er teilnimmt.<br>
+        – Ein Chor kann seine Teilnehmerzahl oder Kategorien nachträglich ändern.<br>
+        – Ein Chor kann sich von einem Wettbewerb abmelden.<br>
+        – Ein Chor kann sein Ranking einsehen.<br>
+        – Ein Mitarbeiter kann einen Chor anschreiben.<br>
+        – Die Noten und MP3-Samples können von einem Chor hochgeladen werden, welche anschließend durch einen Mitarbeiter auf Vollständigkeit geprüft werden. Bei Unvollständigkeit muss der Mitarbeiter den Chor anschreiben.<br>
+        – Der Mitarbeiter kann das Gesamtergebnis aller Wettbewerbe einsehen.<br>
+        – Der Mitarbeiter kann einen Ablaufplan erstellen.
+      </div>
+
+      <div class="ex-grid">
+        <div class="ex-panel">
+          <div class="ex-panel-title before">Gegebene Vorlage (Material 6)</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-15-vorlage-2024a.png" alt="Vorlage ABI 2024 A Wettbewerbsverwaltung">
+            </div>
+          </div>
+        </div>
+        <div class="ex-panel">
+          <div class="ex-panel-title after">✓ Musterlösung</div>
+          <div class="ex-panel-body">
+            <div class="diagram-body">
+              <img src="img/uc-16-loesung-2024a.png" alt="Musterlösung ABI 2024 A Wettbewerbsverwaltung">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.4.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>9 Anwendungsfälle:</strong> anmelden (vorgegeben), abmelden (vorgegeben), Ranking einsehen, Kategorie ändern, Teilnehmeranzahl ändern, Noten / MP3 hochladen, Chor anschreiben, Gesamtergebnis einsehen, Ablaufplan erstellen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div><strong>Chor</strong>: anmelden, abmelden, Ranking einsehen, Kategorie ändern, Teilnehmeranzahl ändern, Noten/MP3 hochladen. <strong>Mitarbeiter</strong>: Noten/MP3 hochladen (Prüfung!), Chor anschreiben, Gesamtergebnis einsehen, Ablaufplan erstellen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>2 include-Beziehungen:</strong> „anmelden" inkludiert „Kategorie ändern" (Kategorien werden bei der Anmeldung festgelegt — Änderung setzt Anmeldung voraus) sowie „Teilnehmeranzahl ändern" (Teilnehmerzahl wird bei der Anmeldung angegeben).</div>
+        </li>
+        <li>
+          <span class="al-tag npill-p" style="background:rgba(188,140,255,0.10);border:1px solid rgba(188,140,255,0.3);color:var(--purple);">EXT</span>
+          <div><strong>1 extend-Beziehung:</strong> „Chor anschreiben" erweitert „Noten / MP3 hochladen" — Bedingung: Noten / MP3 sind unvollständig. Erweiterungspunkt in der Ellipse „Noten / MP3 hochladen".</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.5 ABI 2022 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2022 B</span>
+      <span class="exam-title">EB-System (Online-Banking)</span>
+      <span class="type-badge type-b">Typ B</span>
+      <span class="task-be">5 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.5.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.1 — Typ B (KEINE Vorlage gegeben)</span>
+        Der Zugang einer Kundin oder eines Kunden (im Folgenden Kunde genannt) auf ein Konto erfolgt über den EB-Server. Folgende Funktionalitäten sind bei der Entwicklung des EB-Systems bereit zu stellen:<br><br>
+        – Der Kunde muss sich beim EB-Server unter Angabe von IBAN und Online-PIN des Kontos anmelden (Login).<br>
+        – Er kann den aktuellen Kontostand abfragen.<br>
+        – Der Kunde kann Überweisungen tätigen, wobei eine Überweisung nur ausgeführt wird, wenn das Konto des Kunden eine entsprechende Deckung aufweist.<br>
+        – Der Kunde kann sich eine Übersicht über die Buchungen seines Kontos anzeigen lassen.<br>
+        – Er kann nach Buchungen suchen.<br>
+        – Der Kunde kann die Sitzung beenden.
+      </div>
+
+      <div class="note warn">
+        <strong>Typ B — keine Vorlage:</strong> Diese Aufgabe bietet keinerlei Vorlage. Alle Informationen (Systemname „EB-System", Akteur „Kunde", alle Anwendungsfälle) müssen vollständig aus dem Aufgabentext abgeleitet werden. Das Layout muss selbst gewählt werden.
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-head">
+          <span class="pill pill-g">✓ Musterlösung</span>
+          EB-System — vollständig selbst entwickelt
+        </div>
+        <div class="diagram-body">
+          <img src="img/uc-17-loesung-2022b.png" alt="Musterlösung ABI 2022 B EB-System">
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.5.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>6 Anwendungsfälle:</strong> anmelden, Kontostand abfragen, überweisen, Buchungen anzeigen, Buchungen suchen, beenden.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div>Der einzige Akteur <strong>Kunde</strong> ist mit allen 6 Anwendungsfällen verbunden.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>1 include-Beziehung:</strong> „überweisen" inkludiert „Kontostand abfragen". Die Deckungsprüfung ist eine notwendige, immer durchgeführte Voraussetzung.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-y" style="background:rgba(210,153,34,0.10);border:1px solid rgba(210,153,34,0.3);color:var(--yellow);">NOTE</span>
+          <div>Hier gibt es <strong>keine extend-Beziehung</strong>. Alle Bedingungen im Text beschreiben entweder einen festen Ablauf (include) oder einfache optionale Aktionen des Kunden (direkte Assoziation).</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.6 ABI 2022 C ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2022 C</span>
+      <span class="exam-title">BikeVerwaltung</span>
+      <span class="type-badge type-b">Typ B</span>
+      <span class="task-be">8 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.6.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.7.2 — Typ B (KEINE Vorlage gegeben)</span>
+        Die Fertigungsorganisation soll durch ein Verwaltungssystem erweitert werden. Folgende Funktionalitäten sollen vom System bereitgestellt werden:<br><br>
+        – Kunden konfigurieren ihr zukünftiges Bike, das Servicepersonal kann sie dabei unterstützen.<br>
+        – Das Servicepersonal ist zuständig für die Auslieferung des fertigen Bikes, was voraussetzt, dass das Bike von einer Technikerin bzw. einem Techniker (im Folgenden Techniker genannt) montiert und der Preis vom Servicepersonal ermittelt worden ist.<br>
+        – Im Montageprozess der Fahrräder wird regelmäßig ein Bike ausgewählt, das ausführlich im Testlabor geprüft wird. Diese Prüfung liegt in der Verantwortung eines Technikers. Sollte sich dabei zeigen, dass eine montierte Komponente des Bikes den hohen Belastungen nicht standhält, wird sie von einem Techniker ausgetauscht.<br>
+        – Das Unternehmen bietet für seine Bikes auch Zubehör an. Wenn der Kunde Zubehör wünscht, wird die Auslieferung des Bikes um den Anbau von Zubehör erweitert. Dafür ist wiederum ein Techniker zuständig.
+      </div>
+
+      <div class="note warn">
+        <strong>Typ B — keine Vorlage:</strong> Drei Akteure (Kunde, Servicepersonal, Techniker), mehrere include- und extend-Beziehungen — diese Aufgabe ist die komplexeste der letzten Jahre. Besonders die verschachtelten include-Beziehungen erfordern sorgfältige Analyse des Textes.
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-head">
+          <span class="pill pill-g">✓ Musterlösung</span>
+          BikeVerwaltung — vollständig selbst entwickelt
+        </div>
+        <div class="diagram-body">
+          <img src="img/uc-18-loesung-2022c.png" alt="Musterlösung ABI 2022 C BikeVerwaltung">
+        </div>
+      </div>
+
+      <h3><span class="h3-num">13.6.2</span> Aufschlüsselung der Lösung</h3>
+
+      <ul class="analysis-list">
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">UC</span>
+          <div><strong>7 Anwendungsfälle:</strong> Bike konfigurieren, Bike ausliefern, Preis ermitteln, Bike montieren, Bike testen, Komponente tauschen, Zubehör anbauen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-b" style="background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);color:var(--blue);">ASSO</span>
+          <div><strong>Kunde</strong>: Bike konfigurieren. <strong>Servicepersonal</strong>: Bike konfigurieren (Unterstützung), Bike ausliefern, Preis ermitteln. <strong>Techniker</strong>: Bike montieren, Bike testen, Komponente tauschen.</div>
+        </li>
+        <li>
+          <span class="al-tag npill-g" style="background:rgba(63,185,80,0.10);border:1px solid rgba(63,185,80,0.3);color:var(--green);">INCL</span>
+          <div><strong>4 include-Beziehungen:</strong> „Bike montieren" inkludiert „Bike konfigurieren" (Montage setzt Konfiguration voraus). „Bike ausliefern" inkludiert „Bike montieren" und „Preis ermitteln" (Schlüsselwort: „was voraussetzt"). „Bike testen" inkludiert „Bike montieren" (Test setzt Montage voraus).</div>
+        </li>
+        <li>
+          <span class="al-tag npill-p" style="background:rgba(188,140,255,0.10);border:1px solid rgba(188,140,255,0.3);color:var(--purple);">EXT</span>
+          <div><strong>3 extend-Beziehungen:</strong> „Komponente tauschen" erweitert „Bike testen" (Bedingung: Komponente fehlerhaft). „Bike testen" erweitert „Bike montieren" (Bedingung: Bike ausgewählt — nur regelmäßig ein Bike wird getestet). „Zubehör anbauen" erweitert „Bike ausliefern" (Bedingung: Zubehör gewünscht).</div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ── 13.7 ABI 2023 B ── -->
+  <div class="exam-section">
+    <div class="exam-section-head">
+      <span class="exam-year">ABI 2023 B</span>
+      <span class="exam-title">Taxizentrale</span>
+      <span class="type-badge type-c">Typ C</span>
+      <span class="task-be">5 BE</span>
+    </div>
+    <div class="exam-section-body">
+
+      <h3><span class="h3-num">13.7.1</span> Aufgabenstellung</h3>
+      <div class="task-block">
+        <span class="task-label">Aufgabe 1.2 — Typ C (vollständiges Diagramm gegeben, Notationselemente + Inhalt)</span>
+        Kundinnen und Kunden (im Folgenden Kunden genannt) können bei der Taxizentrale telefonisch rund um die Uhr Aufträge für Fahrten, unter Angabe der Start- und Zieladresse, aufgeben. Für die Auftragsabwicklung in der Taxizentrale liegt ein Anwendungsfalldiagramm vor (Material 1).<br><br>
+        Beschreiben Sie die wesentlichen Notationselemente des vorliegenden UML-Anwendungsfalldiagramms sowie die Unterschiede zwischen extend- und include-Beziehungen.<br><br>
+        Erläutern Sie die inhaltliche Bedeutung des vorliegenden Anwendungsfalldiagramms.
+      </div>
+
+      <div class="note purple">
+        <strong>Typ C — beides gefragt:</strong> Diese Aufgabe besteht aus zwei Teilaufgaben: (1) Notationselemente beschreiben und Unterschied include/extend erklären, (2) Inhalt des Diagramms erläutern. Das vollständige Diagramm und die Musterlösung dazu sind ausführlich in Abschnitt 10 behandelt. Lese Abschnitt 10 für die detaillierten Musterformulierungen.
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-head">
+          <span class="pill pill-p">Typ C</span>
+          Gegebenes vollständiges Diagramm — Taxizentrale (→ detailliert erklärt in Abschnitt 10)
+        </div>
+        <div class="diagram-body">
+          <img src="img/uc-08-volldiagramm-taxizentrale.png" alt="Vollständiges Anwendungsfalldiagramm Taxizentrale ABI 2023 B">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     14 · HÄUFIGE FEHLER
+     ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>14 · Häufige Fehler</h2>
+  <div class="section-desc">Diese Punkte kosten oft unnötig BE — besser vorher kennen.</div>
+
+  <div class="rule-card red">
+    <div class="rule-title">1. Pfeilrichtung bei &laquo;extend&raquo; vertauscht — der häufigste Fehler</div>
+    <div class="rule-body">
+      Der &laquo;extend&raquo;-Pfeil zeigt vom <em>erweiternden</em> Anwendungsfall auf den <em>Basisanwendungsfall</em>. Viele Schüler zeichnen ihn genau umgekehrt — vom Basis auf den Erweiternden. Prüfe nach dem Zeichnen für jede extend-Beziehung: Zeigt der Pfeil auf den UC, der die Erweiterungspunkte enthält? Wenn ja, ist er korrekt.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">2. Pfeilrichtung bei &laquo;include&raquo; vertauscht</div>
+    <div class="rule-body">
+      Auch bei &laquo;include&raquo; werden Pfeile oft umgekehrt gezeichnet. Der Pfeil zeigt vom Basisanwendungsfall auf den inkludierten. Merkhilfe: Der Pfeil zeigt in Richtung des UCs, der <em>aufgerufen wird</em> — so wie ein Methodenaufruf.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">3. Erweiterungspunkte bei &laquo;extend&raquo; vergessen</div>
+    <div class="rule-body">
+      Jede &laquo;extend&raquo;-Beziehung erfordert zwingend einen Erweiterungspunkt innerhalb des Basisanwendungsfalls (Trennstrich + „extension points" + Bezeichnung). Fehlen sie, ist die Darstellung unvollständig und kostet Punkte.
+    </div>
+  </div>
+
+  <div class="rule-card red">
+    <div class="rule-title">4. Bedingungsnotiz bei &laquo;extend&raquo; vergessen</div>
+    <div class="rule-body">
+      Zur extend-Beziehung gehört immer eine Bedingungsnotiz am Pfeil, die beschreibt, wann die Erweiterung ausgeführt wird. Ohne Bedingung fehlt die semantische Information der extend-Beziehung — und das wird bewertet.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">5. Zu wenige Anwendungsfälle — kryptische Formulierungen überlesen</div>
+    <div class="rule-body">
+      Der Aufgabentext enthält manchmal Anwendungsfälle, die nicht als eigener Aufzählungspunkt formuliert sind — z.B. versteckt als inkludierter UC innerhalb eines Satzes. Lies jeden Satz sorgfältig. Markiere alle Verben, die Funktionen des Systems beschreiben.
+    </div>
+  </div>
+
+  <div class="rule-card yellow">
+    <div class="rule-title">6. Keine include/extend — alles als einfache Assoziationen</div>
+    <div class="rule-body">
+      In jeder Abitur-Aufgabe der letzten Jahre gab es mindestens eine include- und eine extend-Beziehung. Wenn deine Lösung keine davon enthält, hast du mit hoher Wahrscheinlichkeit etwas überlesen. Gehe den Text nochmals durch und suche gezielt nach Muss- und Kann-Formulierungen.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">7. Akteur innerhalb der Systemgrenze platziert</div>
+    <div class="rule-body">
+      Akteure stehen immer außerhalb des Systemrechtecks. Wird ein Akteur versehentlich innen gezeichnet, widerspricht das der UML-Definition — Akteure sind externe Nutzer des Systems.
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">8. Pfeilspitzen bei Assoziationen eingezeichnet</div>
+    <div class="rule-body">
+      Die Verbindungslinie zwischen Akteur und Anwendungsfall ist eine einfache Linie ohne Pfeilspitze. Pfeilspitzen sind ausschließlich den &laquo;include&raquo;- und &laquo;extend&raquo;-Beziehungen vorbehalten. Eine Assoziation mit Pfeilspitze ist ein Notationsfehler.
+    </div>
+  </div>
+
+  <div class="rule-card green">
+    <div class="rule-title">9. Tipp: Eigene Checkliste nach dem Zeichnen</div>
+    <div class="rule-body">
+      Bevor du mit der Aufgabe fertig bist, prüfe systematisch:<br>
+      ✓ Alle Anwendungsfälle aus dem Text vorhanden?<br>
+      ✓ Alle Akteure außerhalb des Rechtecks?<br>
+      ✓ Alle Assoziationen ohne Pfeilspitze?<br>
+      ✓ Alle include-Pfeile in korrekter Richtung (Basis → Inkludiert)?<br>
+      ✓ Alle extend-Pfeile in korrekter Richtung (Erweiternd → Basis)?<br>
+      ✓ Alle Basisanwendungsfälle mit Erweiterungspunkt?<br>
+      ✓ Alle extend-Pfeile mit Bedingungsnotiz?
+    </div>
+  </div>
+</div>
+
+
+<!-- ── FOOTER ── -->
+<footer>
+  Leitfaden erstellt auf Basis der offiziellen Abitur-Lösungen 2021–2025 (Hessen) · <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/prin-abitur-exams-16-25_archive.zip">Vorschläge aus 4 Jahrgängen analysiert</a> (jedoch mit den der letzten 10 Jahrgängen verglichen) (Roh: <a href="https://github.com/OnlyCook/abitur-elite-code/blob/main/docs/archive/pi-abi-oop-use-case-diagrams.txt">1</a>)
+</footer>
+
+
+</div>
+</body>
+</html>

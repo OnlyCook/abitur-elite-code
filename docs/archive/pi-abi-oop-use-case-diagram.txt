@@ -1,0 +1,560 @@
+# Notizen:
+- Das Schema im Abitur benutzt völlig offene (dünne) Pfeilspitzen, die sich nicht in PlantUML darstellen lassen
+- Notizen werden nicht an die spezifischen Anwendungsfälle im Abitur geheftet, sondern an den gestrichelten <<extend>>-Pfeil selbst
+-- Der PlantUML-Code ist (natürlich) nicht im Abitur gegeben, sondern wird nur hier verwendet, um textlich die UML-Anwendungsfalldiagramme des Abiturs zu visualisieren
+-- Schüler (Leser) sollen nicht mit PlantUML-Code konfrontiert werden, da dies nur mehr Fragen in den Raum wirft. Keine Zeile PlantUML-Code soll für den Leser sichtbar sein
+
+# Details:
+- Typ A ist der am häufig gestellteste Aufgabentyp zu Anwendungsfalldiagrammen (2020B, 2021C, 2024A, 2024B, 2025A)
+- Typ B ist der schwierigste Aufgabentyp und ist nur 2 mal in den letzten 10 Jahrgängen aufgetaucht, dann noch beide im selben Jahr (2022B, 2022C)
+- Typ C "Erklärung der Notationselemente" kommt manchmal vor, aber nur einmal (2023B) in den letzten 10 Jahrgängen wurde ein vollständiges Anwendungsfalldiagramm gegeben und man musste es ausführlich erklären
+
+[ABI 2025 B] Typ A
+
+# Aufgabe
+1.2 Für die Dokumentation der Software sollen die folgenden Anwendungsfälle dargestellt werden.
+– Ein Besucher kann ein Bändchen ausleihen, welches er anschließend mit Guthaben aufladen
+muss.
+– Das Guthaben auf einem Bändchen kann jederzeit geändert werden.
+– Ein Besucher gibt beim Verlassen des Festivals sein Armband zurück. Das Guthaben auf
+dem Armband wird dann ausgezahlt.
+– Ein Besucher kann bei Mitarbeiterinnen und Mitarbeitern (im Folgenden Mitarbeiter) eines
+Getränkestandes ein Getränk kaufen.
+– Ein Mitarbeiter kann jederzeit Getränke telefonisch nachbestellen.
+– Ein Mitarbeiter eines Getränkestandortes kann eine Inventur durchführen, um zu ermitteln,
+wie viele Getränke noch vorhanden sind. Sollten weniger als 20 Prozent des Getränkevorrats
+vorhanden sein, müssen Getränke nachbestellt werden.
+Entwickeln und zeichnen Sie ein UML-Anwendungsfalldiagramm für die genannten
+Anwendungsfälle.
+Hinweis: Die Vorlage in Material 2 ist zu verwenden.
+(8 BE)
+
+# Gegebene Vorlage
+@startuml
+left to right direction
+
+actor Besucher
+actor Mitarbeiter
+
+rectangle "Festivalverwaltung" {
+
+  (Armband ausleihen) as UC_ausleihen
+  (Armband zurückgeben) as UC_zurückgeben
+
+  Besucher -- UC_ausleihen
+  Besucher -- UC_zurückgeben
+}
+@enduml
+
+# Loesung
+@startuml
+left to right direction
+
+actor Besucher
+actor Mitarbeiter
+
+rectangle "Festivalverwaltung" {
+
+  (Armband ausleihen) as UC_ausleihen
+  (Armband zurückgeben) as UC_zurückgeben
+  (Guthaben ändern) as UC_aendern
+  (Getränk kaufen) as UC_kaufen
+  (Getränke nachbestellen) as UC_nachbestellen
+  (Inventur durchführen\n---\nextension points\nLagerbestand < 20%) as UC_durchfuehren
+
+  ' Beziehungen Besucher
+  Besucher -- UC_ausleihen
+  Besucher -- UC_zurückgeben
+  Besucher -- UC_kaufen
+
+  ' Beziehungen Mitarbeiter
+  Mitarbeiter -- UC_kaufen
+  Mitarbeiter -- UC_nachbestellen
+  Mitarbeiter -- UC_durchfuehren
+
+  ' include Beziehungen
+  UC_ausleihen ..> UC_aendern : <<include>>
+  UC_zurückgeben ..> UC_aendern : <<include>>
+  UC_kaufen ..> UC_aendern : <<include>>
+
+  ' extend Beziehung
+  UC_nachbestellen ..> UC_durchfuehren : <<extend>>
+
+  ' Notiz für Bedingung
+  note left of UC_durchfuehren
+    condition:
+    Lagerbestand < 20%
+  end note
+}
+@enduml
+
+[ABI 2025 A] Typ A
+
+# Aufgabe
+1.2 Die Interaktionen von Patientinnen und Patienten (im Folgenden Patient genannt) sowie dem
+Krankenhauspersonal mit dem System soll dargestellt werden.
+– Patienten können sich im Krankenhaus an- und abmelden. Dabei wird deren Patientenakte
+aktualisiert.
+– Ärztinnen und Ärzte (im Folgenden Arzt genannt) können sich die Akten der Patienten
+jederzeit ansehen und auch ändern.
+– Ein Arzt kann sich die Zimmerbelegung ansehen.
+– Ein Arzt führt eine Operation aus.
+– Ein Arzt erstellt einen Behandlungsplan und aktualisiert die Patientenakte bei Bedarf.
+Entwickeln und zeichnen Sie ein UML-Anwendungsfalldiagramm für die genannten
+Anwendungsfälle.
+Hinweis: Eine Vorlage ist in Material 1 zu finden.
+(8 BE)
+
+# Gegebene Vorlage
+@startuml
+left to right direction
+
+actor Patient
+actor Arzt
+
+rectangle Krankenhausverwaltung {
+
+}
+
+@enduml
+
+# Loesung
+@startuml
+left to right direction
+
+actor Patient
+actor Arzt
+
+rectangle Krankenhausverwaltung {
+
+  (Patient anmelden) as UC_anmelden
+  (Patient abmelden) as UC_abmelden
+  (Patientenakte aktualisieren) as UC_akte_update
+  (Behandlungsplan erstellen\n--\nextension points\nPatientenakte aktualisieren) as UC_plan
+  (Patientenakte anzeigen) as UC_akte_anzeigen
+  (Operation ausführen) as UC_op
+  (Zimmerbelegung ansehen) as UC_zimmer
+
+  ' Associations Patient
+  Patient -- UC_anmelden
+  Patient -- UC_abmelden
+
+  ' Associations Arzt
+  Arzt -- UC_akte_update
+  Arzt -- UC_plan
+  Arzt -- UC_akte_anzeigen
+  Arzt -- UC_op
+  Arzt -- UC_zimmer
+
+  ' <<include>> Beziehungen
+  UC_anmelden ..> UC_akte_update : <<include>>
+  UC_abmelden ..> UC_akte_update : <<include>>
+
+  ' <<extend>> Beziehung (mit Bedingung)
+  UC_akte_update ..> UC_plan : <<extend>>
+
+  ' Notiz für Bedingung
+  note left of UC_plan 
+    condition:
+    bei Bedarf
+  end note
+
+}
+
+@enduml
+
+[ABI 2024 B] Typ A
+
+# Aufgabe
+1.2 Für die Kundenabwicklung am Flughafen sollen einige Anwendungsfälle von Kunde, sowie
+Mitarbeiterinnen und Mitarbeitern (im Folgenden Mitarbeiter genannt) dargestellt werden.
+– Ein Kunde kann ein Kundenkonto beim Flughafen anlegen. Die persönlichen Daten müssen
+dazu eingeben werden, welche auch später geändert werden können.
+– Ein Kunde kann einen Flug suchen.
+– Ein Kunde kann ein Ticket buchen. Bei Kreditkartennutzung kann jenes direkt bezahlt
+werden. Der Bezahlvorgang kann aber auch am Flughafenschalter1 erfolgen.
+– Ein Ticket wird vom Mitarbeiter gedruckt.
+– Ein Kunde muss sein Gepäck aufgeben2
+. Der Kunde wird nach dem Druck des Tickets
+danach gefragt, ob er sein Gepäck komplett bzw. anteilig abgeben möchte oder dies zu
+einem späteren Zeitpunkt erledigt.
+– Ein Mitarbeiter kann das Ticket stornieren.
+Entwickeln und zeichnen Sie ein UML-Anwendungsfalldiagramm für die genannten
+Anwendungsfälle.
+Hinweis: Verwenden Sie die Vorlage in Material 2.
+(7 BE)
+
+# Gegebene Vorlage
+@startuml
+left to right direction
+
+actor Kunde
+actor Mitarbeiter
+
+rectangle Flugticketverwaltung {
+
+}
+
+@enduml
+
+# Loesung
+@startuml
+left to right direction
+
+actor Kunde
+actor Mitarbeiter
+
+rectangle Flugticketverwaltung {
+
+  (Flug suchen) as UC_suchen
+  (Kundenkonto anlegen) as UC_anlegen
+  (Kundendaten aendern) as UC_aendern
+  (Ticket buchen\n--\nextension points\nKreditkarte vorhanden) as UC_buchen
+  (Ticket bezahlen) as UC_bezahlen
+  (Gepaeck aufgeben) as UC_aufgeben
+  (Ticket drucken) as UC_drucken
+  (Ticket stornieren) as UC_stornieren
+
+  ' Assoziationen Kunde
+  Kunde -- UC_suchen
+  Kunde -- UC_anlegen
+  Kunde -- UC_aendern
+  Kunde -- UC_buchen
+  Kunde -- UC_bezahlen
+  Kunde -- UC_aufgeben
+
+  ' Assoziationen Mitarbeiter
+  Mitarbeiter -- UC_drucken
+  Mitarbeiter -- UC_stornieren
+
+  ' include Beziehungen
+  UC_anlegen .> UC_aendern : <<include>>
+  UC_drucken .> UC_aufgeben : <<include>>
+
+  ' extend Beziehung
+  UC_bezahlen .> UC_buchen : <<extend>>
+
+  ' Notiz für Bedingung
+  note right of UC_buchen
+    condition:
+    Kreditkarte vorhanden
+  end note
+
+}
+
+@enduml
+
+[ABI 2024 A] Typ A
+
+# Aufgabe
+1.8 Die Chöre evaluieren am Ende eines Wettbewerbs die Wettbewerbsorganisation. Dabei ist
+aufgefallen, dass einige Prozesse noch nicht optimiert sind. Zu diesem Zweck sollen die
+evaluierten Anwendungsfälle abgebildet werden, um anschließend auf Geschäftsebene darüber
+zu beraten.
+– Bei der Anmeldung gibt ein Chor an, mit wieviel Teilnehmern und an welchen Kategorien er
+teilnimmt.
+– Ein Chor kann seine Teilnehmerzahl oder Kategorien nachträglich ändern.
+– Ein Chor kann sich von einem Wettbewerb abmelden.
+– Ein Chor kann sein Ranking einsehen.
+– Ein Mitarbeiter kann einen Chor anschreiben.
+– Die Noten und MP3-Samples können von einem Chor hochgeladen werden, welche
+anschließend durch einen Mitarbeiter auf Vollständigkeit geprüft werden. Bei
+Unvollständigkeit muss der Mitarbeiter den Chor anschreiben.
+– Der Mitarbeiter kann das Gesamtergebnis aller Wettbewerbe einsehen.
+– Der Mitarbeiter kann einen Ablaufplan erstellen.
+Entwickeln und zeichnen Sie ein UML-Anwendungsfalldiagramm für die genannten
+Anwendungsfälle.
+Hinweis: Verwenden Sie die Vorlage in Material 6.
+(7 BE)
+
+# Gegebene Vorlage
+@startuml
+left to right direction
+
+actor Chor
+actor Mitarbeiter
+
+rectangle "Wettbewerbsverwaltung" {
+
+  (abmelden) as UC_abmelden
+  (anmelden) as UC_anmelden
+  
+  Chor -- UC_abmelden
+  Chor -- UC_anmelden
+}
+@enduml
+
+# Loesung
+@startuml
+left to right direction
+
+actor Chor
+actor Mitarbeiter
+
+rectangle "Wettbewerbsverwaltung" {
+
+  (abmelden) as UC_abmelden
+  (Ranking einsehen) as UC_ranking
+  (Kategorie ändern) as UC_kategorie_aendern
+  (anmelden) as UC_anmelden
+  (Teilnehmeranzahl ändern) as UC_teilnehmer_aendern
+  (Gesamtergebnis einsehen) as UC_gesamtergebnis
+  (Noten / MP3 hochladen\n---\nextension point:\nChor anschreiben) as UC_upload
+  (Chor anschreiben) as UC_chor_anschreiben
+  (Ablaufplan erstellen) as UC_ablaufplan
+
+  ' Beziehungen Chor
+  Chor -- UC_abmelden
+  Chor -- UC_ranking
+  Chor -- UC_kategorie_aendern
+  Chor -- UC_anmelden
+  Chor -- UC_teilnehmer_aendern
+  Chor -- UC_upload
+
+  ' Beziehungen Mitarbeiter
+  Mitarbeiter -- UC_gesamtergebnis
+  Mitarbeiter -- UC_upload
+  Mitarbeiter -- UC_chor_anschreiben
+  Mitarbeiter -- UC_ablaufplan
+
+  ' include Beziehungen
+  UC_kategorie_aendern ..> UC_anmelden : <<include>>
+  UC_anmelden ..> UC_teilnehmer_aendern : <<include>>
+
+  ' extend Beziehung
+  UC_chor_anschreiben ..> UC_upload : <<extend>>
+
+  ' Notiz für Bedingung
+  note left of UC_upload
+    Condition:
+    Noten / MP3 sind unvollständig
+  end note
+}
+@enduml
+
+[ABI 2023 B] Typ C
+
+# Aufgabe
+1.2 Kundinnen und Kunden (im Folgenden Kunden genannt) können bei der Taxizentrale
+telefonisch rund um die Uhr Aufträge für Fahrten, unter Angabe der Start- und Zieladresse,
+aufgeben. Für die Auftragsabwicklung in der Taxizentrale liegt ein Anwendungsfalldiagramm
+vor (Material 1).
+Beschreiben Sie die wesentlichen Notationselemente des vorliegenden UMLAnwendungsfalldiagramms sowie die Unterschiede zwischen extend- und include-Beziehungen.
+Erläutern Sie die inhaltliche Bedeutung des vorliegenden Anwendungsfalldiagramms.
+(5 BE)
+
+# Vorgegebenes vollständiges UML-Anwendungsfalldiagramm
+@startuml
+left to right direction
+
+actor Kunde
+actor Mitarbeiter
+actor Fahrer
+
+rectangle "Taxizentrale" {
+
+  (Taxi bestellen) as UC_taxi_bestellen
+  (Auftrag mit\nOrtsangaben\n erfassen) as UC_auftrag_ortsangaben
+  (Taxiverfügbarkeit\nprüfen\n---\nextension points\nAnfrage Auftragsannahme) as UC_verfuegbarkeit
+  (Bereitschaft\nanfragen\n---\nextension points\nVergabe Auftrag) as UC_bereitschaft
+  (Auftrag\nvergeben) as UC_auftrag_vergeben
+
+  ' Beziehungen Kunde
+  Kunde -- UC_taxi_bestellen
+
+  ' Beziehungen Mitarbeiter
+  Mitarbeiter -- UC_taxi_bestellen
+  Mitarbeiter -- UC_auftrag_ortsangaben
+  Mitarbeiter -- UC_verfuegbarkeit
+  Mitarbeiter -- UC_bereitschaft
+  Mitarbeiter -- UC_auftrag_vergeben
+
+  ' Beziehungen Fahrer
+  Fahrer -- UC_bereitschaft
+  Fahrer -- UC_auftrag_vergeben
+
+  ' include Beziehung
+  UC_taxi_bestellen ..> UC_auftrag_ortsangaben : <<include>>
+
+  ' extend Beziehungen
+  UC_bereitschaft ..> UC_verfuegbarkeit : <<extend>>
+  UC_auftrag_vergeben ..> UC_bereitschaft : <<extend>>
+
+  ' Notizen (Conditions)
+  note right of UC_verfuegbarkeit
+    Condition:
+    {Taxi verfügbar}
+  end note
+
+  note right of UC_bereitschaft
+    Condition:
+    {Fahrer bereit}
+  end note
+}
+@enduml
+
+# Loesung
+1.2 beschreiben
+– Ein System wird durch die Summe aller Anwendungsfälle beschrieben. Diese
+werden durch die Systemgrenze zusammengefasst. Der Name des Systems
+steht innerhalb der Systemgrenze.
+– Ein Akteur modelliert einen Typ oder eine Rolle, die ein externer Benutzer
+oder ein externes System während der Interaktion mit dem System einnimmt.
+– Ein Anwendungsfall wird durch eine Ellipse innerhalb der Systemgrenze
+dargestellt. In der Ellipse steht die Funktionsbeschreibung.
+– Die Akteure werden über Verbindungslinien (Beziehungen) mit den
+Anwendungsfällen verbunden. Eine Beziehung zwischen einem Akteur und
+einem Anwendungsfall besagt, dass der Akteur am Anwendungsfall beteiligt
+ist oder diesen Anwendungsfall auslösen kann.
+– Eine include-Beziehung modelliert die unbedingte Einbindung der
+Funktionalität eines Anwendungsfalls in einen anderen Anwendungsfall
+(muss-Beziehung). Dargestellt wird die include-Beziehung durch einen
+gestrichelten Pfeil, wobei der Pfeil auf den inkludierten Anwendungsfall zeigt.
+– Eine extend-Beziehung modelliert die bedingte Einbindung der Funktionalität
+eines Anwendungsfalls in einen anderen Anwendungsfall (kann-Beziehung).
+Der erweiterte Anwendungsfall wird durch sogenannte Erweiterungspunkte
+bzw. Extension Points detailliert beschrieben. Die Bedingung wird definiert.
+Tritt die Bedingung ein, wird die Erweiterung ausgeführt. Dargestellt wird die
+extend-Beziehung durch einen gestrichelten Pfeil, wobei der Pfeil auf den
+erweiterten Anwendungsfall zeigt.
+erläutern
+Im System „Taxizentrale“ löst der Kunde den Anwendungsfall „Taxi bestellen“
+durch Anruf bei der Taxizentrale aus. Der Mitarbeiter ist an diesem
+Anwendungsfall beteiligt, da er den Anruf entgegennimmt. Der Anwendungsfall
+„Taxi bestellen“ bindet die Funktionalität des Anwendungsfalls „Auftrag mit
+Ortsangaben erfassen“ zwingend ein. Der Mitarbeiter kann die Verfügbarkeit der
+Taxis prüfen. Wenn ein Taxi verfügbar ist, kann der Mitarbeiter die Bereitschaft
+zur Übernahme des Auftrags bei dem Fahrer des Taxis anfragen. Signalisiert der
+Fahrer seine Bereitschaft, kann der Mitarbeiter den Auftrag an den Fahrer
+vergeben.
+
+[ABI 2022 B] Typ B
+
+# Aufgabe
+1.1 Der Zugang einer Kundin oder eines Kunden (im Folgenden Kunde genannt) auf ein Konto1
+erfolgt über den EB-Server. Folgende Funktionalitäten sind bei der Entwicklung des EBSystems bereit zu stellen:
+– Der Kunde muss sich beim EB-Server unter Angabe von IBAN2 und Online-PIN3 des Kontos
+anmelden (Login).
+– Er kann den aktuellen Kontostand abfragen.
+– Der Kunde kann Überweisungen tätigen, wobei eine Überweisung nur ausgeführt wird, wenn
+das Konto des Kunden eine entsprechende Deckung aufweist.
+– Der Kunde kann sich eine Übersicht über die Buchungen seines Kontos anzeigen lassen.
+– Er kann nach Buchungen suchen.
+– Der Kunde kann die Sitzung beenden.
+Entwickeln und zeichnen Sie für diese Anwendungsfälle ein Anwendungsfalldiagramm in
+UML-Notation.
+(5 BE)
+
+# Gegebene Vorlage
+-- KEINE
+
+# Loesung
+@startuml
+left to right direction
+
+actor Kunde
+
+rectangle "EB-System" {
+
+  (anmelden) as UC_anmelden
+  (Kontostand\nabfragen) as UC_kontostand_abfragen
+  (überweisen) as UC_ueberweisen
+  (Buchungen\nanzeigen) as UC_buchungen_anzeigen
+  (Buchungen\nsuchen) as UC_buchungen_suchen
+  (beenden) as UC_beenden
+
+  ' Beziehungen Kunde (ohne Pfeilspitzen)
+  Kunde -- UC_anmelden
+  Kunde -- UC_kontostand_abfragen
+  Kunde -- UC_ueberweisen
+  Kunde -- UC_buchungen_anzeigen
+  Kunde -- UC_buchungen_suchen
+  Kunde -- UC_beenden
+
+  ' include Beziehung
+  UC_ueberweisen ..> UC_kontostand_abfragen : <<include>>
+
+}
+@enduml
+
+[ABI 2022 C] Typ B
+
+# Aufgabe
+1.7 Die Fertigungsorganisation soll durch ein Verwaltungssystem erweitert werden.
+Folgende Funktionalitäten sollen vom System bereitgestellt werden:
+– Kunden konfigurieren ihr zukünftiges Bike, das Servicepersonal kann sie dabei unterstützen.
+– Das Servicepersonal ist zuständig für die Auslieferung des fertigen Bikes, was voraussetzt,
+dass das Bike von einer Technikerin bzw. einem Techniker (im folgenden Techniker
+genannt) montiert und der Preis vom Servicepersonal ermittelt worden ist.
+– Im Montageprozess der Fahrräder wird regelmäßig ein Bike ausgewählt, das ausführlich im
+Testlabor geprüft wird. Diese Prüfung liegt in der Verantwortung eines Technikers. Sollte
+sich dabei zeigen, dass eine montierte Komponente des Bikes den hohen Belastungen nicht
+standhält, wird sie von einem Techniker ausgetauscht.
+– Das Unternehmen bietet für seine Bikes auch Zubehör an, zum Beispiel Flaschenhalter und
+Beleuchtung. Wenn der Kunde Zubehör wünscht, wird die Auslieferung des Bikes um den
+Anbau von Zubehör erweitert. Dafür ist wiederum ein Techniker zuständig.
+
+1.7.2 Entwickeln und zeichnen Sie für die unter Aufgabe 1.7 genannten Funktionalitäten ein
+Anwendungsfalldiagramm in UML-Notation.
+(8 BE)
+
+# Gegebene Vorlage
+-- KEINE
+
+# Loesung
+@startuml
+left to right direction
+
+actor Kunde
+actor Servicepersonal
+actor Techniker
+
+rectangle "BikeVerwaltung" {
+
+  (Bike montieren\n---\nextension points\nTest-Bike) as UC_montieren
+  (Bike konfigurieren) as UC_konfigurieren
+  (Bike ausliefern\n---\nextension points\nZubehör hinzufügen) as UC_ausliefern
+  (Preis ermitteln) as UC_preis
+  (Bike testen\n---\nextension points\nKomponententausch) as UC_testen
+  (Zubehör anbauen) as UC_zubehoer
+  (Komponente tauschen) as UC_tauschen
+
+  ' Akteur-Beziehungen
+  Kunde -- UC_konfigurieren
+
+  Servicepersonal -- UC_konfigurieren
+  Servicepersonal -- UC_ausliefern
+  Servicepersonal -- UC_preis
+
+  Techniker -- UC_montieren
+  Techniker -- UC_testen
+  Techniker -- UC_tauschen
+
+  ' include Beziehungen
+  UC_montieren ..> UC_konfigurieren : <<include>>
+  UC_ausliefern ..> UC_montieren : <<include>>
+  UC_ausliefern ..> UC_preis : <<include>>
+  UC_testen ..> UC_montieren : <<include>>
+
+  ' extend Beziehungen
+  UC_tauschen ..> UC_testen : <<extend>>
+  UC_testen ..> UC_montieren : <<extend>>
+  UC_zubehoer ..> UC_ausliefern : <<extend>>
+
+  ' Notizen (Bedingungen)
+  note left of UC_testen
+    condition:
+    Komponente fehlerhaft?
+  end note
+
+  note right of UC_ausliefern
+    condition:
+    Zubehör gewünscht?
+  end note
+
+  note left of UC_montieren
+    condition:
+    Bike ausgewählt?
+  end note
+}
+@enduml
