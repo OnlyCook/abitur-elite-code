@@ -374,6 +374,23 @@
   .cstoggle-btn.cs-active {
     background: rgba(57,211,83,.1); border-color: rgba(57,211,83,.3); color: var(--teal);
   }
+  .lang-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: rgba(88,166,255,.1);
+    border: 1px solid rgba(88,166,255,.3);
+    color: var(--blue);
+    transition: background .15s, color .15s, border-color .15s;
+    user-select: none;
+  }
+  .lang-label.cs-lang {
+    background: rgba(57,211,83,.1);
+    border-color: rgba(57,211,83,.3);
+    color: var(--teal);
+  }
   .ex-panel-title { display: flex; justify-content: space-between; align-items: center; }
 
 </style>
@@ -527,7 +544,7 @@
 
     <h3><span class="h3-num">2.3</span> Konstruktor-Grundgerüst</h3>
     <div class="ex-panel cstoggle-wrap">
-      <div class="ex-panel-title">Standard-Konstruktor-Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="ex-panel-title"><span class="lang-label">Java</span>Standard-Konstruktor-Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
       <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">ClassName</span>(<span class="ph">[→ DIAGRAM: Parameter]</span>) {
     <span class="cm">// 1. Autowert-Zuweisung (falls vorhanden — siehe Sektion 3)</span>
     <span class="hi">this.id = …autowert…;</span>
@@ -564,7 +581,7 @@
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Buchung</span>&gt; buchungen;
 
 <span class="kw">public</span> <span class="type">Mitglied</span>(<span class="type">String</span> name) {
@@ -694,7 +711,7 @@
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public</span> <span class="type">Spieler</span> sucheSpieler(<span class="type">String</span> name) {
     <span class="type">Spieler</span> ergebnis = <span class="kw">null</span>;
     <span class="kw">for</span> (<span class="type">Spieler</span> s : spieler) {
@@ -727,7 +744,7 @@
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Bsp: Liste aufsteigend nach Datum sortiert halten</span>
 <span class="kw">int</span> i = <span class="num">0</span>;
 <span class="kw">while</span> (i &lt; liste.<span class="meth">size</span>() &amp;&amp; liste.<span class="meth">get</span>(i).<span class="meth">getDatum</span>().<span class="meth">isBefore</span>(neuesDatum)) {
@@ -761,7 +778,7 @@ liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public abstract class</span> <span class="type">Person</span> {
     <span class="kw">protected</span> <span class="type">String</span> name;
     <span class="kw">protected</span> <span class="type">String</span> vorname;
@@ -812,7 +829,7 @@ liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">for</span> (<span class="type">Person</span> p : personen) {
     <span class="kw">if</span> (p <span class="kw">instanceof</span> <span class="type">Kunde</span>) {
         <span class="type">Kunde</span> k = (<span class="type">Kunde</span>) p;   <span class="cm">// expliziter Cast</span>
@@ -829,7 +846,7 @@ liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an
 
     <h3><span class="h3-num">5.3</span> <code>toString()</code> in der Vererbungshierarchie</h3>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// In der Unterklasse: super.toString() aufrufen + eigenes ergänzen</span>
 <span class="hi">@Override</span>
 <span class="kw">public</span> <span class="type">String</span> <span class="meth">toString</span>() {
@@ -878,7 +895,7 @@ liste.<span class="meth">Insert</span>(i, neuesElement);  <span class="cm">// an
       Der konkrete Aufbau des Protokolls (welche Zeichen, welche Trennzeichen, welche Feldlängen) steht <strong>ausschließlich im Material</strong>. Das Grundmuster ist aber konstant:
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Typisches Muster: Antwort hat Rahmen, der abgeschnitten wird</span>
 <span class="type">String</span> temp = com.<span class="meth">readLine</span>();
 temp = temp.<span class="meth">substring</span>(<span class="num">1</span>, temp.<span class="meth">length</span>() - <span class="num">1</span>); <span class="cm">// Rahmenzeichen entfernen</span>
@@ -942,7 +959,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
     </div>
 
     <div class="ex-panel cstoggle-wrap">
-      <div class="ex-panel-title">readCard() — vollständiges Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="ex-panel-title"><span class="lang-label">Java</span>readCard() — vollständiges Muster<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
       <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">String</span> <span class="meth">readCard</span>() {
     <span class="type">String</span> response = <span class="str">""</span>;
     <span class="kw">char</span> checkValue;
@@ -1002,7 +1019,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
     </div>
 
     <div class="ex-panel cstoggle-wrap">
-      <div class="ex-panel-title">Controller — Konstruktor-Muster (konstant über alle Jahre)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="ex-panel-title"><span class="lang-label">Java</span>Controller — Konstruktor-Muster (konstant über alle Jahre)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
       <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Controller</span> {
     <span class="kw">private</span> <span class="type">FunkModul</span> funkModul;
     <span class="kw">private</span> <span class="type">RFIDReader</span> reader;
@@ -1092,7 +1109,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
       </div>
     </div>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="kw">public class</span> <span class="type">MeinServer</span> {
     <span class="kw">private</span> <span class="type">ServerSocket</span> server;
     <span class="kw">private</span> <span class="ph">[→ DIAGRAM: Verwaltungs-Objekt]</span> verwaltung;
@@ -1167,7 +1184,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
 
     <h3><span class="h3-num">9.3</span> String → Zahlen umwandeln</h3>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Steht häufig als Hinweis im Aufgabentext:</span>
 <span class="kw">int</span>    i = <span class="type">Integer</span>.<span class="meth">parseInt</span>(werte[<span class="num">1</span>]);
 <span class="kw">double</span> d = <span class="type">Double</span>.<span class="meth">parseDouble</span>(werte[<span class="num">2</span>]);
@@ -1180,7 +1197,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
 
     <h3><span class="h3-num">9.4</span> Anmelden-Methode — Klassiker</h3>
 <div class="cstoggle-wrap">
-  <div class="cstoggle-header"><span>Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+  <div class="cstoggle-header"><span class="lang-label">Java</span><button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
   <div class="cstoggle-java"><div class="code-block" style="border-radius:0 0 6px 6px;margin-top:0;border-top:none;"><span class="cm">// Muster: gib Objekt zurück wenn Credentials stimmen, sonst null</span>
 <span class="kw">public</span> <span class="type">Konto</span> anmelden(<span class="type">String</span> iban, <span class="kw">int</span> pin) {
     <span class="kw">for</span> (<span class="type">Konto</span> k : konten) {
@@ -1263,7 +1280,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
     </div>
 
     <div class="ex-panel cstoggle-wrap">
-      <div class="ex-panel-title">Singleton-Muster — vollständig<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="ex-panel-title"><span class="lang-label">Java</span>Singleton-Muster — vollständig<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
       <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public class</span> <span class="type">Wissensdatenbank</span> {
     <span class="cm">// Bestehende Attribute und Methoden bleiben erhalten</span>
     <span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Loesung</span>&gt; loesungen;
@@ -1313,7 +1330,7 @@ temp = temp.<span class="meth">Substring</span>(<span class="num">1</span>, temp
     <div class="section-desc">ABI 2024 B. Erkennungsmerkmal: „Liste ist sortiert" + „binäre Suche" oder „Laufzeit optimieren".</div>
 
     <div class="ex-panel cstoggle-wrap">
-      <div class="ex-panel-title">Binäre Suche — vollständiges Muster (aus ABI 2024 B)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
+      <div class="ex-panel-title"><span class="lang-label">Java</span>Binäre Suche — vollständiges Muster (aus ABI 2024 B)<button class="cstoggle-btn" onclick="toggleLang(this)">C# anzeigen</button></div>
       <div class="cstoggle-java"><div class="ex-panel-body"><span class="kw">public</span> <span class="type">Ticket</span> <span class="meth">sucheTicket</span>(<span class="type">String</span> ticketNummer) {
     <span class="kw">if</span> (tickets.<span class="meth">isEmpty</span>()) <span class="kw">return null</span>;
 
@@ -1429,17 +1446,22 @@ function toggleLang(btn) {
   var wrap = btn.closest('.cstoggle-wrap');
   var java = wrap.querySelector('.cstoggle-java');
   var cs   = java.nextElementSibling;
+  var label = btn.previousElementSibling && btn.previousElementSibling.classList.contains('lang-label')
+              ? btn.previousElementSibling
+              : wrap.querySelector('.lang-label');
   var showingCs = java.style.display === 'none';
   if (showingCs) {
     cs.style.display   = 'none';
     java.style.display = '';
     btn.textContent    = 'C# anzeigen';
     btn.classList.remove('cs-active');
+    if (label) { label.textContent = 'Java'; label.classList.remove('cs-lang'); }
   } else {
     java.style.display = 'none';
     cs.style.display   = '';
     btn.textContent    = 'Java anzeigen';
     btn.classList.add('cs-active');
+    if (label) { label.textContent = 'C#'; label.classList.add('cs-lang'); }
   }
 }
 </script>

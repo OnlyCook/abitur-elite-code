@@ -548,7 +548,93 @@
     font-size: 12px;
     color: var(--text-dim);
   }
+
+  /* ── DIAGRAM TOGGLE ── */
+  .diag-toggle-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .diag-toggle-head {
+    padding: 8px 10px 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .diag-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+  .diag-toggle-label .pill { transition: opacity .15s; }
+  .diag-toggle-img-wrap {
+    display: flex;
+    justify-content: center;
+    background: #1b1b1b;
+    padding: 20px;
+  }
+  .diag-toggle-img-wrap img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  /* toggle button — same look as .cstoggle-btn */
+  .diag-toggle-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: rgba(88,166,255,.1);
+    border: 1px solid rgba(88,166,255,.3);
+    color: var(--blue);
+    padding: 2px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .diag-toggle-btn:hover { background: rgba(88,166,255,.2); }
+  .diag-toggle-btn.sol-active {
+    background: rgba(57,211,83,.1);
+    border-color: rgba(57,211,83,.3);
+    color: var(--teal);
+  }
 </style>
+<script>
+  function toggleDiagram(btn) {
+    var wrap   = btn.closest('.diag-toggle-wrap');
+    var img    = wrap.querySelector('img');
+    var label  = wrap.querySelector('.diag-label-text');
+    var pill   = wrap.querySelector('.pill');
+    var isSol  = btn.classList.toggle('sol-active');
+
+    if (isSol) {
+      img.src = btn.dataset.solSrc;
+      img.alt = btn.dataset.solAlt;
+      label.textContent = btn.dataset.solLabel;
+      pill.className = 'pill pill-g';
+      pill.textContent = '✓ Musterlösung';
+      btn.textContent = 'Vorlage anzeigen';
+    } else {
+      img.src = btn.dataset.vorSrc;
+      img.alt = btn.dataset.vorAlt;
+      label.textContent = btn.dataset.vorLabel;
+      pill.className = 'pill pill-y';
+      pill.textContent = 'Vorlage';
+      btn.textContent = 'Musterlösung anzeigen';
+    }
+  }
+</script>
 </head>
 <body>
 <div class="page">
@@ -665,7 +751,7 @@
 
     <div class="notation-card">
       <div class="notation-card-top">
-        <span class="notation-symbol">- - &#x276F; &laquo;include&raquo;</span>
+        <span class="notation-symbol">- - - &#xFE65; &laquo;include&raquo;</span>
         <span class="notation-name">&laquo;include&raquo;-Beziehung</span>
       </div>
       <div class="notation-desc">
@@ -675,7 +761,7 @@
 
     <div class="notation-card">
       <div class="notation-card-top">
-        <span class="notation-symbol">- - &#x276F; &laquo;extend&raquo;</span>
+        <span class="notation-symbol">- - - &#xFE65; &laquo;extend&raquo;</span>
         <span class="notation-name">&laquo;extend&raquo;-Beziehung</span>
       </div>
       <div class="notation-desc">
@@ -685,7 +771,7 @@
 
     <div class="notation-card">
       <div class="notation-card-top">
-        <span class="notation-symbol">——&#x25B7; Generalisierung</span>
+        <span class="notation-symbol">—————&#x25B7; Generalisierung</span>
         <span class="notation-name">Generalisierung (Sonderfall)</span>
       </div>
       <div class="notation-desc">
@@ -964,7 +1050,7 @@
       <img src="img/uc-06-extend.png" alt="extend-Beziehung Notation">
     </div>
     <div class="diagram-caption">
-      Gestrichelter Pfeil mit offenem Pfeilkopf und Beschriftung <code>&laquo;extend&raquo;</code>. Der Pfeil zeigt vom <em>erweiternden</em> auf den <em>Basisanwendungsfall</em>. Der Basisanwendungsfall enthält den Erweiterungspunkt (abgetrennt durch einen Trennstrich). Die Bedingungsnotiz ist über einen gestrichelten Pfeil direkt am <code>&laquo;extend&raquo;</code>-Pfeil befestigt.
+      Gestrichelter Pfeil mit offenem Pfeilkopf und Beschriftung <code>&laquo;extend&raquo;</code>. Der Pfeil zeigt vom <em>erweiternden</em> auf den <em>Basisanwendungsfall</em>. Der Basisanwendungsfall enthält den Erweiterungspunkt (abgetrennt durch einen Trennstrich). Die Bedingungsnotiz ist über eine gestrichelte Linie direkt am &laquo;extend&raquo;-Pfeil befestigt.
     </div>
   </div>
 
@@ -975,7 +1061,7 @@
     <div class="rule-body">
       Der Pfeil zeigt <strong>vom erweiternden Anwendungsfall</strong> (der eine Erweiterung ist) <strong>auf den Basisanwendungsfall</strong> (der erweitert wird). Leserichtung: <em>„B erweitert A"</em> — der Pfeil geht von B nach (→) A, die Pfeilspitze zeigt auf A.<br><br>
       Merkhilfe: Die Pfeilspitze zeigt immer auf den Anwendungsfall, der die <strong>Erweiterungspunkte</strong> enthält — also auf den Basisanwendungsfall. Die Ausrichtung der Pfeilspitze kann man sich auch wie die der Vererbung vorstellen, das „Kind" (Zusatz, erweiterter Anwendungsfall) zeigt auf das „Elternteil" (ermöglicht die Erweiterung).<br><br>
-      Beispiel aus ABI 2025 B: „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> (erweitert) „Inventur durchführen". Pfeil von „Getränke nachbestellen" auf (→) „Inventur durchführen". Wenn wir das in Worte fassen, bedeutet das: Der Mitarbeiter kann eine „Inventur durchführen". Wenn wir dies tun, wird auch der Lagerbestand überprüft (dies ist die Bedingung), wenn dieser unter 20% liegt werden zusätzlich automatisch Getränke nachbestellt („Getränke nachbestellen" wird auch ausgeführt). Wenn der Lagerbestand bei 20% oder mehr liegt, passiert das nicht.
+      Beispiel aus ABI 2025 B: „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> (erweitert) „Inventur durchführen". Pfeil von „Getränke nachbestellen" auf (→) „Inventur durchführen". Wenn wir das in Worte fassen, bedeutet das: Der Mitarbeiter kann eine „Inventur durchführen". Wenn wir dies tun, wird auch der Lagerbestand überprüft (dies ist die Bedingung), wenn dieser unter 20% liegt, werden zusätzlich automatisch Getränke nachbestellt („Getränke nachbestellen" wird auch ausgeführt). Wenn der Lagerbestand bei 20% oder mehr liegt, passiert das nicht.
     </div>
   </div>
 
@@ -990,8 +1076,8 @@
       <span class="npill npill-p">━━━━━━━━━━━━━━</span><br>
       <span class="npill npill-p">extension points</span><br>
       <span class="npill npill-p">Name des Erweiterungspunkts</span><br>
-      <span class="npill npill-p">(Name des zweiten Erweiterungspunkts)</span><br><br>
-      Der Name des Erweiterungspunkts bezeichnet die Stelle oder die Bedingung, an der die Erweiterung eingreifen kann. Im Abitur entspricht er einfach nur der Bedingung.
+      <span class="npill npill-p">(Name des 2. Erweiterungspunkts)</span><br><br>
+      Der Name des Erweiterungspunkts bezeichnet die Stelle oder die Bedingung, an der die Erweiterung eingreifen kann. Im Abitur entspricht er meistens der Bedingung (die in der Notiz enthalten ist) oder manchmal auch dem Namen des erweiternden Anwendungsfalls.
     </div>
   </div>
 
@@ -1000,7 +1086,7 @@
   <div class="rule-card purple">
     <div class="rule-title">Bedingung am extend-Pfeil — nicht am Anwendungsfall!</div>
     <div class="rule-body">
-      Im Abitur ist die Bedingung <strong>direkt am &laquo;extend&raquo;-Pfeil</strong> befestigt — nicht an einem der Anwendungsfälle. Eine rechteckige Notiz mit dem Text der Bedingung ist über einen gestrichelten Pfeil ohne Pfeilspitze mit dem &laquo;extend&raquo;-Pfeil verbunden. Die Notiz enthält die Bedingung, unter der die Erweiterung stattfindet.
+      Im Abitur ist die Bedingung <strong>direkt am &laquo;extend&raquo;-Pfeil</strong> befestigt — nicht an einem der Anwendungsfälle. Eine rechteckige Notiz mit dem Text der Bedingung ist an einen gestrichelten Pfeil ohne Pfeilspitze mit dem &laquo;extend&raquo;-Pfeil verbunden. Die Notiz enthält die Bedingung, unter der die Erweiterung stattfindet.
     </div>
   </div>
 
@@ -1023,7 +1109,7 @@
           <td>Bedingungsabhängige Erweiterung → extend</td>
         </tr>
         <tr>
-          <td>„Bei Kreditkartennutzung kann ..."</td>
+          <td>„Bei Nutzung kann ..."</td>
           <td>Optionale, bedingte Zusatzfunktion → extend</td>
         </tr>
         <tr>
@@ -1032,7 +1118,7 @@
         </tr>
         <tr>
           <td>„Bei Unvollständigkeit muss ..."</td>
-          <td>Trotz „muss" — es ist nur nötig, wenn die Bedingung eintritt → extend</td>
+          <td>Trotz „muss" — es ist nur nötig, wenn die Bedingung (Unvollständigkeit) eintritt → extend</td>
         </tr>
       </tbody>
     </table>
@@ -1041,20 +1127,9 @@
   <h3><span class="h3-num">8.5</span> Beispiele aus dem Abitur</h3>
 
   <div class="rule-card">
-    <div class="rule-title">ABI 2025 B — Festivalverwaltung</div>
-    <div class="rule-body">
-      <em>„Ein Mitarbeiter kann jederzeit Getränke telefonisch nachbestellen."</em><br>
-      <em>„<strong>Sollten weniger als 20 Prozent des Getränkevorrats vorhanden sein, müssen Getränke nachbestellt werden.</strong>"</em><br><br>
-      → „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> „Inventur durchführen"<br>
-      Basisanwendungsfall: „Inventur durchführen" mit extension point „Lagerbestand &lt; 20%"<br>
-      Bedingung: <em>Lagerbestand &lt; 20%</em>
-    </div>
-  </div>
-
-  <div class="rule-card">
     <div class="rule-title">ABI 2025 A — Krankenhausverwaltung</div>
     <div class="rule-body">
-      <em>„Ein Arzt erstellt einen Behandlungsplan und aktualisiert die Patientenakte <strong>bei Bedarf</strong>."</em><br><br>
+      <em>„Ein Arzt <strong>erstellt</strong> einen <strong>Behandlungsplan</strong> und <strong>aktualisiert</strong> die <strong>Patientenakte</strong> <u>bei Bedarf</u>."</em><br><br>
       → „Patientenakte aktualisieren" <code>&laquo;extend&raquo;</code> „Behandlungsplan erstellen"<br>
       Basisanwendungsfall: „Behandlungsplan erstellen" mit extension point „Patientenakte aktualisieren"<br>
       Bedingung: <em>bei Bedarf</em>
@@ -1064,10 +1139,22 @@
   <div class="rule-card">
     <div class="rule-title">ABI 2024 A — Wettbewerbsverwaltung</div>
     <div class="rule-body">
-      <em>„Bei <strong>Unvollständigkeit</strong> muss der Mitarbeiter den Chor anschreiben."</em><br><br>
+      <em>„– Ein Mitarbeiter kann einen <strong>Chor anschreiben</strong>.<br>
+      – Die <strong>Noten und MP3-Samples</strong> können von einem Chor <strong>hochgeladen werden</strong>, welche anschließend durch einen Mitarbeiter auf Vollständigkeit geprüft werden. <u>Bei Unvollständigkeit muss der Mitarbeiter den Chor anschreiben</u>."</em><br><br>
       → „Chor anschreiben" <code>&laquo;extend&raquo;</code> „Noten / MP3 hochladen"<br>
       Basisanwendungsfall: „Noten / MP3 hochladen" mit extension point „Chor anschreiben"<br>
       Bedingung: <em>Noten / MP3 sind unvollständig</em>
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">ABI 2025 B — Festivalverwaltung</div>
+    <div class="rule-body">
+      <em>„– Ein Mitarbeiter kann jederzeit <strong>Getränke</strong> telefonisch <strong>nachbestellen</strong>.<br>
+      – Ein Mitarbeiter eines Getränkestandortes kann eine <strong>Inventur durchführen</strong>, um zu ermitteln, wie viele Getränke noch vorhanden sind. <u>Sollten weniger als 20 Prozent des Getränkevorrats vorhanden sein, müssen Getränke nachbestellt werden</u>."</em><br><br>
+      → „Getränke nachbestellen" <code>&laquo;extend&raquo;</code> „Inventur durchführen"<br>
+      Basisanwendungsfall: „Inventur durchführen" mit extension point „Lagerbestand &lt; 20%"<br>
+      Bedingung: <em>Lagerbestand &lt; 20%</em>
     </div>
   </div>
 
@@ -1127,7 +1214,7 @@
   <div class="section-desc">Sehr selten im Abitur — aber gut zu kennen.</div>
 
   <p class="body-text">
-    Die <strong>Generalisierung</strong> modelliert eine Spezialisierungsbeziehung zwischen zwei Akteuren (oder zwei Anwendungsfällen). Sie bedeutet: Der spezialisierte Akteur erbt alle Eigenschaften und Verbindungen des generalisierten Akteurs — er kann alle Anwendungsfälle nutzen, die auch der allgemeinere Akteur nutzen kann, und besitzt zusätzlich eigene.
+    Die <strong>Generalisierung</strong> modelliert eine Spezialisierungsbeziehung zwischen zwei Akteuren (oder zwei Anwendungsfällen). Sie bedeutet: Der spezialisierte Akteur erbt alle Eigenschaften und Verbindungen des generalisierten Akteurs — er kann alle Anwendungsfälle nutzen, die auch der allgemeinere Akteur nutzen kann, und besitzt (normalerweise) zusätzlich eigene.
   </p>
 
   <div class="diagram-wrap">
@@ -1139,7 +1226,7 @@
       <img src="img/uc-07-generalisierung.png" alt="Generalisierung zwischen Akteuren">
     </div>
     <div class="diagram-caption">
-      Durchgezogener Pfeil mit offenem (nicht gefülltem) Dreieck als Pfeilspitze. Die Pfeilspitze zeigt auf den generalisierten (übergeordneten) Akteur. In diesem Beispiel erbt „Mitglied" alle Anwendungsfälle von „Benutzer", hat aber zusätzliche eigene.
+      Durchgezogener Pfeil mit offenem (nicht gefülltem) Dreieck als Pfeilspitze. Die Pfeilspitze zeigt auf den generalisierten (übergeordneten) Akteur. In diesem Beispiel erbt „Mitarbeiter" alle Anwendungsfälle von „Mitglied", hat aber zusätzliche eigene. <b>Merke:</b> Jeder Mitarbeiter ist auch ein Mitglied (nicht umgekehrt). Mitarbeiter sind spezialisierte Mitglieder.
     </div>
   </div>
 
@@ -1399,22 +1486,19 @@
         – Ein Mitarbeiter eines Getränkestandortes kann eine Inventur durchführen, um zu ermitteln, wie viele Getränke noch vorhanden sind. Sollten weniger als 20 Prozent des Getränkevorrats vorhanden sein, müssen Getränke nachbestellt werden.
       </div>
 
-      <div class="ex-grid">
-        <div class="ex-panel">
-          <div class="ex-panel-title before">Gegebene Vorlage (Material 2)</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-09-vorlage-2025b.png" alt="Vorlage ABI 2025 B Festivalverwaltung">
-            </div>
+      <div class="diag-toggle-wrap">
+        <div class="diag-toggle-head">
+          <div class="diag-toggle-label">
+            <span class="pill pill-y">Vorlage</span>
+            <span class="diag-label-text">Gegebene Vorlage (Material 2)</span>
           </div>
+          <button class="diag-toggle-btn"
+            data-vor-src="img/uc-09-vorlage-2025b.png" data-vor-alt="Vorlage ABI 2025 B Festivalverwaltung" data-vor-label="Gegebene Vorlage (Material 2)"
+            data-sol-src="img/uc-10-loesung-2025b.png" data-sol-alt="Musterlösung ABI 2025 B Festivalverwaltung" data-sol-label="Festivalverwaltung — vollständige Musterlösung"
+            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
         </div>
-        <div class="ex-panel">
-          <div class="ex-panel-title after">✓ Musterlösung</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-10-loesung-2025b.png" alt="Musterlösung ABI 2025 B Festivalverwaltung">
-            </div>
-          </div>
+        <div class="diag-toggle-img-wrap">
+          <img src="img/uc-09-vorlage-2025b.png" alt="Vorlage ABI 2025 B Festivalverwaltung">
         </div>
       </div>
 
@@ -1463,22 +1547,19 @@
         – Ein Arzt erstellt einen Behandlungsplan und aktualisiert die Patientenakte bei Bedarf.
       </div>
 
-      <div class="ex-grid">
-        <div class="ex-panel">
-          <div class="ex-panel-title before">Gegebene Vorlage (Material 1)</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-11-vorlage-2025a.png" alt="Vorlage ABI 2025 A Krankenhausverwaltung">
-            </div>
+      <div class="diag-toggle-wrap">
+        <div class="diag-toggle-head">
+          <div class="diag-toggle-label">
+            <span class="pill pill-y">Vorlage</span>
+            <span class="diag-label-text">Gegebene Vorlage (Material 1)</span>
           </div>
+          <button class="diag-toggle-btn"
+            data-vor-src="img/uc-11-vorlage-2025a.png" data-vor-alt="Vorlage ABI 2025 A Krankenhausverwaltung" data-vor-label="Gegebene Vorlage (Material 1)"
+            data-sol-src="img/uc-12-loesung-2025a.png" data-sol-alt="Musterlösung ABI 2025 A Krankenhausverwaltung" data-sol-label="Krankenhausverwaltung — vollständige Musterlösung"
+            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
         </div>
-        <div class="ex-panel">
-          <div class="ex-panel-title after">✓ Musterlösung</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-12-loesung-2025a.png" alt="Musterlösung ABI 2025 A Krankenhausverwaltung">
-            </div>
-          </div>
+        <div class="diag-toggle-img-wrap">
+          <img src="img/uc-11-vorlage-2025a.png" alt="Vorlage ABI 2025 A Krankenhausverwaltung">
         </div>
       </div>
 
@@ -1528,22 +1609,19 @@
         – Ein Mitarbeiter kann das Ticket stornieren.
       </div>
 
-      <div class="ex-grid">
-        <div class="ex-panel">
-          <div class="ex-panel-title before">Gegebene Vorlage (Material 2)</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-13-vorlage-2024b.png" alt="Vorlage ABI 2024 B Flugticketverwaltung">
-            </div>
+      <div class="diag-toggle-wrap">
+        <div class="diag-toggle-head">
+          <div class="diag-toggle-label">
+            <span class="pill pill-y">Vorlage</span>
+            <span class="diag-label-text">Gegebene Vorlage (Material 2)</span>
           </div>
+          <button class="diag-toggle-btn"
+            data-vor-src="img/uc-13-vorlage-2024b.png" data-vor-alt="Vorlage ABI 2024 B Flugticketverwaltung" data-vor-label="Gegebene Vorlage (Material 2)"
+            data-sol-src="img/uc-14-loesung-2024b.png" data-sol-alt="Musterlösung ABI 2024 B Flugticketverwaltung" data-sol-label="Flugticketverwaltung — vollständige Musterlösung"
+            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
         </div>
-        <div class="ex-panel">
-          <div class="ex-panel-title after">✓ Musterlösung</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-14-loesung-2024b.png" alt="Musterlösung ABI 2024 B Flugticketverwaltung">
-            </div>
-          </div>
+        <div class="diag-toggle-img-wrap">
+          <img src="img/uc-13-vorlage-2024b.png" alt="Vorlage ABI 2024 B Flugticketverwaltung">
         </div>
       </div>
 
@@ -1595,22 +1673,19 @@
         – Der Mitarbeiter kann einen Ablaufplan erstellen.
       </div>
 
-      <div class="ex-grid">
-        <div class="ex-panel">
-          <div class="ex-panel-title before">Gegebene Vorlage (Material 6)</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-15-vorlage-2024a.png" alt="Vorlage ABI 2024 A Wettbewerbsverwaltung">
-            </div>
+      <div class="diag-toggle-wrap">
+        <div class="diag-toggle-head">
+          <div class="diag-toggle-label">
+            <span class="pill pill-y">Vorlage</span>
+            <span class="diag-label-text">Gegebene Vorlage (Material 6)</span>
           </div>
+          <button class="diag-toggle-btn"
+            data-vor-src="img/uc-15-vorlage-2024a.png" data-vor-alt="Vorlage ABI 2024 A Wettbewerbsverwaltung" data-vor-label="Gegebene Vorlage (Material 6)"
+            data-sol-src="img/uc-16-loesung-2024a.png" data-sol-alt="Musterlösung ABI 2024 A Wettbewerbsverwaltung" data-sol-label="Wettbewerbsverwaltung — vollständige Musterlösung"
+            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
         </div>
-        <div class="ex-panel">
-          <div class="ex-panel-title after">✓ Musterlösung</div>
-          <div class="ex-panel-body">
-            <div class="diagram-body">
-              <img src="img/uc-16-loesung-2024a.png" alt="Musterlösung ABI 2024 A Wettbewerbsverwaltung">
-            </div>
-          </div>
+        <div class="diag-toggle-img-wrap">
+          <img src="img/uc-15-vorlage-2024a.png" alt="Vorlage ABI 2024 A Wettbewerbsverwaltung">
         </div>
       </div>
 
