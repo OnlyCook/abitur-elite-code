@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace AbiturEliteCode.cs;
@@ -105,6 +106,15 @@ public static class SqlCurriculum
 {
     public static List<SqlLevel> GetLevels()
     {
+        // randomize target bid for level 35 (prevent hardcoded exploiting)
+        int bBase = new Random().Next(10000, 89000);
+        int b1 = bBase + 1;
+        int b2 = bBase + 2;
+        int b3 = bBase + 3;
+        int b4 = bBase + 4;
+        int bTarget = bBase + 5; // goal
+        int b6 = bBase + 6;
+
         return new List<SqlLevel>
         {
             // --- SECTION 1 ---
@@ -526,7 +536,7 @@ public static class SqlCurriculum
                     "Wir befinden uns in der Datenbank einer Schulbibliothek. Um Redundanzen zu vermeiden, wurden Bücher und Autoren in zwei getrennte Tabellen aufgeteilt (Normalisierung).\n\n" +
                     "Das Buch 'Faust' speichert nicht mehr den Namen 'Goethe', sondern referenziert diesen über eine ID (Fremdschlüssel).\n\n" +
                     "**Aufgabe:**\n" +
-                    "Ermitteln Sie die [id] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
+                    "Ermitteln Sie die [id] des Autors mit dem Nachnamen 'Goethe' aus der Tabelle [Autor], um zu verstehen, welche Zahl in der Buch-Tabelle verwendet wird.",
                 SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
                               "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                               "INSERT INTO Autor VALUES (101, 'Johann Wolfgang von', 'Goethe');" +
@@ -543,7 +553,7 @@ public static class SqlCurriculum
                     new[] { "101" }
                 },
                 MaterialDocs = "start-hint: Primärschlüssel\n" +
-                               "Jeder Datensatz in der Tabelle [autor] ist durch die [id] eindeutig identifizierbar.\n" +
+                               "Jeder Datensatz in der Tabelle [Autor] ist durch die [id] eindeutig identifizierbar.\n" +
                                "In der Tabelle [Buch] wird diese ID genutzt, um auf den Autor zu verweisen.\n" +
                                ":end-hint",
                 IsRelationalModelReadOnly = true,
@@ -657,7 +667,7 @@ public static class SqlCurriculum
                 Description =
                     "Der SQL-Standard sieht für Verknüpfungen den [JOIN]-Operator vor. Dieser trennt die Verknüpfungslogik sauber von der Filterlogik.\n\n" +
                     "**Aufgabe:**\n" +
-                    "Erstellen Sie exakt dieselbe Liste wie im vorherigen Level ([Titel], [Nachname]), nutzen Sie diesmal jedoch den **INNER JOIN**.",
+                    "Erstellen Sie exakt dieselbe Liste wie im vorherigen Level ([titel], [nachname]), nutzen Sie diesmal jedoch den **INNER JOIN**.",
                 SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
                               "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                               "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
@@ -798,7 +808,7 @@ public static class SqlCurriculum
                 Title = "Klasse 10b",
                 Description =
                     "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
-                    "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus konvertieren.\n\n" +
+                    "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus ableiten.\n\n" +
                     "**Aufgabe:**\n" +
                     "Nutzen Sie das gegebene ER-Diagramm.\n" +
                     "Geben Sie [name] und [titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
@@ -855,7 +865,7 @@ public static class SqlCurriculum
                     "**Aufgabe:**\n" +
                     "Erstellen Sie eine Liste aller VIPs und ihrer Tischnummern.\n" +
                     "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL]).\n\n" +
-                    "Tipp: Probieren Sie ruhig auch einmal 'INNER JOIN' statt 'LEFT JOIN', um zu sehen, wie die VIPs ohne Tisch verschwinden.",
+                    "Tipp: Probieren Sie ruhig auch einmal [INNER JOIN] statt [LEFT JOIN], um zu sehen, wie die VIPs ohne Tisch verschwinden.",
                 SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
                               "CREATE TABLE Reservierung (vipid_FK INTEGER, tischNr INTEGER);" +
                               "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
@@ -1000,7 +1010,7 @@ public static class SqlCurriculum
                               "Das Event-Team ist in Panik: Einige VIPs hängen 'in der Luft' und könnten unzufrieden sein. Wir brauchen eine Liste dieser Personen.\n\n" +
                               "**Regeln:**\n" +
                               "1. Ein VIP gilt als Problem-Gast, wenn er **noch gar keine Reservierung** getätigt hat.\n" +
-                              "2. Ein VIP gilt ebenfalls als Problem-Gast, wenn er eine Reservierung für den **'Hauptbereich'** hat, aber dort **noch keine Tischnummer zugewiesen** wurde ([tischNr] ist leer/[NULL]).\n" +
+                              "2. Ein VIP gilt ebenfalls als Problem-Gast, wenn er eine Reservierung für den **'Hauptbereich'** hat, aber dort **noch keine Tischnummer zugewiesen** wurde.\n" +
                               "3. VIPs, denen in anderen Bereichen (z. B. 'VIP-Lounge') noch kein Tisch zugewiesen wurde, sind für diese Liste irrelevant.\n" +
                               "4. Jeder Name darf **nur einmal** auf der Liste stehen.\n\n" +
                               "**Aufgabe:**\n" +
@@ -1070,7 +1080,8 @@ public static class SqlCurriculum
                               "INSERT INTO Produkt VALUES (3, 'Socken', 5.50);" +
                               "INSERT INTO Position VALUES (101, 1, 2);" +
                               "INSERT INTO Position VALUES (102, 2, 1);" +
-                              "INSERT INTO Position VALUES (103, 3, 3);",
+                              "INSERT INTO Position VALUES (103, 3, 3);" +
+                              "INSERT INTO Position VALUES (104, 1, 1);",
                 VerificationQuery = "",
                 ExpectedSchema = new List<SqlExpectedColumn>
                 {
@@ -1081,7 +1092,8 @@ public static class SqlCurriculum
                 {
                     new[] { "T-Shirt", "39.98" },
                     new[] { "Hose", "49.9" },
-                    new[] { "Socken", "16.5" }
+                    new[] { "Socken", "16.5" },
+                    new[] { "T-Shirt", "19.99" }
                 },
                 MaterialDocs = "start-hint: Rechnen in SQL\n" +
                                "Sie können in der [SELECT]-Klausel mathematische Operatoren verwenden, um Spalten miteinander zu verrechnen:\n" +
@@ -1475,7 +1487,7 @@ public static class SqlCurriculum
                     new[] { "103", "1" }
                 },
                 MaterialDocs = "start-hint: Differenz berechnen (DATEDIFF)\n" +
-                               "Die Funktion [DATEDIFF(enddatum, startdatum)] berechnet die Differenz zwischen zwei Daten in Tagen.\n" +
+                               "Die Funktion [DATEDIFF(enddatum, startdatum)] berechnet die Differenz zwischen zwei Daten in Tagen.\n\n" +
                                "Beispiel:\n" +
                                "{|SELECT DATEDIFF('2023-12-31', '2023-12-01'); -- Ergibt 30|}" +
                                "[DATEDIFF] tut folgendes: ['2023-12-31' - '2023-12-01' = 30]\n" +
@@ -1561,7 +1573,7 @@ public static class SqlCurriculum
                 Description =
                     "Der Chef möchte zum Jahresabschluss die treuesten Kunden belohnen. Diese Mini-Prüfung verlangt alles aus Sektion 4 und 5!\n\n" +
                     "**Aufgabe:**\n" +
-                    "Ermitteln Sie die Top 3 Gäste (nur den Namen), die im Jahr 2024 angereist sind und in einem **Premium-Zimmer (Zimmernummern '101' bis '109')** übernachtet haben, basierend auf der Gesamtsumme ihrer gebuchten Nächte (nennen Sie diese Spalte 'GesamtNaechte').\n" +
+                    "Ermitteln Sie den Namen der Top 3 Gäste, die im Jahr 2024 angereist sind und in einem **Premium-Zimmer (Zimmernummern '101' bis '109')** übernachtet haben, basierend auf der Gesamtsumme ihrer gebuchten Nächte (nennen Sie diese Spalte 'GesamtNaechte').\n" +
                     "Sortieren Sie die Liste absteigend, sodass der Gast mit den meisten Gesamtnächten auf Platz 1 steht.",
                 SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
                               "CREATE TABLE Zimmer (id INTEGER PRIMARY KEY, nummer TEXT);" +
@@ -1723,7 +1735,7 @@ public static class SqlCurriculum
                     "Das System erhält eine Anfrage von der Frontend-Applikation. Ein neuer Eintrag soll in die Watchlist eines spezifischen Nutzers eingefügt werden. Die App übermittelt jedoch nur den Namen des Nutzers, nicht dessen ID.\n\n" +
                     "Entwickeln Sie die SQL-Anweisung, um einen neuen Datensatz in die Watchlist einzufügen.\n" +
                     "Der betroffene Nutzer trägt den Namen 'Neo'. Der Film, der zur Watchlist hinzugefügt werden soll, besitzt die ID 5.\n" +
-                    "Ermitteln Sie die benötigte Nutzer-ID dynamisch über eine Unterabfrage innerhalb des [INSERT]-Befehls.",
+                    "Ermitteln Sie die benötigte Nutzer-ID dynamisch über eine Unterabfrage innerhalb des Befehls.",
                 SetupScript = "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT);" +
                               "CREATE TABLE Film (fid INTEGER PRIMARY KEY, titel TEXT);" +
                               "CREATE TABLE merkt_vor (nid INTEGER, fid INTEGER);" +
@@ -1958,18 +1970,18 @@ public static class SqlCurriculum
                               "INSERT INTO Mitarbeiter VALUES (1, 'Müller', 'Hans'), (2, 'Schmidt', 'Anna'), (3, 'Meier', 'Lukas');" +
                               "INSERT INTO Lager VALUES (1, 'Hauptlager'), (2, 'Notaufnahme'), (3, 'Station A');" +
                               "INSERT INTO Artikel VALUES (101, 'Ibuprofen 400mg', 5.50), (102, 'Verbandszeug', 12.00), (103, 'Defibrillator', 12500.00), (104, 'Skalpell', 18.50);" +
-                              "INSERT INTO Bestellung VALUES (1001, '2024-10-01', 1, 1);" +
-                              "INSERT INTO beinhaltet VALUES (1001, 101, 50);" +
-                              "INSERT INTO Bestellung VALUES (1002, '2024-10-05', 2, 1);" + // Schmidt, aber Hauptlager
-                              "INSERT INTO beinhaltet VALUES (1002, 102, 20);" +
-                              "INSERT INTO Bestellung VALUES (1003, '2024-10-10', 3, 2);" + // Notaufnahme, aber Meier
-                              "INSERT INTO beinhaltet VALUES (1003, 103, 1);" +
-                              "INSERT INTO Bestellung VALUES (1004, '2024-10-15', 2, 2);" + // Schmidt, Notaufnahme, aber aelteres Datum
-                              "INSERT INTO beinhaltet VALUES (1004, 104, 10);" +
-                              "INSERT INTO Bestellung VALUES (1005, '2024-10-20', 2, 2);" + // Schmidt, Notaufnahme, neuestes Datum (ZIEL)
-                              "INSERT INTO beinhaltet VALUES (1005, 101, 5);" +
-                              "INSERT INTO Bestellung VALUES (1006, '2024-10-25', 1, 3);" + // Anderes Lager, neueres Datum
-                              "INSERT INTO beinhaltet VALUES (1006, 102, 15);",
+                              $"INSERT INTO Bestellung VALUES ({b1}, '2024-10-01', 1, 1);" +
+                              $"INSERT INTO beinhaltet VALUES ({b1}, 101, 50);" +
+                              $"INSERT INTO Bestellung VALUES ({b2}, '2024-10-05', 2, 1);" +
+                              $"INSERT INTO beinhaltet VALUES ({b2}, 102, 20);" +
+                              $"INSERT INTO Bestellung VALUES ({b3}, '2024-10-10', 3, 2);" +
+                              $"INSERT INTO beinhaltet VALUES ({b3}, 103, 1);" +
+                              $"INSERT INTO Bestellung VALUES ({b4}, '2024-10-15', 2, 2);" +
+                              $"INSERT INTO beinhaltet VALUES ({b4}, 104, 10);" +
+                              $"INSERT INTO Bestellung VALUES ({bTarget}, '2024-10-20', 2, 2);" + // schmidt, notaufnahme, neuestes datum (goal)
+                              $"INSERT INTO beinhaltet VALUES ({bTarget}, 101, 5);" +
+                              $"INSERT INTO Bestellung VALUES ({b6}, '2024-10-25', 1, 3);" +
+                              $"INSERT INTO beinhaltet VALUES ({b6}, 102, 15);",
                 VerificationQuery =
                     "SELECT bid, artid FROM Bestellung JOIN beinhaltet USING (bid) ORDER BY bid ASC, artid ASC",
                 ExpectedSchema = new List<SqlExpectedColumn>
@@ -1979,11 +1991,11 @@ public static class SqlCurriculum
                 },
                 ExpectedResult = new List<string[]>
                 {
-                    new[] { "1001", "101" },
-                    new[] { "1002", "102" },
-                    new[] { "1003", "103" },
-                    new[] { "1004", "104" },
-                    new[] { "1006", "102" }
+                    new[] { b1.ToString(), "101" },
+                    new[] { b2.ToString(), "102" },
+                    new[] { b3.ToString(), "103" },
+                    new[] { b4.ToString(), "104" },
+                    new[] { b6.ToString(), "102" }
                 },
                 MaterialDocs =
                     "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
@@ -1995,7 +2007,7 @@ public static class SqlCurriculum
                     "imgsql\\sec7\\lvl33-1.svg"
                 },
                 PlantUMLSources = new List<string>(),
-                AuxiliaryIds = new List<string>(),
+                AuxiliaryIds = new List<string> { bTarget.ToString() },
                 Prerequisites = new List<string>(),
                 OptionalPrerequisites = new List<string>()
             }

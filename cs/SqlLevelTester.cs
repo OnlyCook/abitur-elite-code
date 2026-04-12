@@ -35,6 +35,37 @@ public static class SqlLevelTester
                 // pass the connection to converter
                 string processedQuery = ConvertMysqlToSqlite(connection, userQuery);
 
+                // custom level rules
+                if (level.Id == 29)
+                {
+                    // check if the outer query uses a join (everything before the where clause)
+                    string outerQueryBeforeWhere = Regex.Split(processedQuery, @"\bWHERE\b", RegexOptions.IgnoreCase)[0];
+                    if (outerQueryBeforeWhere.IndexOf("JOIN", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        Regex.IsMatch(outerQueryBeforeWhere, @"FROM\s+[a-zA-Z0-9_]+\s*,", RegexOptions.IgnoreCase))
+                    {
+                        return new SqlTestResult
+                        {
+                            Success = false,
+                            Feedback = "❌ Umgehung erkannt: Bitte nutze keinen JOIN im äußeren SELECT (nutze eine Unterabfrage mit IN).",
+                            ResultTable = null
+                        };
+                    }
+                }
+                else if (level.Id == 35)
+                {
+                    // check if the target bid was hardcoded by the user
+                    string targetBid = level.AuxiliaryIds.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(targetBid) && Regex.IsMatch(userQuery, $@"\b{targetBid}\b"))
+                    {
+                        return new SqlTestResult
+                        {
+                            Success = false,
+                            Feedback = "❌ Umgehung erkannt: Bitte ermittle die Ziel-ID dynamisch über eine Unterabfrage, anstatt sie direkt zu übergeben.",
+                            ResultTable = null
+                        };
+                    }
+                }
+
                 DataTable userResultTable = null;
                 bool isSelect = processedQuery.Trim().ToUpper().StartsWith("SELECT");
                 int rowsAffected = 0;
@@ -296,7 +327,7 @@ public static class SqlLevelTester
         {
             string tableName = insertSetMatch.Groups[1].Value;
             string alias = insertSetMatch.Groups[2].Success ? insertSetMatch.Groups[2].Value : null;
-            string assignments = insertSetMatch.Groups[3].Value;
+            string assignments = insertSetMatch.Groups[3].Value.TrimEnd(' ', '\r', '\n', ';');
 
             if (!string.IsNullOrEmpty(alias) && !alias.Equals("SET", StringComparison.OrdinalIgnoreCase))
                 assignments = Regex.Replace(assignments, $@"\b{alias}\.", "", RegexOptions.IgnoreCase);
