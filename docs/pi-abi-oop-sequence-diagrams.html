@@ -540,8 +540,79 @@
     border-color: rgba(57,211,83,.3);
     color: var(--teal);
   }
+
+  /* ── 3-TAB DIAGRAM TOGGLE ── */
+  .diag-tab-group { display: flex; gap: 4px; }
+  .diag-tab-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: rgba(88,166,255,.06);
+    border: 1px solid rgba(88,166,255,.18);
+    color: var(--text-dim);
+    padding: 2px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .diag-tab-btn:hover { background: rgba(88,166,255,.14); color: var(--text-muted); }
+  .diag-tab-btn.tab-vor {
+    background: rgba(210,153,34,.12);
+    border-color: rgba(210,153,34,.4);
+    color: var(--yellow);
+  }
+  .diag-tab-btn.tab-sol {
+    background: rgba(57,211,83,.1);
+    border-color: rgba(57,211,83,.3);
+    color: var(--teal);
+  }
+  .diag-tab-btn.tab-code {
+    background: rgba(188,140,255,.1);
+    border-color: rgba(188,140,255,.3);
+    color: var(--purple);
+  }
+
+  /* ── CODE OVERLAY (no-reflow) ── */
+  .diag-toggle-img-wrap { position: relative; }
+  .diag-code-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .diag-code-overlay.active { display: block; }
+  .diag-code-overlay .code-comment { color: var(--text-dim); font-style: italic; }
+  .diag-code-overlay .code-kw   { color: var(--blue); }
+  .diag-code-overlay .code-type { color: var(--purple); }
+  .diag-code-overlay .code-fn   { color: var(--teal); }
+  .diag-code-overlay .code-self { color: var(--orange); }
+  .diag-code-overlay .code-val  { color: var(--green); }
+  .diag-code-overlay .code-str  { color: var(--yellow); }
+  .diag-code-overlay .code-ret  { color: var(--red); }
+  .code-note {
+    margin-top: 14px;
+    padding: 8px 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .code-note strong { color: var(--text); }
 </style>
 <script>
+  /* ── legacy 2-state toggle (still used by ABI 2025 A, 2023 C) ── */
   function toggleDiagram(btn) {
     var wrap  = btn.closest('.diag-toggle-wrap');
     var img   = wrap.querySelector('img');
@@ -563,6 +634,39 @@
       pill.className = 'pill pill-y';
       pill.textContent = 'Vorlage';
       btn.textContent = 'Musterlösung anzeigen';
+    }
+  }
+
+  /* ── 3-tab toggle: Vorlage | Musterlösung | Code-Skizze ── */
+  function selectDiagTab(btn, tab) {
+    var wrap    = btn.closest('.diag-toggle-wrap');
+    var img     = wrap.querySelector('.diag-toggle-img-wrap img');
+    var label   = wrap.querySelector('.diag-label-text');
+    var pill    = wrap.querySelector('.pill');
+    var overlay = wrap.querySelector('.diag-code-overlay');
+    wrap.querySelectorAll('.diag-tab-btn').forEach(function(t) {
+      t.classList.remove('tab-vor', 'tab-sol', 'tab-code');
+    });
+    if (tab === 'vor') {
+      btn.classList.add('tab-vor');
+      img.src = wrap.dataset.vorSrc; img.alt = wrap.dataset.vorAlt;
+      label.textContent = wrap.dataset.vorLabel;
+      pill.className = 'pill pill-y'; pill.textContent = 'Vorlage';
+      img.style.visibility = 'visible';
+      if (overlay) overlay.classList.remove('active');
+    } else if (tab === 'sol') {
+      btn.classList.add('tab-sol');
+      img.src = wrap.dataset.solSrc; img.alt = wrap.dataset.solAlt;
+      label.textContent = wrap.dataset.solLabel;
+      pill.className = 'pill pill-g'; pill.textContent = '✓ Musterlösung';
+      img.style.visibility = 'visible';
+      if (overlay) overlay.classList.remove('active');
+    } else if (tab === 'code') {
+      btn.classList.add('tab-code');
+      label.textContent = 'Code-Skizze';
+      pill.className = 'pill pill-p'; pill.textContent = '{ } Code-Skizze';
+      img.style.visibility = 'hidden';  /* keep height, overlay sits on top */
+      if (overlay) overlay.classList.add('active');
     }
   }
 </script>
@@ -1323,29 +1427,85 @@
         Die Methode <code>bearbeiteAuftrag(von : Adresse, nach : Adresse)</code> der Klasse TaxiZentrale sucht nach freien Taxis, die sich zur angefragten Zeit am nächsten an der Startadresse befinden. Für die ermittelten Taxis wird beim Fahrer angefragt, ob er bereit ist für die Annahme des Auftrags. Signalisiert der Fahrer seine Bereitschaft, wird der Auftrag an ihn vergeben. Konnte ein Taxi ermittelt werden, gibt die Methode <code>true</code> zurück, ansonsten <code>false</code>.
       </div>
 
-      <h3><span class="h3-num">8.3.2</span> Besonderheit: Teilweise vorgefertigte Vorlage</h3>
+      <!-- ── Code-Skizze Variante ── -->
+      <h3><span class="h3-num">8.3.2</span> Variante: Code-Skizze vor dem Zeichnen</h3>
+
+      <div class="note purple">
+        <strong>Idee:</strong> Bevor du das Sequenzdiagramm zeichnest, schreibst du die Methode zunächst als explizite Code-Skizze in einer C#/Python-Fusion auf. Das klingt nach mehr Arbeit — aber es trennt die zwei schwierigen Teilaufgaben: erst <em>denken</em> (was macht die Methode?), dann <em>zeichnen</em> (wie sieht das im Diagramm aus?). So machst du beides einzeln, statt beides gleichzeitig.
+      </div>
+
+      <div class="rule-card purple">
+        <div class="rule-title">Warum hilft das?</div>
+        <div class="rule-body">
+          Beim direkten Zeichnen passiert das: Mitten im Diagramm merkst du, dass du ein Fragment vergessen hast oder ein Objekt fehlt — und fängst von vorne an. Mit der Code-Skizze liest du das Diagramm quasi direkt vom Code ab. Du weißt genau: wie viele Fragmente, welche Selbstaufrufe, welche Rückgabewerte. <strong>Weniger Fehler, kein Neuanfang.</strong>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-title">Voraussetzung</div>
+        <div class="rule-body">
+          Diese Variante setzt voraus, dass du Grundkenntnisse in OOP und C# oder Python hast — also zumindest weißt, was eine Schleife, eine Bedingung und ein Methodenaufruf sind. Wer kurz vor dem Abitur steht, hat das normalerweise. Wer die Logik der Implementierung nicht herleiten kann, wird auch mit der Code-Skizze nicht weiter kommen.
+        </div>
+      </div>
+
+      <div class="rule-card green">
+        <div class="rule-title">Die Regeln der Code-Skizze</div>
+        <div class="rule-body">
+          <strong>1. Explizit, keine Verschachtelung:</strong> Methodenaufrufe dürfen <em>nicht</em> geschachtelt werden. Statt <code>if (taxi.getFahrer().isReady())</code> schreibst du immer zwei separate Zeilen — eine für den Aufruf, eine für das Ergebnis. Jeder Pfeil im Diagramm entspricht genau einer Code-Zeile.<br><br>
+          <strong>2. Unterstrich = Selbstaufruf:</strong> Ein führender Unterstrich (<code>_methode()</code>) markiert, dass dies ein Selbstaufruf ist (TaxiZentrale → TaxiZentrale). So vergisst du ihn beim Zeichnen nicht.<br><br>
+          <strong>3. Tabs → Fragment-Tiefe:</strong> Die Einrückungstiefe verrät direkt, wie viele offene Fragmente an dieser Stelle aktiv sind. 1 Tab = innerhalb 1 Fragments, 2 Tabs = innerhalb 2 geschachtelter Fragmente usw.<br><br>
+          <strong>4. break ≠ Schleifenende:</strong> Wenn die Musterlösung zwei Abbruchbedingungen für eine Schleife verwendet (<em>für jedes taxi</em> + <em>Auftrag nicht vergeben</em>), notiert man das im Code trotzdem als normales <code>break</code> — im Diagramm wird es dann als kombinierte Schleifenbedingung eingetragen.
+        </div>
+      </div>
+
+      <div class="note tip">
+        <strong>Herleitung für diese Aufgabe:</strong> Aus der Aufgabenbeschreibung + Klassendiagramm lässt sich der Ablauf vollständig ableiten: Die Methode bekommt eine sortierte Taxiliste per Selbstaufruf, iteriert darüber, fragt jeden Fahrer per Selbstaufruf an und vergibt bei Bereitschaft per Selbstaufruf den Auftrag. Jeder dieser Schritte steht direkt im Aufgabentext. Den Tab "Code-Skizze" unten zeigt den fertig abgeleiteten Code.
+      </div>
+
+      <h3><span class="h3-num">8.3.3</span> Besonderheit: Teilweise vorgefertigte Vorlage</h3>
 
       <div class="note warn">
         <strong>Bereits vorgefertigter Schritt:</strong> Die Vorlage für diese Aufgabe enthielt bereits den Selbstaufruf <code>TaxiZentrale → TaxiZentrale: getTaxiSortiertNachStandort(von)</code> inklusive Rückgabepfeil <code>{ taxiListe }</code> als vorgezeichneten Bestandteil. Dieser Schritt war gegeben — du musstest ihn nicht selbst erfinden, nur fortsetzen. Das ist ein gutes Beispiel dafür, wie eine Vorlage dir schon einen Teil der Lösung verrät.
       </div>
 
-      <div class="diag-toggle-wrap">
+      <div class="diag-toggle-wrap"
+        data-vor-src="img/seq-11-vorlage-2023b.png" data-vor-alt="Vorlage ABI 2023 B" data-vor-label="Gegebene Vorlage (mit vorgez. Selbstaufruf)"
+        data-sol-src="img/seq-12-loesung-2023b.png" data-sol-alt="Musterlösung ABI 2023 B" data-sol-label="ABI 2023 B — bearbeiteAuftrag()">
         <div class="diag-toggle-head">
           <div class="diag-toggle-label">
             <span class="pill pill-y">Vorlage</span>
             <span class="diag-label-text">Gegebene Vorlage (mit vorgez. Selbstaufruf)</span>
           </div>
-          <button class="diag-toggle-btn"
-            data-vor-src="img/seq-11-vorlage-2023b.png" data-vor-alt="Vorlage ABI 2023 B" data-vor-label="Gegebene Vorlage (mit vorgez. Selbstaufruf)"
-            data-sol-src="img/seq-12-loesung-2023b.png" data-sol-alt="Musterlösung ABI 2023 B" data-sol-label="ABI 2023 B — bearbeiteAuftrag()"
-            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
+          <div class="diag-tab-group">
+            <button class="diag-tab-btn tab-vor" onclick="selectDiagTab(this,'vor')">Vorlage</button>
+            <button class="diag-tab-btn" onclick="selectDiagTab(this,'sol')">Musterlösung</button>
+            <button class="diag-tab-btn" onclick="selectDiagTab(this,'code')">Code-Skizze</button>
+          </div>
         </div>
         <div class="diag-toggle-img-wrap">
           <img src="img/seq-11-vorlage-2023b.png" alt="Vorlage ABI 2023 B">
+          <div class="diag-code-overlay"><pre><span class="code-type">bool</span> <span class="code-fn">bearbeiteAuftrag</span>(von, nach):
+    <span class="code-comment">// Schritt 1: Selbstaufruf, bereits in Vorlage vorgegeben</span>
+    <span class="code-kw">var</span> taxiListe = <span class="code-self">_getTaxiSortiertNachStandort</span>(von)
+    
+    <span class="code-kw">foreach</span> (<span class="code-kw">var</span> taxi <span class="code-kw">in</span> taxiListe): <span class="code-comment">// loop: für jedes taxi (+ Auftrag nicht vergeben)</span>
+    <span class="code-comment">1 Tab → innerhalb 1 Fragments (loop)</span>
+        <span class="code-kw">var</span> f  = taxi.<span class="code-fn">getFahrer</span>()
+        <span class="code-kw">var</span> ok = <span class="code-self">_anfragenBereitschaft</span>(f, von, nach)  <span class="code-comment">// Selbstaufruf → { ok }</span>
+        <span class="code-kw">if</span> (ok == <span class="code-val">true</span>): <span class="code-comment">// opt: ok = true → 2 Tabs = 2 Fragmente (loop + opt)</span>
+            <span class="code-self">_vergebeAuftrag</span>(f, von, nach) <span class="code-comment">// void-Selbstaufruf</span>
+            <span class="code-kw">break</span> <span class="code-comment">// ≙ 2. Schleifenbedingung "Auftrag nicht vergeben"</span>
+
+    <span class="code-ret">return</span> ok</pre>
+<div class="code-note">
+  <strong>Tabs → Fragment-Tiefe lesen:</strong>
+  1 Tab = innerhalb <code>loop</code> · 2 Tabs = innerhalb <code>loop</code> + <code>opt</code><br>
+  <strong>Unterstrich</strong> = Selbstaufruf (TaxiZentrale → TaxiZentrale)<br>
+  Das <code>break</code> wird im Diagramm nicht explizit gezeichnet — es steckt in der kombinierten Schleifenbedingung <em>„für jedes taxi aus taxis und Auftrag nicht vergeben"</em>
+</div></div>
         </div>
       </div>
 
-      <h3><span class="h3-num">8.3.3</span> Aufschlüsselung der Lösung</h3>
+      <h3><span class="h3-num">8.3.4</span> Aufschlüsselung der Lösung</h3>
       <div class="rule-card">
         <div class="rule-title">Vorgabe: getTaxiSortiertNachStandort(von)</div>
         <div class="rule-body">Dieser Selbstaufruf war bereits auf der Vorlage eingezeichnet — du übernimmst ihn unverändert und baust ab dort weiter.</div>
@@ -1388,19 +1548,48 @@
         <strong>Starke Schachtelung:</strong> Diese Aufgabe hat mehrere Ebenen von Fragmenten: <code>opt ok = true</code> (äußere Ebene, ob Verbindung aufgebaut) → <code>opt antwort = "+OK..."</code> (ob Anmeldung erfolgreich) → <code>loop daten &lt;&gt; "quit"</code> (Überweisungsschleife). Das ist das komplexeste Beispiel der letzten Jahre — eine gute Übungsaufgabe.
       </div>
 
-      <div class="diag-toggle-wrap">
+      <div class="diag-toggle-wrap"
+        data-vor-src="img/seq-13-vorlage-2022b.png" data-vor-alt="Vorlage ABI 2022 B Client" data-vor-label="Gegebene Vorlage"
+        data-sol-src="img/seq-14-loesung-2022b.png" data-sol-alt="Musterlösung ABI 2022 B Client" data-sol-label="ABI 2022 B — start()">
         <div class="diag-toggle-head">
           <div class="diag-toggle-label">
             <span class="pill pill-y">Vorlage</span>
             <span class="diag-label-text">Gegebene Vorlage</span>
           </div>
-          <button class="diag-toggle-btn"
-            data-vor-src="img/seq-13-vorlage-2022b.png" data-vor-alt="Vorlage ABI 2022 B Client" data-vor-label="Gegebene Vorlage"
-            data-sol-src="img/seq-14-loesung-2022b.png" data-sol-alt="Musterlösung ABI 2022 B Client" data-sol-label="ABI 2022 B — start()"
-            onclick="toggleDiagram(this)">Musterlösung anzeigen</button>
+          <div class="diag-tab-group">
+            <button class="diag-tab-btn tab-vor" onclick="selectDiagTab(this,'vor')">Vorlage</button>
+            <button class="diag-tab-btn" onclick="selectDiagTab(this,'sol')">Musterlösung</button>
+            <button class="diag-tab-btn" onclick="selectDiagTab(this,'code')">Code-Skizze</button>
+          </div>
         </div>
         <div class="diag-toggle-img-wrap">
           <img src="img/seq-13-vorlage-2022b.png" alt="Vorlage ABI 2022 B Client">
+    <div class="diag-code-overlay"><pre><span class="code-type">void</span> <span class="code-fn">start</span>():
+    <span class="code-comment">// socket bereits durch «create» in der Vorlage erstellt</span>
+    <span class="code-type">Socket</span> socket = <span class="code-kw">new</span>(hostname, port)
+
+    <span class="code-kw">var</span> ok = socket.<span class="code-fn">connect</span>()
+    <span class="code-kw">if</span> (ok == <span class="code-val">true</span>): <span class="code-comment">// normalerweise "if (socket.connect())" aber hier trennen!</span>
+        <span class="code-kw">var</span> antwort = socket.<span class="code-fn">readLine</span>() <span class="code-comment">// { "+OK E-Banking" }</span>
+        <span class="code-kw">var</span> daten = <span class="code-self">_getAnmeldeDaten</span>()
+        socket.<span class="code-fn">write</span>(daten + <span class="code-str">"\n"</span>)
+        <span class="code-kw">var</span> antwort = socket.<span class="code-fn">readLine</span>()
+        <span class="code-kw">if</span> (antwort.<span class="code-fn">startsWith</span>(<span class="code-str">"+OK"</span>)):
+            <span class="code-kw">var</span> daten = <span class="code-self">_getUeberweisungsDaten</span>()
+            <span class="code-kw">while</span> (daten != <span class="code-str">"quit"</span>):
+                socket.<span class="code-fn">write</span>(daten + <span class="code-str">"\n"</span>)
+                <span class="code-kw">var</span> kontostand = socket.<span class="code-fn">readLine</span>()
+                <span class="code-kw">var</span> ergebnis = socket.<span class="code-fn">readLine</span>()
+                <span class="code-kw">var</span> daten = <span class="code-self">_getUeberweisungsDaten</span>()
+        socket.<span class="code-fn">write</span>(<span class="code-str">"quit\n"</span>)
+        socket.<span class="code-fn">close</span>()
+
+    <span class="code-comment">// Lebenslinie endet mit × (bereits in Vorlage)</span></pre>
+<div class="code-note">
+  <strong>Tabs → Fragment-Tiefe:</strong>
+  1 Tab = innerhalb <code>opt ok</code> · 2 Tabs = innerhalb <code>opt ok</code> + <code>opt antwort</code> · 3 Tabs = innerhalb aller drei Fragmente<br>
+  <strong>Unterstrich</strong> = Selbstaufruf (EBClient → EBClient) · <strong>close()</strong> und <strong>write("quit\n")</strong> liegen innerhalb von <code>opt ok</code>, aber außerhalb von <code>opt antwort</code> und <code>loop</code>
+</div></div>
         </div>
       </div>
 

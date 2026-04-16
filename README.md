@@ -16,13 +16,15 @@
 
 <p align="center" id="download">
   <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-win.zip">
-    <img src="https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge" alt="Download für Windows">
+    <img src="https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge"
+    alt="Download für Windows">
   </a>
   <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-linux.zip">
-    <img src="https://img.shields.io/badge/Download-Linux-orange?style=for-the-badge&logo=linux" alt="Download für Linux">
+    <img src="https://img.shields.io/badge/Download-Linux-cc8400?style=for-the-badge&logo=linux" alt="Download für Linux">
   </a>
   <a href="https://github.com/OnlyCook/abitur-elite-code/releases/latest/download/AbiturEliteCode-mac.zip">
-    <img src="https://img.shields.io/badge/Download-macOS-black?style=for-the-badge&logo=apple" alt="Download für macOS">
+    <img src="https://img.shields.io/badge/Download-macOS-black?style=for-the-badge&logo=apple"
+    alt="Download für macOS">
   </a>
 </p>
 
@@ -107,7 +109,7 @@ Sollte das Auto-Update fehlschlagen (z.B. wegen fehlender Berechtigungen), öffn
 </h3>
 
 Auf Linux und macOS ist die Update-Benachrichtigung ebenfalls aktiv. Wenn du auf "App aktualisieren" klickst, öffnet sich ein Pop-Up-Dialog welcher die neueste Version durch einen Browser herunterladen kann.  
-> Aufgrund von Betriebssystem-Restriktionen gibt es hier **keinen** direkten Auto-Installer.
+> Aufgrund von Betriebssystem-Einschränkungen gibt es hier **keinen** direkten Auto-Installer.
 
 1. Lade die neue Version herunter und entpacke sie.
 2. Du kannst die alte App/den alten Ordner löschen und stattdessen die neue Version an einen beliebigen Ort verschieben.
