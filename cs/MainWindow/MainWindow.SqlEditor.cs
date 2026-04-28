@@ -120,6 +120,12 @@ public partial class MainWindow
 
     private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
     {
+        if (_isTutorialMode)
+        {
+            e.Handled = true;
+            return;
+        }
+
         // escape key to clear suggestions
         if (e.Key == Key.Escape && _sqlAutocompleteService.HasSuggestion)
         {

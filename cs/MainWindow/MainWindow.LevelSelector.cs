@@ -253,6 +253,13 @@ public partial class MainWindow
                             var lvl = sqlLevels.FirstOrDefault(l => l.SkipCode == code);
                             if (lvl != null)
                             {
+                                // actually unlock the level (permanently)
+                                if (!playerData.UnlockedSqlLevelIds.Contains(lvl.Id))
+                                {
+                                    playerData.UnlockedSqlLevelIds.Add(lvl.Id);
+                                    SaveSystem.Save(playerData);
+                                }
+
                                 LoadSqlLevel(lvl);
                                 win.Close();
                             }
@@ -262,6 +269,13 @@ public partial class MainWindow
                             var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
                             if (lvl != null)
                             {
+                                // actually unlock the level (permanently)
+                                if (!playerData.UnlockedLevelIds.Contains(lvl.Id))
+                                {
+                                    playerData.UnlockedLevelIds.Add(lvl.Id);
+                                    SaveSystem.Save(playerData);
+                                }
+
                                 LoadLevel(lvl);
                                 win.Close();
                             }
@@ -1133,6 +1147,7 @@ public partial class MainWindow
         }
 
         CodeEditor.Text = rawCode;
+        CodeEditor.CaretOffset = 0; // reset caret pos
 
         // reset uml zoom
         if (!_isSqlMode && !level.NoUMLAutoScale)
@@ -2060,6 +2075,8 @@ public partial class MainWindow
             else
                 SqlQueryEditor.Text = "";
         }
+
+        SqlQueryEditor.CaretOffset = 0; // reset caret
 
         PnlSqlOutput.Children.Clear();
 

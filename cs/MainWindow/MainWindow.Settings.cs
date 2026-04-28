@@ -688,6 +688,10 @@ public partial class MainWindow
         {
             if (_isSqlMode) AppSettings.IsSqlVimEnabled = chkVim.IsChecked ?? false;
             else AppSettings.IsVimEnabled = chkVim.IsChecked ?? false;
+
+            if (chkVim.IsChecked == true)
+                _vimMode = VimMode.Normal;
+
             UpdateVimState();
             CheckChanges();
         };

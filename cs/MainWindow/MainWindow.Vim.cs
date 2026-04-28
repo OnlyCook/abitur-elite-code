@@ -720,6 +720,10 @@ public partial class MainWindow
             SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
             if (TutorialEditor != null) TutorialEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
 
+            CodeEditor.TextArea.TextView.Redraw();
+            SqlQueryEditor.TextArea.TextView.Redraw();
+            if (TutorialEditor != null) TutorialEditor.TextArea.TextView.Redraw();
+
             return;
         }
 

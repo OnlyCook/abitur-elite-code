@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 public class PlayerSettings
@@ -74,15 +75,48 @@ public static class SaveSystem
         // then existing appdata save
         if (File.Exists(AppDataPath)) return AppDataPath;
 
-        // if none on both -> prioritize local save
-        if (CanWriteToRoot()) return RootPath;
+        // if no save file exists, determine default behavior
+        bool shouldBePortable = false;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try
+            {
+                // check if running from usb stick
+                string driveLetter = Path.GetPathRoot(rootFolder);
+                var driveInfo = new DriveInfo(driveLetter);
+                if (driveInfo.DriveType == DriveType.Removable)
+                    shouldBePortable = true;
+
+                // check if domain joined (highly likely a school/managed computer)
+                if (Environment.UserDomainName != Environment.MachineName)
+                    shouldBePortable = true;
+            }
+            catch { }
+        }
+
+        // test appdata write access (catches locked down school pcs)
+        bool canWriteAppData = false;
+        try
+        {
+            if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+            string testFile = Path.Combine(appDataFolder, ".permtest");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+            canWriteAppData = true;
+        }
+        catch { }
+
+        if (!canWriteAppData) shouldBePortable = true;
+
+        if (shouldBePortable && CanWriteToRoot()) return RootPath;
 
         return AppDataPath; // fallback appdata
     }
 
     public static bool IsPortableModeEnabled()
     {
-        return File.Exists(RootPath);
+        return GetActivePath() == RootPath;
     }
 
     public static bool CanWriteToRoot()

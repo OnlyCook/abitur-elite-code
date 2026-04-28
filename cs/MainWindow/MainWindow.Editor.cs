@@ -156,6 +156,12 @@ public partial class MainWindow
 
     private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
     {
+        if (_isTutorialMode)
+        {
+            e.Handled = true;
+            return;
+        }
+
         // escape key to clear suggestions
         if (e.Key == Key.Escape && _csharpAutocompleteService.HasSuggestion)
         {

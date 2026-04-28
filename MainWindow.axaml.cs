@@ -369,6 +369,23 @@ public partial class MainWindow : Window
         // global shortcuts
         AddHandler(KeyDownEvent, (s, e) =>
         {
+            // level navigation
+            if (e.Key == Key.Enter)
+            {
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && BtnPrevLevel.IsVisible && BtnPrevLevel.IsEnabled)
+                {
+                    BtnPrevLevel_Click(this, new RoutedEventArgs());
+                    e.Handled = true;
+                    return;
+                }
+                else if (e.KeyModifiers.HasFlag(KeyModifiers.Alt) && BtnNextLevel.IsVisible && BtnNextLevel.IsEnabled)
+                {
+                    BtnNextLevel_Click(this, new RoutedEventArgs());
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // global ui scaling via ctrl +/- (only outside of editors)
             if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
             {
@@ -728,6 +745,8 @@ public partial class MainWindow : Window
 
         // update tooltips
         ToolTip.SetTip(BtnSave, $"{(_isSqlMode ? "Query" : "Code")} speichern ({ctrlKey} + S)");
+        ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
+        ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
 
         if (BtnSettings.Parent is Panel parentPanel)
         {
