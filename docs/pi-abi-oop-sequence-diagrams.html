@@ -1488,7 +1488,7 @@
     <span class="code-kw">var</span> taxiListe = <span class="code-self">_getTaxiSortiertNachStandort</span>(von)
     
     <span class="code-kw">foreach</span> (<span class="code-kw">var</span> taxi <span class="code-kw">in</span> taxiListe): <span class="code-comment">// loop: für jedes taxi (+ Auftrag nicht vergeben)</span>
-    <span class="code-comment">1 Tab → innerhalb 1 Fragments (loop)</span>
+        <span class="code-comment">1 Tab → innerhalb 1 Fragments (loop)</span>
         <span class="code-kw">var</span> f  = taxi.<span class="code-fn">getFahrer</span>()
         <span class="code-kw">var</span> ok = <span class="code-self">_anfragenBereitschaft</span>(f, von, nach)  <span class="code-comment">// Selbstaufruf → { ok }</span>
         <span class="code-kw">if</span> (ok == <span class="code-val">true</span>): <span class="code-comment">// opt: ok = true → 2 Tabs = 2 Fragmente (loop + opt)</span>

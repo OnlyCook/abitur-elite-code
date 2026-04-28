@@ -83,7 +83,7 @@ Abitur Elite Code bietet eine strukturierte Lernumgebung nach dem Vorbild von Le
 
 ## Update-Anleitung
 
-Abitur Elite Code bietet eine integrierte Update-Funktion, die dich visuell benachrichtigt, sobald eine neue Version verfügbar ist (zu finden in den Einstellungen unter `Updates`).
+Abitur Elite Code bietet eine integrierte Update-Funktion, die dich visuell benachrichtigt (roter Punkt am Zahnrad), sobald eine neue Version verfügbar ist (zu finden in den Einstellungen unter `Updates`).
 
 <h3>
   <img src="docs/github-images/ic_windows.svg" alt="Windows Icon" width="24" height="24">
