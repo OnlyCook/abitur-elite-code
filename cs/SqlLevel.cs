@@ -104,6 +104,8 @@ public static class SqlAuxiliaryImplementations
 
 public static class SqlCurriculum
 {
+    public static int GetLevelCount() => SqlLevelCodes.CodesList.Length - 1;
+
     public static List<SqlLevel> GetLevels()
     {
         // randomize target bid for level 35 (prevent hardcoded exploiting)

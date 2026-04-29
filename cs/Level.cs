@@ -434,6 +434,8 @@ public static class AuxiliaryImplementations
 
 public static class Curriculum
 {
+    public static int GetLevelCount() => LevelCodes.CodesList.Length - 1;
+
     public static List<Level> GetLevels()
     {
         string listDocsHints =
@@ -511,7 +513,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                               "1. Ergänzen Sie einen Getter [GetAlter()] und einen Setter [SetAlter(int neuesAlter)].\n" +
                               "2. Der Setter darf das Alter nur ändern, wenn der neue Wert größer als der alte ist.\n" +
                               "3. Der Getter gibt den aktuellen Wert des Alters zurück.",
-                StarterCode = "public class Tier\n{\n    private int alter = 5;\n    \n    // Implementation hier\n}",
+                StarterCode = "public class Tier\n{\n    private int alter;\n    \n    // Implementation hier\n}",
                 MaterialDocs = "start-hint: Namenskonventionen\n" +
                                "In C# ist es üblich, Methoden mit einem großen Anfangsbuchstaben (PascalCase) zu schreiben (z. B. [GetAlter()]). Wir empfehlen diese Schreibweise, unterstützen in dieser App jedoch auch die Java-typische Kleinschreibung (camelCase), wie zum Beispiel [getAlter()], um den Übergang zu erleichtern.\n" +
                                ":end-hint\n" +

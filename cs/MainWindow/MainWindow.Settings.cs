@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using AbiturEliteCode.cs.MainWindow;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -530,7 +531,7 @@ public partial class MainWindow
         {
             var confirmDialog = new Window
             {
-                Title = "Reset",
+                Title = "Zurücksetzen?",
                 Width = 350,
                 Height = 150,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -538,6 +539,7 @@ public partial class MainWindow
                 Background = SolidColorBrush.Parse("#252526"),
                 CornerRadius = new CornerRadius(8)
             };
+            confirmDialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) confirmDialog.Close(); };
 
             var cGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
             cGrid.Children.Add(new TextBlock
@@ -936,7 +938,7 @@ public partial class MainWindow
         // btnSave click uses the Action
         btnSave.Click += (s, ev) => performSave();
 
-        closeBtn.Click += async (s, ev) =>
+        Func<Task> attemptClose = async () =>
         {
             if (btnSave.IsEnabled)
             {
@@ -950,6 +952,7 @@ public partial class MainWindow
                     Background = SolidColorBrush.Parse("#252526"),
                     CornerRadius = new CornerRadius(8)
                 };
+                unsavedDialog.KeyDown += (senderEx, evEx) => { if (evEx.Key == Key.Escape) unsavedDialog.Close(); };
 
                 var dGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
                 dGrid.Children.Add(new TextBlock
@@ -962,24 +965,32 @@ public partial class MainWindow
 
                 var dBtnPanel = new StackPanel
                 {
-                    Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10,
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 10,
                     Margin = new Thickness(0, 15, 0, 0)
                 };
                 Grid.SetRow(dBtnPanel, 1);
 
                 var btnSaveClose = new Button
                 {
-                    Content = "Speichern", Background = SolidColorBrush.Parse("#32A852"), Foreground = Brushes.White,
+                    Content = "Speichern",
+                    Background = SolidColorBrush.Parse("#32A852"),
+                    Foreground = Brushes.White,
                     CornerRadius = new CornerRadius(4)
                 };
                 var btnDiscard = new Button
                 {
-                    Content = "Verwerfen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White,
+                    Content = "Verwerfen",
+                    Background = SolidColorBrush.Parse("#B43232"),
+                    Foreground = Brushes.White,
                     CornerRadius = new CornerRadius(4)
                 };
                 var btnCancel = new Button
                 {
-                    Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White,
+                    Content = "Abbrechen",
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
                     CornerRadius = new CornerRadius(4)
                 };
 
@@ -1010,6 +1021,17 @@ public partial class MainWindow
             else
             {
                 settingsWin.Close();
+            }
+        };
+
+        closeBtn.Click += async (s, ev) => await attemptClose();
+
+        settingsWin.KeyDown += async (s, ev) =>
+        {
+            if (ev.Key == Key.Escape)
+            {
+                ev.Handled = true;
+                await attemptClose();
             }
         };
 
@@ -1059,6 +1081,7 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         var mainGrid = new Grid
         {

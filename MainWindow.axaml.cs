@@ -115,6 +115,7 @@ public partial class MainWindow : Window
     private SemanticClassHighlightingTransformer _semanticClassTransformer;
     private readonly DispatcherTimer _spoilerActiveTimer;
     private bool _spoilerDelayMet;
+    private readonly DispatcherTimer _tabTipDisplayTimer;
 
     private readonly DispatcherTimer _spoilerDelayTimer;
     private AutocompleteGhostGenerator _sqlAutocompleteGenerator;
@@ -287,6 +288,16 @@ public partial class MainWindow : Window
         {
             _relationalTipDisplayTimer.Stop();
             PnlRelationalTip.IsVisible = false;
+        };
+
+        _tabTipDisplayTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(5)
+        };
+        _tabTipDisplayTimer.Tick += (s, e) =>
+        {
+            _tabTipDisplayTimer.Stop();
+            PnlTabTip.IsVisible = false;
         };
 
         BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
@@ -690,13 +701,27 @@ public partial class MainWindow : Window
         playerData.Settings.TabTipShownCount++;
         SaveSystem.Save(playerData);
 
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        timer.Tick += (s, e) =>
-        {
-            PnlTabTip.IsVisible = false;
-            timer.Stop();
-        };
-        timer.Start();
+        _tabTipDisplayTimer.Start();
+    }
+
+    private void PnlTabTip_PointerEntered(object sender, PointerEventArgs e)
+    {
+        _tabTipDisplayTimer.Stop();
+    }
+
+    private void PnlTabTip_PointerExited(object sender, PointerEventArgs e)
+    {
+        _tabTipDisplayTimer.Start();
+    }
+
+    private void PnlRelationalTip_PointerEntered(object sender, PointerEventArgs e)
+    {
+        _relationalTipDisplayTimer.Stop();
+    }
+
+    private void PnlRelationalTip_PointerExited(object sender, PointerEventArgs e)
+    {
+        _relationalTipDisplayTimer.Start();
     }
 
     private List<MetadataReference> GetSafeReferences()
@@ -738,6 +763,25 @@ public partial class MainWindow : Window
         return references;
     }
 
+    private void UpdateNavigationButtonTooltips()
+    {
+        ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
+        if (_isSqlMode)
+        {
+            if (currentSqlLevel != null && currentSqlLevel.Id == SqlCurriculum.GetLevelCount())
+                ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+            else
+                ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+        }
+        else
+        {
+            if (currentLevel != null && currentLevel.Id == Curriculum.GetLevelCount())
+                ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+            else
+                ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+        }
+    }
+
     private void UpdateShortcutsAndTooltips()
     {
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
@@ -745,8 +789,6 @@ public partial class MainWindow : Window
 
         // update tooltips
         ToolTip.SetTip(BtnSave, $"{(_isSqlMode ? "Query" : "Code")} speichern ({ctrlKey} + S)");
-        ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
-        ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
 
         if (BtnSettings.Parent is Panel parentPanel)
         {
@@ -2093,6 +2135,17 @@ public partial class MainWindow : Window
 
             if (nextLvl != null)
             {
+                // check if we are switching sections
+                if (nextLvl.Section != levelContext.Section)
+                {
+                    AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?\n", Brushes.LightGreen);
+                    BtnNextLevel.Content = "NÄCHSTE SEKTION →";
+                }
+                else
+                {
+                    BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                }
+
                 // unlock the next level
                 if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
                 {
@@ -2101,17 +2154,6 @@ public partial class MainWindow : Window
                 }
 
                 AddToConsole($"Nächstes Level Code: {nextLvl.SkipCode}\n", Brushes.LightGray);
-
-                // check if we are switching sections
-                if (nextLvl.Section != levelContext.Section)
-                {
-                    AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?", Brushes.LightGreen);
-                    BtnNextLevel.Content = "NÄCHSTE SEKTION →";
-                }
-                else
-                {
-                    BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                }
 
                 BtnNextLevel.IsEnabled = true;
             }
@@ -2240,6 +2282,8 @@ public partial class MainWindow : Window
             BtnNextLevel.Content = "→";
             BtnNextLevel.IsEnabled = nextIsUnlocked;
         }
+
+        UpdateNavigationButtonTooltips();
     }
 
     private void BtnPrevLevel_Click(object sender, RoutedEventArgs e)
@@ -2330,7 +2374,7 @@ public partial class MainWindow : Window
     {
         var dialog = new Window
         {
-            Title = "Kurs Abgeschlossen",
+            Title = "C# Kurs Abgeschlossen",
             Width = 500,
             Height = 380,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -2338,6 +2382,7 @@ public partial class MainWindow : Window
             Background = SolidColorBrush.Parse("#202124"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
         var rootBorder = new Border
         {
             BorderBrush = Brushes.Transparent,
@@ -2422,6 +2467,7 @@ public partial class MainWindow : Window
             Background = SolidColorBrush.Parse("#202124"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
         var rootBorder = new Border
         {
             BorderBrush = Brushes.Transparent,
@@ -2516,6 +2562,7 @@ public partial class MainWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
         var rootGrid = new Grid
         {
             RowDefinitions = new RowDefinitions("*, Auto"),
@@ -2768,6 +2815,7 @@ public partial class MainWindow : Window
             Background = SolidColorBrush.Parse("#202124"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         var rootStack = new StackPanel
             { Spacing = 20, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
@@ -2857,12 +2905,6 @@ public partial class MainWindow : Window
 
             if (nextLvl != null)
             {
-                if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
-                {
-                    playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
-                    AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
-                }
-
                 if (nextLvl.Section != currentSqlLevel.Section)
                 {
                     AddSqlOutput("System", "🎉 Sektion abgeschlossen!", Brushes.LightGreen);
@@ -2871,6 +2913,12 @@ public partial class MainWindow : Window
                 else
                 {
                     BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                }
+
+                if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
+                {
+                    playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
+                    AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
                 }
             }
             else
@@ -3372,6 +3420,7 @@ public partial class MainWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         string msg = status switch
         {

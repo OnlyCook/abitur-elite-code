@@ -43,6 +43,7 @@ public partial class MainWindow
             Background = BrushBgPanel,
             SystemDecorations = SystemDecorations.BorderOnly
         };
+        win.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) win.Close(); };
 
         var root = new Border
         {
@@ -1385,6 +1386,7 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         var rootGrid = new Grid
         {
@@ -1748,6 +1750,7 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         var grid = new Grid
         {
