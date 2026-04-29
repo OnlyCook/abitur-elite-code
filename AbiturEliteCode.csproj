@@ -29,6 +29,7 @@
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.3" />
 	<!-- linux stuff -->
 	<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
+	<PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
   </ItemGroup>
 
 	<ItemGroup>
