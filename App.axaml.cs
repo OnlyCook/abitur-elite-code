@@ -17,7 +17,20 @@ namespace AbiturEliteCode
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+
+                var splash = new SplashWindow();
+                desktop.MainWindow = splash;
+
+                splash.Opened += async (s, e) =>
+                {
+                    await splash.AnimateProgressAsync();
+
+                    var mainWindow = new MainWindow();
+                    desktop.MainWindow = mainWindow;
+                    mainWindow.Show();
+                    splash.Close();
+                };
             }
 
             base.OnFrameworkInitializationCompleted();

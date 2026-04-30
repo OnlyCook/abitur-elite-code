@@ -623,6 +623,21 @@ public partial class MainWindow : Window
         Closed += (s, e) => DiscordRpcManager.Deinitialize();
     }
 
+    protected override void OnClosing(Avalonia.Controls.WindowClosingEventArgs e)
+    {
+        // save current progress before closing the app
+        if (_isDesignerMode)
+        {
+            SaveDesignerDraft();
+        }
+        else
+        {
+            SaveCurrentProgress();
+        }
+
+        base.OnClosing(e);
+    }
+
     private TextEditor ActiveEditor => _isTutorialMode ? TutorialEditor : _isSqlMode ? SqlQueryEditor : CodeEditor;
 
     private void UpdateTabStyles()

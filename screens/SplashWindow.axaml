@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AbiturEliteCode.SplashWindow"
+        Width="400" Height="200"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Title="Abitur Elite Code"
+        RequestedThemeVariant="Dark">
+
+    <Border Background="#121212" CornerRadius="8" ClipToBounds="True">
+        <Grid RowDefinitions="*, Auto, *" Margin="30">
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="24" />
+                <TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="24" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="wird geladen..." Foreground="Gray" FontSize="14"
+                       HorizontalAlignment="Center" Margin="0,20,0,10" />
+
+            <ProgressBar x:Name="LoadingBar" Grid.Row="2" Height="4"
+                         Minimum="0" Maximum="100" Value="0"
+                         Foreground="#32A852" Background="#202124"
+                         HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+        </Grid>
+    </Border>
+</Window>
