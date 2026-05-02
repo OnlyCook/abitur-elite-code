@@ -2,30 +2,40 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
 public class PlayerSettings
 {
-    public bool IsVimEnabled { get; set; }
-    public bool IsSqlVimEnabled { get; set; }
-    public bool IsSyntaxHighlightingEnabled { get; set; }
-    public bool IsSqlSyntaxHighlightingEnabled { get; set; }
-    public bool IsAutocompleteEnabled { get; set; }
-    public bool IsSqlAutocompleteEnabled { get; set; }
-    public double EditorFontSize { get; set; } = 16.0;
-    public double SqlEditorFontSize { get; set; } = 16.0;
-    public double UiScale { get; set; } = 1.0;
-    public int TabTipShownCount { get; set; }
-    public int VimTutorialHighscore { get; set; }
-    public bool AutoCheckForUpdates { get; set; } = true;
-    public bool IsSqlAntiSpoilerEnabled { get; set; }
-    public double LastScreenWidth { get; set; }
-    public double LastScreenHeight { get; set; }
-    public bool SqlSpoilerHintDismissed { get; set; }
-    public double SqlSpoilerHintTotalSeconds { get; set; }
-    public bool RelationalModelTipShown { get; set; }
-    public bool IsDiscordRpcEnabled { get; set; }
+    // --- Editor ---
+    [SettingKey("vim")] public bool IsVimEnabled { get; set; }
+    [SettingKey("sqlvim")] public bool IsSqlVimEnabled { get; set; }
+    [SettingKey("syntax")] public bool IsSyntaxHighlightingEnabled { get; set; }
+    [SettingKey("sqlsyntax")] public bool IsSqlSyntaxHighlightingEnabled { get; set; }
+    [SettingKey("autocomplete")] public bool IsAutocompleteEnabled { get; set; }
+    [SettingKey("sqlautocomplete")] public bool IsSqlAutocompleteEnabled { get; set; }
+    [SettingKey("fontsize")] public double EditorFontSize { get; set; } = 16.0;
+    [SettingKey("sqlfontsize")] public double SqlEditorFontSize { get; set; } = 16.0;
+
+    // --- Darstellung ---
+    [SettingKey("scale")] public double UiScale { get; set; } = 1.0;
+
+    // --- Updates ---
+    [SettingKey("autoupdate")] public bool AutoCheckForUpdates { get; set; } = true;
+
+    // --- Sonstiges ---
+    [SettingKey("sqlantispoiler")] public bool IsSqlAntiSpoilerEnabled { get; set; }
+    [SettingKey("discordrpc")] public bool IsDiscordRpcEnabled { get; set; }
+
+    // internal game state (not settings)
+    [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
+    [SettingKey("vimscore")] public int VimTutorialHighscore { get; set; }
+    [SettingKey("lastscreenwidth")] public double LastScreenWidth { get; set; }
+    [SettingKey("lastscreenheight")] public double LastScreenHeight { get; set; }
+    [SettingKey("sqlspoilerdismissed")] public bool SqlSpoilerHintDismissed { get; set; }
+    [SettingKey("sqlspoilertime")] public double SqlSpoilerHintTotalSeconds { get; set; }
+    [SettingKey("relationaltip")] public bool RelationalModelTipShown { get; set; }
 }
 
 public class PlayerData
@@ -157,6 +167,45 @@ public static class SaveSystem
         }
     }
 
+    private static string SerializeSettings(PlayerSettings s)
+    {
+        var parts = new List<string>();
+        foreach (var prop in typeof(PlayerSettings).GetProperties())
+        {
+            var attr = prop.GetCustomAttribute<SettingKeyAttribute>();
+            if (attr == null) continue;
+            parts.Add($"{attr.Key}:{prop.GetValue(s)}");
+        }
+        return string.Join(";", parts);
+    }
+
+    private static void DeserializeSettings(PlayerSettings s, string raw)
+    {
+        var lookup = typeof(PlayerSettings).GetProperties()
+            .Select(p => (prop: p, attr: p.GetCustomAttribute<SettingKeyAttribute>()))
+            .Where(x => x.attr != null)
+            .ToDictionary(x => x.attr.Key, x => x.prop);
+
+        foreach (var part in raw.Split(';'))
+        {
+            var kv = part.Split(':');
+            if (kv.Length != 2) continue;
+            if (!lookup.TryGetValue(kv[0], out var prop)) continue;
+
+            try
+            {
+                object value;
+                if (prop.PropertyType == typeof(bool)) value = bool.Parse(kv[1]);
+                else if (prop.PropertyType == typeof(int)) value = int.Parse(kv[1]);
+                else if (prop.PropertyType == typeof(double)) value = double.Parse(kv[1]);
+                else value = kv[1];
+
+                prop.SetValue(s, value);
+            }
+            catch { }
+        }
+    }
+
     public static void Save(PlayerData data, string forcePath = null)
     {
         string targetPath = forcePath ?? GetActivePath();
@@ -168,8 +217,8 @@ public static class SaveSystem
         string completed = string.Join(",", data.CompletedLevelIds);
         string codes = string.Join(";",
             data.UserCode.Select(k => $"{k.Key}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}"));
-        string settings =
-            $"vim:{data.Settings.IsVimEnabled};sqlvim:{data.Settings.IsSqlVimEnabled};syntax:{data.Settings.IsSyntaxHighlightingEnabled};sqlsyntax:{data.Settings.IsSqlSyntaxHighlightingEnabled};autocomplete:{data.Settings.IsAutocompleteEnabled};sqlautocomplete:{data.Settings.IsSqlAutocompleteEnabled};fontsize:{data.Settings.EditorFontSize};sqlfontsize:{data.Settings.SqlEditorFontSize};scale:{data.Settings.UiScale};tabtips:{data.Settings.TabTipShownCount};vimscore:{data.Settings.VimTutorialHighscore};autoupdate:{data.Settings.AutoCheckForUpdates};sqlantispoiler:{data.Settings.IsSqlAntiSpoilerEnabled};lastscreenwidth:{data.Settings.LastScreenWidth};lastscreenheight:{data.Settings.LastScreenHeight};sqlspoilerdismissed:{data.Settings.SqlSpoilerHintDismissed};sqlspoilertime:{data.Settings.SqlSpoilerHintTotalSeconds};relationaltip:{data.Settings.RelationalModelTipShown};discordrpc:{data.Settings.IsDiscordRpcEnabled}";
+
+        string settings = SerializeSettings(data.Settings);
 
         string sqlUnlocked = string.Join(",", data.UnlockedSqlLevelIds);
         string sqlCompleted = string.Join(",", data.CompletedSqlLevelIds);
@@ -214,37 +263,7 @@ public static class SaveSystem
                 data.CompletedLevelIds = parts[2].Split(',').Select(int.Parse).ToList();
 
             if (parts.Length > 3 && !string.IsNullOrEmpty(parts[3]))
-            {
-                var settingsParts = parts[3].Split(';');
-                foreach (var s in settingsParts)
-                {
-                    var kv = s.Split(':');
-                    if (kv.Length != 2) continue;
-
-                    switch (kv[0])
-                    {
-                        case "vim": data.Settings.IsVimEnabled = bool.Parse(kv[1]); break;
-                        case "sqlvim": data.Settings.IsSqlVimEnabled = bool.Parse(kv[1]); break;
-                        case "syntax": data.Settings.IsSyntaxHighlightingEnabled = bool.Parse(kv[1]); break;
-                        case "sqlsyntax": data.Settings.IsSqlSyntaxHighlightingEnabled = bool.Parse(kv[1]); break;
-                        case "sqlautocomplete": data.Settings.IsSqlAutocompleteEnabled = bool.Parse(kv[1]); break;
-                        case "autocomplete": data.Settings.IsAutocompleteEnabled = bool.Parse(kv[1]); break;
-                        case "fontsize": data.Settings.EditorFontSize = double.Parse(kv[1]); break;
-                        case "sqlfontsize": data.Settings.SqlEditorFontSize = double.Parse(kv[1]); break;
-                        case "scale": data.Settings.UiScale = double.Parse(kv[1]); break;
-                        case "tabtips": data.Settings.TabTipShownCount = int.Parse(kv[1]); break;
-                        case "vimscore": data.Settings.VimTutorialHighscore = int.Parse(kv[1]); break;
-                        case "autoupdate": data.Settings.AutoCheckForUpdates = bool.Parse(kv[1]); break;
-                        case "sqlantispoiler": data.Settings.IsSqlAntiSpoilerEnabled = bool.Parse(kv[1]); break;
-                        case "lastscreenwidth": data.Settings.LastScreenWidth = double.Parse(kv[1]); break;
-                        case "lastscreenheight": data.Settings.LastScreenHeight = double.Parse(kv[1]); break;
-                        case "sqlspoilerdismissed": data.Settings.SqlSpoilerHintDismissed = bool.Parse(kv[1]); break;
-                        case "sqlspoilertime": data.Settings.SqlSpoilerHintTotalSeconds = double.Parse(kv[1]); break;
-                        case "relationaltip": data.Settings.RelationalModelTipShown = bool.Parse(kv[1]); break;
-                        case "discordrpc": data.Settings.IsDiscordRpcEnabled = bool.Parse(kv[1]); break;
-                    }
-                }
-            }
+                DeserializeSettings(data.Settings, parts[3]);
 
             if (parts.Length > 4 && !string.IsNullOrEmpty(parts[4]))
                 data.UnlockedSqlLevelIds = parts[4].Split(',').Select(int.Parse).ToList();

@@ -1,19 +1,77 @@
-﻿namespace AbiturEliteCode.cs.MainWindow;
+﻿using System.Collections.Generic;
+using System.Reflection;
+
+namespace AbiturEliteCode.cs.MainWindow;
 
 public static class AppSettings
 {
-    public static bool IsVimEnabled { get; set; }
-    public static bool IsSqlVimEnabled { get; set; }
-    public static bool IsSyntaxHighlightingEnabled { get; set; }
-    public static bool IsSqlSyntaxHighlightingEnabled { get; set; }
-    public static double EditorFontSize { get; set; } = 16.0;
-    public static double SqlEditorFontSize { get; set; } = 16.0;
-    public static double UiScale { get; set; } = 1.0;
-    public static bool IsAutocompleteEnabled { get; set; }
-    public static bool IsSqlAutocompleteEnabled { get; set; }
+    // --- Editor ---
+    [SettingKey("vim")] public static bool IsVimEnabled { get; set; }
+    [SettingKey("sqlvim")] public static bool IsSqlVimEnabled { get; set; }
+    [SettingKey("syntax")] public static bool IsSyntaxHighlightingEnabled { get; set; }
+    [SettingKey("sqlsyntax")] public static bool IsSqlSyntaxHighlightingEnabled { get; set; }
+    [SettingKey("fontsize")] public static double EditorFontSize { get; set; } = 16.0;
+    [SettingKey("sqlfontsize")] public static double SqlEditorFontSize { get; set; } = 16.0;
+    [SettingKey("autocomplete")] public static bool IsAutocompleteEnabled { get; set; }
+    [SettingKey("sqlautocomplete")] public static bool IsSqlAutocompleteEnabled { get; set; }
+
     public static bool IsErrorHighlightingEnabled { get; set; }
     public static bool IsErrorExplanationEnabled { get; set; }
-    public static bool AutoCheckForUpdates { get; set; } = true;
-    public static bool IsSqlAntiSpoilerEnabled { get; set; }
-    public static bool IsDiscordRpcEnabled { get; set; }
+
+    // --- Darstellung ---
+    [SettingKey("scale")] public static double UiScale { get; set; } = 1.0;
+
+    // --- Updates ---
+    [SettingKey("autoupdate")] public static bool AutoCheckForUpdates { get; set; } = true;
+
+    // --- Sonstiges ---
+    [SettingKey("sqlantispoiler")] public static bool IsSqlAntiSpoilerEnabled { get; set; }
+    [SettingKey("discordrpc")] public static bool IsDiscordRpcEnabled { get; set; }
+
+    // ---
+
+    public static Dictionary<string, object> TakeSnapshot()
+    {
+        var snap = new Dictionary<string, object>();
+        foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+            snap[prop.Name] = prop.GetValue(null);
+        return snap;
+    }
+
+    public static bool HasChangedFrom(Dictionary<string, object> snapshot)
+    {
+        foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (!snapshot.TryGetValue(prop.Name, out var original)) continue;
+            if (!Equals(original, prop.GetValue(null))) return true;
+        }
+        return false;
+    }
+
+    public static void RestoreSnapshot(Dictionary<string, object> snapshot)
+    {
+        foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+            if (snapshot.TryGetValue(prop.Name, out var value))
+                prop.SetValue(null, value);
+    }
+
+    public static void LoadFrom(PlayerSettings source)
+    {
+        var sourceType = typeof(PlayerSettings);
+        foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            var match = sourceType.GetProperty(prop.Name);
+            if (match != null) prop.SetValue(null, match.GetValue(source));
+        }
+    }
+
+    public static void ApplyTo(PlayerSettings target)
+    {
+        var targetType = typeof(PlayerSettings);
+        foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            var match = targetType.GetProperty(prop.Name);
+            if (match != null && match.CanWrite) match.SetValue(target, prop.GetValue(null));
+        }
+    }
 }

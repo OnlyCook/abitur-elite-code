@@ -14,22 +14,9 @@ public partial class MainWindow
 {
     private void BtnSettings_Click(object sender, RoutedEventArgs e)
     {
-        bool originalVimEnabled = AppSettings.IsVimEnabled;
-        bool originalSqlVimEnabled = AppSettings.IsSqlVimEnabled;
-        bool originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
-        bool originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
-        bool originalAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
-        bool originalSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
-        bool originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
-        bool originalErrorExplanation = AppSettings.IsErrorExplanationEnabled;
-        double originalEditorFontSize = AppSettings.EditorFontSize;
-        double originalSqlFontSize = AppSettings.SqlEditorFontSize;
-        double originalUiScale = AppSettings.UiScale;
-        bool originalAutoUpdateEnabled = AppSettings.AutoCheckForUpdates;
+        var snapshot = AppSettings.TakeSnapshot();
         bool isPortable = SaveSystem.IsPortableModeEnabled();
         bool originalPortableState = isPortable;
-        bool originalSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
-        bool originalDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
 
         var settingsWin = new Window
         {
@@ -504,23 +491,7 @@ public partial class MainWindow
 
         void CheckChanges()
         {
-            bool hasChanges =
-                (!_isSqlMode && chkVim.IsChecked != originalVimEnabled) ||
-                (_isSqlMode && chkVim.IsChecked != originalSqlVimEnabled) ||
-                (!_isSqlMode && chkSyntax.IsChecked != originalSyntaxEnabled) ||
-                (_isSqlMode && chkSyntax.IsChecked != originalSqlSyntaxEnabled) ||
-                (!_isSqlMode && chkAutocomplete.IsChecked != originalAutocompleteEnabled) ||
-                (_isSqlMode && chkAutocomplete.IsChecked != originalSqlAutocompleteEnabled) ||
-                chkError.IsChecked != originalErrorEnabled ||
-                chkErrorExplain.IsChecked != originalErrorExplanation ||
-                Math.Abs(sliderFontSize.Value - originalEditorFontSize) > 0.004 ||
-                Math.Abs(sliderSqlFontSize.Value - originalSqlFontSize) > 0.004 ||
-                chkPortable.IsChecked != isPortable ||
-                chkAutoUpdate.IsChecked != originalAutoUpdateEnabled ||
-                chkSqlAntiSpoiler.IsChecked != originalSqlAntiSpoilerEnabled ||
-                chkDiscordRpc.IsChecked != originalDiscordRpcEnabled ||
-                Math.Abs(sliderScale.Value - originalUiScale) > 0.004;
-
+            bool hasChanges = AppSettings.HasChangedFrom(snapshot) || chkPortable.IsChecked != isPortable;
             btnSave.IsEnabled = hasChanges;
             btnSave.Opacity = hasChanges ? 1.0 : 0.5;
             btnSave.Background = hasChanges ? SolidColorBrush.Parse("#32A852") : SolidColorBrush.Parse("#464646");
@@ -551,7 +522,11 @@ public partial class MainWindow
             });
 
             var cBtnPanel = new StackPanel
-                { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10 };
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10
+            };
             Grid.SetRow(cBtnPanel, 1);
 
             var btnYes = new Button
@@ -627,7 +602,7 @@ public partial class MainWindow
 
         chkError.IsCheckedChanged += async (s, ev) =>
         {
-            if (chkError.IsChecked == true && !originalErrorEnabled)
+            if (chkError.IsChecked == true && !AppSettings.IsErrorHighlightingEnabled)
                 await ShowWarningDialog(
                     "Error-Hervorhebung",
                     "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
@@ -655,7 +630,7 @@ public partial class MainWindow
 
         chkErrorExplain.IsCheckedChanged += async (s, ev) =>
         {
-            if (chkErrorExplain.IsChecked == true && !originalErrorExplanation)
+            if (chkErrorExplain.IsChecked == true && !AppSettings.IsErrorExplanationEnabled)
                 await ShowWarningDialog(
                     "Error-Erklärungen",
                     "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung. Nutze dies nur, wenn du absolut nicht weiterkommst."
@@ -867,18 +842,7 @@ public partial class MainWindow
         // save logic
         Action performSave = () =>
         {
-            playerData.Settings.IsVimEnabled = AppSettings.IsVimEnabled;
-            playerData.Settings.IsSqlVimEnabled = AppSettings.IsSqlVimEnabled;
-            playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
-            playerData.Settings.IsSqlSyntaxHighlightingEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
-            playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
-            playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
-            playerData.Settings.EditorFontSize = AppSettings.EditorFontSize;
-            playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
-            playerData.Settings.UiScale = AppSettings.UiScale;
-            playerData.Settings.AutoCheckForUpdates = AppSettings.AutoCheckForUpdates;
-            playerData.Settings.IsSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
-            playerData.Settings.IsDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
+            AppSettings.ApplyTo(playerData.Settings);
 
             if (AppSettings.IsDiscordRpcEnabled)
             {
@@ -915,21 +879,7 @@ public partial class MainWindow
                     AddToConsole($"\n> Fehler beim Ändern des Speicherorts: {ex.Message}", Brushes.Red);
                 }
 
-            // update original state references (allow subsequent saves)
-            originalVimEnabled = AppSettings.IsVimEnabled;
-            originalSqlVimEnabled = AppSettings.IsSqlVimEnabled;
-            originalSyntaxEnabled = AppSettings.IsSyntaxHighlightingEnabled;
-            originalSqlSyntaxEnabled = AppSettings.IsSqlSyntaxHighlightingEnabled;
-            originalAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
-            originalSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
-            originalErrorEnabled = AppSettings.IsErrorHighlightingEnabled;
-            originalErrorExplanation = AppSettings.IsErrorExplanationEnabled;
-            originalEditorFontSize = AppSettings.EditorFontSize;
-            originalSqlFontSize = AppSettings.SqlEditorFontSize;
-            originalUiScale = AppSettings.UiScale;
-            originalAutoUpdateEnabled = AppSettings.AutoCheckForUpdates;
-            originalSqlAntiSpoilerEnabled = AppSettings.IsSqlAntiSpoilerEnabled;
-            originalDiscordRpcEnabled = AppSettings.IsDiscordRpcEnabled;
+            snapshot = AppSettings.TakeSnapshot();
 
             btnSave.IsEnabled = false;
             btnSave.Opacity = 0.5;
@@ -1040,22 +990,9 @@ public partial class MainWindow
         {
             if (btnSave.IsEnabled)
             {
-                AppSettings.IsVimEnabled = originalVimEnabled;
-                AppSettings.IsSqlVimEnabled = originalSqlVimEnabled;
-                AppSettings.IsSyntaxHighlightingEnabled = originalSyntaxEnabled;
-                AppSettings.IsSqlSyntaxHighlightingEnabled = originalSqlSyntaxEnabled;
-                AppSettings.IsAutocompleteEnabled = originalAutocompleteEnabled;
-                AppSettings.IsSqlAutocompleteEnabled = originalSqlAutocompleteEnabled;
-                AppSettings.IsErrorHighlightingEnabled = originalErrorEnabled;
-                AppSettings.IsErrorExplanationEnabled = originalErrorExplanation;
-                AppSettings.EditorFontSize = originalEditorFontSize;
-                AppSettings.SqlEditorFontSize = originalSqlFontSize;
-                CodeEditor.FontSize = originalEditorFontSize;
-                SqlQueryEditor.FontSize = originalSqlFontSize;
-                AppSettings.UiScale = originalUiScale;
-                AppSettings.AutoCheckForUpdates = originalAutoUpdateEnabled;
-                AppSettings.IsSqlAntiSpoilerEnabled = originalSqlAntiSpoilerEnabled;
-                AppSettings.IsDiscordRpcEnabled = originalDiscordRpcEnabled;
+                AppSettings.RestoreSnapshot(snapshot);
+                CodeEditor.FontSize = AppSettings.EditorFontSize;
+                SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
 
                 UpdateVimState();
                 ApplySyntaxHighlighting();
