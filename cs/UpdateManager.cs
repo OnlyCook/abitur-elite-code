@@ -19,7 +19,7 @@ public static class UpdateManager
         NetworkError
     }
 
-    public const string CurrentVersion = "0.8.2";
+    public const string CurrentVersion = "0.9.0";
     private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases/latest";
 
     public static async Task<(bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()

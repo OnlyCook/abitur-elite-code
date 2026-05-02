@@ -1326,7 +1326,7 @@ public partial class MainWindow
         _vimMode = VimMode.Normal;
     }
 
-    private enum VimMode
+    public enum VimMode
     {
         Normal,
         Insert,

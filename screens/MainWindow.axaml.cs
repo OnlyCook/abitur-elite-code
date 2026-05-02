@@ -1,21 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using AbiturEliteCode.cs.MainWindow;
+using AbiturEliteCode.screens;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -36,6 +21,22 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Data;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Timer = System.Timers.Timer;
 
 namespace AbiturEliteCode;
@@ -826,16 +827,75 @@ public partial class MainWindow : Window
                 if (i > 0) TxtConsole.Inlines.Add(new LineBreak());
 
                 if (!string.IsNullOrEmpty(lines[i]))
-                    TxtConsole.Inlines.Add(new Run
-                    {
-                        Text = lines[i],
-                        Foreground = color,
-                        FontFamily = new FontFamily(MonospaceFontFamily)
-                    });
+                {
+                    // parse and replace emojis with inline images
+                    ProcessTextWithEmojis(lines[i], color, TxtConsole.Inlines);
+                }
             }
 
             ConsoleScroller?.ScrollToEnd();
         });
+    }
+
+    private void ProcessTextWithEmojis(string text, IBrush color, InlineCollection inlines)
+    {
+        var emojiMap = new Dictionary<string, string>
+        {
+            { "✓", "em_success.svg" },
+            { "🎉", "em_celebrate.svg" },
+            { "🔓", "em_unlock.svg" },
+            { "❌", "em_error.svg" },
+            { "⚠", "em_warning.svg" }
+        };
+
+        string currentText = text;
+
+        while (currentText.Length > 0)
+        {
+            int firstEmojiIndex = -1;
+            string foundEmoji = null;
+
+            foreach (var emoji in emojiMap.Keys)
+            {
+                int idx = currentText.IndexOf(emoji);
+                if (idx != -1 && (firstEmojiIndex == -1 || idx < firstEmojiIndex))
+                {
+                    firstEmojiIndex = idx;
+                    foundEmoji = emoji;
+                }
+            }
+
+            if (firstEmojiIndex == -1)
+            {
+                inlines.Add(new Run
+                {
+                    Text = currentText,
+                    Foreground = color,
+                    FontFamily = new FontFamily(MonospaceFontFamily)
+                });
+                break;
+            }
+
+            if (firstEmojiIndex > 0)
+            {
+                inlines.Add(new Run
+                {
+                    Text = currentText.Substring(0, firstEmojiIndex),
+                    Foreground = color,
+                    FontFamily = new FontFamily(MonospaceFontFamily)
+                });
+            }
+
+            var image = LoadIcon($"assets/emojis/{emojiMap[foundEmoji]}", 14);
+            if (image != null)
+            {
+                // slightly adjust margin to align with text baseline
+                image.Margin = new Thickness(0, 0, 4, -2);
+                inlines.Add(new InlineUIContainer { Child = image });
+            }
+
+            currentText = currentText.Substring(firstEmojiIndex + foundEmoji.Length);
+        }
     }
 
     private void SaveCurrentProgress()
@@ -2175,7 +2235,7 @@ public partial class MainWindow : Window
             else
             {
                 // no next level -> course completed
-                AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", Brushes.LightGreen);
+                AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", SolidColorBrush.Parse("#FFD700"));
                 BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                 BtnNextLevel.IsEnabled = true;
                 BtnNextLevel.Opacity = 1.0;
@@ -2417,7 +2477,7 @@ public partial class MainWindow : Window
                 Text = "🎉 Herzlichen Glückwunsch! 🎉",
                 FontSize = 22,
                 FontWeight = FontWeight.Bold,
-                Foreground = BrushTextTitle,
+                Foreground = SolidColorBrush.Parse("#6495ED"),
                 HorizontalAlignment = HorizontalAlignment.Center
             }
         );
@@ -2450,8 +2510,8 @@ public partial class MainWindow : Window
         var btnClose = new Button
         {
             Content = "Schließen",
-            Background = BrushTextTitle,
-            Foreground = Brushes.White,
+            Background = SolidColorBrush.Parse("#6495ED"),
+            Foreground = Brushes.Black,
             FontWeight = FontWeight.Bold,
             FontSize = 14,
             Padding = new Thickness(30, 10),
@@ -2554,6 +2614,50 @@ public partial class MainWindow : Window
         dialog.Content = rootBorder;
 
         await dialog.ShowDialog(this);
+    }
+
+    private async void BtnSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var ctx = new SettingsWindowContext
+        {
+            IsSqlMode = _isSqlMode,
+            IsTutorialMode = _isTutorialMode,
+            IsDesignerMode = _isDesignerMode,
+            UpdateAvailable = _updateAvailable,
+            LatestVersion = _latestVersion,
+            UpdateDownloadUrl = _updateDownloadUrl,
+
+            PlayerData = playerData,
+            CurrentLevelId = currentLevel?.Id,
+            CurrentSqlLevelId = currentSqlLevel?.Id,
+
+            CodeEditor = CodeEditor,
+            SqlQueryEditor = SqlQueryEditor,
+            TutorialEditor = TutorialEditor,
+
+            LoadIcon = LoadIcon,
+            ApplyUiScale = ApplyUiScale,
+            ApplySyntaxHighlighting = ApplySyntaxHighlighting,
+            ApplySqlSyntaxHighlighting = ApplySqlSyntaxHighlighting,
+            UpdateVimState = UpdateVimState,
+            ClearDiagnostics = ClearDiagnostics,
+            UpdateDiagnostics = UpdateDiagnostics,
+            AddToConsole = (text, brush) => AddToConsole(text, brush),
+            SetVimMode = mode => _vimMode = mode,
+            ShowUpdateBadge = () => BadgeSettings.IsVisible = true,
+            ShowManualUpdateDialog = (status, url, owner) => ShowManualUpdateDialog(status, url, owner),
+
+            ScanSqlTokens = text => _sqlAutocompleteService?.ScanTokens(text),
+            ClearSqlSuggestion = () => _sqlAutocompleteService?.ClearSuggestion(),
+            ScanCsharpTokens = text => _csharpAutocompleteService?.ScanTokens(text),
+            ClearCsharpSuggestion = () => _csharpAutocompleteService?.ClearSuggestion()
+        };
+
+        await new SettingsWindow(ctx).ShowDialog(this);
+
+        _updateAvailable = ctx.UpdateAvailable;
+        _latestVersion = ctx.LatestVersion;
+        _updateDownloadUrl = ctx.UpdateDownloadUrl;
     }
 
     private async void BtnReset_Click(object sender, RoutedEventArgs e)

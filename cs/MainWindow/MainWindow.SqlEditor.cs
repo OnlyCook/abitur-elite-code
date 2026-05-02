@@ -430,7 +430,7 @@ public partial class MainWindow
                 Text = author,
                 FontWeight = FontWeight.Bold,
                 Foreground = Brushes.Gray,
-                FontSize = 10
+                FontSize = 11
             });
             PnlSqlOutput.Children.Add(targetContainer);
         }
@@ -471,14 +471,14 @@ public partial class MainWindow
         {
             var content = new SelectableTextBlock
             {
-                Text = text,
                 Foreground = color,
                 FontFamily = FontFamily.Default,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 5)
             };
 
-            // append button with tooltip if applicable
+            ProcessTextWithEmojis(text, color, content.Inlines);
+
             if (expectedTable != null && _consecutiveSqlFails >= 3 &&
                 text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
             {

@@ -68,4 +68,8 @@
 	<ItemGroup>
 		<AvaloniaResource Include="assets\imgsql\**" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="assets\emojis\**\*.svg" />
+	</ItemGroup>
 </Project>
