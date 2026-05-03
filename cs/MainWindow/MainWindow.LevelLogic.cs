@@ -34,189 +34,44 @@ public partial class MainWindow
         if (_isSqlMode && sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
         levels ??= Curriculum.GetLevels();
 
-        var win = new Window
-        {
-            Title = "Level Wählen",
-            Width = 450,
-            Height = 700,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = BrushBgPanel,
-            SystemDecorations = SystemDecorations.BorderOnly
-        };
-        win.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) win.Close(); };
-
-        var root = new Border
-        {
-            CornerRadius = new CornerRadius(8),
-            Background = BrushBgPanel,
-            BorderBrush = Brushes.Transparent,
-            BorderThickness = new Thickness(1)
-        };
-
-        var mainGrid = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto, *, Auto"),
-            Margin = new Thickness(15)
-        };
-
-        // header
-        var headerGrid = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto"),
-            Margin = new Thickness(0, 0, 0, 15)
-        };
-
-        // title
-        var titleStack = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var txtTitle = new TextBlock
-        {
-            Text = _isSqlMode ? "SQL Levels" : "C# Levels",
-            FontSize = 20,
-            FontWeight = FontWeight.Bold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        titleStack.Children.Add(txtTitle);
-
-        // badge level counter
-        var countBadge = new Border
-        {
-            Background = SolidColorBrush.Parse("#2D2D30"),
-            CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(10, 5),
-            VerticalAlignment = VerticalAlignment.Center,
-            IsVisible = true,
-            Child = new TextBlock
-            {
-                Name = "BadgeText",
-                Text = "",
-                Foreground = BrushTextTitle,
-                FontWeight = FontWeight.Bold,
-                FontSize = 14
-            }
-        };
-        titleStack.Children.Add(countBadge);
-
-        headerGrid.Children.Add(titleStack);
-
-        // search / code input container
-        var searchContainer = new Border
-        {
-            Margin = new Thickness(15, 0)
-        };
-        Grid.SetColumn(searchContainer, 1);
-        headerGrid.Children.Add(searchContainer);
-
-        // right header panel
-        var headerRightPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 10
-        };
-        Grid.SetColumn(headerRightPanel, 2);
-        headerGrid.Children.Add(headerRightPanel);
-
-        // body and footer
-        var contentScroll = new ScrollViewer
-        {
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        };
-        var footerPanel = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*, Auto")
-        };
-
-        mainGrid.Children.Add(headerGrid);
-        Grid.SetRow(contentScroll, 1);
-        mainGrid.Children.Add(contentScroll);
-        Grid.SetRow(footerPanel, 2);
-        mainGrid.Children.Add(footerPanel);
-
-        root.Child = mainGrid;
-        win.Content = root;
-
+        var win = new LevelSelector();
         bool isCustomMode = false;
+
+        // bind static footer buttons
+        win.BtnClose.Click += (_, __) => win.Close();
+        win.BtnToggleMode.Click += (_, __) =>
+        {
+            isCustomMode = !isCustomMode;
+            RefreshUI();
+        };
 
         // ui refresh logic
         void RefreshUI()
         {
-            searchContainer.Child = null;
-            headerRightPanel.Children.Clear();
-            contentScroll.Content = null;
-            footerPanel.Children.Clear();
+            win.SearchContainer.Child = null;
+            win.HeaderRightPanel.Children.Clear();
+            win.ContentScroll.Content = null;
 
-            // footer buttons
-            var btnClose = new Button
-            {
-                Content = "Schließen",
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                Padding = new Thickness(15, 10),
-                CornerRadius = new CornerRadius(4),
-                Background = SolidColorBrush.Parse("#3C3C3C"),
-                Foreground = Brushes.White,
-                Margin = new Thickness(10, 15, 0, 0)
-            };
-            btnClose.Click += (_, __) => win.Close();
-
-            // toggle custom levels button
-            var btnToggleMode = new Button
-            {
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        LoadIcon(isCustomMode ? "assets/icons/ic_folder.svg" : "assets/icons/ic_folder_custom.svg", 18),
-                        new TextBlock
-                        {
-                            Text = isCustomMode ? "Standard Levels" : "Eigene Levels",
-                            VerticalAlignment = VerticalAlignment.Center
-                        }
-                    }
-                },
-                Padding = new Thickness(15, 10),
-                CornerRadius = new CornerRadius(4),
-                Background = SolidColorBrush.Parse("#2D2D30"),
-                Foreground = Brushes.White,
-                Margin = new Thickness(0, 15, 10, 0)
-            };
-
-            btnToggleMode.Click += (_, __) =>
-            {
-                isCustomMode = !isCustomMode;
-                RefreshUI();
-            };
-
-            Grid.SetColumn(btnToggleMode, 0);
-            Grid.SetColumn(btnClose, 1);
-            footerPanel.Children.Add(btnToggleMode);
-            footerPanel.Children.Add(btnClose);
+            win.IconToggleMode.Path = isCustomMode ? "/assets/icons/ic_folder.svg" : "/assets/icons/ic_folder_custom.svg";
+            win.TxtToggleMode.Text = isCustomMode ? "Standard Levels" : "Eigene Levels";
 
             if (!isCustomMode)
             {
                 // title and badge
                 if (_isSqlMode)
                 {
-                    txtTitle.Text = "SQL Levels";
+                    win.TxtTitle.Text = "SQL Levels";
                     int completedCount = sqlLevels.Count(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
-                    ((TextBlock)countBadge.Child).Text = $"{completedCount}/{sqlLevels.Count}";
+                    win.BadgeText.Text = $"{completedCount}/{sqlLevels.Count}";
                 }
                 else
                 {
-                    txtTitle.Text = "C# Levels";
+                    win.TxtTitle.Text = "C# Levels";
                     int completedCount = levels.Count(l => playerData.CompletedLevelIds.Contains(l.Id));
-                    ((TextBlock)countBadge.Child).Text = $"{completedCount}/{levels.Count}";
+                    win.BadgeText.Text = $"{completedCount}/{levels.Count}";
                 }
 
-                countBadge.IsVisible = true;
+                win.CountBadge.IsVisible = true;
 
                 // code input field
                 var codePanel = new StackPanel
@@ -297,8 +152,7 @@ public partial class MainWindow
                 {
                     try
                     {
-                        var url =
-                            $"https://github.com/OnlyCook/abitur-elite-code/blob/main/py/LEVEL_CODES.md{(_isSqlMode ? "#sql-levels" : "")}";
+                        var url = $"https://github.com/OnlyCook/abitur-elite-code/blob/main/py/LEVEL_CODES.md{(_isSqlMode ? "#sql-levels" : "")}";
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                             Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
                         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) Process.Start("xdg-open", url);
@@ -310,8 +164,7 @@ public partial class MainWindow
                 };
                 codePanel.Children.Add(btnLevelGuide);
 
-                headerRightPanel.Children.Add(codePanel);
-
+                win.HeaderRightPanel.Children.Add(codePanel);
 
                 // level list
                 var levelStack = new StackPanel { Spacing = 8 };
@@ -475,13 +328,13 @@ public partial class MainWindow
                     }
                 }
 
-                contentScroll.Content = levelStack;
+                win.ContentScroll.Content = levelStack;
             }
             else
             {
                 // custom levels (for now only c#)
-                txtTitle.Text = "Eigene Levels";
-                countBadge.IsVisible = false;
+                win.TxtTitle.Text = "Eigene Levels";
+                win.CountBadge.IsVisible = false;
 
                 var customStack = new StackPanel { Spacing = 5 };
                 var customLevels = GetCustomLevels();
@@ -529,7 +382,7 @@ public partial class MainWindow
                             row.IsVisible = match;
                         }
                 };
-                searchContainer.Child = txtSearch;
+                win.SearchContainer.Child = txtSearch;
 
                 // custom level header buttons
                 var btnOpenFolder = new Button
@@ -541,7 +394,7 @@ public partial class MainWindow
                 };
                 ToolTip.SetTip(btnOpenFolder, "Levels Ordner öffnen");
                 btnOpenFolder.Click += (_, __) => OpenLevelsFolder();
-                headerRightPanel.Children.Add(btnOpenFolder);
+                win.HeaderRightPanel.Children.Add(btnOpenFolder);
 
                 var btnAdd = new Button
                 {
@@ -560,14 +413,13 @@ public partial class MainWindow
                         RefreshUI();
                     }
                 };
-                headerRightPanel.Children.Add(btnAdd);
+                win.HeaderRightPanel.Children.Add(btnAdd);
 
                 if (!customLevels.Any())
                 {
                     customStack.Children.Add(new TextBlock
                     {
-                        Text =
-                            "Keine eigenen Levels gefunden.\nErstelle eins mit '+' oder \nöffne den Ordner und füge Levels hinzu.",
+                        Text = "Keine eigenen Levels gefunden.\nErstelle eins mit '+' oder \nöffne den Ordner und füge Levels hinzu.",
                         Foreground = Brushes.Gray,
                         TextAlignment = TextAlignment.Center,
                         Margin = new Thickness(0, 50, 0, 0)
@@ -1075,7 +927,7 @@ public partial class MainWindow
                     foreach (var cl in rootLevels) customStack.Children.Add(CreateLevelRow(cl));
                 }
 
-                contentScroll.Content = customStack;
+                win.ContentScroll.Content = customStack;
             }
         }
 
