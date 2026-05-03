@@ -161,6 +161,10 @@ public partial class MainWindow : Window
     private readonly PlayerData playerData;
     private List<SqlLevel> sqlLevels;
 
+    // cache
+    private static List<MetadataReference>? _cachedReferences;
+    private readonly Dictionary<string, IImage> _diagramCache = new();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -622,6 +626,28 @@ public partial class MainWindow : Window
         };
 
         Closed += (s, e) => DiscordRpcManager.Deinitialize();
+
+        // warm up roslyn compiler in the background so the first manual run is fast
+        Task.Run(() =>
+        {
+            try
+            {
+                var refs = GetSafeReferences();
+                var warmupTree = CSharpSyntaxTree.ParseText("class Warmup {}");
+                var warmupCompilation = CSharpCompilation.Create(
+                    "Warmup",
+                    new[] { warmupTree },
+                    refs,
+                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                );
+                // force compilation evaluation
+                _ = warmupCompilation.GetDiagnostics();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Compiler warmup failed: {ex.Message}");
+            }
+        });
     }
 
     protected override void OnClosing(Avalonia.Controls.WindowClosingEventArgs e)
@@ -742,6 +768,10 @@ public partial class MainWindow : Window
 
     private List<MetadataReference> GetSafeReferences()
     {
+        // return cached references if they already exist
+        if (_cachedReferences != null)
+            return _cachedReferences;
+
         var references = new List<MetadataReference>();
 
         // list of assemblies needed for compilation
@@ -756,11 +786,15 @@ public partial class MainWindow : Window
         };
 
         foreach (var asm in assemblies.Distinct())
+        {
             try
             {
                 if (!string.IsNullOrEmpty(asm.Location))
+                {
                     references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
                 else
+                {
                     unsafe
                     {
                         if (asm.TryGetRawMetadata(out byte* blob, out int length))
@@ -770,13 +804,17 @@ public partial class MainWindow : Window
                             references.Add(assemblyMetadata.GetReference());
                         }
                     }
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load reference {asm.FullName}: {ex.Message}");
             }
+        }
 
-        return references;
+        // cache for future compilations
+        _cachedReferences = references;
+        return _cachedReferences;
     }
 
     private void UpdateNavigationButtonTooltips()
@@ -991,48 +1029,67 @@ public partial class MainWindow : Window
 
     private IImage LoadDiagramImage(string relativePath)
     {
+        // check cache first to prevent redundant disk I/O
+        if (_diagramCache.TryGetValue(relativePath, out var cachedImage))
+            return cachedImage;
+
+        IImage resultImage = null;
+
         // check if its a full file path (custom levels)
         if (File.Exists(relativePath))
+        {
             try
             {
                 if (relativePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
                 {
                     var svgSource = SvgSource.Load(relativePath);
-                    return new SvgImage { Source = svgSource };
+                    resultImage = new SvgImage { Source = svgSource };
                 }
-
-                return new Bitmap(relativePath);
+                else
+                {
+                    resultImage = new Bitmap(relativePath);
+                }
             }
             catch
             {
                 return null;
             }
-
-        relativePath = relativePath.Replace("\\", "/");
-        string uriString = $"avares://AbiturEliteCode/assets/{relativePath}";
-
-        try
+        }
+        else
         {
-            var uri = new Uri(uriString);
-            if (AssetLoader.Exists(uri))
-            {
-                if (relativePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-                {
-                    var svgSource = SvgSource.Load(uriString);
-                    return new SvgImage { Source = svgSource };
-                }
+            string cleanPath = relativePath.Replace("\\", "/");
+            string uriString = $"avares://AbiturEliteCode/assets/{cleanPath}";
 
-                return new Bitmap(AssetLoader.Open(uri));
+            try
+            {
+                var uri = new Uri(uriString);
+                if (AssetLoader.Exists(uri))
+                {
+                    if (cleanPath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var svgSource = SvgSource.Load(uriString);
+                        resultImage = new SvgImage { Source = svgSource };
+                    }
+                    else
+                    {
+                        resultImage = new Bitmap(AssetLoader.Open(uri));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load asset {uriString}: {ex.Message}");
             }
         }
-        catch (Exception ex)
+
+        // cache the successfully loaded image
+        if (resultImage != null)
         {
-            Debug.WriteLine($"Failed to load asset {uriString}: {ex.Message}");
+            _diagramCache[relativePath] = resultImage;
         }
 
-        return null;
+        return resultImage;
     }
-
 
     private WrapPanel BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql)
     {
