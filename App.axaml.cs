@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,38 +28,42 @@ namespace AbiturEliteCode
 
                 splash.Opened += async (s, e) =>
                 {
-                    await Task.Delay(150); // breathing time for cpu
+                    await Task.Delay(150);
 
-                    // create a token to stop the fake progress when real loading finishes
                     var cts = new CancellationTokenSource();
+                    _ = splash.AnimateFakeProgressAsync(cts.Token);
+                    System.Diagnostics.Debug.WriteLine($"Fake Loading started.. {DateTime.Now}.{DateTime.Now.Millisecond}");
 
-                    // start the stutter-y filler (fake progress)
-                    var fakeProgressTask = splash.AnimateFakeProgressAsync(cts.Token);
+                    // capture results
+                    List<Level> levels = null;
+                    PlayerData playerData = null;
+                    CustomPlayerData customPlayerData = null;
 
-                    // now run the actual heavy initialization in the background
                     var initTask = Task.Run(() =>
                     {
                         PrerequisiteSystem.Initialize();
                         SqlPrerequisiteSystem.Initialize();
-                        Curriculum.GetLevels();
-                        SaveSystem.Load();
-                        SaveSystem.LoadCustom();
+                        levels = Curriculum.GetLevels();
+                        playerData = SaveSystem.Load();
+                        customPlayerData = SaveSystem.LoadCustom();
                     });
 
-                    // wait only for the heavy background loading to finish
                     await initTask;
 
-                    // create mainWindow on the ui thread before finishing progress
-                    var mainWindow = new MainWindow();
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    // pass already loaded data in
+                    var mainWindow = new MainWindow(levels, playerData, customPlayerData, splash);
+                    sw.Stop();
+                    System.Diagnostics.Debug.WriteLine($"new MainWindow() took: {sw.ElapsedMilliseconds}ms");
 
-                    // the real loading (and window creation) is done -> cut the filler
                     cts.Cancel();
+                    System.Diagnostics.Debug.WriteLine($"Fake Loading cancelled.. {DateTime.Now}.{DateTime.Now.Millisecond}");
 
-                    // let the real progress take control from wherever the fake bar ended up
                     await splash.FinishProgressAsync();
 
                     desktop.MainWindow = mainWindow;
                     mainWindow.Show();
+                    System.Diagnostics.Debug.WriteLine($"MainWindow shown.. {DateTime.Now}.{DateTime.Now.Millisecond}");
                     splash.Close();
                 };
             }

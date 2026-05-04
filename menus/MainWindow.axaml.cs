@@ -165,20 +165,31 @@ public partial class MainWindow : Window
     private static List<MetadataReference>? _cachedReferences;
     private readonly Dictionary<string, IImage> _diagramCache = new();
 
-    public MainWindow()
+    private SplashWindow? _splash = null;
+
+    private void LogAddSplash(string str, int val)
     {
+        _splash?.AddLoadingProgress(val);
+        Debug.WriteLine($"{str} {DateTime.Now}.{DateTime.Now.Millisecond}\n\tLoadingBar progress: {_splash?.GetLoadingProgress()}");
+    }
+
+    public MainWindow(List<Level> preloadedLevels, PlayerData preloadedPlayerData, CustomPlayerData preloadedCustomPlayerData, SplashWindow? splash = null)
+    {
+        _splash = splash;
+        LogAddSplash("Enter MainWindow constructor", 3);
+
         InitializeComponent();
+        LogAddSplash("InitializeComponent", 6);
 
-        PrerequisiteSystem.Initialize();
-        SqlPrerequisiteSystem.Initialize();
-
+        // dont reinit (already done through app script)
         var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
         ImgScale = (ScaleTransform)transformGroup.Children[0];
         ImgTranslate = (TranslateTransform)transformGroup.Children[1];
 
-        levels = Curriculum.GetLevels();
-        playerData = SaveSystem.Load();
-        customPlayerData = SaveSystem.LoadCustom();
+        levels = preloadedLevels;
+        playerData = preloadedPlayerData;
+        customPlayerData = preloadedCustomPlayerData;
+        LogAddSplash("Field assign", 2);
 
         AppSettings.IsVimEnabled = playerData.Settings.IsVimEnabled;
         AppSettings.IsSqlVimEnabled = playerData.Settings.IsSqlVimEnabled;
@@ -192,6 +203,7 @@ public partial class MainWindow : Window
         AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
         AppSettings.IsSqlAntiSpoilerEnabled = playerData.Settings.IsSqlAntiSpoilerEnabled;
         AppSettings.IsDiscordRpcEnabled = playerData.Settings.IsDiscordRpcEnabled;
+        LogAddSplash("AppSettings", 1);
 
         // check if display is too small and scale down automatically
         var screen = Screens?.Primary;
@@ -237,6 +249,7 @@ public partial class MainWindow : Window
             Width = 1250;
             Height = 850;
         }
+        LogAddSplash("Screen size", 1);
 
         if (AppSettings.AutoCheckForUpdates) CheckForUpdatesBackground();
 
@@ -252,6 +265,8 @@ public partial class MainWindow : Window
         ConfigureSqlQueryEditor();
         ConfigureTutorialEditor();
         UpdateShortcutsAndTooltips();
+
+        LogAddSplash("Apply settings", 1);
 
         autoSaveTimer = new Timer(2000)
         {
@@ -366,10 +381,12 @@ public partial class MainWindow : Window
         foreach (var margin in CodeEditor.TextArea.LeftMargins)
             if (margin is LineNumberMargin lineMargin)
                 lineMargin.Margin = new Thickness(0, 1, 0, 0);
+        LogAddSplash("Timers/handlers", 1);
 
         int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
         var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
         LoadLevel(startLevel);
+        LogAddSplash("LoadLevel", 2);
 
         Opened += (s, e) =>
         {
@@ -627,7 +644,15 @@ public partial class MainWindow : Window
 
         Closed += (s, e) => DiscordRpcManager.Deinitialize();
 
-        // warm up roslyn compiler in the background so the first manual run is fast
+        WarmupRoslynReferences();
+
+        LogAddSplash("Final handlers", 3);
+        _splash = null; // discard splash reference
+    }
+
+    public void WarmupRoslynReferences()
+    {
+        // warm up roslyn compiler in the background so the first manual run is faster
         Task.Run(() =>
         {
             try
