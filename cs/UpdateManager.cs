@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -22,7 +23,7 @@ public static class UpdateManager
     public const string CurrentVersion = "0.9.0";
     private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases/latest";
 
-    public static async Task<(bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
+    public static async Task<(UpdateStatus Status, bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
     {
         try
         {
@@ -30,7 +31,7 @@ public static class UpdateManager
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");
 
             var response = await client.GetAsync(GithubApiUrl);
-            if (!response.IsSuccessStatusCode) return (false, "", "");
+            if (!response.IsSuccessStatusCode) return (UpdateStatus.NetworkError, false, "", "");
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
@@ -58,15 +59,46 @@ public static class UpdateManager
                                     break;
                                 }
 
-                        return (true, tag, downloadUrl);
+                        return (UpdateStatus.Success, true, tag, downloadUrl);
                     }
+            }
+
+            return (UpdateStatus.Success, false, "", "");
+        }
+        catch
+        {
+            // catch no internet exception
+            return (UpdateStatus.NetworkError, false, "", "");
+        }
+    }
+
+    public static async Task<List<(string Version, string Body)>> GetAllReleasesAsync()
+    {
+        var releases = new List<(string Version, string Body)>();
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");
+
+            var response = await client.GetAsync("https://api.github.com/repos/OnlyCook/abitur-elite-code/releases");
+            if (!response.IsSuccessStatusCode) return releases;
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+
+            foreach (var release in doc.RootElement.EnumerateArray())
+            {
+                string tag = release.GetProperty("tag_name").GetString() ?? "";
+                string body = release.GetProperty("body").GetString() ?? "";
+                releases.Add((tag, body));
             }
         }
         catch
         {
+            // failure (return empty list)
         }
 
-        return (false, "", "");
+        return releases;
     }
 
     public static async Task<UpdateStatus> PerformUpdateAsync(string downloadUrl,

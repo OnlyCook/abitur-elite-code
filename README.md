@@ -130,3 +130,10 @@ Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitu
 **SQL Levels**  
 Die vollständige Dokumentation dazu findest du im [Wiki](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_LEVEL_DESIGNER_GUIDE).
 Wenn du Levels eigenständig mit KI generieren möchtest, hilft dir die [Anleitung zur KI-gestützten Level-Erstellung](https://github.com/OnlyCook/abitur-elite-code/wiki/SQL_AI_LEVEL_CREATION_GUIDE) weiter.
+
+## Kontakt
+
+Hast du einen Bug gefunden oder eine Frage?
+
+- **GitHub Issues** *(empfohlen für Bugs & Fehlerberichte):* [Issue erstellen](https://github.com/OnlyCook/abitur-elite-code/issues/new), falls du dich mit GitHub auskennst.
+- **E-Mail:** [theactualcooker@gmail.com](mailto:theactualcooker@gmail.com), ansonsten kannst du mich auch einfach per E-Mail erreichen.

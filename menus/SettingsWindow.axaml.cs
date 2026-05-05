@@ -1,12 +1,15 @@
-using System;
-using System.Threading.Tasks;
 using AbiturEliteCode.cs.MainWindow;
 using AbiturEliteCode.screens;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace AbiturEliteCode;
 
@@ -39,10 +42,17 @@ public partial class SettingsWindow : Window
     private Button _btnUpdateApp = null!;
     private ProgressBar _updateProgressBar = null!;
 
+    private StackPanel _patchNotesPanel = null!;
+    private List<(string Version, string Body)> _cachedReleases = null!;
+    private int _loadedReleasesCount = 0;
+    private bool _isLoadingReleases = false;
+    private bool _reachedFirstVersion = false;
+
     private StackPanel _editorPanel = null!;
     private StackPanel _displayPanel = null!;
     private StackPanel _dataPanel = null!;
-    private StackPanel _updatesPanel = null!;
+    private Control _updatesPanel = null!;
+    private Button _btnScrollTop = null!;
     private StackPanel _miscPanel = null!;
 
     public SettingsWindow(SettingsWindowContext ctx)
@@ -709,7 +719,14 @@ public partial class SettingsWindow : Window
             _btnCheckUpdate.IsEnabled = false;
 
             var result = await UpdateManager.CheckForUpdatesAsync();
-            if (result.UpdateAvailable)
+
+            // handle network error
+            if (result.Status == UpdateManager.UpdateStatus.NetworkError)
+            {
+                _txtVersionInfo.Text = "Keine Internetverbindung.";
+                _txtVersionInfo.Foreground = Brushes.Red;
+            }
+            else if (result.UpdateAvailable)
             {
                 _ctx.UpdateAvailable = true;
                 _ctx.LatestVersion = result.LatestVersion;
@@ -763,8 +780,9 @@ public partial class SettingsWindow : Window
         actionRow.Children.Add(_btnCheckUpdate);
         actionRow.Children.Add(_btnUpdateApp);
 
-        _updatesPanel = new StackPanel { Spacing = 15 };
-        _updatesPanel.Children.Add(new TextBlock
+        // create inner content panel for updates
+        var innerContentPanel = new StackPanel { Spacing = 15 };
+        innerContentPanel.Children.Add(new TextBlock
         {
             Text = "Updates",
             FontSize = 18,
@@ -772,10 +790,302 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _updatesPanel.Children.Add(_chkAutoUpdate);
-        _updatesPanel.Children.Add(_txtVersionInfo);
-        _updatesPanel.Children.Add(_updateProgressBar);
-        _updatesPanel.Children.Add(actionRow);
+        innerContentPanel.Children.Add(_chkAutoUpdate);
+        innerContentPanel.Children.Add(_txtVersionInfo);
+        innerContentPanel.Children.Add(_updateProgressBar);
+        innerContentPanel.Children.Add(actionRow);
+
+        _patchNotesPanel = new StackPanel { Spacing = 10, Margin = new Thickness(0, 20, 0, 0) };
+        innerContentPanel.Children.Add(_patchNotesPanel);
+
+        var updateScrollViewer = new ScrollViewer
+        {
+            Content = innerContentPanel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
+
+        // scroll to top button
+        _btnScrollTop = new Button
+        {
+            Content = _ctx.LoadIcon("assets/icons/ic_arrow_up.svg", 28),
+            Width = 40,
+            Height = 40,
+            CornerRadius = new CornerRadius(20),
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 15, 25, 0),
+            IsVisible = false
+        };
+
+        _btnScrollTop.Click += (_, _) => updateScrollViewer.Offset = new Vector(0, 0);
+
+        // infinite scrolling / scroll to top
+        updateScrollViewer.ScrollChanged += async (sender, _) =>
+        {
+            var sv = (ScrollViewer)sender!;
+
+            // show button only after scrolling down a good amount
+            _btnScrollTop.IsVisible = sv.Offset.Y > 180;
+
+            // check if scrolled near the bottom (20px threshold)
+            if (sv.Extent.Height > 0 && sv.Viewport.Height + sv.Offset.Y >= sv.Extent.Height - 20)
+            {
+                await LoadMorePatchNotesAsync();
+            }
+        };
+
+        var containerGrid = new Grid();
+        containerGrid.Children.Add(updateScrollViewer);
+        containerGrid.Children.Add(_btnScrollTop);
+
+        _updatesPanel = containerGrid;
+
+        _ = LoadInitialPatchNotesAsync();
+    }
+
+    private async Task LoadInitialPatchNotesAsync()
+    {
+        if (_isLoadingReleases) return;
+        _isLoadingReleases = true;
+
+        try
+        {
+            _cachedReleases ??= await UpdateManager.GetAllReleasesAsync();
+
+            _patchNotesPanel.Children.Clear();
+            _loadedReleasesCount = 0;
+            _reachedFirstVersion = false;
+
+            if (_cachedReleases.Count > 0)
+            {
+                // load only the most recent patch note initially
+                AddPatchNoteUI(_cachedReleases[0]);
+                _loadedReleasesCount = 1;
+
+                if (_cachedReleases[0].Version == "0.1.0")
+                    _reachedFirstVersion = true;
+            }
+        }
+        finally
+        {
+            _isLoadingReleases = false;
+        }
+    }
+
+    private async Task LoadMorePatchNotesAsync()
+    {
+        if (_isLoadingReleases || _reachedFirstVersion || _cachedReleases == null) return;
+        _isLoadingReleases = true;
+
+        try
+        {
+            int take = 3;
+            int added = 0;
+
+            // load the next batches iteratively
+            while (added < take && _loadedReleasesCount < _cachedReleases.Count)
+            {
+                var release = _cachedReleases[_loadedReleasesCount];
+                AddPatchNoteUI(release);
+
+                _loadedReleasesCount++;
+                added++;
+
+                // break condition: reached version 0.1.0 (initial release)
+                if (release.Version == "0.1.0")
+                {
+                    _reachedFirstVersion = true;
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _isLoadingReleases = false;
+        }
+    }
+
+    private void AddPatchNoteUI((string Version, string Body) release)
+    {
+        Version.TryParse(UpdateManager.CurrentVersion, out var currentVer);
+        Version.TryParse(release.Version, out var releaseVer);
+
+        bool isCurrentVersion = releaseVer != null && currentVer != null && releaseVer == currentVer;
+        bool isNewerVersion = releaseVer != null && currentVer != null && releaseVer > currentVer;
+
+        string titleText = $"Patch Notes {release.Version}";
+        if (isNewerVersion) titleText += " (Neu)";
+
+        var header = new TextBlock
+        {
+            Text = titleText,
+            FontSize = 16,
+            FontWeight = FontWeight.Bold,
+            // highlight current version in green, others in the default (blue)
+            Foreground = SolidColorBrush.Parse(isCurrentVersion ? "#32A852" : "#007ACC"),
+            Margin = new Thickness(0, 15, 0, 5)
+        };
+
+        var bodyPanel = new StackPanel { Spacing = 2, Margin = new Thickness(0, 0, 0, 10) };
+
+        // parse markdown lines
+        var lines = release.Body.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                bodyPanel.Children.Add(new Control { Height = 8 });
+                continue;
+            }
+
+            if (line.StartsWith("### "))
+            {
+                bodyPanel.Children.Add(new TextBlock
+                {
+                    Text = line.Substring(4),
+                    FontSize = 13,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = SolidColorBrush.Parse("#B0B0B0"),
+                    Margin = new Thickness(0, 10, 0, 2)
+                });
+            }
+            else if (line.StartsWith("## "))
+            {
+                bodyPanel.Children.Add(new TextBlock
+                {
+                    Text = line.Substring(3),
+                    FontSize = 14,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 8, 0, 4)
+                });
+            }
+            else
+            {
+                var textBlock = new TextBlock
+                {
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    Foreground = Brushes.LightGray
+                };
+
+                string contentToParse = line;
+
+                if (line.StartsWith("- "))
+                {
+                    textBlock.Margin = new Thickness(15, 0, 0, 0);
+                    textBlock.Inlines?.Add(new Run("• ") { FontWeight = FontWeight.Bold });
+                    contentToParse = line.Substring(2);
+                }
+
+                if (textBlock.Inlines != null)
+                {
+                    var inlines = ParseMarkdownInlines(contentToParse);
+                    foreach (var inline in inlines)
+                    {
+                        textBlock.Inlines.Add(inline);
+                    }
+                }
+
+                bodyPanel.Children.Add(textBlock);
+            }
+        }
+
+        var separator = new Border
+        {
+            Height = 1,
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Margin = new Thickness(0, 5, 0, 5)
+        };
+
+        _patchNotesPanel.Children.Add(header);
+        _patchNotesPanel.Children.Add(bodyPanel);
+        _patchNotesPanel.Children.Add(separator);
+    }
+
+    // regex for parsing markdown inlines
+    private static readonly Regex MarkdownInlineRegex = new Regex(
+        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
+    private IEnumerable<Inline> ParseMarkdownInlines(string text)
+    {
+        var inlines = new List<Inline>();
+        int currentIndex = 0;
+
+        foreach (Match match in MarkdownInlineRegex.Matches(text))
+        {
+            // add text before the match
+            if (match.Index > currentIndex)
+            {
+                inlines.Add(new Run(text.Substring(currentIndex, match.Index - currentIndex)));
+            }
+
+            if (match.Groups["bold"].Success)
+            {
+                var bold = new Bold();
+                bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
+                inlines.Add(bold);
+            }
+            else if (match.Groups["kbd"].Success)
+            {
+                var border = new Border
+                {
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    BorderBrush = SolidColorBrush.Parse("#555555"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(4, 1),
+                    Margin = new Thickness(2, 0),
+                    Child = new TextBlock
+                    {
+                        Text = match.Groups["kbdtext"].Value,
+                        FontSize = 11,
+                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
+                        Foreground = Brushes.White,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                // moves badge downward
+                inlines.Add(new InlineUIContainer(border)
+                {
+                    BaselineAlignment = BaselineAlignment.Center
+                });
+            }
+            else if (match.Groups["code"].Success)
+            {
+                var border = new Border
+                {
+                    Background = SolidColorBrush.Parse("#2D2D30"),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(4, 1),
+                    Margin = new Thickness(2, 0),
+                    Child = new TextBlock
+                    {
+                        Text = match.Groups["codetext"].Value,
+                        FontSize = 12,
+                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
+                        Foreground = SolidColorBrush.Parse("#DCDCAA"),
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                // moves badge downward
+                inlines.Add(new InlineUIContainer(border)
+                {
+                    BaselineAlignment = BaselineAlignment.Center
+                });
+            }
+
+            currentIndex = match.Index + match.Length;
+        }
+
+        if (currentIndex < text.Length)
+        {
+            inlines.Add(new Run(text.Substring(currentIndex)));
+        }
+
+        return inlines;
     }
 
     private void BuildMiscPanel()

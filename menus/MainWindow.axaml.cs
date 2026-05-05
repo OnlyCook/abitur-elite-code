@@ -2269,7 +2269,7 @@ public partial class MainWindow : Window
                     SaveSystem.SaveCustom(customPlayerData);
                 }
 
-                AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
+                AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
 
                 UpdateNavigationButtons();
                 if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
@@ -2295,7 +2295,7 @@ public partial class MainWindow : Window
                 // check if we are switching sections
                 if (nextLvl.Section != levelContext.Section)
                 {
-                    AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?\n", Brushes.LightGreen);
+                    AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?\n", SolidColorBrush.Parse("#FFD700"));
                     BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                 }
                 else
@@ -2533,7 +2533,7 @@ public partial class MainWindow : Window
         {
             Title = "C# Kurs Abgeschlossen",
             Width = 500,
-            Height = 380,
+            Height = 420,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
             Background = SolidColorBrush.Parse("#202124"),
@@ -2567,7 +2567,7 @@ public partial class MainWindow : Window
             new TextBlock
             {
                 Text =
-                    "Du hast alle Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für den Programmier-Teil der Abiturprüfung in Praktischer Informatik.\nViel Erfolg!",
+                    "Du hast alle C#-Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für den Programmier-Teil der Abiturprüfung in Praktischer Informatik.\nViel Erfolg!\n\nGehe aber lieber noch ein paar offizielle Abiturvorschläge ganz durch.",
                 FontSize = 16,
                 Foreground = Brushes.White,
                 TextAlignment = TextAlignment.Center,
@@ -2618,7 +2618,7 @@ public partial class MainWindow : Window
         {
             Title = "SQL Kurs Abgeschlossen",
             Width = 500,
-            Height = 350,
+            Height = 410,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
             Background = SolidColorBrush.Parse("#202124"),
@@ -2652,7 +2652,7 @@ public partial class MainWindow : Window
             new TextBlock
             {
                 Text =
-                    "Du hast alle SQL-Levels erfolgreich abgeschlossen!\n\nDatenbank-Abfragen sind ein essenzieller Teil der Prüfung. Du bist nun bestens vorbereitet.",
+                    "Du hast alle SQL-Levels erfolgreich abgeschlossen!\n\nDatenbank-Abfragen sind ein essenzieller Teil der Prüfung. Du bist nun bestens vorbereitet.\nViel Erfolg!\n\nGehe aber lieber noch ein paar offizielle Abiturvorschläge ganz durch.",
                 FontSize = 16,
                 Foreground = Brushes.White,
                 TextAlignment = TextAlignment.Center,
@@ -3108,7 +3108,7 @@ public partial class MainWindow : Window
             {
                 if (nextLvl.Section != currentSqlLevel.Section)
                 {
-                    AddSqlOutput("System", "🎉 Sektion abgeschlossen!", Brushes.LightGreen);
+                    AddSqlOutput("System", "🎉 Sektion abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
                     BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                 }
                 else
@@ -3125,7 +3125,7 @@ public partial class MainWindow : Window
             else
             {
                 // no next level
-                AddSqlOutput("System", "🎉 Kurs abgeschlossen!", Brushes.LightGreen);
+                AddSqlOutput("System", "🎉 Kurs abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
                 BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
             }
 
