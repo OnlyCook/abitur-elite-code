@@ -200,6 +200,53 @@ public partial class MainWindow
         }
     }
 
+    private List<RTable> TryParseRelationalModel(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var result = new List<RTable>();
+        var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split('(');
+            if (parts.Length != 2) return null;
+
+            var tableName = parts[0].Trim();
+            if (string.IsNullOrEmpty(tableName)) return null;
+
+            // validate table name character set (only letters, digits, and underscore)
+            if (!tableName.All(c => char.IsLetterOrDigit(c) || c == '_')) return null;
+
+            var columnsPart = parts[1].TrimEnd(')', ' ');
+            var columnStrings = columnsPart.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var columns = new List<RColumn>();
+            foreach (var colStr in columnStrings)
+            {
+                var colDef = colStr.Trim();
+                if (string.IsNullOrEmpty(colDef)) return null;
+
+                bool isPk = colDef.EndsWith("[PK]");
+                if (isPk) colDef = colDef.Substring(0, colDef.Length - 4).TrimEnd();
+
+                bool isFk = colDef.EndsWith("#");
+                if (isFk) colDef = colDef.Substring(0, colDef.Length - 1).TrimEnd();
+
+                if (string.IsNullOrEmpty(colDef)) return null;
+
+                // validate column name character set
+                if (!colDef.All(c => char.IsLetterOrDigit(c) || c == '_')) return null;
+
+                columns.Add(new RColumn { Name = colDef, IsPk = isPk, IsFk = isFk });
+            }
+
+            result.Add(new RTable { Name = tableName, Columns = columns });
+        }
+
+        return result.Count > 0 ? result : null;
+    }
+
     private void RenderRelationalModel(StackPanel targetPanel, bool isReadOnly)
     {
         targetPanel.Children.Clear();
@@ -316,12 +363,69 @@ public partial class MainWindow
             if (topLevel?.Clipboard != null)
             {
                 await topLevel.Clipboard.SetTextAsync(sb.ToString().TrimEnd());
+
+                // temporarily show success icon and color
+                btnCopyModel.Content = LoadIcon("assets/icons/ic_success.svg", 16);
                 btnCopyModel.Background = SolidColorBrush.Parse("#2E8B57");
                 await Task.Delay(500);
+                btnCopyModel.Content = LoadIcon("assets/icons/ic_copy.svg", 16);
                 btnCopyModel.Background = Brushes.Transparent;
             }
         };
         titleStack.Children.Add(btnCopyModel);
+
+        var btnPasteModel = new Button
+        {
+            Content = LoadIcon("assets/icons/ic_import.svg", 16),
+            Background = Brushes.Transparent,
+            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
+            Cursor = Cursor.Parse("Hand"),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = showEditControls
+        };
+        ToolTip.SetTip(btnPasteModel, "Modell einfügen");
+        btnPasteModel.Click += async (s, e) =>
+        {
+            var topLevel = GetTopLevel(this);
+            if (topLevel?.Clipboard != null)
+            {
+                string clipboardText = await topLevel.Clipboard.GetTextAsync();
+                var parsedModel = TryParseRelationalModel(clipboardText);
+
+                if (parsedModel != null)
+                {
+                    // temporarily show success icon and color
+                    btnPasteModel.Content = LoadIcon("assets/icons/ic_success.svg", 16);
+                    btnPasteModel.Background = SolidColorBrush.Parse("#2E8B57");
+                    await Task.Delay(500);
+
+                    // clear and insert new model
+                    _currentRelationalModel.Clear();
+                    foreach (var table in parsedModel)
+                    {
+                        _currentRelationalModel.Add(table);
+                    }
+
+                    // reset focus to avoid detached references
+                    UpdateFocusedColumn(null, null);
+                    _focusedRTable = null;
+
+                    TriggerRelationalAutoSave();
+                    RenderRelationalModel(targetPanel, isReadOnly);
+                }
+                else
+                {
+                    // temporarily show error icon and color
+                    btnPasteModel.Content = LoadIcon("assets/icons/ic_error.svg", 16);
+                    btnPasteModel.Background = SolidColorBrush.Parse("#a81d1d");
+                    await Task.Delay(500);
+                    btnPasteModel.Content = LoadIcon("assets/icons/ic_import.svg", 16);
+                    btnPasteModel.Background = Brushes.Transparent;
+                }
+            }
+        };
+        titleStack.Children.Add(btnPasteModel);
 
         headerGrid.Children.Add(titleStack);
 

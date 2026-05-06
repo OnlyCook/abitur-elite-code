@@ -1053,7 +1053,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 DiagramPaths = new List<string>
                 {
                     "img\\sec4\\lvl16-1.svg",
-                    "img\\sec4\\lvl16-2.svg"
+                    "img\\sec4\\lvl16-2.svg" // nassi-shneiderman
                 },
                 PlantUMLSources = new List<string>
                 {
@@ -1245,7 +1245,7 @@ END.",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec4\\lvl19-1.svg",
-                    "img\\sec4\\lvl19-2.svg"
+                    "img\\sec4\\lvl19-2.svg" // nassi-shneiderman
                 },
                 PlantUMLSources = new List<string>
                 {

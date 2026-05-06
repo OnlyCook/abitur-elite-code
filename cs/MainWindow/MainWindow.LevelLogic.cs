@@ -1001,6 +1001,12 @@ public partial class MainWindow
 
         CodeEditor.Text = rawCode;
         CodeEditor.CaretOffset = 0; // reset caret pos
+        CodeEditor.TextArea.Caret.Line = 1;
+        CodeEditor.TextArea.Caret.Column = 1;
+
+        // reset vim state and clear floating carets
+        _vimMode = VimMode.Normal;
+        CodeEditor.TextArea.TextView.InvalidateVisual();
 
         // reset uml zoom
         if (!_isSqlMode && !level.NoUMLAutoScale)
@@ -1932,6 +1938,12 @@ public partial class MainWindow
         }
 
         SqlQueryEditor.CaretOffset = 0; // reset caret
+        SqlQueryEditor.TextArea.Caret.Line = 1;
+        SqlQueryEditor.TextArea.Caret.Column = 1;
+
+        // reset vim state and clear floating carets
+        _vimMode = VimMode.Normal;
+        SqlQueryEditor.TextArea.TextView.InvalidateVisual();
 
         PnlSqlOutput.Children.Clear();
 

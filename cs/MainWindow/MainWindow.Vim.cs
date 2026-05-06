@@ -32,10 +32,23 @@ public partial class MainWindow
             }
             else
             {
-                UpdateVimUI();
                 if (PnlVimCheatSheet != null && VimCol1.Children.Count == 0)
                     BuildVimCheatSheet();
             }
+
+            UpdateVimUI();
+        }
+
+        // clear floating block caret
+        if (!AppSettings.IsSqlVimEnabled)
+        {
+            _vimMode = VimMode.Normal;
+            SqlQueryEditor.TextArea.TextView.InvalidateVisual();
+        }
+        if (!AppSettings.IsVimEnabled)
+        {
+            _vimMode = VimMode.Normal;
+            CodeEditor.TextArea.TextView.InvalidateVisual();
         }
     }
 

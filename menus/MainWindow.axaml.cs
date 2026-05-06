@@ -847,17 +847,37 @@ public partial class MainWindow : Window
         ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
         if (_isSqlMode)
         {
-            if (currentSqlLevel != null && currentSqlLevel.Id == SqlCurriculum.GetLevelCount())
-                ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+            bool allSolved = sqlLevels != null && sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+            int totalCount = sqlLevels?.Count ?? SqlCurriculum.GetLevelCount();
+
+            if (currentSqlLevel != null && currentSqlLevel.Id == totalCount)
+            {
+                if (allSolved)
+                    ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+                else
+                    ToolTip.SetTip(BtnNextLevel, "Fehlende Level abschließen");
+            }
             else
+            {
                 ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+            }
         }
         else
         {
-            if (currentLevel != null && currentLevel.Id == Curriculum.GetLevelCount())
-                ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+            bool allSolved = levels != null && levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+            int totalCount = levels?.Count ?? Curriculum.GetLevelCount();
+
+            if (currentLevel != null && currentLevel.Id == totalCount)
+            {
+                if (allSolved)
+                    ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+                else
+                    ToolTip.SetTip(BtnNextLevel, "Fehlende Level abschließen");
+            }
             else
+            {
                 ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+            }
         }
     }
 
@@ -2481,6 +2501,33 @@ public partial class MainWindow : Window
 
     private void BtnNextLevel_Click(object sender, RoutedEventArgs e)
     {
+        if (_isSqlMode)
+        {
+            if (currentSqlLevel != null && currentSqlLevel.Id == (sqlLevels?.Count ?? SqlCurriculum.GetLevelCount()))
+            {
+                // restrict course completion if not all levels are solved
+                bool allSolved = sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+                if (!allSolved)
+                {
+                    AddSqlOutput("System", "> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
+                    return;
+                }
+            }
+        }
+        else
+        {
+            if (currentLevel != null && currentLevel.Id == (levels?.Count ?? Curriculum.GetLevelCount()))
+            {
+                // restrict course completion if not all levels are solved
+                bool allSolved = levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+                if (!allSolved)
+                {
+                    AddToConsole("\n> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
+                    return;
+                }
+            }
+        }
+
         if (BtnNextLevel.Content?.ToString() == "✓" ||
             BtnNextLevel.Content?.ToString()?.Contains("ABSCHLIESSEN") == true)
         {
