@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Svg.Skia;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
@@ -43,6 +44,10 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow : Window
 {
+    private SplashWindow? _splash = null;
+
+    private TabDockManager _tabDockManager;
+
     private const string MonospaceFontFamily =
         "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
@@ -165,8 +170,6 @@ public partial class MainWindow : Window
     private static List<MetadataReference>? _cachedReferences;
     private readonly Dictionary<string, IImage> _diagramCache = new();
 
-    private SplashWindow? _splash = null;
-
     private void LogAddSplash(string str, int val)
     {
         _splash?.AddLoadingProgress(val);
@@ -180,6 +183,16 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         LogAddSplash("InitializeComponent", 6);
+
+        _tabDockManager = new TabDockManager(
+            this,
+            this.FindControl<Panel>("LeftPanelContainer"),
+            MainTabs,
+            this.FindControl<Canvas>("DragGhostCanvas"),
+            this.FindControl<Canvas>("DropIndicatorsCanvas"),
+            this.FindControl<Border>("DropPreviewOverlay"),
+            this.FindControl<Border>("TabReorderIndicator")
+        );
 
         // dont reinit (already done through app script)
         var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
@@ -447,21 +460,32 @@ public partial class MainWindow : Window
                 }
             }
 
+            void SelectTabByHeader(string headerSearch)
+            {
+                var tcs = _tabDockManager?.GetAllTabControls() ?? new List<TabControl> { MainTabs };
+                foreach (var tc in tcs)
+                {
+                    var tab = tc.Items.OfType<TabItem>().FirstOrDefault(t =>
+                        t.Header?.ToString() == headerSearch || t.Name == headerSearch);
+                    if (tab != null) { tc.SelectedItem = tab; break; }
+                }
+            }
+
             if (e.Key == Key.F1)
             {
                 _isKeyboardTabSwitch = true;
-                MainTabs.SelectedIndex = 0;
+                SelectTabByHeader("Aufgabe");
                 e.Handled = true;
             }
             else if (e.Key == Key.F2)
             {
-                // cycle diagrams if already on tab and multiple diagrams exist
-                if (MainTabs.SelectedIndex == 1 && !_isSqlMode && currentLevel?.DiagramPaths?.Count > 1)
+                var tcs = _tabDockManager?.GetAllTabControls() ?? new List<TabControl> { MainTabs };
+                var umlTc = tcs.FirstOrDefault(tc => tc.Items.OfType<TabItem>().Any(t => t.Header?.ToString() == "UML/Diagramme"));
+
+                if (umlTc?.SelectedItem is TabItem ti && ti.Header?.ToString() == "UML/Diagramme" && !_isSqlMode && currentLevel?.DiagramPaths?.Count > 1)
                 {
                     _currentDiagramIndex++;
-                    if (_currentDiagramIndex >= currentLevel.DiagramPaths.Count)
-                        _currentDiagramIndex = 0;
-
+                    if (_currentDiagramIndex >= currentLevel.DiagramPaths.Count) _currentDiagramIndex = 0;
                     ImgDiagram.Source = LoadDiagramImage(currentLevel.DiagramPaths[_currentDiagramIndex]);
 
                     BtnDiagram1.Background = _currentDiagramIndex == 0
@@ -476,13 +500,13 @@ public partial class MainWindow : Window
                 }
 
                 _isKeyboardTabSwitch = true;
-                MainTabs.SelectedIndex = 1;
+                SelectTabByHeader("UML/Diagramme");
                 e.Handled = true;
             }
             else if (e.Key == Key.F3)
             {
                 _isKeyboardTabSwitch = true;
-                MainTabs.SelectedIndex = 2;
+                SelectTabByHeader("Materialien");
                 e.Handled = true;
             }
             else if (e.Key == Key.F4)
@@ -490,7 +514,7 @@ public partial class MainWindow : Window
                 if (_isDesignerMode)
                 {
                     _isKeyboardTabSwitch = true;
-                    MainTabs.SelectedIndex = 3;
+                    SelectTabByHeader("TabDesigner");
                     e.Handled = true;
                 }
             }
@@ -694,27 +718,36 @@ public partial class MainWindow : Window
 
     private void UpdateTabStyles()
     {
-        var tabItems = MainTabs.Items.OfType<TabItem>().Where(t => t.IsVisible).ToList();
-        if (tabItems.Count == 0) return;
+        var tabControls = _tabDockManager?.GetAllTabControls()?.ToList() ?? new List<TabControl> { MainTabs };
+        foreach (var tc in tabControls)
+        {
+            var tabItems = tc.Items.OfType<TabItem>().Where(t => t.IsVisible).ToList();
+            if (tabItems.Count == 0) continue;
 
-        // find bottom most row
-        double maxY = tabItems.Max(t => t.Bounds.Y);
+            double maxY = tabItems.Max(t => t.Bounds.Y);
 
-        foreach (var tab in tabItems)
-            if (Math.Abs(tab.Bounds.Y - maxY) < 2.0) // small buffer
+            foreach (var tab in tabItems)
             {
-                if (!tab.Classes.Contains("latch"))
-                    tab.Classes.Add("latch");
+                if (Math.Abs(tab.Bounds.Y - maxY) < 2.0) // small buffer
+                {
+                    if (!tab.Classes.Contains("latch"))
+                        tab.Classes.Add("latch");
+                }
+                else
+                {
+                    tab.Classes.Remove("latch");
+                }
             }
-            else
-            {
-                tab.Classes.Remove("latch");
-            }
+        }
     }
 
-    private void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
+    internal void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (e.Source != MainTabs) return;
+        if (!(e.Source is TabControl tc)) return;
+
+        // make sure this tab switch happened dynamically inside tab system
+        var leftContainer = this.FindControl<Panel>("LeftPanelContainer");
+        if (leftContainer == null || !leftContainer.IsVisualAncestorOf(tc)) return;
 
         bool wasQueryEditorFocused = SqlQueryEditor?.IsFocused == true || SqlQueryEditor?.TextArea?.IsFocused == true;
 
@@ -729,17 +762,23 @@ public partial class MainWindow : Window
 
             if (currentSqlLevel != null || _isDesignerMode)
             {
-                if (MainTabs.SelectedIndex == 0 && PnlTaskRelationalModel != null)
-                    RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
-                else if (MainTabs.SelectedIndex == 1 && PnlUmlRelationalModel != null)
-                    RenderRelationalModel(PnlUmlRelationalModel, isReadOnly);
+                var selectedTab = tc.SelectedItem as TabItem;
+                if (selectedTab != null)
+                {
+                    if (selectedTab.Header?.ToString() == "Aufgabe" && PnlTaskRelationalModel != null)
+                        RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
+                    else if (selectedTab.Header?.ToString() == "UML/Diagramme" && PnlUmlRelationalModel != null)
+                        RenderRelationalModel(PnlUmlRelationalModel, isReadOnly);
+                }
             }
         }
 
         if (wasQueryEditorFocused) Dispatcher.UIThread.Post(() => SqlQueryEditor.Focus());
 
         // live preview update on tab switch
-        if (_isDesignerMode && (MainTabs.SelectedIndex == 0 || MainTabs.SelectedIndex == 2)) UpdateDesignerPreview();
+        var selectedTabHeader = (tc.SelectedItem as TabItem)?.Header?.ToString();
+        if (_isDesignerMode && (selectedTabHeader == "Aufgabe" || selectedTabHeader == "Level Designer"))
+            UpdateDesignerPreview();
 
         if (_isKeyboardTabSwitch)
         {
@@ -749,15 +788,16 @@ public partial class MainWindow : Window
         }
 
         _mouseTabSwitchCount++;
-
+        
         int shownCount = playerData.Settings.TabTipShownCount;
 
-        if ((shownCount == 0 && _mouseTabSwitchCount >= 5) ||
-            (shownCount == 1 && _mouseTabSwitchCount >= 20))
+        if ((shownCount == 0 && _mouseTabSwitchCount >= 5) || (shownCount == 1 && _mouseTabSwitchCount >= 20))
             ShowTabTip();
 
         EvaluateSpoilerHintVisibility();
     }
+
+    public void RefreshTabStyles() => UpdateTabStyles();
 
     private void ShowTabTip()
     {
