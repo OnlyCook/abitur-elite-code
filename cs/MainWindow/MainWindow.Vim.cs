@@ -22,18 +22,28 @@ public partial class MainWindow
         if (TabVim != null)
         {
             bool isVimActive = _isSqlMode ? AppSettings.IsSqlVimEnabled : AppSettings.IsVimEnabled;
-            TabVim.IsVisible = isVimActive;
 
-            if (!isVimActive)
+            if (isVimActive)
             {
-                ActiveEditor.Cursor = Cursor.Default;
-                if (VimStatusBorder != null) VimStatusBorder.IsVisible = false;
-                if (SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;
+                TabVim.IsVisible = true;
+                _tabDockManager?.EnsureTabInMainSystem(TabVim, false);
+
+                if (PnlVimCheatSheet != null && VimCol1.Children.Count == 0)
+                    BuildVimCheatSheet();
             }
             else
             {
-                if (PnlVimCheatSheet != null && VimCol1.Children.Count == 0)
-                    BuildVimCheatSheet();
+                TabVim.IsVisible = false;
+                var parentTc = TabVim.Parent as TabControl;
+                if (parentTc != null)
+                {
+                    parentTc.Items.Remove(TabVim);
+                    _tabDockManager?.ForceCleanup();
+                }
+
+                ActiveEditor.Cursor = Cursor.Default;
+                if (VimStatusBorder != null) VimStatusBorder.IsVisible = false;
+                if (SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;
             }
 
             UpdateVimUI();

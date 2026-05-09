@@ -194,6 +194,13 @@ public partial class MainWindow : Window
             this.FindControl<Border>("TabReorderIndicator")
         );
 
+        // remove designer/vim tab initially
+        if (TabDesigner != null)
+        {
+            var parentTc = TabDesigner.Parent as TabControl;
+            if (parentTc != null) parentTc.Items.Remove(TabDesigner);
+        }
+
         // dont reinit (already done through app script)
         var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
         ImgScale = (ScaleTransform)transformGroup.Children[0];

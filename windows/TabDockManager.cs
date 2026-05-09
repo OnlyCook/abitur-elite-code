@@ -388,17 +388,40 @@ public class TabDockManager
         parent.Children.Insert(targetIndex, grid);
     }
 
+    public TabControl GetMainTabControl()
+    {
+        return GetTabControls(_container).FirstOrDefault() ?? _window.FindControl<TabControl>("MainTabs");
+    }
+
+    public void EnsureTabInMainSystem(TabItem tab, bool select = true)
+    {
+        var mainTc = GetMainTabControl();
+        var currentTc = tab.Parent as TabControl;
+
+        if (currentTc != mainTc)
+        {
+            if (currentTc != null) currentTc.Items.Remove(tab);
+            mainTc.Items.Add(tab);
+        }
+
+        if (select) mainTc.SelectedItem = tab;
+    }
+
+    public void ForceCleanup()
+    {
+        CleanupEmptyTabControls(_container);
+    }
+
     private void CleanupEmptyTabControls(Panel root)
     {
         var tabControls = GetTabControls(root).ToList();
 
-        // iterate backwards to safely modify visual tree and collection
         for (int i = tabControls.Count - 1; i >= 0; i--)
         {
             var tc = tabControls[i];
 
-            // check if panel lacks any essential tabs
-            bool hasEssential = tc.Items.OfType<TabItem>().Any(t => t.Name != "TabVim" && t.Name != "TabDesigner");
+            // check if panel lacks any visible tabs
+            bool hasEssential = tc.Items.OfType<TabItem>().Any(t => t.IsVisible);
 
             if (!hasEssential && tabControls.Count > 1)
             {

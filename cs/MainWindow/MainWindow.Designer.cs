@@ -222,7 +222,25 @@ public partial class MainWindow
         // reset icons
         UpdateDesignerButtons();
 
-        TabDesigner.IsVisible = enable;
+        if (TabDesigner != null)
+        {
+            if (enable)
+            {
+                TabDesigner.IsVisible = true;
+                _tabDockManager?.EnsureTabInMainSystem(TabDesigner);
+            }
+            else
+            {
+                TabDesigner.IsVisible = false;
+                var parentTc = TabDesigner.Parent as TabControl;
+                if (parentTc != null)
+                {
+                    parentTc.Items.Remove(TabDesigner);
+                    _tabDockManager?.ForceCleanup();
+                }
+            }
+        }
+
         BtnExitDesigner.IsVisible = enable;
         BtnLevelSelect.IsVisible = !enable;
 
