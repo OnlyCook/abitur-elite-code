@@ -349,7 +349,7 @@ public partial class MainWindow : Window
 
         BtnCloseTip.Click += (s, e) => PnlTabTip.IsVisible = false;
         MainTabs.SelectionChanged += OnMainTabChanged;
-        MainTabs.LayoutUpdated += (s, e) => UpdateTabStyles();
+        LeftPanelContainer.LayoutUpdated += (s, e) => UpdateTabStyles();
 
         _spoilerDelayTimer = new DispatcherTimer
         {
@@ -804,7 +804,7 @@ public partial class MainWindow : Window
         EvaluateSpoilerHintVisibility();
     }
 
-    public void RefreshTabStyles() => UpdateTabStyles();
+    public void RefreshTabStyles() => Dispatcher.UIThread.Post(UpdateTabStyles, DispatcherPriority.Render);
 
     private void ShowTabTip()
     {

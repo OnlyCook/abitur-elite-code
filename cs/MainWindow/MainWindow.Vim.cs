@@ -41,6 +41,14 @@ public partial class MainWindow
                     _tabDockManager?.ForceCleanup();
                 }
 
+                // safely fallback to first available tab after cleanup
+                var firstTab = _tabDockManager?.GetAllTabControls()
+                    .SelectMany(tc => tc.Items.OfType<TabItem>())
+                    .FirstOrDefault(t => t.IsVisible);
+
+                if (firstTab?.Parent is TabControl newParentTc)
+                    newParentTc.SelectedItem = firstTab;
+
                 ActiveEditor.Cursor = Cursor.Default;
                 if (VimStatusBorder != null) VimStatusBorder.IsVisible = false;
                 if (SqlVimStatusBorder != null) SqlVimStatusBorder.IsVisible = false;

@@ -385,7 +385,14 @@ public partial class MainWindow
                 AppSettings.IsSqlSyntaxHighlightingEnabled = _originalSyntaxSetting;
                 ApplySqlSyntaxHighlighting();
 
-                MainTabs.SelectedItem = MainTabs.Items.OfType<TabItem>().First();
+                // find first visible tab across all modular tab controls (safe)
+                var firstTab = _tabDockManager?.GetAllTabControls()
+                    .SelectMany(tc => tc.Items.OfType<TabItem>())
+                    .FirstOrDefault(t => t.IsVisible);
+
+                if (firstTab?.Parent is TabControl parentTc)
+                    parentTc.SelectedItem = firstTab;
+
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
                 BtnRun.IsVisible = true;
@@ -405,7 +412,14 @@ public partial class MainWindow
                 ClearDiagnostics();
                 _textMarkerService.Clear();
 
-                MainTabs.SelectedItem = MainTabs.Items.OfType<TabItem>().First();
+                // also find the first visible tab across all modular tab controls (safe)
+                var firstTab = _tabDockManager?.GetAllTabControls()
+                    .SelectMany(tc => tc.Items.OfType<TabItem>())
+                    .FirstOrDefault(t => t.IsVisible);
+
+                if (firstTab?.Parent is TabControl parentTc)
+                    parentTc.SelectedItem = firstTab;
+
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
                 BtnRun.IsVisible = true;
