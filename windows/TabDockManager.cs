@@ -70,9 +70,8 @@ public class TabDockManager
                 var tabControl = tabItem.GetVisualAncestors().OfType<TabControl>().FirstOrDefault();
                 if (tabControl != null && _container.IsVisualAncestorOf(tabControl))
                 {
-                    // only begin drag if clicked on header part (finally)
-                    var border = src?.GetVisualAncestors().OfType<Border>().FirstOrDefault(b => b.Name == "PART_LayoutRoot");
-                    if (border != null || src is TextBlock || src is Avalonia.Svg.Skia.Svg)
+                    // allow drag from anywhere inside the tab item header (easier to start drag)
+                    if (tabItem != null)
                     {
                         _draggedTab = tabItem;
                         _sourceTabControl = tabControl;
@@ -121,8 +120,9 @@ public class TabDockManager
             _ghostElement = null;
         }
 
-        _dropPreview.IsVisible = false;
-        _reorderIndicator.IsVisible = false;
+        // transition out
+        _dropPreview.Opacity = 0;
+        _reorderIndicator.Opacity = 0;
         _window.Cursor = Cursor.Default;
     }
 
@@ -160,8 +160,8 @@ public class TabDockManager
         _insertIndex = -1;
         _isHardDock = false;
 
-        _dropPreview.IsVisible = false;
-        _reorderIndicator.IsVisible = false;
+        bool showPreview = false;
+        bool showReorder = false;
 
         // check for hard edge docking (first)
         var containerPoint = _window.TranslatePoint(pointerPos, _container);
@@ -201,20 +201,31 @@ public class TabDockManager
 
             if (_isHardDock)
             {
-                _dropPreview.IsVisible = true;
+                showPreview = true;
                 var absPos = _container.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                 if (absPos.HasValue)
                 {
                     double startX = absPos.Value.X;
                     double startY = absPos.Value.Y;
                     double pw = cw, ph = ch;
+                    double splitterBuffer = 4; // stops grid splitter overlap
 
                     switch (_dockPosition)
                     {
-                        case DockPosition.Left: pw = cw / 2; break;
-                        case DockPosition.Right: startX += cw / 2; pw = cw / 2; break;
-                        case DockPosition.Top: ph = ch / 2; break;
-                        case DockPosition.Bottom: startY += ch / 2; ph = ch / 2; break;
+                        case DockPosition.Left:
+                            pw = (cw / 2) - splitterBuffer;
+                            break;
+                        case DockPosition.Right:
+                            startX += (cw / 2) + splitterBuffer;
+                            pw = (cw / 2) - splitterBuffer;
+                            break;
+                        case DockPosition.Top:
+                            ph = (ch / 2) - splitterBuffer;
+                            break;
+                        case DockPosition.Bottom:
+                            startY += (ch / 2) + splitterBuffer;
+                            ph = (ch / 2) - splitterBuffer;
+                            break;
                     }
 
                     Canvas.SetLeft(_dropPreview, startX);
@@ -222,6 +233,9 @@ public class TabDockManager
                     _dropPreview.Width = pw;
                     _dropPreview.Height = ph;
                 }
+
+                _dropPreview.Opacity = showPreview ? 1 : 0;
+                _reorderIndicator.Opacity = showReorder ? 1 : 0;
                 return; // skip normal tab control hit testing
             }
         }
@@ -242,8 +256,7 @@ public class TabDockManager
             if (_sourceTabControl == _targetTabControl && _targetTabControl.Items.Count == 1)
             {
                 _dockPosition = DockPosition.Center;
-                _dropPreview.IsVisible = true;
-                _reorderIndicator.IsVisible = false;
+                showPreview = true;
 
                 var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                 if (absPos.HasValue)
@@ -253,6 +266,9 @@ public class TabDockManager
                     _dropPreview.Width = _targetTabControl.Bounds.Width;
                     _dropPreview.Height = _targetTabControl.Bounds.Height;
                 }
+
+                _dropPreview.Opacity = showPreview ? 1 : 0;
+                _reorderIndicator.Opacity = showReorder ? 1 : 0;
                 return;
             }
 
@@ -348,13 +364,9 @@ public class TabDockManager
                     _insertIndex = _targetTabControl.Items.Count;
                 }
 
-                if (isSamePosition)
+                if (!isSamePosition)
                 {
-                    _reorderIndicator.IsVisible = false;
-                }
-                else
-                {
-                    _reorderIndicator.IsVisible = true;
+                    showReorder = true;
 
                     // align the indicator with actual tab items
                     double indX = 0;
@@ -413,22 +425,34 @@ public class TabDockManager
                     _dockPosition = DockPosition.Center;
                 }
 
+                showPreview = true;
+
                 if (_dockPosition != DockPosition.Center)
                 {
-                    _dropPreview.IsVisible = true;
                     var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                     if (absPos.HasValue)
                     {
                         double startX = absPos.Value.X;
                         double startY = absPos.Value.Y;
                         double pw = w, ph = h;
+                        double splitterBuffer = 4; // stops grid splitter overlap
 
                         switch (_dockPosition)
                         {
-                            case DockPosition.Left: pw = w / 2; break;
-                            case DockPosition.Right: startX += w / 2; pw = w / 2; break;
-                            case DockPosition.Top: ph = h / 2; break;
-                            case DockPosition.Bottom: startY += h / 2; ph = h / 2; break;
+                            case DockPosition.Left:
+                                pw = (w / 2) - splitterBuffer;
+                                break;
+                            case DockPosition.Right:
+                                startX += (w / 2) + splitterBuffer;
+                                pw = (w / 2) - splitterBuffer;
+                                break;
+                            case DockPosition.Top:
+                                ph = (h / 2) - splitterBuffer;
+                                break;
+                            case DockPosition.Bottom:
+                                startY += (h / 2) + splitterBuffer;
+                                ph = (h / 2) - splitterBuffer;
+                                break;
                         }
 
                         Canvas.SetLeft(_dropPreview, startX);
@@ -439,7 +463,6 @@ public class TabDockManager
                 }
                 else
                 {
-                    _dropPreview.IsVisible = true;
                     var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                     if (absPos.HasValue)
                     {
@@ -451,6 +474,9 @@ public class TabDockManager
                 }
             }
         }
+
+        _dropPreview.Opacity = showPreview ? 1 : 0;
+        _reorderIndicator.Opacity = showReorder ? 1 : 0;
     }
 
     private bool IsRedundantDock(DockPosition pos)
@@ -546,36 +572,19 @@ public class TabDockManager
 
         var grid = new Grid();
 
+        bool isVertical = pos == DockPosition.Left || pos == DockPosition.Right;
+
         var splitter = new GridSplitter
         {
-            Background = Brushes.Transparent,
-            ResizeDirection = pos == DockPosition.Left || pos == DockPosition.Right ? GridResizeDirection.Columns : GridResizeDirection.Rows,
-            Width = pos == DockPosition.Left || pos == DockPosition.Right ? 8 : double.NaN,
-            Height = pos == DockPosition.Top || pos == DockPosition.Bottom ? 8 : double.NaN,
-            Cursor = pos == DockPosition.Left || pos == DockPosition.Right ? new Cursor(StandardCursorType.SizeWestEast) : new Cursor(StandardCursorType.SizeNorthSouth)
+            ResizeDirection = isVertical ? GridResizeDirection.Columns : GridResizeDirection.Rows
         };
 
-        splitter.PointerEntered += (s, e) => {
-            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
-                ctrl.Background = SolidColorBrush.Parse("#32A852");
-        };
+        // assign custom style and visual indicator logic
+        splitter.Classes.Add(isVertical ? "dock-vertical" : "dock-horizontal");
 
-        splitter.PointerExited += (s, e) => {
-            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
-                ctrl.Background = Brushes.Transparent;
-        };
-
-        splitter.PointerPressed += (s, e) => {
-            if (s is Control ctrl) ctrl.Classes.Add("dragging");
-        };
-
-        splitter.PointerReleased += (s, e) => {
-            if (s is TemplatedControl ctrl)
-            {
-                ctrl.Classes.Remove("dragging");
-                if (!ctrl.IsPointerOver) ctrl.Background = Brushes.Transparent;
-            }
-        };
+        // reuse main window hover logic
+        splitter.PointerEntered += _window.GridSplitter_PointerEntered;
+        splitter.PointerExited += _window.GridSplitter_PointerExited;
 
         if (pos == DockPosition.Left || pos == DockPosition.Right)
         {
@@ -631,37 +640,19 @@ public class TabDockManager
         int targetIndex = parent.Children.IndexOf(target);
         parent.Children.RemoveAt(targetIndex);
 
-        // placeholder for now
+        bool isVertical = pos == DockPosition.Left || pos == DockPosition.Right;
+
         var splitter = new GridSplitter
         {
-            Background = Brushes.Transparent,
-            ResizeDirection = pos == DockPosition.Left || pos == DockPosition.Right ? GridResizeDirection.Columns : GridResizeDirection.Rows,
-            Width = pos == DockPosition.Left || pos == DockPosition.Right ? 8 : double.NaN,
-            Height = pos == DockPosition.Top || pos == DockPosition.Bottom ? 8 : double.NaN,
-            Cursor = pos == DockPosition.Left || pos == DockPosition.Right ? new Cursor(StandardCursorType.SizeWestEast) : new Cursor(StandardCursorType.SizeNorthSouth)
+            ResizeDirection = isVertical ? GridResizeDirection.Columns : GridResizeDirection.Rows
         };
 
-        splitter.PointerEntered += (s, e) => {
-            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
-                ctrl.Background = SolidColorBrush.Parse("#32A852");
-        };
+        // assign custom style and visual indicator logic
+        splitter.Classes.Add(isVertical ? "dock-vertical" : "dock-horizontal");
 
-        splitter.PointerExited += (s, e) => {
-            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
-                ctrl.Background = Brushes.Transparent;
-        };
-
-        splitter.PointerPressed += (s, e) => {
-            if (s is Control ctrl) ctrl.Classes.Add("dragging");
-        };
-
-        splitter.PointerReleased += (s, e) => {
-            if (s is TemplatedControl ctrl)
-            {
-                ctrl.Classes.Remove("dragging");
-                if (!ctrl.IsPointerOver) ctrl.Background = Brushes.Transparent;
-            }
-        };
+        // reuse main window hover logic
+        splitter.PointerEntered += _window.GridSplitter_PointerEntered;
+        splitter.PointerExited += _window.GridSplitter_PointerExited;
 
         if (pos == DockPosition.Left || pos == DockPosition.Right)
         {

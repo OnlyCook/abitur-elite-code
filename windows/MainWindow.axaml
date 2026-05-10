@@ -13,6 +13,7 @@
         RequestedThemeVariant="Dark">
 
 	<Window.Styles>
+		<!-- tabs -->
 		<Style Selector="TabItem">
 			<Setter Property="FontSize" Value="15" />
 			<Setter Property="Foreground" Value="#CCCCCC" />
@@ -69,6 +70,70 @@
 		</Style>
 		<Style Selector="TabItem:selected:pointerover">
 			<Setter Property="Foreground" Value="#32A852" />
+		</Style>
+
+		<!-- grid splitters -->
+		<Style Selector="GridSplitter.dock-vertical">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Width" Value="8" />
+			<Setter Property="Cursor" Value="SizeWestEast" />
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Grid Background="Transparent">
+						<Border Name="HoverLine" Background="#32A852" Width="2" HorizontalAlignment="Center" Opacity="0" />
+						<Border Name="Handle" Background="#555555" Width="2" Height="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+					</Grid>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+
+		<Style Selector="GridSplitter.dock-horizontal">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Height" Value="8" />
+			<Setter Property="Cursor" Value="SizeNorthSouth" />
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Grid Background="Transparent">
+						<Border Name="HoverLine" Background="#32A852" Height="2" VerticalAlignment="Center" Opacity="0" />
+						<Border Name="Handle" Background="#555555" Height="2" Width="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+					</Grid>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+
+		<Style Selector="GridSplitter.dock-vertical /template/ Border#HoverLine, GridSplitter.dock-horizontal /template/ Border#HoverLine">
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+				</Transitions>
+			</Setter>
+		</Style>
+		<Style Selector="GridSplitter.dock-vertical.hover-active /template/ Border#HoverLine, GridSplitter.dock-horizontal.hover-active /template/ Border#HoverLine">
+			<Setter Property="Opacity" Value="1" />
+		</Style>
+
+		<Style Selector="GridSplitter.dock-vertical /template/ Border#Handle, GridSplitter.dock-horizontal /template/ Border#Handle">
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+				</Transitions>
+			</Setter>
+		</Style>
+		<Style Selector="GridSplitter.dock-vertical.hover-active /template/ Border#Handle, GridSplitter.dock-horizontal.hover-active /template/ Border#Handle">
+			<Setter Property="Opacity" Value="0" />
+		</Style>
+
+		<Style Selector="GridSplitter.dock-vertical.dragging /template/ Border#HoverLine, GridSplitter.dock-horizontal.dragging /template/ Border#HoverLine">
+			<Setter Property="Transitions">
+				<Transitions />
+			</Setter>
+			<Setter Property="Opacity" Value="1" />
+		</Style>
+		<Style Selector="GridSplitter.dock-vertical.dragging /template/ Border#Handle, GridSplitter.dock-horizontal.dragging /template/ Border#Handle">
+			<Setter Property="Transitions">
+				<Transitions />
+			</Setter>
+			<Setter Property="Opacity" Value="0" />
 		</Style>
 	</Window.Styles>
 
@@ -981,8 +1046,33 @@
 
 			<Canvas Name="DragGhostCanvas" IsHitTestVisible="False" ZIndex="1000" />
 			<Canvas Name="DropIndicatorsCanvas" IsHitTestVisible="False" ZIndex="999">
-				<Border Name="DropPreviewOverlay" Background="#406495ED" IsVisible="False" />
-				<Border Name="TabReorderIndicator" Background="#6495ED" Width="2" CornerRadius="1" IsVisible="False" />
+				<Border Name="DropPreviewOverlay"
+				        Background="#256495ED"
+				        BorderBrush="#6495ED"
+				        BorderThickness="2"
+				        CornerRadius="8"
+				        Opacity="0">
+					<Border.Transitions>
+						<Transitions>
+							<DoubleTransition Property="Canvas.Left" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Canvas.Top" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Width" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Height" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Opacity" Duration="0:0:0.1" />
+						</Transitions>
+					</Border.Transitions>
+				</Border>
+
+				<Border Name="TabReorderIndicator" Background="#6495ED" Width="2" CornerRadius="1" Opacity="0">
+					<Border.Transitions>
+						<Transitions>
+							<DoubleTransition Property="Canvas.Left" Duration="0:0:0.1" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Canvas.Top" Duration="0:0:0.1" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Height" Duration="0:0:0.1" Easing="QuadraticEaseOut" />
+							<DoubleTransition Property="Opacity" Duration="0:0:0.1" />
+						</Transitions>
+					</Border.Transitions>
+				</Border>
 			</Canvas>
 		</Grid>
 	</LayoutTransformControl>

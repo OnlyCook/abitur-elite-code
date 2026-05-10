@@ -3424,7 +3424,7 @@ public partial class MainWindow : Window
         return grid;
     }
 
-    private async void GridSplitter_PointerEntered(object? sender, PointerEventArgs e)
+    internal async void GridSplitter_PointerEntered(object? sender, PointerEventArgs e)
     {
         if (sender is Control splitter)
         {
@@ -3442,7 +3442,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void GridSplitter_PointerExited(object? sender, PointerEventArgs e)
+    internal void GridSplitter_PointerExited(object? sender, PointerEventArgs e)
     {
         if (sender is Control splitter)
         {
