@@ -1,5 +1,4 @@
 ﻿using AbiturEliteCode.cs;
-using AbiturEliteCode.cs.MainWindow;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;

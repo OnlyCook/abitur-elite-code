@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using AbiturEliteCode.cs.MainWindow;
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -26,6 +26,7 @@ public partial class MainWindow
         SqlQueryEditor.Options.EnableHyperlinks = false;
         SqlQueryEditor.Options.EnableEmailHyperlinks = false;
         SqlQueryEditor.Options.HighlightCurrentLine = true;
+        SqlQueryEditor.WordWrap = AppSettings.IsSqlWordWrapEnabled;
 
         SqlQueryEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;

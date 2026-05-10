@@ -1,6 +1,5 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -559,6 +558,8 @@ public class TabDockManager
 
         // force refresh on all dynamic tabs
         _window.RefreshTabStyles();
+
+        _window.TriggerLayoutAutoSave();
     }
 
     private void SplitRootContainer(TabControl newTabControl, DockPosition pos)
@@ -704,16 +705,20 @@ public class TabDockManager
 
     public void EnsureTabInMainSystem(TabItem tab, bool select = true)
     {
-        var mainTc = GetMainTabControl();
         var currentTc = tab.Parent as TabControl;
 
-        if (currentTc != mainTc)
+        // only move to main tab control if it currently has no parent (was hidden)
+        if (currentTc == null)
         {
-            if (currentTc != null) currentTc.Items.Remove(tab);
+            var mainTc = GetMainTabControl();
             mainTc.Items.Add(tab);
+            if (select) mainTc.SelectedItem = tab;
         }
-
-        if (select) mainTc.SelectedItem = tab;
+        else
+        {
+            // if its already in a tab control (isolated or main), just select it
+            if (select) currentTc.SelectedItem = tab;
+        }
     }
 
     public void ForceCleanup()
@@ -730,7 +735,7 @@ public class TabDockManager
             var tc = tabControls[i];
 
             // check if panel lacks any visible tabs
-            bool hasEssential = tc.Items.OfType<TabItem>().Any(t => t.IsVisible);
+            bool hasEssential = tc.Items.OfType<TabItem>().Any(t => t.IsVisible || t.Name == "TabVim" || t.Name == "TabDesigner");
 
             if (!hasEssential && tabControls.Count > 1)
             {
@@ -775,6 +780,8 @@ public class TabDockManager
                 }
             }
         }
+
+        _window.TriggerLayoutAutoSave();
     }
 
     private IEnumerable<TabControl> GetTabControls(Visual parent)

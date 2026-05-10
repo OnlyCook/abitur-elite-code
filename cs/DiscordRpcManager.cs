@@ -1,4 +1,4 @@
-﻿using AbiturEliteCode.cs.MainWindow;
+﻿using AbiturEliteCode.cs;
 using DiscordRPC;
 
 namespace AbiturEliteCode;

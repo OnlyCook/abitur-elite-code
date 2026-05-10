@@ -46,4 +46,8 @@ public class SettingsWindowContext
     public Action? ClearSqlSuggestion { get; init; }
     public Action<string>? ScanCsharpTokens { get; init; }
     public Action? ClearCsharpSuggestion { get; init; }
+
+    // --- app layout saving callbacks ---
+    public required Action ResetAppLayout { get; init; }
+    public required Action DeleteSavedLayout { get; init; }
 }

@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
-using AbiturEliteCode.cs.MainWindow;
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;

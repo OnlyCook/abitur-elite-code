@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
 
-namespace AbiturEliteCode.cs.MainWindow;
+namespace AbiturEliteCode.cs;
 
 public static class AppSettings
 {
@@ -10,16 +10,30 @@ public static class AppSettings
     [SettingKey("sqlvim")] public static bool IsSqlVimEnabled { get; set; }
     [SettingKey("syntax")] public static bool IsSyntaxHighlightingEnabled { get; set; }
     [SettingKey("sqlsyntax")] public static bool IsSqlSyntaxHighlightingEnabled { get; set; }
-    [SettingKey("fontsize")] public static double EditorFontSize { get; set; } = 16.0;
-    [SettingKey("sqlfontsize")] public static double SqlEditorFontSize { get; set; } = 16.0;
+    [SettingKey("fontsize")]
+    public static double EditorFontSize
+    {
+        get;
+        set => field = System.Math.Round(value * 2.0, System.MidpointRounding.AwayFromZero) / 2.0;
+    } = 16.0;
+    [SettingKey("sqlfontsize")]
+    public static double SqlEditorFontSize
+    {
+        get;
+        set => field = System.Math.Round(value * 2.0, System.MidpointRounding.AwayFromZero) / 2.0;
+    } = 16.0;
     [SettingKey("autocomplete")] public static bool IsAutocompleteEnabled { get; set; }
     [SettingKey("sqlautocomplete")] public static bool IsSqlAutocompleteEnabled { get; set; }
+    [SettingKey("wordwrap")] public static bool IsWordWrapEnabled { get; set; }
+    [SettingKey("sqlwordwrap")] public static bool IsSqlWordWrapEnabled { get; set; }
 
     public static bool IsErrorHighlightingEnabled { get; set; }
     public static bool IsErrorExplanationEnabled { get; set; }
 
     // --- Darstellung ---
     [SettingKey("scale")] public static double UiScale { get; set; } = 1.0;
+    [SettingKey("autosavelayout")] public static bool IsLayoutAutoSaveEnabled { get; set; } = false;
+    [SettingKey("savedlayout")] public static string SavedAppLayout { get; set; } = "";
 
     // --- Updates ---
     [SettingKey("autoupdate")] public static bool AutoCheckForUpdates { get; set; } = true;

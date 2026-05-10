@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using AbiturEliteCode.cs.MainWindow;
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -22,6 +22,7 @@ public partial class MainWindow
         CodeEditor.Options.EnableHyperlinks = false;
         CodeEditor.Options.EnableEmailHyperlinks = false;
         CodeEditor.Options.HighlightCurrentLine = true;
+        CodeEditor.WordWrap = AppSettings.IsWordWrapEnabled;
 
         CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         CodeEditor.FontSize = AppSettings.EditorFontSize;

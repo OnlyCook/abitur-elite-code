@@ -1,5 +1,4 @@
 ﻿using AbiturEliteCode.cs;
-using AbiturEliteCode.cs.MainWindow;
 using AbiturEliteCode.screens;
 using Avalonia;
 using Avalonia.Controls;
@@ -170,6 +169,10 @@ public partial class MainWindow : Window
     private static List<MetadataReference>? _cachedReferences;
     private readonly Dictionary<string, IImage> _diagramCache = new();
 
+    // app-layout
+    private readonly DispatcherTimer _layoutAutoSaveTimer;
+    private bool _isRestoringLayout;
+
     private void LogAddSplash(string str, int val)
     {
         _splash?.AddLoadingProgress(val);
@@ -217,12 +220,16 @@ public partial class MainWindow : Window
         AppSettings.IsSqlSyntaxHighlightingEnabled = playerData.Settings.IsSqlSyntaxHighlightingEnabled;
         AppSettings.IsAutocompleteEnabled = playerData.Settings.IsAutocompleteEnabled;
         AppSettings.IsSqlAutocompleteEnabled = playerData.Settings.IsSqlAutocompleteEnabled;
+        AppSettings.IsWordWrapEnabled = playerData.Settings.IsWordWrapEnabled;
+        AppSettings.IsSqlWordWrapEnabled = playerData.Settings.IsSqlWordWrapEnabled;
         AppSettings.EditorFontSize = playerData.Settings.EditorFontSize;
         AppSettings.SqlEditorFontSize = playerData.Settings.SqlEditorFontSize;
         AppSettings.UiScale = playerData.Settings.UiScale;
         AppSettings.AutoCheckForUpdates = playerData.Settings.AutoCheckForUpdates;
         AppSettings.IsSqlAntiSpoilerEnabled = playerData.Settings.IsSqlAntiSpoilerEnabled;
         AppSettings.IsDiscordRpcEnabled = playerData.Settings.IsDiscordRpcEnabled;
+        AppSettings.IsLayoutAutoSaveEnabled = playerData.Settings.IsLayoutAutoSaveEnabled;
+        AppSettings.SavedAppLayout = playerData.Settings.SavedAppLayout;
         LogAddSplash("AppSettings", 1);
 
         // check if display is too small and scale down automatically
@@ -285,6 +292,7 @@ public partial class MainWindow : Window
         ConfigureSqlQueryEditor();
         ConfigureTutorialEditor();
         UpdateShortcutsAndTooltips();
+        LoadAppLayout();
 
         LogAddSplash("Apply settings", 1);
 
@@ -376,6 +384,14 @@ public partial class MainWindow : Window
                 playerData.Settings.SqlSpoilerHintDismissed = true;
                 SaveSystem.Save(playerData);
             }
+        };
+
+        _layoutAutoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _layoutAutoSaveTimer.Tick += (s, e) =>
+        {
+            _layoutAutoSaveTimer.Stop();
+            if (AppSettings.IsLayoutAutoSaveEnabled && !_isRestoringLayout)
+                SaveAppLayout();
         };
 
         CodeEditor.TextChanged += (s, e) =>
@@ -587,6 +603,8 @@ public partial class MainWindow : Window
                 }
 
                 _activeDraggingSplitter = null;
+
+                TriggerLayoutAutoSave();
             }
             else if (!_isDraggingSplitter && _hoveredSplitter != null && !_hoveredSplitter.IsPointerOver)
             {
@@ -1111,6 +1129,8 @@ public partial class MainWindow : Window
             playerData.Settings.IsSyntaxHighlightingEnabled = AppSettings.IsSyntaxHighlightingEnabled;
             playerData.Settings.IsAutocompleteEnabled = AppSettings.IsAutocompleteEnabled;
             playerData.Settings.IsSqlAutocompleteEnabled = AppSettings.IsSqlAutocompleteEnabled;
+            playerData.Settings.IsWordWrapEnabled = AppSettings.IsWordWrapEnabled;
+            playerData.Settings.IsSqlWordWrapEnabled = AppSettings.IsSqlWordWrapEnabled;
             playerData.Settings.EditorFontSize = AppSettings.EditorFontSize;
             playerData.Settings.SqlEditorFontSize = AppSettings.SqlEditorFontSize;
             playerData.Settings.UiScale = AppSettings.UiScale;
@@ -2826,7 +2846,19 @@ public partial class MainWindow : Window
             ScanSqlTokens = text => _sqlAutocompleteService?.ScanTokens(text),
             ClearSqlSuggestion = () => _sqlAutocompleteService?.ClearSuggestion(),
             ScanCsharpTokens = text => _csharpAutocompleteService?.ScanTokens(text),
-            ClearCsharpSuggestion = () => _csharpAutocompleteService?.ClearSuggestion()
+            ClearCsharpSuggestion = () => _csharpAutocompleteService?.ClearSuggestion(),
+
+            ResetAppLayout = () => {
+                AppSettings.SavedAppLayout = "";
+                playerData.Settings.SavedAppLayout = "";
+                SaveSystem.Save(playerData);
+                ResetLayoutState();
+            },
+            DeleteSavedLayout = () => {
+                AppSettings.SavedAppLayout = "";
+                playerData.Settings.SavedAppLayout = "";
+                SaveSystem.Save(playerData);
+            }
         };
 
         await new SettingsWindow(ctx).ShowDialog(this);

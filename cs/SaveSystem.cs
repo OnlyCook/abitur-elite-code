@@ -15,11 +15,28 @@ public class PlayerSettings
     [SettingKey("sqlsyntax")] public bool IsSqlSyntaxHighlightingEnabled { get; set; }
     [SettingKey("autocomplete")] public bool IsAutocompleteEnabled { get; set; }
     [SettingKey("sqlautocomplete")] public bool IsSqlAutocompleteEnabled { get; set; }
-    [SettingKey("fontsize")] public double EditorFontSize { get; set; } = 16.0;
-    [SettingKey("sqlfontsize")] public double SqlEditorFontSize { get; set; } = 16.0;
+    private double _editorFontSize = 16.0;
+    [SettingKey("fontsize")]
+    public double EditorFontSize
+    {
+        get => _editorFontSize;
+        set => _editorFontSize = Math.Round(value * 2.0, MidpointRounding.AwayFromZero) / 2.0;
+    }
+
+    private double _sqlEditorFontSize = 16.0;
+    [SettingKey("sqlfontsize")]
+    public double SqlEditorFontSize
+    {
+        get => _sqlEditorFontSize;
+        set => _sqlEditorFontSize = Math.Round(value * 2.0, MidpointRounding.AwayFromZero) / 2.0;
+    }
+    [SettingKey("wordwrap")] public bool IsWordWrapEnabled { get; set; }
+    [SettingKey("sqlwordwrap")] public bool IsSqlWordWrapEnabled { get; set; }
 
     // --- Darstellung ---
     [SettingKey("scale")] public double UiScale { get; set; } = 1.0;
+    [SettingKey("autosavelayout")] public bool IsLayoutAutoSaveEnabled { get; set; } = false;
+    [SettingKey("savedlayout")] public string SavedAppLayout { get; set; } = "";
 
     // --- Updates ---
     [SettingKey("autoupdate")] public bool AutoCheckForUpdates { get; set; } = true;
@@ -174,7 +191,18 @@ public static class SaveSystem
         {
             var attr = prop.GetCustomAttribute<SettingKeyAttribute>();
             if (attr == null) continue;
-            parts.Add($"{attr.Key}:{prop.GetValue(s)}");
+
+            if (prop.PropertyType == typeof(string))
+            {
+                // encode strings to base64
+                string str = (string)prop.GetValue(s) ?? "";
+                string b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
+                parts.Add($"{attr.Key}:{b64}");
+            }
+            else
+            {
+                parts.Add($"{attr.Key}:{prop.GetValue(s)}");
+            }
         }
         return string.Join(";", parts);
     }
@@ -188,7 +216,8 @@ public static class SaveSystem
 
         foreach (var part in raw.Split(';'))
         {
-            var kv = part.Split(':');
+            // restrict split to exactly 2 parts (prevent splitting inside values)
+            var kv = part.Split(new[] { ':' }, 2);
             if (kv.Length != 2) continue;
             if (!lookup.TryGetValue(kv[0], out var prop)) continue;
 
@@ -198,6 +227,11 @@ public static class SaveSystem
                 if (prop.PropertyType == typeof(bool)) value = bool.Parse(kv[1]);
                 else if (prop.PropertyType == typeof(int)) value = int.Parse(kv[1]);
                 else if (prop.PropertyType == typeof(double)) value = double.Parse(kv[1]);
+                else if (prop.PropertyType == typeof(string))
+                {
+                    // decode base64
+                    value = Encoding.UTF8.GetString(Convert.FromBase64String(kv[1]));
+                }
                 else value = kv[1];
 
                 prop.SetValue(s, value);

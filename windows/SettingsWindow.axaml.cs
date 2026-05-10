@@ -1,4 +1,4 @@
-using AbiturEliteCode.cs.MainWindow;
+using AbiturEliteCode.cs;
 using AbiturEliteCode.screens;
 using Avalonia;
 using Avalonia.Controls;
@@ -29,6 +29,7 @@ public partial class SettingsWindow : Window
     private CheckBox _chkError = null!;
     private CheckBox _chkErrorExplain = null!;
     private CheckBox _chkVim = null!;
+    private CheckBox _chkWordWrap = null!;
     private CheckBox _chkPortable = null!;
     private CheckBox _chkAutoUpdate = null!;
     private CheckBox _chkDiscordRpc = null!;
@@ -48,7 +49,7 @@ public partial class SettingsWindow : Window
     private bool _isLoadingReleases = false;
     private bool _reachedFirstVersion = false;
 
-    private StackPanel _editorPanel = null!;
+    private Control _editorPanel = null!;
     private StackPanel _displayPanel = null!;
     private StackPanel _dataPanel = null!;
     private Control _updatesPanel = null!;
@@ -106,6 +107,8 @@ public partial class SettingsWindow : Window
             _restoreSnapshot();
             _ctx.CodeEditor.FontSize = AppSettings.EditorFontSize;
             _ctx.SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
+            _ctx.CodeEditor.WordWrap = AppSettings.IsWordWrapEnabled;
+            _ctx.SqlQueryEditor.WordWrap = AppSettings.IsSqlWordWrapEnabled;
             _ctx.UpdateVimState();
             _ctx.ApplySyntaxHighlighting();
             _ctx.ApplyUiScale();
@@ -270,6 +273,7 @@ public partial class SettingsWindow : Window
                 _chkSyntax.IsChecked = false;
                 _chkVim.IsChecked = false;
                 _chkAutocomplete.IsChecked = false;
+                _chkWordWrap.IsChecked = false;
             }
             else
             {
@@ -278,6 +282,7 @@ public partial class SettingsWindow : Window
                 _chkErrorExplain.IsChecked = false;
                 _chkVim.IsChecked = false;
                 _chkAutocomplete.IsChecked = false;
+                _chkWordWrap.IsChecked = false;
             }
 
             _sliderFontSize.Value = 16.0;
@@ -371,6 +376,14 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White
         };
 
+        // word wrap
+        _chkWordWrap = new CheckBox
+        {
+            Content = "Zeilenumbruch (Word Wrap)",
+            IsChecked = _ctx.IsSqlMode ? AppSettings.IsSqlWordWrapEnabled : AppSettings.IsWordWrapEnabled,
+            Foreground = Brushes.White
+        };
+
         // error highlighting (c# only)
         _chkError = new CheckBox
         {
@@ -403,6 +416,62 @@ public partial class SettingsWindow : Window
             _chkVim.IsEnabled = false;
             ToolTip.SetTip(_chkVim, "Während des Tutorials nicht änderbar");
         }
+
+        // --- font size sliders ---
+        _sliderFontSize = new Slider
+        {
+            Minimum = 8,
+            Maximum = 48,
+            Value = AppSettings.EditorFontSize,
+            Width = 200,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            TickFrequency = 0.5,
+            IsSnapToTickEnabled = true
+        };
+        var txtFontSizeVal = new TextBox
+        {
+            Text = $"{AppSettings.EditorFontSize:0.0}",
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = 25
+        };
+        StyleAsLabelTextBox(txtFontSizeVal);
+
+        _sliderSqlFontSize = new Slider
+        {
+            Minimum = 8,
+            Maximum = 48,
+            Value = AppSettings.SqlEditorFontSize,
+            Width = 200,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            TickFrequency = 0.5,
+            IsSnapToTickEnabled = true
+        };
+        var txtSqlFontSizeVal = new TextBox
+        {
+            Text = $"{AppSettings.SqlEditorFontSize:0.0}",
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = 25
+        };
+        StyleAsLabelTextBox(txtSqlFontSizeVal);
+
+        // text box input validation and parsing
+        void UpdateFontSizeFromText(TextBox textBox, Slider slider)
+        {
+            string input = textBox.Text?.Replace("px", "").Replace(',', '.') ?? string.Empty;
+            if (double.TryParse(input, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
+            {
+                slider.Value = Math.Clamp(Math.Round(val * 2, MidpointRounding.AwayFromZero) / 2.0, slider.Minimum, slider.Maximum);
+            }
+            textBox.Text = $"{slider.Value:0.0}";
+        }
+
+        txtFontSizeVal.LostFocus += (_, _) => UpdateFontSizeFromText(txtFontSizeVal, _sliderFontSize);
+        txtFontSizeVal.KeyUp += (_, ev) => { if (ev.Key == Key.Enter) UpdateFontSizeFromText(txtFontSizeVal, _sliderFontSize); };
+
+        txtSqlFontSizeVal.LostFocus += (_, _) => UpdateFontSizeFromText(txtSqlFontSizeVal, _sliderSqlFontSize);
+        txtSqlFontSizeVal.KeyUp += (_, ev) => { if (ev.Key == Key.Enter) UpdateFontSizeFromText(txtSqlFontSizeVal, _sliderSqlFontSize); };
 
         // event handlers
         _chkSyntax.IsCheckedChanged += (_, _) =>
@@ -492,9 +561,61 @@ public partial class SettingsWindow : Window
             CheckChanges();
         };
 
+        _chkWordWrap.IsCheckedChanged += (_, _) =>
+        {
+            if (_ctx.IsSqlMode)
+            {
+                AppSettings.IsSqlWordWrapEnabled = _chkWordWrap.IsChecked ?? false;
+                _ctx.SqlQueryEditor.WordWrap = AppSettings.IsSqlWordWrapEnabled;
+            }
+            else
+            {
+                AppSettings.IsWordWrapEnabled = _chkWordWrap.IsChecked ?? false;
+                _ctx.CodeEditor.WordWrap = AppSettings.IsWordWrapEnabled;
+            }
+            CheckChanges();
+        };
+
+        _sliderFontSize.ValueChanged += (_, ev) =>
+        {
+            AppSettings.EditorFontSize = ev.NewValue;
+            txtFontSizeVal.Text = $"{AppSettings.EditorFontSize:0.0}";
+            _ctx.CodeEditor.FontSize = AppSettings.EditorFontSize;
+            _ctx.TutorialEditor.FontSize = AppSettings.EditorFontSize;
+            CheckChanges();
+        };
+
+        _sliderSqlFontSize.ValueChanged += (_, ev) =>
+        {
+            AppSettings.SqlEditorFontSize = ev.NewValue;
+            txtSqlFontSizeVal.Text = $"{AppSettings.SqlEditorFontSize:0.0}";
+            _ctx.SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
+            CheckChanges();
+        };
+
+        var fontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = !_ctx.IsSqlMode };
+        fontRow.Children.Add(_sliderFontSize);
+
+        var fontSizeValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        fontSizeValPanel.Children.Add(txtFontSizeVal);
+        fontSizeValPanel.Children.Add(new TextBlock { Text = "px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        fontRow.Children.Add(fontSizeValPanel);
+
+        var sqlFontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = _ctx.IsSqlMode };
+        sqlFontRow.Children.Add(_sliderSqlFontSize);
+
+        var sqlFontSizeValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        sqlFontSizeValPanel.Children.Add(txtSqlFontSizeVal);
+        sqlFontSizeValPanel.Children.Add(new TextBlock { Text = "px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        sqlFontRow.Children.Add(sqlFontSizeValPanel);
+
+        var lblCsharpFont = new TextBlock { Text = "C# Editor Schriftgröße", Foreground = Brushes.LightGray, IsVisible = !_ctx.IsSqlMode };
+        var lblSqlFont = new TextBlock { Text = "SQL Editor Schriftgröße", Foreground = Brushes.LightGray, IsVisible = _ctx.IsSqlMode };
+
         string editorTitle = _ctx.IsSqlMode ? "SQL Query Editor" : "C# Code Editor";
-        _editorPanel = new StackPanel { Spacing = 15 };
-        _editorPanel.Children.Add(new TextBlock
+        var editorContentPanel = new StackPanel { Spacing = 15 };
+
+        editorContentPanel.Children.Add(new TextBlock
         {
             Text = editorTitle,
             FontSize = 18,
@@ -502,11 +623,63 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _editorPanel.Children.Add(_chkSyntax);
-        _editorPanel.Children.Add(_chkAutocomplete);
-        _editorPanel.Children.Add(_chkError);
-        _editorPanel.Children.Add(_chkErrorExplain);
-        _editorPanel.Children.Add(_chkVim);
+
+        // append font layouts
+        editorContentPanel.Children.Add(lblCsharpFont);
+        editorContentPanel.Children.Add(fontRow);
+        editorContentPanel.Children.Add(lblSqlFont);
+        editorContentPanel.Children.Add(sqlFontRow);
+
+        // append settings checkboxes
+        editorContentPanel.Children.Add(_chkSyntax);
+        editorContentPanel.Children.Add(_chkAutocomplete);
+        editorContentPanel.Children.Add(_chkWordWrap);
+        editorContentPanel.Children.Add(_chkError);
+        editorContentPanel.Children.Add(_chkErrorExplain);
+        editorContentPanel.Children.Add(_chkVim);
+
+        // wrap inner stackpanel into a scroll container
+        _editorPanel = new ScrollViewer
+        {
+            Content = editorContentPanel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
+    }
+
+    private void StyleAsLabelTextBox(TextBox textBox)
+    {
+        textBox.Background = Brushes.Transparent;
+        textBox.BorderBrush = Brushes.Transparent;
+        textBox.Padding = new Thickness(4, 2);
+        textBox.MinHeight = 0;
+
+        textBox.PointerEntered += (_, _) =>
+        {
+            if (!textBox.IsFocused)
+                textBox.Background = SolidColorBrush.Parse("#2D2D30");
+        };
+
+        textBox.PointerExited += (_, _) =>
+        {
+            if (!textBox.IsFocused)
+            {
+                textBox.Background = Brushes.Transparent;
+                textBox.BorderBrush = Brushes.Transparent;
+            }
+        };
+
+        textBox.GotFocus += (_, _) =>
+        {
+            textBox.Background = SolidColorBrush.Parse("#3C3C3C");
+            textBox.BorderBrush = SolidColorBrush.Parse("#007ACC");
+        };
+
+        textBox.LostFocus += (_, _) =>
+        {
+            textBox.Background = textBox.IsPointerOver ? SolidColorBrush.Parse("#2D2D30") : Brushes.Transparent;
+            textBox.BorderBrush = Brushes.Transparent;
+        };
     }
 
     private void BuildDisplayPanel()
@@ -519,80 +692,73 @@ public partial class SettingsWindow : Window
             Width = 200,
             HorizontalAlignment = HorizontalAlignment.Left
         };
-        var txtScaleVal = new TextBlock
+        var txtScaleVal = new TextBox
         {
-            Text = $"{AppSettings.UiScale:P0}",
+            Text = $"{AppSettings.UiScale * 100:F0}",
             Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = 25
+        };
+        StyleAsLabelTextBox(txtScaleVal);
+
+        // text box input parsing for scale percentage
+        void UpdateScaleFromText()
+        {
+            string input = txtScaleVal.Text?.Replace("%", "").Trim() ?? "100";
+            if (double.TryParse(input.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
+            {
+                _sliderScale.Value = Math.Clamp(val / 100.0, _sliderScale.Minimum, _sliderScale.Maximum);
+            }
+            txtScaleVal.Text = $"{_sliderScale.Value * 100:F0}";
+        }
+
+        txtScaleVal.LostFocus += (_, _) => UpdateScaleFromText();
+        txtScaleVal.KeyUp += (_, ev) => { if (ev.Key == Key.Enter) UpdateScaleFromText(); };
+
+        var chkAutoSaveLayout = new CheckBox
+        {
+            Content = "App-Layout (automatisch) speichern",
+            IsChecked = AppSettings.IsLayoutAutoSaveEnabled,
+            Foreground = Brushes.White
         };
 
-        _sliderFontSize = new Slider
+        var btnResetLayout = new Button
         {
-            Minimum = 8,
-            Maximum = 48,
-            Value = AppSettings.EditorFontSize,
-            Width = 200,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
-        var txtFontSizeVal = new TextBlock
-        {
-            Text = $"{AppSettings.EditorFontSize:F0}px",
+            Content = "Layout auf Standard zurücksetzen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
             Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        _sliderSqlFontSize = new Slider
-        {
-            Minimum = 8,
-            Maximum = 48,
-            Value = AppSettings.SqlEditorFontSize,
-            Width = 200,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
-        var txtSqlFontSizeVal = new TextBlock
-        {
-            Text = $"{AppSettings.SqlEditorFontSize:F0}px",
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
+            CornerRadius = new CornerRadius(4),
+            Margin = new Thickness(0, 5, 0, 0)
         };
 
         // event handlers
         _sliderScale.ValueChanged += (_, ev) =>
         {
             AppSettings.UiScale = ev.NewValue;
-            txtScaleVal.Text = $"{ev.NewValue:P0}";
+            txtScaleVal.Text = $"{ev.NewValue * 100:F0}";
             _ctx.ApplyUiScale();
             CheckChanges();
         };
 
-        _sliderFontSize.ValueChanged += (_, ev) =>
+        chkAutoSaveLayout.IsCheckedChanged += (_, _) =>
         {
-            AppSettings.EditorFontSize = ev.NewValue;
-            txtFontSizeVal.Text = $"{ev.NewValue:F0}px";
-            _ctx.CodeEditor.FontSize = ev.NewValue;
-            _ctx.TutorialEditor.FontSize = ev.NewValue;
+            AppSettings.IsLayoutAutoSaveEnabled = chkAutoSaveLayout.IsChecked ?? false;
+            if (!AppSettings.IsLayoutAutoSaveEnabled)
+            {
+                _ctx.DeleteSavedLayout();
+            }
             CheckChanges();
         };
 
-        _sliderSqlFontSize.ValueChanged += (_, ev) =>
-        {
-            AppSettings.SqlEditorFontSize = ev.NewValue;
-            txtSqlFontSizeVal.Text = $"{ev.NewValue:F0}px";
-            _ctx.SqlQueryEditor.FontSize = ev.NewValue;
-            CheckChanges();
-        };
+        btnResetLayout.Click += (_, _) => _ctx.ResetAppLayout();
 
         var scaleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         scaleRow.Children.Add(_sliderScale);
-        scaleRow.Children.Add(txtScaleVal);
 
-        var fontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        fontRow.Children.Add(_sliderFontSize);
-        fontRow.Children.Add(txtFontSizeVal);
-
-        var sqlFontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        sqlFontRow.Children.Add(_sliderSqlFontSize);
-        sqlFontRow.Children.Add(txtSqlFontSizeVal);
+        var scaleValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        scaleValPanel.Children.Add(txtScaleVal);
+        scaleValPanel.Children.Add(new TextBlock { Text = "%", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        scaleRow.Children.Add(scaleValPanel);
 
         _displayPanel = new StackPanel { Spacing = 15 };
         _displayPanel.Children.Add(new TextBlock
@@ -605,10 +771,9 @@ public partial class SettingsWindow : Window
         });
         _displayPanel.Children.Add(new TextBlock { Text = "UI Skalierung", Foreground = Brushes.LightGray });
         _displayPanel.Children.Add(scaleRow);
-        _displayPanel.Children.Add(new TextBlock { Text = "C# Editor Schriftgröße", Foreground = Brushes.LightGray });
-        _displayPanel.Children.Add(fontRow);
-        _displayPanel.Children.Add(new TextBlock { Text = "SQL Editor Schriftgröße", Foreground = Brushes.LightGray });
-        _displayPanel.Children.Add(sqlFontRow);
+        _displayPanel.Children.Add(new Border { Height = 1, Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 10, 0, 10) });
+        _displayPanel.Children.Add(chkAutoSaveLayout);
+        _displayPanel.Children.Add(btnResetLayout);
     }
 
     private void BuildDataPanel()
