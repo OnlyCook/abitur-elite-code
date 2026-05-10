@@ -10,7 +10,15 @@ using System.Linq;
 
 namespace AbiturEliteCode;
 
-public enum DockPosition { None, Center, Left, Right, Top, Bottom }
+public enum DockPosition
+{
+    None,
+    Center,
+    Left,
+    Right,
+    Top,
+    Bottom
+}
 
 public class TabDockManager
 {
@@ -30,6 +38,7 @@ public class TabDockManager
     private TabControl? _targetTabControl;
     private DockPosition _dockPosition = DockPosition.None;
     private int _insertIndex = -1;
+    private bool _isHardDock = false;
 
     public TabDockManager(
         MainWindow window, Panel container, TabControl initialTabs,
@@ -141,7 +150,7 @@ public class TabDockManager
         };
 
         _ghostCanvas.Children.Add(_ghostElement);
-        _window.Cursor = new Cursor(StandardCursorType.DragMove);
+        _window.Cursor = new Cursor(StandardCursorType.SizeAll);
     }
 
     private void UpdateDropIndicators(Point pointerPos)
@@ -149,9 +158,73 @@ public class TabDockManager
         _targetTabControl = null;
         _dockPosition = DockPosition.None;
         _insertIndex = -1;
+        _isHardDock = false;
 
         _dropPreview.IsVisible = false;
         _reorderIndicator.IsVisible = false;
+
+        // check for hard edge docking (first)
+        var containerPoint = _window.TranslatePoint(pointerPos, _container);
+        if (containerPoint.HasValue)
+        {
+            var p = containerPoint.Value;
+            double cw = _container.Bounds.Width;
+            double ch = _container.Bounds.Height;
+            double edgeZone = 15; // edge trigger zone
+
+            // restrict hard dock to only 20% (0.6 - 0.4 = 0.2)
+            double yCenterMin = ch * 0.40;
+            double yCenterMax = ch * 0.60;
+            double xCenterMin = cw * 0.40;
+            double xCenterMax = cw * 0.60;
+
+            if (p.X < edgeZone && p.Y > yCenterMin && p.Y < yCenterMax)
+            {
+                _dockPosition = DockPosition.Left;
+                _isHardDock = true;
+            }
+            else if (p.X > cw - edgeZone && p.Y > yCenterMin && p.Y < yCenterMax)
+            {
+                _dockPosition = DockPosition.Right;
+                _isHardDock = true;
+            }
+            else if (p.Y < edgeZone && p.X > xCenterMin && p.X < xCenterMax)
+            {
+                _dockPosition = DockPosition.Top;
+                _isHardDock = true;
+            }
+            else if (p.Y > ch - edgeZone && p.X > xCenterMin && p.X < xCenterMax)
+            {
+                _dockPosition = DockPosition.Bottom;
+                _isHardDock = true;
+            }
+
+            if (_isHardDock)
+            {
+                _dropPreview.IsVisible = true;
+                var absPos = _container.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
+                if (absPos.HasValue)
+                {
+                    double startX = absPos.Value.X;
+                    double startY = absPos.Value.Y;
+                    double pw = cw, ph = ch;
+
+                    switch (_dockPosition)
+                    {
+                        case DockPosition.Left: pw = cw / 2; break;
+                        case DockPosition.Right: startX += cw / 2; pw = cw / 2; break;
+                        case DockPosition.Top: ph = ch / 2; break;
+                        case DockPosition.Bottom: startY += ch / 2; ph = ch / 2; break;
+                    }
+
+                    Canvas.SetLeft(_dropPreview, startX);
+                    Canvas.SetTop(_dropPreview, startY);
+                    _dropPreview.Width = pw;
+                    _dropPreview.Height = ph;
+                }
+                return; // skip normal tab control hit testing
+            }
+        }
 
         foreach (var tc in GetTabControls(_container))
         {
@@ -199,7 +272,7 @@ public class TabDockManager
                     var tp = t.TranslatePoint(new Point(0, t.Bounds.Height), _targetTabControl);
                     return tp?.Y ?? 0;
                 });
-                if (maxBottom > 0) headerHeight = maxBottom + 8; // buffer for margins
+                if (maxBottom > 0) headerHeight = maxBottom;
             }
 
             // mouse over headers (re-order)
@@ -208,17 +281,43 @@ public class TabDockManager
                 _dockPosition = DockPosition.Center;
                 int visIndex = visibleItems.Count;
 
-                // safe hit testing using abs coordinates relative to window (hopefully)
+                // safe hit testing using abs coordinates relative to window
                 for (int i = 0; i < visibleItems.Count; i++)
                 {
                     var topLeft = visibleItems[i].TranslatePoint(new Point(0, 0), _window);
                     if (topLeft.HasValue)
                     {
-                        double centerX = topLeft.Value.X + (visibleItems[i].Bounds.Width / 2);
-                        if (pointerPos.X < centerX)
+                        double itemTop = topLeft.Value.Y;
+                        double itemBottom = itemTop + visibleItems[i].Bounds.Height;
+
+                        // check if pointer is in this row (using small vertical buffer)
+                        if (pointerPos.Y <= itemBottom + 4)
                         {
-                            visIndex = i;
-                            break;
+                            double centerX = topLeft.Value.X + (visibleItems[i].Bounds.Width / 2);
+                            if (pointerPos.X < centerX)
+                            {
+                                visIndex = i;
+                                break;
+                            }
+
+                            // check if this is the last item in the current row
+                            bool isLastInRow = (i == visibleItems.Count - 1);
+                            if (!isLastInRow)
+                            {
+                                var nextTopLeft = visibleItems[i + 1].TranslatePoint(new Point(0, 0), _window);
+                                // if the next item is a good amount lower, we are at the end of the row
+                                if (nextTopLeft.HasValue && nextTopLeft.Value.Y > itemBottom - 10)
+                                {
+                                    isLastInRow = true;
+                                }
+                            }
+
+                            // if we are past the center of the last item in this row, insert after it
+                            if (isLastInRow && pointerPos.X >= centerX)
+                            {
+                                visIndex = i + 1;
+                                break;
+                            }
                         }
                     }
                 }
@@ -257,10 +356,10 @@ public class TabDockManager
                 {
                     _reorderIndicator.IsVisible = true;
 
-                    // align the indicator with actual tab items (still bugged)
+                    // align the indicator with actual tab items
                     double indX = 0;
                     double indY = 0;
-                    double indHeight = 35; // fallback
+                    double indHeight = 45; // standard floating tab height (without docked margin/padding)
 
                     if (visIndex < visibleItems.Count)
                     {
@@ -269,7 +368,6 @@ public class TabDockManager
                         {
                             indX = tabCanvasPos.Value.X;
                             indY = tabCanvasPos.Value.Y;
-                            indHeight = visibleItems[visIndex].Bounds.Height;
                         }
                     }
                     else if (visibleItems.Count > 0)
@@ -283,7 +381,6 @@ public class TabDockManager
                             // use top left for y to stay aligned vertically
                             var lastTopLeft = lastItem.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                             indY = lastTopLeft?.Y ?? 0;
-                            indHeight = lastItem.Bounds.Height;
                         }
                     }
                     else
@@ -386,13 +483,14 @@ public class TabDockManager
 
     private void DropTab()
     {
-        if (_draggedTab == null || _targetTabControl == null || _sourceTabControl == null || _dockPosition == DockPosition.None) return;
+        if (_draggedTab == null || _sourceTabControl == null || _dockPosition == DockPosition.None) return;
+        if (!_isHardDock && _targetTabControl == null) return;
 
-        if (_dockPosition == DockPosition.Center)
+        if (_dockPosition == DockPosition.Center && !_isHardDock)
         {
             int adjustInsertIndex = _insertIndex;
 
-            // adjust index for same mpanel drops before removing item
+            // adjust index for same panel drops before removing item
             if (_sourceTabControl == _targetTabControl)
             {
                 int currentIndex = _sourceTabControl.Items.IndexOf(_draggedTab);
@@ -420,13 +518,102 @@ public class TabDockManager
             // bind routing back to mainwindow event
             newTabControl.SelectionChanged += _window.OnMainTabChanged;
             newTabControl.Items.Add(_draggedTab);
-            SplitTabControl(_targetTabControl, newTabControl, _dockPosition);
+
+            if (_isHardDock)
+            {
+                SplitRootContainer(newTabControl, _dockPosition);
+            }
+            else
+            {
+                SplitTabControl(_targetTabControl, newTabControl, _dockPosition);
+            }
         }
 
         CleanupEmptyTabControls(_container);
 
         // force refresh on all dynamic tabs
         _window.RefreshTabStyles();
+    }
+
+    private void SplitRootContainer(TabControl newTabControl, DockPosition pos)
+    {
+        // find the actual content root, ignoring floating tooltips (borders)
+        var oldRoot = _container.Children.OfType<Control>().FirstOrDefault(c => c is TabControl || c is Grid);
+        if (oldRoot == null) return;
+
+        int rootIndex = _container.Children.IndexOf(oldRoot);
+        _container.Children.RemoveAt(rootIndex);
+
+        var grid = new Grid();
+
+        var splitter = new GridSplitter
+        {
+            Background = Brushes.Transparent,
+            ResizeDirection = pos == DockPosition.Left || pos == DockPosition.Right ? GridResizeDirection.Columns : GridResizeDirection.Rows,
+            Width = pos == DockPosition.Left || pos == DockPosition.Right ? 8 : double.NaN,
+            Height = pos == DockPosition.Top || pos == DockPosition.Bottom ? 8 : double.NaN,
+            Cursor = pos == DockPosition.Left || pos == DockPosition.Right ? new Cursor(StandardCursorType.SizeWestEast) : new Cursor(StandardCursorType.SizeNorthSouth)
+        };
+
+        splitter.PointerEntered += (s, e) => {
+            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
+                ctrl.Background = SolidColorBrush.Parse("#32A852");
+        };
+
+        splitter.PointerExited += (s, e) => {
+            if (s is TemplatedControl ctrl && !ctrl.Classes.Contains("dragging"))
+                ctrl.Background = Brushes.Transparent;
+        };
+
+        splitter.PointerPressed += (s, e) => {
+            if (s is Control ctrl) ctrl.Classes.Add("dragging");
+        };
+
+        splitter.PointerReleased += (s, e) => {
+            if (s is TemplatedControl ctrl)
+            {
+                ctrl.Classes.Remove("dragging");
+                if (!ctrl.IsPointerOver) ctrl.Background = Brushes.Transparent;
+            }
+        };
+
+        if (pos == DockPosition.Left || pos == DockPosition.Right)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+
+            // reset old stats (to stop issues)
+            Grid.SetRow(oldRoot, 0);
+            Grid.SetRowSpan(oldRoot, 1);
+            Grid.SetColumnSpan(oldRoot, 1);
+
+            Grid.SetColumn(pos == DockPosition.Left ? newTabControl : oldRoot, 0);
+            Grid.SetColumn(splitter, 1);
+            Grid.SetColumn(pos == DockPosition.Left ? oldRoot : newTabControl, 2);
+        }
+        else
+        {
+            grid.RowDefinitions.Add(new RowDefinition(1, GridUnitType.Star));
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            grid.RowDefinitions.Add(new RowDefinition(1, GridUnitType.Star));
+
+            // reset old stats (to stop issues)
+            Grid.SetColumn(oldRoot, 0);
+            Grid.SetRowSpan(oldRoot, 1);
+            Grid.SetColumnSpan(oldRoot, 1);
+
+            Grid.SetRow(pos == DockPosition.Top ? newTabControl : oldRoot, 0);
+            Grid.SetRow(splitter, 1);
+            Grid.SetRow(pos == DockPosition.Top ? oldRoot : newTabControl, 2);
+        }
+
+        grid.Children.Add(oldRoot);
+        grid.Children.Add(splitter);
+        grid.Children.Add(newTabControl);
+
+        // insert at the exact same position (to not cause z-index issues)
+        _container.Children.Insert(rootIndex, grid);
     }
 
     private void SplitTabControl(TabControl target, TabControl newTabControl, DockPosition pos)
