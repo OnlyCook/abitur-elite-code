@@ -241,6 +241,7 @@ public partial class MainWindow : Window
         AppSettings.SavedAppLayout = playerData.Settings.SavedAppLayout;
         AppSettings.IsCommunityFeaturesEnabled = playerData.Settings.IsCommunityFeaturesEnabled;
         AppSettings.GithubToken = playerData.Settings.GithubToken;
+        AppSettings.GithubUsername = playerData.Settings.GithubUsername;
         LogAddSplash("AppSettings", 1);
 
         // check if display is too small and scale down automatically

@@ -46,6 +46,7 @@ public class PlayerSettings
     [SettingKey("discordrpc")] public bool IsDiscordRpcEnabled { get; set; }
     [SettingKey("community")] public bool IsCommunityFeaturesEnabled { get; set; } = false;
     [SettingKey("githubtoken")] public string GithubToken { get; set; } = "";
+    [SettingKey("githubusername")] public string GithubUsername { get; set; } = "";
 
     // internal game state (not settings)
     [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
@@ -478,6 +479,25 @@ public static class SaveSystem
             catch { }
         }
         return new CommunityCacheData();
+    }
+
+    public static void ClearCommunityUserState()
+    {
+        var cache = LoadCommunityCache();
+
+        foreach (var discussion in cache.CsharpDiscussions.Values)
+        {
+            discussion.ViewerHasLiked = false;
+            discussion.ViewerHasDisliked = false;
+        }
+
+        foreach (var discussion in cache.SqlDiscussions.Values)
+        {
+            discussion.ViewerHasLiked = false;
+            discussion.ViewerHasDisliked = false;
+        }
+
+        SaveCommunityCache(cache);
     }
 
     private static string Scramble(string text)

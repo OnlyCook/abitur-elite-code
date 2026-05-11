@@ -54,6 +54,7 @@ public partial class SettingsWindow : Window
     private CheckBox _chkDiscordRpc = null!;
     private CheckBox _chkCommunityFeatures = null!;
     private CheckBox _chkSqlAntiSpoiler = null!;
+    private StackPanel _communitySubPanel = null!;
     private Button _btnGithubLogin = null!;
     private TextBlock _txtGithubStatus = null!;
 
@@ -67,6 +68,7 @@ public partial class SettingsWindow : Window
     // github community
     private const string ClientId = "Ov23liAiILTN73TYZ1cj";
     private CancellationTokenSource? _loginCts;
+    private bool _suppressCommunityHandler = false;
 
     public SettingsWindow(SettingsWindowContext ctx)
     {
@@ -1285,13 +1287,15 @@ public partial class SettingsWindow : Window
 
         _chkCommunityFeatures = new CheckBox
         {
-            Content = "Community Features (GitHub)",
+            Content = "Community Features",
             IsChecked = AppSettings.IsCommunityFeaturesEnabled,
-            Foreground = Brushes.White
+            Foreground = Brushes.White,
+            FontSize = 16,
+            FontWeight = FontWeight.Bold
         };
         ToolTip.SetTip(_chkCommunityFeatures, "Erlaube das Laden von Kommentaren und Likes über GitHub");
 
-        // github integration
+        // github status and login button
         _txtGithubStatus = new TextBlock
         {
             Foreground = Brushes.Gray,
@@ -1303,6 +1307,22 @@ public partial class SettingsWindow : Window
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4)
         };
+
+        var communityDescription = new TextBlock
+        {
+            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben.",
+            Foreground = Brushes.LightGray,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+        };
+
+        _communitySubPanel = new StackPanel
+        {
+            Spacing = 5,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        _communitySubPanel.Children.Add(communityDescription);
+        _communitySubPanel.Children.Add(_txtGithubStatus);
+        _communitySubPanel.Children.Add(_btnGithubLogin);
 
         // event handlers
         _chkSqlAntiSpoiler.IsCheckedChanged += (_, _) =>
@@ -1317,15 +1337,41 @@ public partial class SettingsWindow : Window
             CheckChanges();
         };
 
-        _chkCommunityFeatures.IsCheckedChanged += (_, _) =>
+        _chkCommunityFeatures.IsCheckedChanged += async (_, _) =>
         {
-            AppSettings.IsCommunityFeaturesEnabled = _chkCommunityFeatures.IsChecked ?? false;
+            if (_suppressCommunityHandler) return;
 
-            // save immediately (exception)
+            bool enabling = _chkCommunityFeatures.IsChecked ?? false;
+
+            // confirm sign out when disabling while logged in
+            if (!enabling && !string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                bool confirmed = await ShowCommunityDisableDialog();
+                if (!confirmed)
+                {
+                    _suppressCommunityHandler = true;
+                    _chkCommunityFeatures.IsChecked = true;
+                    _suppressCommunityHandler = false;
+                    return;
+                }
+
+                // sign out
+                AppSettings.GithubToken = string.Empty;
+                AppSettings.GithubUsername = string.Empty;
+                SaveSystem.ClearCommunityUserState();
+                AppSettings.ApplyTo(_ctx.PlayerData.Settings);
+                SaveSystem.Save(_ctx.PlayerData);
+            }
+
+            AppSettings.IsCommunityFeaturesEnabled = enabling;
+
+            // save immediately
             AppSettings.ApplyTo(_ctx.PlayerData.Settings);
             SaveSystem.Save(_ctx.PlayerData);
 
-            CheckChanges();
+            // refresh snapshot so CheckChanges() doesnt count this as a pending change
+            _refreshSnapshot();
+
             UpdateGithubUiState();
         };
 
@@ -1334,13 +1380,17 @@ public partial class SettingsWindow : Window
             if (!string.IsNullOrEmpty(AppSettings.GithubToken))
             {
                 AppSettings.GithubToken = string.Empty;
+                AppSettings.GithubUsername = string.Empty;
+                SaveSystem.ClearCommunityUserState();
 
-                // save immediately (exception)
+                // save immediately
                 AppSettings.ApplyTo(_ctx.PlayerData.Settings);
                 SaveSystem.Save(_ctx.PlayerData);
 
+                // refresh snapshot so this doesnt appear as an unsaved change
+                _refreshSnapshot();
+
                 UpdateGithubUiState();
-                CheckChanges();
             }
             else
             {
@@ -1359,33 +1409,93 @@ public partial class SettingsWindow : Window
         });
         _miscPanel.Children.Add(_chkSqlAntiSpoiler);
         _miscPanel.Children.Add(_chkDiscordRpc);
-        _miscPanel.Children.Add(_chkCommunityFeatures);
-
         _miscPanel.Children.Add(new Border { Height = 1, Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 10, 0, 10) });
+        _miscPanel.Children.Add(_chkCommunityFeatures);
+        _miscPanel.Children.Add(_communitySubPanel);
 
-        _miscPanel.Children.Add(new TextBlock
-        {
-            Text = "Community Features",
-            FontSize = 16,
-            FontWeight = FontWeight.Bold,
-            Foreground = Brushes.White
-        });
-        _miscPanel.Children.Add(new TextBlock
-        {
-            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben.",
-            Foreground = Brushes.LightGray,
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap
-        });
-        _miscPanel.Children.Add(_txtGithubStatus);
-        _miscPanel.Children.Add(_btnGithubLogin);
-
-        // Initial state setup
         UpdateGithubUiState();
+    }
+
+    private async Task<bool> ShowCommunityDisableDialog()
+    {
+        bool confirmed = false;
+
+        var dialog = new Window
+        {
+            Title = "Community Features deaktivieren?",
+            Width = 380,
+            Height = 175,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (_, ev) => 
+        {
+            if (ev.Key == Key.Escape)
+                dialog.Close();
+        };
+
+        var grid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            Margin = new Thickness(20)
+        };
+        grid.Children.Add(new TextBlock
+        {
+            Text = "Du bist aktuell angemeldet. Das Deaktivieren der Community Features meldet dich automatisch ab. Fortfahren?",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 10,
+            Margin = new Thickness(0, 15, 0, 0)
+        };
+        Grid.SetRow(btnPanel, 1);
+
+        var btnConfirm = new Button
+        {
+            Content = "Ja, abmelden",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+
+        btnConfirm.Click += (_, _) =>
+        {
+            confirmed = true;
+            dialog.Close();
+        };
+        btnCancel.Click += (_, _) => dialog.Close();
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnConfirm);
+        grid.Children.Add(btnPanel);
+        dialog.Content = grid;
+
+        await dialog.ShowDialog(this);
+        return confirmed;
     }
 
     private void UpdateGithubUiState()
     {
         bool isCommunityEnabled = AppSettings.IsCommunityFeaturesEnabled;
+        bool isLoggedIn = !string.IsNullOrEmpty(AppSettings.GithubToken);
+
+        // gray out sub-panel when community features are disabled
+        _communitySubPanel.Opacity = isCommunityEnabled ? 1.0 : 0.4;
         _btnGithubLogin.IsEnabled = isCommunityEnabled;
 
         if (!isCommunityEnabled)
@@ -1393,15 +1503,15 @@ public partial class SettingsWindow : Window
             _txtGithubStatus.Text = "Status: Community Features deaktiviert";
             _btnGithubLogin.Content = "Mit GitHub anmelden";
             _btnGithubLogin.Background = SolidColorBrush.Parse("#2ea043"); // green
-            _btnGithubLogin.Opacity = 0.5;
             return;
         }
 
-        _btnGithubLogin.Opacity = 1.0;
-
-        if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+        if (isLoggedIn)
         {
-            _txtGithubStatus.Text = "Status: Angemeldet";
+            string displayName = string.IsNullOrEmpty(AppSettings.GithubUsername)
+                ? "Unbekannt"
+                : AppSettings.GithubUsername;
+            _txtGithubStatus.Text = $"Status: Angemeldet als {displayName}";
             _btnGithubLogin.Content = "Abmelden";
             _btnGithubLogin.Background = SolidColorBrush.Parse("#B43232"); // red
         }
@@ -1578,15 +1688,34 @@ public partial class SettingsWindow : Window
                 var pollDoc = JsonDocument.Parse(await pollResp.Content.ReadAsStringAsync());
                 if (pollDoc.RootElement.TryGetProperty("access_token", out var tokenProp))
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => {
+                    await Dispatcher.UIThread.InvokeAsync(async () => {
                         AppSettings.GithubToken = tokenProp.GetString()!;
 
-                        // save immediately (exception)
+                        // fetch github username
+                        try
+                        {
+                            using var userClient = new HttpClient();
+                            userClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {AppSettings.GithubToken}");
+                            userClient.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode");
+                            userClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+                            var userResp = await userClient.GetAsync("https://api.github.com/user");
+                            if (userResp.IsSuccessStatusCode)
+                            {
+                                var userDoc = JsonDocument.Parse(await userResp.Content.ReadAsStringAsync());
+                                if (userDoc.RootElement.TryGetProperty("login", out var loginProp))
+                                    AppSettings.GithubUsername = loginProp.GetString() ?? string.Empty;
+                            }
+                        }
+                        catch { }
+
+                        // save immediately
                         AppSettings.ApplyTo(_ctx.PlayerData.Settings);
                         SaveSystem.Save(_ctx.PlayerData);
 
+                        // refresh snapshot so login doesnt appear as an unsaved change
+                        _refreshSnapshot();
+
                         UpdateGithubUiState();
-                        CheckChanges();
                         dialog.Close();
                     });
                     break;

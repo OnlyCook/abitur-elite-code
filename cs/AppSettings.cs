@@ -43,6 +43,7 @@ public static class AppSettings
     [SettingKey("discordrpc")] public static bool IsDiscordRpcEnabled { get; set; }
     [SettingKey("community")] public static bool IsCommunityFeaturesEnabled { get; set; } = false;
     [SettingKey("githubtoken")] public static string GithubToken { get; set; } = string.Empty;
+    [SettingKey("githubusername")] public static string GithubUsername { get; set; } = string.Empty;
 
     // ---
 
