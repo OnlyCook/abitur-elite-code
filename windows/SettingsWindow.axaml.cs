@@ -172,6 +172,7 @@ public partial class SettingsWindow : Window
         }
 
         SaveSystem.Save(_ctx.PlayerData);
+        SaveSystem.SaveToken(AppSettings.GithubToken, AppSettings.InstallKey);
 
         if (_chkPortable.IsChecked != _originalPortableState)
             try
@@ -1358,6 +1359,7 @@ public partial class SettingsWindow : Window
                 // sign out
                 AppSettings.GithubToken = string.Empty;
                 AppSettings.GithubUsername = string.Empty;
+                SaveSystem.DeleteToken();
                 SaveSystem.ClearCommunityUserState();
                 AppSettings.ApplyTo(_ctx.PlayerData.Settings);
                 SaveSystem.Save(_ctx.PlayerData);
@@ -1381,6 +1383,7 @@ public partial class SettingsWindow : Window
             {
                 AppSettings.GithubToken = string.Empty;
                 AppSettings.GithubUsername = string.Empty;
+                SaveSystem.DeleteToken();
                 SaveSystem.ClearCommunityUserState();
 
                 // save immediately
@@ -1711,6 +1714,7 @@ public partial class SettingsWindow : Window
                         // save immediately
                         AppSettings.ApplyTo(_ctx.PlayerData.Settings);
                         SaveSystem.Save(_ctx.PlayerData);
+                        SaveSystem.SaveToken(AppSettings.GithubToken, AppSettings.InstallKey);
 
                         // refresh snapshot so login doesnt appear as an unsaved change
                         _refreshSnapshot();

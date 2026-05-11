@@ -42,8 +42,9 @@ public static class AppSettings
     [SettingKey("sqlantispoiler")] public static bool IsSqlAntiSpoilerEnabled { get; set; }
     [SettingKey("discordrpc")] public static bool IsDiscordRpcEnabled { get; set; }
     [SettingKey("community")] public static bool IsCommunityFeaturesEnabled { get; set; } = false;
-    [SettingKey("githubtoken")] public static string GithubToken { get; set; } = string.Empty;
+    public static string GithubToken { get; set; } = string.Empty;
     [SettingKey("githubusername")] public static string GithubUsername { get; set; } = string.Empty;
+    [SettingKey("installkey")] public static string InstallKey { get; set; } = string.Empty;
 
     // ---
 

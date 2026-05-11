@@ -45,8 +45,9 @@ public class PlayerSettings
     [SettingKey("sqlantispoiler")] public bool IsSqlAntiSpoilerEnabled { get; set; }
     [SettingKey("discordrpc")] public bool IsDiscordRpcEnabled { get; set; }
     [SettingKey("community")] public bool IsCommunityFeaturesEnabled { get; set; } = false;
-    [SettingKey("githubtoken")] public string GithubToken { get; set; } = "";
+    public string GithubToken { get; set; } = "";
     [SettingKey("githubusername")] public string GithubUsername { get; set; } = "";
+    [SettingKey("installkey")] public string InstallKey { get; set; } = string.Empty;
 
     // internal game state (not settings)
     [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
@@ -97,6 +98,9 @@ public static class SaveSystem
     private static string CustomSavePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
 
     private static string CommunityCachePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "communitycache.elitedata");
+
+    private static string TokenPath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "token(NICHT TEILEN).elitedata");
+    private static string DpapiKeyPath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "installkey.elitedata");
 
     private static string GetActivePath()
     {
@@ -193,22 +197,22 @@ public static class SaveSystem
         var parts = new List<string>();
         foreach (var prop in typeof(PlayerSettings).GetProperties())
         {
+            if (prop.Name == nameof(PlayerSettings.GithubToken)) continue;
+
             var attr = prop.GetCustomAttribute<SettingKeyAttribute>();
             if (attr == null) continue;
 
             if (prop.PropertyType == typeof(string))
             {
-                // encode strings to base64 or scramble
+                // encode strings to base64
                 string str = (string)prop.GetValue(s) ?? "";
-                string encoded = prop.Name == nameof(PlayerSettings.GithubToken)
-                    ? Scramble(str)
-                    : Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
+                string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
                 parts.Add($"{attr.Key}:{encoded}");
             }
+            else if (prop.PropertyType == typeof(double))
+                parts.Add($"{attr.Key}:{((double)prop.GetValue(s)).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             else
-            {
                 parts.Add($"{attr.Key}:{prop.GetValue(s)}");
-            }
         }
         return string.Join(";", parts);
     }
@@ -231,18 +235,11 @@ public static class SaveSystem
                 object value;
                 if (prop.PropertyType == typeof(bool)) value = bool.Parse(kv[1]);
                 else if (prop.PropertyType == typeof(int)) value = int.Parse(kv[1]);
-                else if (prop.PropertyType == typeof(double)) value = double.Parse(kv[1]);
+                else if (prop.PropertyType == typeof(double)) value = double.Parse(kv[1], System.Globalization.CultureInfo.InvariantCulture);
                 else if (prop.PropertyType == typeof(string))
                 {
-                    // decode base64 or unscramble
-                    if (prop.Name == nameof(PlayerSettings.GithubToken))
-                    {
-                        value = Unscramble(kv[1]);
-                    }
-                    else
-                    {
-                        value = Encoding.UTF8.GetString(Convert.FromBase64String(kv[1]));
-                    }
+                    // decode base64
+                    value = Encoding.UTF8.GetString(Convert.FromBase64String(kv[1]));
                 }
                 else value = kv[1];
 
@@ -500,29 +497,146 @@ public static class SaveSystem
         SaveCommunityCache(cache);
     }
 
-    private static string Scramble(string text)
+    private static byte[] DeriveKey(string installKey)
     {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
-        var key = "AbiturEliteCodeCommunityKey";
-        var result = new StringBuilder();
-        for (int i = 0; i < text.Length; i++)
-            result.Append((char)(text[i] ^ key[i % key.Length]));
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(result.ToString()));
+        // derive a 256-bit key from the composite key
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        return sha.ComputeHash(Encoding.UTF8.GetBytes(installKey + GetMachineKey()));
     }
 
-    private static string Unscramble(string base64)
+    private static string EncryptToken(string token, string installKey)
+    {
+        if (string.IsNullOrEmpty(token)) return string.Empty;
+        byte[] key = DeriveKey(installKey);
+        byte[] nonce = new byte[System.Security.Cryptography.AesGcm.NonceByteSizes.MinSize];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(nonce);
+        byte[] plaintext = Encoding.UTF8.GetBytes(token);
+        byte[] ciphertext = new byte[plaintext.Length];
+        byte[] tag = new byte[System.Security.Cryptography.AesGcm.TagByteSizes.MinSize];
+        using var aes = new System.Security.Cryptography.AesGcm(key, tag.Length);
+        aes.Encrypt(nonce, plaintext, ciphertext, tag);
+        return Convert.ToBase64String([.. nonce, .. tag, .. ciphertext]); // store nonce + tag + ciphertext
+    }
+
+    private static string DecryptToken(string base64, string installKey)
     {
         if (string.IsNullOrEmpty(base64)) return string.Empty;
         try
         {
-            var text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-            var key = "AbiturEliteCodeCommunityKey";
-            var result = new StringBuilder();
-            for (int i = 0; i < text.Length; i++)
-                result.Append((char)(text[i] ^ key[i % key.Length]));
-            return result.ToString();
+            byte[] key = DeriveKey(installKey);
+            byte[] data = Convert.FromBase64String(base64);
+            int nonceSize = System.Security.Cryptography.AesGcm.NonceByteSizes.MinSize;
+            int tagSize = System.Security.Cryptography.AesGcm.TagByteSizes.MinSize;
+            byte[] nonce = data[..nonceSize];
+            byte[] tag = data[nonceSize..(nonceSize + tagSize)];
+            byte[] ciphertext = data[(nonceSize + tagSize)..];
+            byte[] plaintext = new byte[ciphertext.Length];
+            using var aes = new System.Security.Cryptography.AesGcm(key, tagSize);
+            aes.Decrypt(nonce, ciphertext, tag, plaintext);
+            return Encoding.UTF8.GetString(plaintext);
         }
         catch { return string.Empty; }
+    }
+
+    public static void SaveToken(string token, string installKey)
+    {
+        try
+        {
+            string path = TokenPath;
+            string directory = Path.GetDirectoryName(path);
+            if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
+            File.WriteAllText(path, EncryptToken(token, installKey));
+        }
+        catch { }
+    }
+
+    public static string LoadToken(string installKey)
+    {
+        try
+        {
+            if (!File.Exists(TokenPath)) return string.Empty;
+            return DecryptToken(File.ReadAllText(TokenPath), installKey);
+        }
+        catch { return string.Empty; }
+    }
+
+    public static void DeleteToken()
+    {
+        try { if (File.Exists(TokenPath)) File.Delete(TokenPath); }
+        catch { }
+    }
+
+    private static string GetMachineKey()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // try to load the already protected key blob
+            if (File.Exists(DpapiKeyPath))
+            {
+                try
+                {
+                    byte[] blob = File.ReadAllBytes(DpapiKeyPath);
+                    byte[] keyBytes = System.Security.Cryptography.ProtectedData.Unprotect(
+                        blob,
+                        Encoding.UTF8.GetBytes("AbiturEliteCode"),
+                        System.Security.Cryptography.DataProtectionScope.CurrentUser
+                    );
+                    return Convert.ToBase64String(keyBytes);
+                }
+                catch { }
+            }
+
+            // initial launch: generate a random machine key, protect it with dpapi, save it
+            byte[] secret = new byte[32];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(secret);
+            byte[] protected_ = System.Security.Cryptography.ProtectedData.Protect(
+                secret,
+                Encoding.UTF8.GetBytes("AbiturEliteCode"),
+                System.Security.Cryptography.DataProtectionScope.CurrentUser
+            );
+            string dir = Path.GetDirectoryName(DpapiKeyPath);
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllBytes(DpapiKeyPath, protected_);
+            return Convert.ToBase64String(secret);
+        }
+
+        // linux/mac fallback
+        return GetPosixMachineKey();
+    }
+
+    private static string GetPosixMachineKey()
+    {
+        // use "/etc/machine-id" (linux) or "IOPlatformUUID" (mac) if available
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            try
+            {
+                var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "ioreg",
+                    Arguments = "-rd1 -c IOPlatformExpertDevice",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false
+                });
+                string output = proc.StandardOutput.ReadToEnd();
+                var match = System.Text.RegularExpressions.Regex.Match(output, @"IOPlatformUUID""\s*=\s*""([^""]+)""");
+                if (match.Success) return match.Groups[1].Value;
+            }
+            catch { }
+        }
+
+        try
+        {
+            if (File.Exists("/etc/machine-id"))
+                return File.ReadAllText("/etc/machine-id").Trim();
+
+            if (File.Exists("/var/lib/dbus/machine-id"))
+                return File.ReadAllText("/var/lib/dbus/machine-id").Trim();
+        }
+        catch { }
+
+        // last resort
+        return $"{Environment.UserName}@{Environment.MachineName}";
     }
 }
 

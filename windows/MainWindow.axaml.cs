@@ -242,6 +242,15 @@ public partial class MainWindow : Window
         AppSettings.IsCommunityFeaturesEnabled = playerData.Settings.IsCommunityFeaturesEnabled;
         AppSettings.GithubToken = playerData.Settings.GithubToken;
         AppSettings.GithubUsername = playerData.Settings.GithubUsername;
+        AppSettings.InstallKey = playerData.Settings.InstallKey;
+        // generate install key
+        if (string.IsNullOrEmpty(AppSettings.InstallKey))
+        {
+            AppSettings.InstallKey = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            AppSettings.ApplyTo(playerData.Settings);
+            SaveSystem.Save(playerData);
+        }
+        AppSettings.GithubToken = SaveSystem.LoadToken(AppSettings.InstallKey);
         LogAddSplash("AppSettings", 1);
 
         // check if display is too small and scale down automatically
