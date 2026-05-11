@@ -6,9 +6,13 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AbiturEliteCode;
@@ -32,8 +36,6 @@ public partial class SettingsWindow : Window
     private CheckBox _chkWordWrap = null!;
     private CheckBox _chkPortable = null!;
     private CheckBox _chkAutoUpdate = null!;
-    private CheckBox _chkDiscordRpc = null!;
-    private CheckBox _chkSqlAntiSpoiler = null!;
     private Slider _sliderScale = null!;
     private Slider _sliderFontSize = null!;
     private Slider _sliderSqlFontSize = null!;
@@ -49,12 +51,22 @@ public partial class SettingsWindow : Window
     private bool _isLoadingReleases = false;
     private bool _reachedFirstVersion = false;
 
+    private CheckBox _chkDiscordRpc = null!;
+    private CheckBox _chkCommunityFeatures = null!;
+    private CheckBox _chkSqlAntiSpoiler = null!;
+    private Button _btnGithubLogin = null!;
+    private TextBlock _txtGithubStatus = null!;
+
     private Control _editorPanel = null!;
     private StackPanel _displayPanel = null!;
     private StackPanel _dataPanel = null!;
     private Control _updatesPanel = null!;
     private Button _btnScrollTop = null!;
     private StackPanel _miscPanel = null!;
+
+    // github community
+    private const string ClientId = "Ov23liAiILTN73TYZ1cj";
+    private CancellationTokenSource? _loginCts;
 
     public SettingsWindow(SettingsWindowContext ctx)
     {
@@ -1271,6 +1283,27 @@ public partial class SettingsWindow : Window
         };
         ToolTip.SetTip(_chkDiscordRpc, "Zeige deinen Status auf Discord an");
 
+        _chkCommunityFeatures = new CheckBox
+        {
+            Content = "Community Features (GitHub)",
+            IsChecked = AppSettings.IsCommunityFeaturesEnabled,
+            Foreground = Brushes.White
+        };
+        ToolTip.SetTip(_chkCommunityFeatures, "Erlaube das Laden von Kommentaren und Likes über GitHub");
+
+        // github integration
+        _txtGithubStatus = new TextBlock
+        {
+            Foreground = Brushes.Gray,
+            Margin = new Thickness(0, 5, 0, 10)
+        };
+
+        _btnGithubLogin = new Button
+        {
+            Padding = new Thickness(15, 8),
+            CornerRadius = new CornerRadius(4)
+        };
+
         // event handlers
         _chkSqlAntiSpoiler.IsCheckedChanged += (_, _) =>
         {
@@ -1284,6 +1317,37 @@ public partial class SettingsWindow : Window
             CheckChanges();
         };
 
+        _chkCommunityFeatures.IsCheckedChanged += (_, _) =>
+        {
+            AppSettings.IsCommunityFeaturesEnabled = _chkCommunityFeatures.IsChecked ?? false;
+
+            // save immediately (exception)
+            AppSettings.ApplyTo(_ctx.PlayerData.Settings);
+            SaveSystem.Save(_ctx.PlayerData);
+
+            CheckChanges();
+            UpdateGithubUiState();
+        };
+
+        _btnGithubLogin.Click += async (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                AppSettings.GithubToken = string.Empty;
+
+                // save immediately (exception)
+                AppSettings.ApplyTo(_ctx.PlayerData.Settings);
+                SaveSystem.Save(_ctx.PlayerData);
+
+                UpdateGithubUiState();
+                CheckChanges();
+            }
+            else
+            {
+                await ShowGithubLoginDialog();
+            }
+        };
+
         _miscPanel = new StackPanel { Spacing = 15 };
         _miscPanel.Children.Add(new TextBlock
         {
@@ -1295,5 +1359,244 @@ public partial class SettingsWindow : Window
         });
         _miscPanel.Children.Add(_chkSqlAntiSpoiler);
         _miscPanel.Children.Add(_chkDiscordRpc);
+        _miscPanel.Children.Add(_chkCommunityFeatures);
+
+        _miscPanel.Children.Add(new Border { Height = 1, Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 10, 0, 10) });
+
+        _miscPanel.Children.Add(new TextBlock
+        {
+            Text = "Community Features",
+            FontSize = 16,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White
+        });
+        _miscPanel.Children.Add(new TextBlock
+        {
+            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben.",
+            Foreground = Brushes.LightGray,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+        });
+        _miscPanel.Children.Add(_txtGithubStatus);
+        _miscPanel.Children.Add(_btnGithubLogin);
+
+        // Initial state setup
+        UpdateGithubUiState();
+    }
+
+    private void UpdateGithubUiState()
+    {
+        bool isCommunityEnabled = AppSettings.IsCommunityFeaturesEnabled;
+        _btnGithubLogin.IsEnabled = isCommunityEnabled;
+
+        if (!isCommunityEnabled)
+        {
+            _txtGithubStatus.Text = "Status: Community Features deaktiviert";
+            _btnGithubLogin.Content = "Mit GitHub anmelden";
+            _btnGithubLogin.Background = SolidColorBrush.Parse("#2ea043"); // green
+            _btnGithubLogin.Opacity = 0.5;
+            return;
+        }
+
+        _btnGithubLogin.Opacity = 1.0;
+
+        if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+        {
+            _txtGithubStatus.Text = "Status: Angemeldet";
+            _btnGithubLogin.Content = "Abmelden";
+            _btnGithubLogin.Background = SolidColorBrush.Parse("#B43232"); // red
+        }
+        else
+        {
+            _txtGithubStatus.Text = "Status: Nicht angemeldet";
+            _btnGithubLogin.Content = "Mit GitHub anmelden";
+            _btnGithubLogin.Background = SolidColorBrush.Parse("#2ea043"); // green
+        }
+    }
+
+    private async Task ShowGithubLoginDialog()
+    {
+        _loginCts = new CancellationTokenSource();
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.Add("Accept", "application/json");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode");
+
+        // request device code
+        var deviceResp = await http.PostAsync("https://github.com/login/device/code",
+            new FormUrlEncodedContent(new[] {
+            new KeyValuePair<string, string>("client_id", ClientId),
+            new KeyValuePair<string, string>("scope", "public_repo write:discussion")
+            }));
+
+        var deviceData = JsonDocument.Parse(await deviceResp.Content.ReadAsStringAsync());
+        string userCode = deviceData.RootElement.GetProperty("user_code").GetString()!;
+        string deviceCode = deviceData.RootElement.GetProperty("device_code").GetString()!;
+        string verificationUri = deviceData.RootElement.GetProperty("verification_uri").GetString()!;
+        int interval = deviceData.RootElement.GetProperty("interval").GetInt32();
+
+        var dialog = new Window
+        {
+            Title = "GitHub Login",
+            Width = 450,
+            Height = 280,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (_, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+
+        var grid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            Margin = new Thickness(20)
+        };
+
+        var contentPanel = new StackPanel
+        {
+            Spacing = 15,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        contentPanel.Children.Add(new TextBlock
+        {
+            Text = "GitHub Authentifizierung",
+            FontWeight = FontWeight.Bold,
+            Foreground = SolidColorBrush.Parse("#2ea043"),
+            FontSize = 18,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        contentPanel.Children.Add(new TextBlock
+        {
+            Text = "1. Klicke auf 'Im Browser öffnen'.\n2. Füge den unten stehenden Code auf der GitHub-Seite ein.\n3. Bestätige die Autorisierung.",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Foreground = Brushes.White,
+            LineHeight = 22
+        });
+
+        var codePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 10
+        };
+
+        var txtCode = new TextBox
+        {
+            Text = userCode, // dynamically bind the real user code
+            FontSize = 24,
+            FontWeight = FontWeight.Bold,
+            FontFamily = new FontFamily("Consolas, monospace"),
+            TextAlignment = TextAlignment.Center,
+            IsReadOnly = true,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = SolidColorBrush.Parse("#007ACC"),
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            CornerRadius = new CornerRadius(6),
+            Margin = new Thickness(0, 10, 0, 10)
+        };
+
+        var btnCopyCode = new Button
+        {
+            Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18),
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Padding = new Thickness(10),
+            CornerRadius = new CornerRadius(4),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        btnCopyCode.Click += async (_, _) =>
+        {
+            var topLevel = TopLevel.GetTopLevel(dialog);
+            if (topLevel?.Clipboard != null)
+            {
+                await topLevel.Clipboard.SetTextAsync(userCode);
+                btnCopyCode.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyCode.Content = _ctx.LoadIcon("assets/icons/ic_success.svg", 18);
+                await Task.Delay(500);
+                btnCopyCode.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyCode.Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18);
+            }
+        };
+
+        codePanel.Children.Add(txtCode);
+        codePanel.Children.Add(btnCopyCode);
+        contentPanel.Children.Add(codePanel);
+
+        grid.Children.Add(contentPanel);
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 10,
+            Margin = new Thickness(0, 15, 0, 0)
+        };
+        Grid.SetRow(btnPanel, 1);
+
+        var btnOpenBrowser = new Button
+        {
+            Content = "Im Browser öffnen",
+            Background = SolidColorBrush.Parse("#2ea043"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+
+        btnOpenBrowser.Click += (_, _) =>
+        {
+            // automatically copy to clipboard (ux)
+            TopLevel.GetTopLevel(dialog)?.Clipboard?.SetTextAsync(userCode);
+            UpdateManager.OpenBrowser(verificationUri);
+        };
+        btnCancel.Click += (_, _) => dialog.Close();
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnOpenBrowser);
+        grid.Children.Add(btnPanel);
+
+        dialog.Content = grid;
+
+        // start polling in background
+        _ = Task.Run(async () => {
+            while (!_loginCts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(interval + 1));
+
+                var pollResp = await http.PostAsync("https://github.com/login/oauth/access_token",
+                    new FormUrlEncodedContent(new[] {
+                    new KeyValuePair<string, string>("client_id", ClientId),
+                    new KeyValuePair<string, string>("device_code", deviceCode),
+                    new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
+                    }));
+
+                var pollDoc = JsonDocument.Parse(await pollResp.Content.ReadAsStringAsync());
+                if (pollDoc.RootElement.TryGetProperty("access_token", out var tokenProp))
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        AppSettings.GithubToken = tokenProp.GetString()!;
+
+                        // save immediately (exception)
+                        AppSettings.ApplyTo(_ctx.PlayerData.Settings);
+                        SaveSystem.Save(_ctx.PlayerData);
+
+                        UpdateGithubUiState();
+                        CheckChanges();
+                        dialog.Close();
+                    });
+                    break;
+                }
+
+                if (pollDoc.RootElement.TryGetProperty("error", out var err) && err.GetString() == "expired_token") break;
+            }
+        });
+
+        await dialog.ShowDialog(this);
+        _loginCts.Cancel(); // stop polling if window is closed manually
     }
 }

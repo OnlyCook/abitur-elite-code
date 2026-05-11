@@ -72,4 +72,8 @@
 	<ItemGroup>
 		<AvaloniaResource Include="assets\emojis\**\*.svg" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="assets\aecc-discussion-mappings.json" />
+	</ItemGroup>
 </Project>

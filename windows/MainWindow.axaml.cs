@@ -29,6 +29,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
@@ -173,6 +175,13 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _layoutAutoSaveTimer;
     private bool _isRestoringLayout;
 
+    // community
+    private static readonly HttpClient _httpClient = new HttpClient();
+    private Dictionary<string, Dictionary<string, int>> _discussionMappings;
+    private CommunityCacheData _communityCache;
+    private bool _isFetchingComments = false;
+    private int _currentActiveDiscussionId = -1;
+
     private void LogAddSplash(string str, int val)
     {
         _splash?.AddLoadingProgress(val);
@@ -230,6 +239,8 @@ public partial class MainWindow : Window
         AppSettings.IsDiscordRpcEnabled = playerData.Settings.IsDiscordRpcEnabled;
         AppSettings.IsLayoutAutoSaveEnabled = playerData.Settings.IsLayoutAutoSaveEnabled;
         AppSettings.SavedAppLayout = playerData.Settings.SavedAppLayout;
+        AppSettings.IsCommunityFeaturesEnabled = playerData.Settings.IsCommunityFeaturesEnabled;
+        AppSettings.GithubToken = playerData.Settings.GithubToken;
         LogAddSplash("AppSettings", 1);
 
         // check if display is too small and scale down automatically
@@ -418,6 +429,11 @@ public partial class MainWindow : Window
             if (margin is LineNumberMargin lineMargin)
                 lineMargin.Margin = new Thickness(0, 1, 0, 0);
         LogAddSplash("Timers/handlers", 1);
+
+        _communityCache = SaveSystem.LoadCommunityCache();
+        LoadDiscussionMappings();
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-App");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ""); // not really needed as user fills this in on login
 
         int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
         var startLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
@@ -3881,6 +3897,241 @@ public partial class MainWindow : Window
         SaveSystem.Save(playerData);
         _spoilerDelayMet = false;
         HideSpoilerHint();
+    }
+
+    private void LoadDiscussionMappings()
+    {
+        try
+        {
+            var asset = AssetLoader.Open(new Uri("avares://AbiturEliteCode/assets/aecc-discussion-mappings.json"));
+            using var reader = new StreamReader(asset);
+            string json = reader.ReadToEnd();
+
+            _discussionMappings = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, int>>>(json);
+            Debug.WriteLine("[Community] Mappings loaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Community] Failed to load mappings resource: {ex.Message}");
+            _discussionMappings = new(); // prevent null refs
+        }
+    }
+
+    private void BtnToggleComments_Click(object sender, RoutedEventArgs e)
+    {
+        PnlCommentsSection.IsVisible = !PnlCommentsSection.IsVisible;
+        IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comments_hide.svg" : "/assets/icons/ic_comment.svg";
+
+        if (PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
+        {
+            RenderCachedComments();
+        }
+    }
+
+    private async void BtnLoadMoreComments_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isFetchingComments || _currentActiveDiscussionId == -1) return;
+
+        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, true);
+    }
+
+    private void TaskScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        // dynamic loading when scrolled to bottom
+        if (!PnlCommentsSection.IsVisible || _isFetchingComments || _currentActiveDiscussionId == -1) return;
+
+        var scrollViewer = sender as ScrollViewer;
+        if (scrollViewer != null)
+        {
+            if (scrollViewer.Offset.Y >= scrollViewer.Extent.Height - scrollViewer.Viewport.Height - 50)
+            {
+                var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+                string levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+
+                if (dict.TryGetValue(levelKey, out var cache) && cache.HasNextPage)
+                {
+                    BtnLoadMoreComments_Click(null, null);
+                }
+            }
+        }
+    }
+
+    private void RenderCachedComments()
+    {
+        PnlCommentsList.Children.Clear();
+        string levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+
+        if (dict.TryGetValue(levelKey, out var cache))
+        {
+            foreach (var comment in cache.Comments)
+            {
+                var commentBorder = new Border
+                {
+                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(15),
+                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderThickness = new Thickness(1)
+                };
+
+                var stack = new StackPanel { Spacing = 5 };
+                stack.Children.Add(new TextBlock
+                {
+                    Text = $"{comment.Author} • {comment.CreatedAt:dd.MM.yyyy HH:mm}",
+                    Foreground = Brushes.Gray,
+                    FontSize = 12
+                });
+
+                stack.Children.Add(new SelectableTextBlock
+                {
+                    Text = comment.Body,
+                    Foreground = Brushes.White,
+                    TextWrapping = TextWrapping.Wrap
+                });
+
+                commentBorder.Child = stack;
+                PnlCommentsList.Children.Add(commentBorder);
+            }
+
+            BtnLoadMoreComments.IsVisible = cache.HasNextPage;
+        }
+    }
+
+    public void BtnLike_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleReaction(true);
+    }
+
+    public void BtnDislike_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleReaction(false);
+    }
+
+    private void ToggleReaction(bool isLike)
+    {
+        if (string.IsNullOrEmpty(AppSettings.GithubToken) || _currentActiveDiscussionId == -1) return;
+
+        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+        if (!dict.TryGetValue(levelId, out var cache)) return;
+
+        // mutually exclusive local state updates
+        if (isLike)
+        {
+            if (cache.ViewerHasLiked)
+            {
+                cache.ViewerHasLiked = false;
+                cache.Likes--;
+            }
+            else
+            {
+                cache.ViewerHasLiked = true;
+                cache.Likes++;
+                if (cache.ViewerHasDisliked)
+                {
+                    cache.ViewerHasDisliked = false;
+                    cache.Dislikes--;
+                }
+            }
+        }
+        else
+        {
+            if (cache.ViewerHasDisliked)
+            {
+                cache.ViewerHasDisliked = false;
+                cache.Dislikes--;
+            }
+            else
+            {
+                cache.ViewerHasDisliked = true;
+                cache.Dislikes++;
+                if (cache.ViewerHasLiked)
+                {
+                    cache.ViewerHasLiked = false;
+                    cache.Likes--;
+                }
+            }
+        }
+
+        ApplyCommunityUiData(cache);
+
+        // cancel any previous pending saves to reset the 5s cooldown
+        _reactionDebounceCts?.Cancel();
+        _reactionDebounceCts = new CancellationTokenSource();
+        var token = _reactionDebounceCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                // cooldown wait
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await SyncReactionToGithubAsync(cache);
+                }
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    private async Task SyncReactionToGithubAsync(DiscussionCache cache)
+    {
+        if (string.IsNullOrEmpty(cache.DiscussionNodeId) || string.IsNullOrEmpty(AppSettings.GithubToken)) return;
+
+        // local function to dispatch mutations to graphql
+        async Task MutateReaction(string content, bool add)
+        {
+            string mutation = add ? "addReaction" : "removeReaction";
+            var queryObj = new
+            {
+                query = $@"mutation($subjectId: ID!, $content: ReactionContent!) {{
+                    {mutation}(input: {{subjectId: $subjectId, content: $content}}) {{
+                        reaction {{ content }}
+                    }}
+                }}",
+                variables = new
+                {
+                    subjectId = cache.DiscussionNodeId,
+                    content = content
+                }
+            };
+
+            var httpContent = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+
+            await _httpClient.PostAsync("https://api.github.com/graphql", httpContent);
+        }
+
+        try
+        {
+            if (cache.ViewerHasLiked)
+            {
+                await MutateReaction("THUMBS_UP", true);
+                await MutateReaction("THUMBS_DOWN", false);
+            }
+            else if (cache.ViewerHasDisliked)
+            {
+                await MutateReaction("THUMBS_DOWN", true);
+                await MutateReaction("THUMBS_UP", false);
+            }
+            else
+            {
+                await MutateReaction("THUMBS_UP", false);
+                await MutateReaction("THUMBS_DOWN", false);
+            }
+
+            // keep local memory up to date
+            cache.LastFetched = DateTime.Now;
+            SaveSystem.SaveCommunityCache(_communityCache);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Community] Reaction Sync Error: {ex.Message}");
+        }
     }
 }
 

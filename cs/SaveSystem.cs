@@ -44,6 +44,8 @@ public class PlayerSettings
     // --- Sonstiges ---
     [SettingKey("sqlantispoiler")] public bool IsSqlAntiSpoilerEnabled { get; set; }
     [SettingKey("discordrpc")] public bool IsDiscordRpcEnabled { get; set; }
+    [SettingKey("community")] public bool IsCommunityFeaturesEnabled { get; set; } = false;
+    [SettingKey("githubtoken")] public string GithubToken { get; set; } = "";
 
     // internal game state (not settings)
     [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
@@ -91,8 +93,9 @@ public static class SaveSystem
     private static string AppDataPath => Path.Combine(appDataFolder, "savegame.elitedata");
     private static string RootPath => Path.Combine(rootFolder, "savegame.elitedata");
 
-    private static string CustomSavePath =>
-        Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
+    private static string CustomSavePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "customsave.elitedata");
+
+    private static string CommunityCachePath => Path.Combine(IsPortableModeEnabled() ? rootFolder : appDataFolder, "communitycache.elitedata");
 
     private static string GetActivePath()
     {
@@ -194,10 +197,12 @@ public static class SaveSystem
 
             if (prop.PropertyType == typeof(string))
             {
-                // encode strings to base64
+                // encode strings to base64 or scramble
                 string str = (string)prop.GetValue(s) ?? "";
-                string b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
-                parts.Add($"{attr.Key}:{b64}");
+                string encoded = prop.Name == nameof(PlayerSettings.GithubToken)
+                    ? Scramble(str)
+                    : Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
+                parts.Add($"{attr.Key}:{encoded}");
             }
             else
             {
@@ -216,7 +221,6 @@ public static class SaveSystem
 
         foreach (var part in raw.Split(';'))
         {
-            // restrict split to exactly 2 parts (prevent splitting inside values)
             var kv = part.Split(new[] { ':' }, 2);
             if (kv.Length != 2) continue;
             if (!lookup.TryGetValue(kv[0], out var prop)) continue;
@@ -229,8 +233,15 @@ public static class SaveSystem
                 else if (prop.PropertyType == typeof(double)) value = double.Parse(kv[1]);
                 else if (prop.PropertyType == typeof(string))
                 {
-                    // decode base64
-                    value = Encoding.UTF8.GetString(Convert.FromBase64String(kv[1]));
+                    // decode base64 or unscramble
+                    if (prop.Name == nameof(PlayerSettings.GithubToken))
+                    {
+                        value = Unscramble(kv[1]);
+                    }
+                    else
+                    {
+                        value = Encoding.UTF8.GetString(Convert.FromBase64String(kv[1]));
+                    }
                 }
                 else value = kv[1];
 
@@ -445,4 +456,81 @@ public static class SaveSystem
 
         return data;
     }
+
+    public static void SaveCommunityCache(CommunityCacheData data)
+    {
+        try
+        {
+            string json = System.Text.Json.JsonSerializer.Serialize(data);
+            File.WriteAllText(CommunityCachePath, json);
+        }
+        catch { }
+    }
+
+    public static CommunityCacheData LoadCommunityCache()
+    {
+        if (File.Exists(CommunityCachePath))
+        {
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<CommunityCacheData>(File.ReadAllText(CommunityCachePath)) ?? new CommunityCacheData();
+            }
+            catch { }
+        }
+        return new CommunityCacheData();
+    }
+
+    private static string Scramble(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        var key = "AbiturEliteCodeCommunityKey";
+        var result = new StringBuilder();
+        for (int i = 0; i < text.Length; i++)
+            result.Append((char)(text[i] ^ key[i % key.Length]));
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(result.ToString()));
+    }
+
+    private static string Unscramble(string base64)
+    {
+        if (string.IsNullOrEmpty(base64)) return string.Empty;
+        try
+        {
+            var text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+            var key = "AbiturEliteCodeCommunityKey";
+            var result = new StringBuilder();
+            for (int i = 0; i < text.Length; i++)
+                result.Append((char)(text[i] ^ key[i % key.Length]));
+            return result.ToString();
+        }
+        catch { return string.Empty; }
+    }
+}
+
+public class GithubComment
+{
+    public string Author { get; set; }
+    public string Body { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class DiscussionCache
+{
+    public int Likes { get; set; }
+    public int Dislikes { get; set; }
+    public int TotalComments { get; set; }
+
+    public bool ViewerHasLiked { get; set; }
+    public bool ViewerHasDisliked { get; set; }
+    public string DiscussionNodeId { get; set; }
+
+    public List<GithubComment> Comments { get; set; } = new();
+    public string EndCursor { get; set; }
+    public bool HasNextPage { get; set; }
+    public DateTime LastFetched { get; set; }
+}
+
+public class CommunityCacheData
+{
+    public Dictionary<string, DiscussionCache> CsharpDiscussions { get; set; } = new();
+    public Dictionary<string, DiscussionCache> SqlDiscussions { get; set; } = new();
 }

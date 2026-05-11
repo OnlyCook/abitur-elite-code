@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/icons/app_icon.ico" alt="HKS Vertreter Icon" width="96" height="96">
+  <img src="assets/icons/app_icon.ico" alt="AEC Icon" width="96" height="96">
   <br>
   Abitur Elite Code
 </h1>
