@@ -357,7 +357,7 @@ public static class SaveSystem
             $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}");
         string codes = string.Join(";", codeEntries);
 
-        // new: sql data
+        // sql data
         string sqlCompleted = string.Join("|", data.CompletedCustomSqlLevels);
         var sqlCodeEntries = data.UserSqlCode.Select(k =>
             $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Key))}:{Convert.ToBase64String(Encoding.UTF8.GetBytes(k.Value))}");
@@ -642,9 +642,23 @@ public static class SaveSystem
 
 public class GithubComment
 {
+    public string Id { get; set; }
     public string Author { get; set; }
     public string Body { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int Upvotes { get; set; }
+    public bool ViewerHasUpvoted { get; set; }
+    public List<GithubReply> Replies { get; set; } = new();
+}
+
+public class GithubReply
+{
+    public string Id { get; set; }
+    public string Author { get; set; }
+    public string Body { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int Upvotes { get; set; }
+    public bool ViewerHasUpvoted { get; set; }
 }
 
 public class DiscussionCache

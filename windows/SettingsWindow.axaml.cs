@@ -742,6 +742,7 @@ public partial class SettingsWindow : Window
             Content = "Layout auf Standard zurücksetzen",
             Background = SolidColorBrush.Parse("#3C3C3C"),
             Foreground = Brushes.White,
+            Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
             Margin = new Thickness(0, 5, 0, 0)
         };

@@ -181,6 +181,10 @@ public partial class MainWindow : Window
     private CommunityCacheData _communityCache;
     private bool _isFetchingComments = false;
     private int _currentActiveDiscussionId = -1;
+    private DateTime _lastCommentTime = DateTime.MinValue;
+    private static readonly Regex MarkdownInlineRegex = new Regex(
+        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
+        RegexOptions.Compiled | RegexOptions.Singleline);
 
     private void LogAddSplash(string str, int val)
     {
@@ -3930,7 +3934,7 @@ public partial class MainWindow : Window
     private void BtnToggleComments_Click(object sender, RoutedEventArgs e)
     {
         PnlCommentsSection.IsVisible = !PnlCommentsSection.IsVisible;
-        IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comments_hide.svg" : "/assets/icons/ic_comment.svg";
+        IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comment_hide.svg" : "/assets/icons/ic_comment.svg";
 
         if (PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
         {
@@ -3973,40 +3977,24 @@ public partial class MainWindow : Window
         string levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
-        if (dict.TryGetValue(levelKey, out var cache))
+        if (!dict.TryGetValue(levelKey, out var cache)) return;
+
+        string sortMode = (CmbCommentSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Top";
+        var sortedComments = cache.Comments.ToList();
+
+        if (sortMode == "Top")
+            sortedComments = sortedComments.OrderByDescending(c => c.Upvotes).ThenBy(c => c.CreatedAt).ToList();
+        else if (sortMode == "Neuste")
+            sortedComments = sortedComments.OrderByDescending(c => c.CreatedAt).ToList();
+        else
+            sortedComments = sortedComments.OrderBy(c => c.CreatedAt).ToList();
+
+        foreach (var comment in sortedComments)
         {
-            foreach (var comment in cache.Comments)
-            {
-                var commentBorder = new Border
-                {
-                    Background = SolidColorBrush.Parse("#1A1A1A"),
-                    CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(15),
-                    BorderBrush = SolidColorBrush.Parse("#333"),
-                    BorderThickness = new Thickness(1)
-                };
-
-                var stack = new StackPanel { Spacing = 5 };
-                stack.Children.Add(new TextBlock
-                {
-                    Text = $"{comment.Author} • {comment.CreatedAt:dd.MM.yyyy HH:mm}",
-                    Foreground = Brushes.Gray,
-                    FontSize = 12
-                });
-
-                stack.Children.Add(new SelectableTextBlock
-                {
-                    Text = comment.Body,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap
-                });
-
-                commentBorder.Child = stack;
-                PnlCommentsList.Children.Add(commentBorder);
-            }
-
-            BtnLoadMoreComments.IsVisible = cache.HasNextPage;
+            PnlCommentsList.Children.Add(CreateCommentUI(comment, cache.DiscussionNodeId));
         }
+
+        BtnLoadMoreComments.IsVisible = cache.HasNextPage;
     }
 
     public void BtnLike_Click(object sender, RoutedEventArgs e)
@@ -4142,6 +4130,753 @@ public partial class MainWindow : Window
         {
             Debug.WriteLine($"[Community] Reaction Sync Error: {ex.Message}");
         }
+    }
+
+    private void CmbCommentSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (PnlCommentsSection != null && PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
+        {
+            RenderCachedComments();
+        }
+    }
+
+    private void TxtCommentInput_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        int length = TxtCommentInput.Text?.Length ?? 0;
+        TxtCommentCharCount.Text = $"{length} / 5000";
+
+        if (length > 5000)
+        {
+            TxtCommentCharCount.Foreground = Brushes.Red;
+        }
+        else
+        {
+            TxtCommentCharCount.Foreground = Brushes.Gray;
+        }
+
+        bool canSend = length > 0 && length <= 5000 && (DateTime.Now - _lastCommentTime).TotalSeconds >= 20;
+        BtnSendComment.IsEnabled = canSend;
+        BtnSendComment.Opacity = canSend ? 1.0 : 0.5;
+        IconSendComment.Path = canSend ? "/assets/icons/ic_send.svg" : "/assets/icons/ic_send_disabled.svg";
+    }
+
+    private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false)
+    {
+        var border = new Border
+        {
+            Background = SolidColorBrush.Parse(isReply ? "#141414" : "#1A1A1A"),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(15),
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderThickness = new Thickness(1),
+            Margin = new Thickness(isReply ? 30 : 0, 5, 0, 0)
+        };
+
+        var mainStack = new StackPanel { Spacing = 8 };
+
+        string bodyToRender = comment.Body;
+        string activeTag = null;
+        IBrush tagColor = Brushes.Gray;
+
+        var tags = new Dictionary<string, (string Label, string Color)>
+        {
+            { "!FEEDBACK;", ("Feedback", "#A870A8") },
+            { "!FRAGE;", ("Frage", "#007ACC") },
+            { "!TIPP;", ("Tipp", "#32A852") },
+            { "!LÖSUNG;", ("Lösung", "#FFD700") }
+        };
+
+        foreach (var tag in tags)
+        {
+            if (bodyToRender.StartsWith(tag.Key))
+            {
+                activeTag = tag.Value.Label;
+                tagColor = SolidColorBrush.Parse(tag.Value.Color);
+                bodyToRender = bodyToRender.Substring(tag.Key.Length).TrimStart();
+                break;
+            }
+        }
+
+        // header
+        var headerPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 0
+        };
+        headerPanel.Children.Add(new TextBlock
+        {
+            Text = $"{comment.Author}",
+            Foreground = comment.Author == AppSettings.GithubUsername ? Brush.Parse("#6495ED") : Brushes.Gray,
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        headerPanel.Children.Add(new TextBlock
+        {
+            Text = $" • {comment.CreatedAt:dd.MM.yyyy 'um' HH:mm}",
+            Foreground = Brushes.Gray,
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        if (activeTag != null)
+        {
+            headerPanel.Children.Add(new Border
+            {
+                Background = SolidColorBrush.Parse("#252526"),
+                BorderBrush = tagColor,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2),
+                Margin = new Thickness(10, 0, 0, 0),
+                Child = new TextBlock
+                {
+                    Text = activeTag,
+                    FontSize = 10,
+                    Foreground = tagColor,
+                    FontWeight = FontWeight.Bold
+                }
+            });
+        }
+        mainStack.Children.Add(headerPanel);
+
+        // body (with spoiler handling and collapse layout for long comments)
+        var bodyWrapper = new Grid();
+        var bodyContainer = new StackPanel
+        {
+            Spacing = 5,
+            ClipToBounds = true
+        };
+
+        if (activeTag == "Lösung")
+        {
+            var spoilerBtn = new Button
+            {
+                Content = "Lösung anzeigen",
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Foreground = Brushes.White,
+                Padding = new Thickness(10, 5),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
+            var spoilerContent = new StackPanel
+            {
+                IsVisible = false,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+
+            RenderMarkdownToPanel(spoilerContent, bodyToRender);
+
+            spoilerBtn.Click += (s, e) =>
+            {
+                spoilerBtn.IsVisible = false;
+                spoilerContent.IsVisible = true;
+            };
+            bodyContainer.Children.Add(spoilerBtn);
+            bodyContainer.Children.Add(spoilerContent);
+        }
+        else
+        {
+            RenderMarkdownToPanel(bodyContainer, bodyToRender);
+        }
+
+        bool isLong = bodyToRender.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).Length > 5;
+        if (isLong && activeTag != "Lösung")
+        {
+            bodyContainer.MaxHeight = 120;
+            bodyContainer.Margin = new Thickness(0, 0, 0, 30);
+
+            // fog effect
+            Color bgColor = isReply ? Color.Parse("#141414") : Color.Parse("#1A1A1A");
+            var fogBorder = new Border
+            {
+                Height = 50,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 30),
+                IsHitTestVisible = false,
+                Background = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                    GradientStops = new GradientStops
+                    {
+                        new GradientStop
+                        {
+                            Color = Color.FromArgb(0, bgColor.R, bgColor.G, bgColor.B),
+                            Offset = 0.0
+                        },
+                        new GradientStop
+                        {
+                            Color = bgColor, Offset = 1.0
+                        }
+                    }
+                }
+            };
+
+            var btnToggleExpand = new Button
+            {
+                Background = Brushes.Transparent,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Padding = new Thickness(5),
+                Margin = new Thickness(0),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            var expandContent = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5
+            };
+            var expandIconContainer = new Panel();
+            expandIconContainer.Children.Add(LoadIcon("assets/icons/ic_expand.svg", 16));
+
+            var expandText = new TextBlock
+            {
+                Text = "Mehr anzeigen",
+                Foreground = Brushes.Gray,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            expandContent.Children.Add(expandIconContainer);
+            expandContent.Children.Add(expandText);
+            btnToggleExpand.Content = expandContent;
+
+            bool isExpanded = false;
+            btnToggleExpand.Click += (s, e) =>
+            {
+                isExpanded = !isExpanded;
+                bodyContainer.MaxHeight = isExpanded ? double.PositiveInfinity : 120;
+                fogBorder.IsVisible = !isExpanded;
+
+                expandIconContainer.Children.Clear();
+                expandIconContainer.Children.Add(LoadIcon(isExpanded ? "assets/icons/ic_collapse.svg" : "assets/icons/ic_expand.svg", 16));
+                expandText.Text = isExpanded ? "Weniger anzeigen" : "Mehr anzeigen";
+            };
+
+            // important z-index order
+            bodyWrapper.Children.Add(bodyContainer);
+            bodyWrapper.Children.Add(fogBorder);
+            bodyWrapper.Children.Add(btnToggleExpand);
+        }
+        else
+        {
+            bodyWrapper.Children.Add(bodyContainer);
+        }
+
+        mainStack.Children.Add(bodyWrapper);
+
+        var actionsPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 15,
+            Margin = new Thickness(0, 5, 0, 0)
+        };
+
+        // upvote
+        var btnUpvote = new Button
+        {
+            Background = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#256495ED") : Brushes.Transparent,
+            BorderBrush = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(5),
+            Cursor = Cursor.Parse("Hand")
+        };
+        var upvoteContent = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 5
+        };
+        upvoteContent.Children.Add(LoadIcon(comment.ViewerHasUpvoted ? "assets/icons/ic_upvote_filled.svg" : "assets/icons/ic_upvote.svg", 16));
+        upvoteContent.Children.Add(new TextBlock
+        {
+            Text = comment.Upvotes.ToString(),
+            Foreground = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        btnUpvote.Content = upvoteContent;
+
+        btnUpvote.Click += async (s, e) =>
+        {
+            // optimistic ui state update
+            bool oldState = comment.ViewerHasUpvoted;
+            comment.ViewerHasUpvoted = !comment.ViewerHasUpvoted;
+            comment.Upvotes += comment.ViewerHasUpvoted ? 1 : -1;
+
+            btnUpvote.Background = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#256495ED") : Brushes.Transparent;
+            btnUpvote.BorderBrush = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent;
+
+            upvoteContent.Children.Clear();
+            upvoteContent.Children.Add(LoadIcon(comment.ViewerHasUpvoted ? "assets/icons/ic_upvote_filled.svg" : "assets/icons/ic_upvote.svg", 16));
+            upvoteContent.Children.Add(new TextBlock
+            {
+                Text = comment.Upvotes.ToString(),
+                Foreground = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            btnUpvote.IsEnabled = false;
+            await ToggleCommentUpvoteAsync(comment.Id, oldState);
+            btnUpvote.IsEnabled = true;
+        };
+        actionsPanel.Children.Add(btnUpvote);
+
+        // reply button and box setup
+        if (!isReply)
+        {
+            var btnToggleReply = new Button
+            {
+                Background = Brushes.Transparent,
+                Padding = new Thickness(5),
+                Cursor = Cursor.Parse("Hand")
+            };
+            var replyContent = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5
+            };
+            replyContent.Children.Add(LoadIcon("assets/icons/ic_comment_add.svg", 18));
+            btnToggleReply.Content = replyContent;
+            ToolTip.SetTip(btnToggleReply, "Antwort verfassen");
+
+            var replyInputGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*, Auto"),
+                Margin = new Thickness(0, 10, 0, 0),
+                IsVisible = false
+            };
+            const int ReplyCharLimit = 1000;
+
+            var txtReply = new TextBox
+            {
+                Watermark = "Antwort verfassen...",
+                Background = SolidColorBrush.Parse("#1A1A1A"),
+                Foreground = Brushes.White,
+                BorderBrush = SolidColorBrush.Parse("#333"),
+                CornerRadius = new CornerRadius(4),
+                AcceptsReturn = true,
+                MaxHeight = 100,
+                MaxLength = ReplyCharLimit
+            };
+            var btnSendReply = new Button
+            {
+                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Cursor = Cursor.Parse("Hand"),
+                Margin = new Thickness(10, 0, 0, 0),
+                Padding = new Thickness(8, 6),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                IsEnabled = false,
+                Opacity = 0.5
+            };
+            var iconSendReply = LoadIcon("assets/icons/ic_send_disabled.svg", 18);
+            btnSendReply.Content = iconSendReply;
+
+            txtReply.TextChanged += (s, e) =>
+            {
+                bool canSend = !string.IsNullOrWhiteSpace(txtReply.Text);
+                btnSendReply.IsEnabled = canSend;
+                btnSendReply.Opacity = canSend ? 1.0 : 0.5;
+                btnSendReply.Content = LoadIcon(canSend ? "assets/icons/ic_send.svg" : "assets/icons/ic_send_disabled.svg", 18);
+            };
+
+            btnToggleReply.Click += (s, e) =>
+            {
+                replyInputGrid.IsVisible = !replyInputGrid.IsVisible;
+                replyContent.Children[0] = LoadIcon(
+                    replyInputGrid.IsVisible ? "assets/icons/ic_comment_add_hide.svg" : "assets/icons/ic_comment_add.svg", 18);
+                ToolTip.SetTip(btnToggleReply, replyInputGrid.IsVisible ? "Antwort verbergen" : "Antwort verfassen");
+            };
+
+            btnSendReply.Click += async (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtReply.Text)) return;
+                btnSendReply.IsEnabled = false;
+                btnSendReply.Opacity = 0.5;
+                btnSendReply.Content = LoadIcon("assets/icons/ic_send_disabled.svg", 18);
+                await SendReplyToGithubAsync(comment.Id, txtReply.Text);
+                txtReply.Text = "";
+                replyInputGrid.IsVisible = false;
+                replyContent.Children[0] = LoadIcon("assets/icons/ic_comment_add.svg", 18);
+                ToolTip.SetTip(btnToggleReply, "Antwort verfassen");
+            };
+
+            Grid.SetColumn(btnSendReply, 1);
+            replyInputGrid.Children.Add(txtReply);
+            replyInputGrid.Children.Add(btnSendReply);
+
+            actionsPanel.Children.Add(btnToggleReply);
+
+            StackPanel repliesStack = null;
+            if (comment.Replies.Count > 0)
+            {
+                var btnShowReplies = new Button
+                {
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(5),
+                    Cursor = Cursor.Parse("Hand")
+                };
+                var showRepliesContent = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 5
+                };
+                showRepliesContent.Children.Add(LoadIcon("assets/icons/ic_comment.svg", 16));
+                var txtShowReplies = new TextBlock
+                {
+                    Text = comment.Replies.Count == 1 ? "1 Antwort" : $"{comment.Replies.Count} Antworten",
+                    Foreground = Brushes.Gray,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                showRepliesContent.Children.Add(txtShowReplies);
+                btnShowReplies.Content = showRepliesContent;
+
+                actionsPanel.Children.Add(btnShowReplies);
+
+                repliesStack = new StackPanel
+                {
+                    Spacing = 8,
+                    Margin = new Thickness(0, 10, 0, 0),
+                    IsVisible = false
+                };
+
+                btnShowReplies.Click += (s, e) =>
+                {
+                    repliesStack.IsVisible = !repliesStack.IsVisible;
+                    txtShowReplies.Text = repliesStack.IsVisible ? "Antworten ausblenden" : comment.Replies.Count == 1 ? "1 Antwort" : $"{comment.Replies.Count} Antworten";
+                    showRepliesContent.Children[0] = LoadIcon(
+                        repliesStack.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
+                };
+
+                foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
+                {
+                    repliesStack.Children.Add(CreateCommentUI(new GithubComment
+                    {
+                        Id = reply.Id,
+                        Author = reply.Author,
+                        Body = reply.Body,
+                        CreatedAt = reply.CreatedAt,
+                        Upvotes = reply.Upvotes,
+                        ViewerHasUpvoted = reply.ViewerHasUpvoted
+                    }, discussionId, true));
+                }
+            }
+
+            mainStack.Children.Add(actionsPanel);
+            mainStack.Children.Add(replyInputGrid);
+            if (repliesStack != null) mainStack.Children.Add(repliesStack);
+        }
+        else
+        {
+            mainStack.Children.Add(actionsPanel);
+        }
+
+        border.Child = mainStack;
+        return border;
+    }
+
+    private void RenderMarkdownToPanel(StackPanel panel, string text)
+    {
+        var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        bool inCodeBlock = false;
+        StringBuilder codeBuilder = new StringBuilder();
+
+        foreach (var line in lines)
+        {
+            if (line.TrimStart().StartsWith("```"))
+            {
+                if (inCodeBlock)
+                {
+                    inCodeBlock = false;
+                    var codeContent = codeBuilder.ToString().TrimEnd('\r', '\n');
+
+                    var codeBlockEditor = new TextEditor
+                    {
+                        Document = new TextDocument(codeContent),
+                        SyntaxHighlighting = _isSqlMode ? SqlCodeEditor.GetDarkSqlHighlighting() : CsharpCodeEditor.GetDarkCsharpHighlighting(),
+                        FontFamily = new FontFamily(MonospaceFontFamily),
+                        FontSize = 13,
+                        IsReadOnly = true,
+                        ShowLineNumbers = false,
+                        Background = Brushes.Transparent,
+                        Foreground = Brushes.White,
+                        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                        VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                        Padding = new Thickness(10, 6, 10, 6),
+                        MinHeight = 0
+                    };
+                    codeBlockEditor.Options.ShowSpaces = false;
+                    codeBlockEditor.Options.ShowTabs = false;
+                    codeBlockEditor.Options.HighlightCurrentLine = false;
+
+                    var border = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#1A1A1A"),
+                        CornerRadius = new CornerRadius(6),
+                        ClipToBounds = true,
+                        Margin = new Thickness(0, 5, 0, 5),
+                        BorderBrush = SolidColorBrush.Parse("#333"),
+                        BorderThickness = new Thickness(1),
+                        Child = codeBlockEditor
+                    };
+                    panel.Children.Add(border);
+                    codeBuilder.Clear();
+                }
+                else
+                {
+                    inCodeBlock = true;
+                }
+                continue;
+            }
+
+            if (inCodeBlock)
+            {
+                codeBuilder.AppendLine(line);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                panel.Children.Add(new Control { Height = 8 });
+                continue;
+            }
+
+            var textBlock = new SelectableTextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 2)
+            };
+            int currentIndex = 0;
+
+            foreach (Match match in MarkdownInlineRegex.Matches(line))
+            {
+                if (match.Index > currentIndex)
+                    textBlock.Inlines.Add(new Run(line.Substring(currentIndex, match.Index - currentIndex)));
+
+                if (match.Groups["bold"].Success)
+                {
+                    var bold = new Bold();
+                    bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
+                    textBlock.Inlines.Add(bold);
+                }
+                else if (match.Groups["kbd"].Success)
+                {
+                    textBlock.Inlines.Add(new InlineUIContainer(new Border
+                    {
+                        Background = SolidColorBrush.Parse("#3C3C3C"),
+                        BorderBrush = SolidColorBrush.Parse("#555555"),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, 1),
+                        Margin = new Thickness(2, 0),
+                        Child = new TextBlock
+                        {
+                            Text = match.Groups["kbdtext"].Value,
+                            FontSize = 11,
+                            FontFamily = FontFamily.Parse(MonospaceFontFamily),
+                            Foreground = Brushes.White,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    })
+                    {
+                        BaselineAlignment = BaselineAlignment.Center
+                    });
+                }
+                else if (match.Groups["code"].Success)
+                {
+                    textBlock.Inlines.Add(new InlineUIContainer(new Border
+                    {
+                        Background = SolidColorBrush.Parse("#2D2D30"),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, 1),
+                        Margin = new Thickness(2, 0),
+                        Child = new TextBlock
+                        {
+                            Text = match.Groups["codetext"].Value,
+                            FontSize = 12,
+                            FontFamily = FontFamily.Parse(MonospaceFontFamily),
+                            Foreground = SolidColorBrush.Parse("#DCDCAA"),
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    })
+                    {
+                        BaselineAlignment = BaselineAlignment.Center
+                    });
+                }
+
+                currentIndex = match.Index + match.Length;
+            }
+
+            if (currentIndex < line.Length)
+                textBlock.Inlines.Add(new Run(line.Substring(currentIndex)));
+
+            panel.Children.Add(textBlock);
+        }
+
+        // safety check for unclosed blocks
+        if (inCodeBlock && codeBuilder.Length > 0)
+        {
+            var codeContent = codeBuilder.ToString().TrimEnd('\r', '\n');
+            var codeBlockEditor = new TextEditor
+            {
+                Document = new TextDocument(codeContent),
+                SyntaxHighlighting = _isSqlMode ? SqlCodeEditor.GetDarkSqlHighlighting() : CsharpCodeEditor.GetDarkCsharpHighlighting(),
+                FontFamily = new FontFamily(MonospaceFontFamily),
+                FontSize = 13,
+                IsReadOnly = true,
+                ShowLineNumbers = false,
+                Background = Brushes.Transparent,
+                Foreground = Brushes.White,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Padding = new Thickness(10, 6, 10, 6),
+                MinHeight = 0
+            };
+            codeBlockEditor.Options.ShowSpaces = false;
+            codeBlockEditor.Options.ShowTabs = false;
+            codeBlockEditor.Options.HighlightCurrentLine = false;
+
+            var border = new Border
+            {
+                Background = SolidColorBrush.Parse("#1A1A1A"),
+                CornerRadius = new CornerRadius(6),
+                ClipToBounds = true,
+                Margin = new Thickness(0, 5, 0, 5),
+                BorderBrush = SolidColorBrush.Parse("#333"),
+                BorderThickness = new Thickness(1),
+                Child = codeBlockEditor
+            };
+            panel.Children.Add(border);
+        }
+    }
+
+    private async void BtnSendComment_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(TxtCommentInput.Text)) return;
+        BtnSendComment.IsEnabled = false;
+
+        string tagPrefix = "";
+        string tagSelection = (CmbCommentTag.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (tagSelection != null && tagSelection != "–")
+        {
+            tagPrefix = $"!{tagSelection.ToUpper()}; ";
+        }
+
+        string fullBody = tagPrefix + TxtCommentInput.Text;
+
+        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+        if (dict.TryGetValue(levelId, out var cache))
+        {
+            string mutation = @"mutation($discussionId: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $discussionId, body: $body}) { comment { id } } }";
+            var queryObj = new
+            {
+                query = mutation,
+                variables = new
+                {
+                    discussionId = cache.DiscussionNodeId,
+                    body = fullBody
+                }
+            };
+
+            try
+            {
+                var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+                var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+
+                if (resp.IsSuccessStatusCode)
+                {
+                    TxtCommentInput.Text = "";
+                    _lastCommentTime = DateTime.Now;
+                    BtnSendComment.IsEnabled = false;
+
+                    // unsubscribe user automatically
+                    await UnsubscribeFromDiscussionAsync(cache.DiscussionNodeId);
+
+                    // refetch immediately to show the new comment
+                    await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Comment Submit Error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SendReplyToGithubAsync(string commentNodeId, string body)
+    {
+        string mutation = @"mutation($replyToId: ID!, $body: String!) { addDiscussionReply(input: {replyToId: $replyToId, body: $body}) { reply { id } } }";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                replyToId = commentNodeId,
+                body = body
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+
+            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+            await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Reply Submit Error: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleCommentUpvoteAsync(string subjectId, bool isCurrentlyUpvoted)
+    {
+        string op = isCurrentlyUpvoted ? "removeUpvote" : "addUpvote";
+        string mutation = $@"mutation($subjectId: ID!) {{ {op}(input: {{subjectId: $subjectId}}) {{ clientMutationId }} }}";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                subjectId = subjectId
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+
+            // the optimistic update handles UI locally; no immediate refetch to avoid revert flicker
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Toggle Upvote Error: {ex.Message}");
+        }
+    }
+
+    private async Task UnsubscribeFromDiscussionAsync(string discussionNodeId)
+    {
+        string mutation = @"mutation($id: ID!) { updateSubscription(input: {subscribableId: $id, state: IGNORED}) { subscribable { viewerSubscription } } }";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                id = discussionNodeId
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+        }
+        catch { }
     }
 }
 

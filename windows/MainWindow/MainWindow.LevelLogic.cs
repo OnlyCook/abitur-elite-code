@@ -18,6 +18,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -2154,8 +2155,7 @@ public partial class MainWindow
         _isFetchingComments = true;
         TxtCommentsLoading.IsVisible = true;
 
-        // authorize user
-        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
         if (!dict.TryGetValue(levelId, out var cache))
@@ -2172,10 +2172,27 @@ public partial class MainWindow
                         id
                         upvotes: reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
                         downvotes: reactions(content: THUMBS_DOWN) { totalCount viewerHasReacted }
-                        comments(first: 10, after: $cursor) {
+                        comments(first: 20, after: $cursor) {
                             totalCount
                             pageInfo { endCursor hasNextPage }
-                            nodes { author { login } body createdAt }
+                            nodes {
+                                id
+                                author { login }
+                                body
+                                createdAt
+                                upvoteCount
+                                viewerHasUpvoted
+                                replies(first: 20) {
+                                    nodes {
+                                        id
+                                        author { login }
+                                        body
+                                        createdAt
+                                        upvoteCount
+                                        viewerHasUpvoted
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -2186,11 +2203,8 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-
             var response = await _httpClient.PostAsync("https://api.github.com/graphql", content).ConfigureAwait(false);
-
             string jsonString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            Debug.WriteLine($"[Community] Status: {response.StatusCode}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -2206,15 +2220,10 @@ public partial class MainWindow
                         if (!fetchNextPage)
                         {
                             cache.DiscussionNodeId = discussion.GetProperty("id").GetString();
-
-                            var upvotes = discussion.GetProperty("upvotes");
-                            cache.Likes = upvotes.GetProperty("totalCount").GetInt32();
-                            cache.ViewerHasLiked = upvotes.GetProperty("viewerHasReacted").GetBoolean();
-
-                            var downvotes = discussion.GetProperty("downvotes");
-                            cache.Dislikes = downvotes.GetProperty("totalCount").GetInt32();
-                            cache.ViewerHasDisliked = downvotes.GetProperty("viewerHasReacted").GetBoolean();
-
+                            cache.Likes = discussion.GetProperty("upvotes").GetProperty("totalCount").GetInt32();
+                            cache.ViewerHasLiked = discussion.GetProperty("upvotes").GetProperty("viewerHasReacted").GetBoolean();
+                            cache.Dislikes = discussion.GetProperty("downvotes").GetProperty("totalCount").GetInt32();
+                            cache.ViewerHasDisliked = discussion.GetProperty("downvotes").GetProperty("viewerHasReacted").GetBoolean();
                             cache.Comments.Clear();
                         }
 
@@ -2227,12 +2236,32 @@ public partial class MainWindow
 
                         foreach (var node in commentsData.GetProperty("nodes").EnumerateArray())
                         {
-                            cache.Comments.Add(new GithubComment
+                            var newComment = new GithubComment
                             {
+                                Id = node.GetProperty("id").GetString(),
                                 Author = node.GetProperty("author").GetProperty("login").GetString(),
                                 Body = node.GetProperty("body").GetString(),
-                                CreatedAt = node.GetProperty("createdAt").GetDateTime()
-                            });
+                                CreatedAt = node.GetProperty("createdAt").GetDateTime(),
+                                Upvotes = node.GetProperty("upvoteCount").GetInt32(),
+                                ViewerHasUpvoted = node.GetProperty("viewerHasUpvoted").GetBoolean()
+                            };
+
+                            if (node.TryGetProperty("replies", out var repliesProp) && repliesProp.TryGetProperty("nodes", out var repNodes))
+                            {
+                                foreach (var rep in repNodes.EnumerateArray())
+                                {
+                                    newComment.Replies.Add(new GithubReply
+                                    {
+                                        Id = rep.GetProperty("id").GetString(),
+                                        Author = rep.GetProperty("author").GetProperty("login").GetString(),
+                                        Body = rep.GetProperty("body").GetString(),
+                                        CreatedAt = rep.GetProperty("createdAt").GetDateTime(),
+                                        Upvotes = rep.GetProperty("upvoteCount").GetInt32(),
+                                        ViewerHasUpvoted = rep.GetProperty("viewerHasUpvoted").GetBoolean()
+                                    });
+                                }
+                            }
+                            cache.Comments.Add(newComment);
                         }
 
                         cache.LastFetched = DateTime.Now;
