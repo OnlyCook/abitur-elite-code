@@ -70,7 +70,7 @@ public partial class SettingsWindow : Window
     private CancellationTokenSource? _loginCts;
     private bool _suppressCommunityHandler = false;
 
-    public SettingsWindow(SettingsWindowContext ctx)
+    public SettingsWindow(SettingsWindowContext ctx, bool openMiscTab = false)
     {
         _ctx = ctx;
 
@@ -103,7 +103,14 @@ public partial class SettingsWindow : Window
         BtnCatUpdates.Click += (_, _) => ShowCategory(BtnCatUpdates, _updatesPanel);
         BtnCatMisc.Click += (_, _) => ShowCategory(BtnCatMisc, _miscPanel);
 
-        ShowCategory(BtnCatEditor, _editorPanel);
+        if (openMiscTab)
+        {
+            ShowCategory(BtnCatMisc, _miscPanel);
+        }
+        else
+        {
+            ShowCategory(BtnCatEditor, _editorPanel);
+        }
 
         BtnSave.Click += (_, _) => PerformSave();
         BtnReset.Click += async (_, _) => await ShowResetDialog();
@@ -1393,6 +1400,7 @@ public partial class SettingsWindow : Window
             _refreshSnapshot();
 
             UpdateGithubUiState();
+            NotifyMainWindowCommunityState();
         };
 
         _btnGithubLogin.Click += async (_, _) =>
@@ -1412,6 +1420,7 @@ public partial class SettingsWindow : Window
                 _refreshSnapshot();
 
                 UpdateGithubUiState();
+                NotifyMainWindowCommunityState();
             }
             else
             {
@@ -1625,8 +1634,60 @@ public partial class SettingsWindow : Window
         };
         ToolTip.SetTip(btnInfo, "Warum diese Berechtigungen?");
 
+        // setup ripple effect
+        var rippleBorder = new Border
+        {
+            Background = SolidColorBrush.Parse("#2ea043"),
+            CornerRadius = new CornerRadius(15),
+            Width = 24,
+            Height = 24,
+            RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            RenderTransform = new ScaleTransform
+            {
+                ScaleX = 1.0,
+                ScaleY = 1.0
+            }
+        };
+
+        var btnWrapper = new Panel();
+        btnWrapper.Children.Add(rippleBorder);
+        btnWrapper.Children.Add(btnInfo);
+
+        bool isRippling = true;
+
+        _ = Task.Run(async () =>
+        {
+            // loop while rippling is active and the dialog has not been closed/cancelled
+            while (isRippling && _loginCts != null && !_loginCts.Token.IsCancellationRequested)
+            {
+                for (int i = 0; i <= 60 && isRippling && !_loginCts.Token.IsCancellationRequested; i++)
+                {
+                    await Task.Delay(16); // ~60 fps
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        double progress = i / 60.0;
+                        rippleBorder.Opacity = 0.5 * (1.0 - progress);
+                        if (rippleBorder.RenderTransform is ScaleTransform st)
+                        {
+                            st.ScaleX = 1.0 + (0.8 * progress);
+                            st.ScaleY = 1.0 + (0.8 * progress);
+                        }
+                    });
+                }
+
+                if (isRippling && !_loginCts.Token.IsCancellationRequested)
+                {
+                    await Task.Delay(600);
+                }
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() => rippleBorder.IsVisible = false);
+        });
+
         btnInfo.Click += async (_, _) =>
         {
+            isRippling = false; // stop ripple effect
+
             var infoDialog = new Window
             {
                 Title = "Transparenz & Datenschutz",
@@ -1809,7 +1870,7 @@ public partial class SettingsWindow : Window
             await infoDialog.ShowDialog(dialog);
         };
 
-        titlePanel.Children.Add(btnInfo);
+        titlePanel.Children.Add(btnWrapper);
         contentPanel.Children.Add(titlePanel);
 
         contentPanel.Children.Add(new TextBlock
@@ -1841,7 +1902,7 @@ public partial class SettingsWindow : Window
             Foreground = SolidColorBrush.Parse("#007ACC"),
             BorderBrush = SolidColorBrush.Parse("#333"),
             CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(4),
+            Padding = new Thickness(6,4),
             Margin = new Thickness(0, 10, 0, 10)
         };
 
@@ -1959,6 +2020,7 @@ public partial class SettingsWindow : Window
                         _refreshSnapshot();
 
                         UpdateGithubUiState();
+                        NotifyMainWindowCommunityState();
                         dialog.Close();
                     });
                     break;
@@ -1970,5 +2032,16 @@ public partial class SettingsWindow : Window
 
         await dialog.ShowDialog(this);
         _loginCts.Cancel(); // stop polling if window is closed manually
+    }
+
+    private void NotifyMainWindowCommunityState()
+    {
+        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            if (desktop.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.RefreshCommunityUI();
+            }
+        }
     }
 }

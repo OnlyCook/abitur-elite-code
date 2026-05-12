@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -258,7 +259,25 @@ public partial class MainWindow
             return;
         }
 
-        // show skeletons immediately (no abrupt flashing)
+        string modeKey = isSql ? "SQL" : "C#";
+        if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
+            return; // no discussion mapped
+
+        int discussionNum = _discussionMappings[modeKey][levelId];
+        _currentActiveDiscussionId = discussionNum;
+
+        var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+
+        // check cache first to prevent skeleton flashing
+        if (dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
+        {
+            PnlCommunityActions.IsVisible = true;
+            SetCommunitySkeletonsVisible(false);
+            ApplyCommunityUiData(cache);
+            return; // skip ping and fetch, use fresh cache synchronously
+        }
+
+        // no valid cache -> show skeletons immediately and ping network
         PnlCommunityActions.IsVisible = true;
         SetCommunitySkeletonsVisible(true);
 
@@ -278,27 +297,7 @@ public partial class MainWindow
 
         // internet connection spotted
         _isKnownOffline = false;
-
-        string modeKey = isSql ? "SQL" : "C#";
-        if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
-            return; // no discussion mapped
-
-        int discussionNum = _discussionMappings[modeKey][levelId];
-        _currentActiveDiscussionId = discussionNum;
-
-        var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-
-        // use cache if younger than 5 minutes, but show real counts (if not offline)
-        if (dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
-        {
-            SetCommunitySkeletonsVisible(false);
-            ApplyCommunityUiData(cache);
-        }
-        else
-        {
-            // fresh fetch: skeletons are already showing from above, just trigger the fetch
-            await FetchCommunityDataAsync(discussionNum, isSql, levelId, false);
-        }
+        await FetchCommunityDataAsync(discussionNum, isSql, levelId, false);
     }
 
     private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
@@ -1918,5 +1917,287 @@ public partial class MainWindow
             TxtCooldownMessage.IsVisible = false;
         }
         catch (TaskCanceledException) { }
+    }
+
+    private async void ShowApiQueueDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "GitHub Sync im Hintergrund",
+            Width = 500,
+            Height = 400,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#202124"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (s, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
+
+        var rootGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto, *, Auto"),
+            Margin = new Thickness(20)
+        };
+
+        var headerStack = new StackPanel
+        {
+            Spacing = 5,
+            Margin = new Thickness(0, 0, 0, 15)
+        };
+        headerStack.Children.Add(new TextBlock
+        {
+            Text = "Synchronisiere mit GitHub...",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = SolidColorBrush.Parse("#6495ED")
+        });
+        headerStack.Children.Add(new TextBlock
+        {
+            Text = "Bitte warten, bis alle Community-Aktionen hochgeladen wurden, um Datenverlust zu vermeiden.",
+            Foreground = Brushes.LightGray,
+            TextWrapping = TextWrapping.Wrap
+        });
+        rootGrid.Children.Add(headerStack);
+
+        var queueListPanel = new StackPanel { Spacing = 8 };
+        var scrollViewer = new ScrollViewer
+        {
+            Content = queueListPanel,
+            Padding = new Thickness(10)
+        };
+        var scrollBorder = new Border
+        {
+            Child = scrollViewer,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            CornerRadius = new CornerRadius(6),
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderThickness = new Thickness(1),
+            ClipToBounds = true
+        };
+        Grid.SetRow(scrollBorder, 1);
+        rootGrid.Children.Add(scrollBorder);
+
+        var footerGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto, *"),
+            Margin = new Thickness(0, 15, 0, 0)
+        };
+        Grid.SetRow(footerGrid, 2);
+
+        var txtTotalTime = new TextBlock
+        {
+            Foreground = Brushes.Orange,
+            FontWeight = FontWeight.Bold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        footerGrid.Children.Add(txtTotalTime);
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        Grid.SetColumn(btnPanel, 1);
+
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnForceClose = new Button
+        {
+            Content = "Trotzdem schließen",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+
+        btnCancel.Click += (_, __) => dialog.Close();
+        btnForceClose.Click += (_, __) =>
+        {
+            _isForceClosing = true;
+            dialog.Close();
+            Close();
+        };
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnForceClose);
+        footerGrid.Children.Add(btnPanel);
+
+        rootGrid.Children.Add(footerGrid);
+        dialog.Content = rootGrid;
+
+        // snapshots updated every 500ms from the real queue
+        List<string> _snapDescriptions = new();
+        double _snapFirstCooldown = 0;
+        DateTime _snapTakenAt = DateTime.Now;
+        double _totalTimeAtSnapshot = 0;
+        DateTime _totalTimeSnapTakenAt = DateTime.Now;
+
+        void TakeSnapshot()
+        {
+            var queue = GetApiQueueSnapshot();
+            _snapDescriptions = queue;
+            _snapFirstCooldown = Math.Max(0, (GetNextAvailableApiTime() - DateTime.Now).TotalSeconds);
+            _snapTakenAt = DateTime.Now;
+
+            double total = _snapFirstCooldown + Math.Max(0, queue.Count - 1) * 5.0;
+            _totalTimeAtSnapshot = total;
+            _totalTimeSnapTakenAt = DateTime.Now;
+        }
+
+        // 500ms state sync timer
+        var syncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        syncTimer.Tick += (s, ev) =>
+        {
+            var queue = GetApiQueueSnapshot();
+            if (queue.Count == 0 && _apiQueueInFlight == 0)
+            {
+                syncTimer.Stop();
+                _isForceClosing = true;
+                dialog.Close();
+                Close();
+                return;
+            }
+            TakeSnapshot();
+        };
+
+        var smoothTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        smoothTimer.Tick += (s, ev) =>
+        {
+            if (_snapDescriptions.Count == 0) return;
+
+            double elapsed = (DateTime.Now - _snapTakenAt).TotalSeconds;
+
+            // rebuild list rows with interpolated per item cooldowns
+            queueListPanel.Children.Clear();
+            for (int i = 0; i < _snapDescriptions.Count; i++)
+            {
+                double baseCooldown = (i == 0) ? _snapFirstCooldown : 5.0;
+                double displayed = Math.Max(0, baseCooldown - (i == 0 ? elapsed : 0));
+
+                var itemStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 10
+                };
+                var txtCountdown = new TextBlock
+                {
+                    Text = $"{displayed:F1}s",
+                    Foreground = displayed < 1.5 ? Brushes.OrangeRed : Brushes.Gray,
+                    Width = 45,
+                    FontFamily = new FontFamily(MonospaceFontFamily)
+                };
+                var txtDesc = new TextBlock
+                {
+                    Text = $"– {_snapDescriptions[i]}",
+                    Foreground = Brushes.White
+                };
+                itemStack.Children.Add(txtCountdown);
+                itemStack.Children.Add(txtDesc);
+                queueListPanel.Children.Add(itemStack);
+            }
+        };
+
+        var totalTimeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        totalTimeTimer.Tick += (s, ev) =>
+        {
+            double elapsedSinceSnap = (DateTime.Now - _totalTimeSnapTakenAt).TotalSeconds;
+            double displayed = Math.Max(0, _totalTimeAtSnapshot - elapsedSinceSnap);
+            txtTotalTime.Text = $"Gesamte Restzeit: ~{Math.Ceiling(displayed)}s";
+        };
+
+        TakeSnapshot(); // initial snapshot before timers start
+        syncTimer.Start();
+        smoothTimer.Start();
+        totalTimeTimer.Start();
+
+        dialog.Closed += (s, ev) =>
+        {
+            syncTimer.Stop();
+            smoothTimer.Stop();
+            totalTimeTimer.Stop();
+        };
+
+        await dialog.ShowDialog(this);
+    }
+
+    private async void BtnCommunityLoggedOutStatus_Click(object sender, RoutedEventArgs e)
+    {
+        await OpenSettingsWindow(true);
+    }
+
+    private async void ShowCommunityHint()
+    {
+        if (playerData.Settings.CommunityHintShown || !string.IsNullOrEmpty(AppSettings.GithubToken)) return;
+
+        playerData.Settings.CommunityHintShown = true;
+        SaveSystem.Save(playerData);
+
+        await Task.Delay(500);
+
+        PnlCommunityActions.IsVisible = true;
+        BtnCommunityLoggedOutStatus.IsVisible = true;
+
+        // force skeletons to show for the hint effect
+        SkeletonLike.IsVisible = true;
+        SkeletonDislike.IsVisible = true;
+        SkeletonComment.IsVisible = true;
+
+        var txtLikeCount = this.FindControl<TextBlock>("TxtLikeCount");
+        if (txtLikeCount != null) txtLikeCount.IsVisible = false;
+
+        var txtDislikeCount = this.FindControl<TextBlock>("TxtDislikeCount");
+        if (txtDislikeCount != null) txtDislikeCount.IsVisible = false;
+
+        var txtCommentCount = this.FindControl<TextBlock>("TxtCommentCount");
+        if (txtCommentCount != null) txtCommentCount.IsVisible = false;
+
+        // show for 6 seconds, pause while hovered
+        int elapsed = 0;
+        while (elapsed < 6000)
+        {
+            await Task.Delay(100);
+
+            // exit early if user logged in during the hint window
+            if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                BtnCommunityLoggedOutStatus.IsVisible = false;
+                return;
+            }
+
+            if (BtnCommunityLoggedOutStatus.IsPointerOver)
+            {
+                continue; // pause the timer
+            }
+
+            elapsed += 100;
+        }
+
+        // hide the button automatically after timer finishes
+        BtnCommunityLoggedOutStatus.IsVisible = false;
+
+        // restore normal community ui state based on current login/settings
+        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        UpdateCommunityUIAsync(levelId, _isSqlMode);
+    }
+
+    public void RefreshCommunityUI()
+    {
+        Dispatcher.UIThread.InvokeAsync(() => {
+            if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                if (BtnCommunityLoggedOutStatus != null)
+                    BtnCommunityLoggedOutStatus.IsVisible = false;
+            }
+            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+            UpdateCommunityUIAsync(levelId, _isSqlMode);
+        });
     }
 }

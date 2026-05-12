@@ -307,6 +307,9 @@
 											<StackPanel>
 												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
+													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen" Foreground="#6495ED" FontStyle="Italic" TextDecorations="Underline" />
+												</Button>
 												<Grid ColumnDefinitions="Auto, Auto, *, Auto" Margin="15,10">
 													<Button Grid.Column="0" Name="BtnLike" Background="Transparent" Margin="0,0,10,0" Cursor="Hand" Click="BtnLike_Click">
 														<StackPanel Orientation="Horizontal" Spacing="5">

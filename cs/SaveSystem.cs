@@ -57,6 +57,7 @@ public class PlayerSettings
     [SettingKey("sqlspoilerdismissed")] public bool SqlSpoilerHintDismissed { get; set; }
     [SettingKey("sqlspoilertime")] public double SqlSpoilerHintTotalSeconds { get; set; }
     [SettingKey("relationaltip")] public bool RelationalModelTipShown { get; set; }
+    [SettingKey("communityhint")] public bool CommunityHintShown { get; set; }
 }
 
 public class PlayerData
