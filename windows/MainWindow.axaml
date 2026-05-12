@@ -270,27 +270,93 @@
 													</Grid>
 
 													<Border Background="#1A1A1A" CornerRadius="6" Padding="15" Margin="0,0,0,20" BorderBrush="#333" BorderThickness="1">
-														<Grid RowDefinitions="Auto, *, Auto">
-															<Grid ColumnDefinitions="Auto, *" Margin="0,0,0,10">
-																<ComboBox Name="CmbCommentTag" Background="#252526" Foreground="White" SelectedIndex="0">
+														<Grid RowDefinitions="Auto, *">
+
+															<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto" Margin="0,0,0,10">
+																<Button Grid.Column="0" Name="BtnTabEdit" Content="Editieren"
+																		Background="#202124" Foreground="#32A852" FontWeight="SemiBold"
+																		CornerRadius="6" Padding="12,6" Margin="0,0,5,0" Cursor="Hand"
+																		Click="BtnTabComment_Click" />
+
+																<Button Grid.Column="1" Name="BtnTabPreview" Content="Vorschau"
+																		Background="Transparent" Foreground="#CCCCCC"
+																		CornerRadius="6" Padding="12,6" Cursor="Hand"
+																		Click="BtnTabComment_Click" />
+
+																<Button Grid.Column="3" Name="BtnMarkdownToolbar" Background="Transparent" Padding="5" Cursor="Hand" ToolTip.Tip="Markdown Formatierung">
+																	<svg:Svg Path="/assets/icons/ic_markdown.svg" Width="20" Height="20" VerticalAlignment="Center" />
+																	<Button.Flyout>
+																		<Flyout Placement="BottomEdgeAlignedRight">
+																			<StackPanel Spacing="5" Width="160" Margin="-5,-5,-5,-5">
+																				<Button Tag="Heading" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_heading.svg" Width="16" Height="16" />
+																						<TextBlock Text="Heading" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																				<Button Tag="Bold" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_bold.svg" Width="16" Height="16" />
+																						<TextBlock Text="Bold" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																				<Button Tag="Italic" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_italic.svg" Width="16" Height="16" />
+																						<TextBlock Text="Italic" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																				<Button Tag="InlineCode" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_code.svg" Width="16" Height="16" />
+																						<TextBlock Text="Inline-Code" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																				<Button Tag="CodeBlock" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_codeblock.svg" Width="16" Height="16" />
+																						<TextBlock Text="Code Block" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																				<Button Tag="List" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
+																					<StackPanel Orientation="Horizontal" Spacing="8">
+																						<svg:Svg Path="/assets/icons/ic_md_list.svg" Width="16" Height="16" />
+																						<TextBlock Text="Liste" VerticalAlignment="Center" />
+																					</StackPanel>
+																				</Button>
+																			</StackPanel>
+																		</Flyout>
+																	</Button.Flyout>
+																</Button>
+
+																<ComboBox Grid.Column="4" Name="CmbCommentTag" Background="#252526" Foreground="White" SelectedIndex="0" Margin="10,0,0,0">
 																	<ComboBoxItem Content="–" />
 																	<ComboBoxItem Content="Feedback" />
 																	<ComboBoxItem Content="Frage" />
 																	<ComboBoxItem Content="Tipp" />
 																	<ComboBoxItem Content="Lösung" />
 																</ComboBox>
-																<svg:Svg Grid.Column="1" Path="/assets/icons/ic_markdown.svg" ToolTip.Tip="Markdown wird unterstützt" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" />
 															</Grid>
 
-															<TextBox Grid.Row="1" Name="TxtCommentInput" MinHeight="80" MaxHeight="200" AcceptsReturn="True" TextWrapping="Wrap" Background="#141414" Foreground="White" BorderBrush="#333" Watermark="Schreibe einen Kommentar..." TextChanged="TxtCommentInput_TextChanged" />
+															<Grid Grid.Row="1" RowDefinitions="*, Auto">
 
-															<Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto" Margin="0,10,0,0">
-																<TextBlock Name="TxtCommentCharCount" Text="0 / 5000" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
-																<TextBlock Grid.Column="1" Name="TxtCooldownMessage" Foreground="#FF6B6B" FontWeight="Bold" Margin="0,0,15,0" VerticalAlignment="Center" IsVisible="False" />
-																<Button Grid.Column="2" Name="BtnSendComment" Background="#3C3C3C" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
-																	<svg:Svg Name="IconSendComment" Path="/assets/icons/ic_send_disabled.svg" Width="20" Height="20" />
-																</Button>
+																<TextBox Grid.Row="0" Name="TxtCommentInput" MinHeight="80" MaxHeight="200" AcceptsReturn="True" TextWrapping="Wrap" Background="#141414" Foreground="White" BorderBrush="#333" Watermark="Schreibe einen Kommentar..." TextChanged="TxtCommentInput_TextChanged" />
+
+																<Border Grid.Row="0" Name="PnlCommentPreview" MinHeight="80" MaxHeight="200" IsVisible="False" Background="#141414" CornerRadius="4" BorderBrush="#333" BorderThickness="1" Padding="10">
+																	<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+																		<StackPanel Name="PnlCommentPreviewContent" Spacing="5" />
+																	</ScrollViewer>
+																</Border>
+
+																<Grid Grid.Row="1" ColumnDefinitions="*, Auto, Auto" Margin="0,10,0,0">
+																	<TextBlock Name="TxtCommentCharCount" Text="0 / 5000" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+																	<TextBlock Grid.Column="1" Name="TxtCooldownMessage" Foreground="#FF6B6B" FontWeight="Bold" Margin="0,0,15,0" VerticalAlignment="Center" IsVisible="False" />
+																	<Button Grid.Column="2" Name="BtnSendComment" Background="#3C3C3C" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
+																		<svg:Svg Name="IconSendComment" Path="/assets/icons/ic_send_disabled.svg" Width="20" Height="20" />
+																	</Button>
+																</Grid>
 															</Grid>
+
 														</Grid>
 													</Border>
 

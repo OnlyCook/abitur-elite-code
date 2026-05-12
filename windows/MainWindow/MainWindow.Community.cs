@@ -404,7 +404,7 @@ public partial class MainWindow
                                 Id = node.GetProperty("id").GetString(),
                                 Author = node.GetProperty("author").GetProperty("login").GetString(),
                                 Body = node.GetProperty("body").GetString(),
-                                CreatedAt = node.GetProperty("createdAt").GetDateTime(),
+                                CreatedAt = ConvertToGermanTime(node.GetProperty("createdAt").GetDateTime().ToUniversalTime()),
                                 Upvotes = node.GetProperty("upvoteCount").GetInt32(),
                                 ViewerHasUpvoted = node.GetProperty("viewerHasUpvoted").GetBoolean()
                             };
@@ -418,7 +418,7 @@ public partial class MainWindow
                                         Id = rep.GetProperty("id").GetString(),
                                         Author = rep.GetProperty("author").GetProperty("login").GetString(),
                                         Body = rep.GetProperty("body").GetString(),
-                                        CreatedAt = rep.GetProperty("createdAt").GetDateTime(),
+                                        CreatedAt = ConvertToGermanTime(rep.GetProperty("createdAt").GetDateTime().ToUniversalTime()),
                                         Upvotes = rep.GetProperty("reactions").GetProperty("totalCount").GetInt32(),
                                         ViewerHasUpvoted = rep.GetProperty("reactions").GetProperty("viewerHasReacted").GetBoolean()
                                     });
@@ -465,6 +465,22 @@ public partial class MainWindow
                 TxtCommentsLoading.IsVisible = false;
                 if (cache != null && cache.HasNextPage && PnlCommentsSection.IsVisible) BtnLoadMoreComments.IsVisible = true;
             });
+        }
+    }
+
+    private DateTime ConvertToGermanTime(DateTime utcTime)
+    {
+        try
+        {
+            string tzId = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+                ? "W. Europe Standard Time"
+                : "Europe/Berlin";
+            TimeZoneInfo cetZone = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+            return TimeZoneInfo.ConvertTimeFromUtc(utcTime, cetZone);
+        }
+        catch
+        {
+            return utcTime.ToLocalTime(); // fallback
         }
     }
 
@@ -1529,24 +1545,71 @@ public partial class MainWindow
                 continue;
             }
 
+            string trimmedLine = line.TrimStart();
+            int headerLevel = 0;
+            string processedLine = line;
+
+            if (trimmedLine.StartsWith("### "))
+            {
+                headerLevel = 3;
+                processedLine = trimmedLine.Substring(4);
+            }
+            else if (trimmedLine.StartsWith("## "))
+            {
+                headerLevel = 2;
+                processedLine = trimmedLine.Substring(3);
+            }
+            else if (trimmedLine.StartsWith("# "))
+            {
+                headerLevel = 1;
+                processedLine = trimmedLine.Substring(2);
+            }
+
             var textBlock = new SelectableTextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.White,
                 Margin = new Thickness(0, 2)
             };
+
+            // apply smaller sizing for headers (than github)
+            if (headerLevel == 1)
+            {
+                textBlock.FontSize = 18;
+                textBlock.FontWeight = FontWeight.Bold;
+                textBlock.Margin = new Thickness(0, 10, 0, 5);
+            }
+            else if (headerLevel == 2)
+            {
+                textBlock.FontSize = 16;
+                textBlock.FontWeight = FontWeight.SemiBold;
+                textBlock.Margin = new Thickness(0, 8, 0, 4);
+            }
+            else if (headerLevel == 3)
+            {
+                textBlock.FontSize = 14;
+                textBlock.FontWeight = FontWeight.Medium;
+                textBlock.Margin = new Thickness(0, 6, 0, 2);
+            }
+
             int currentIndex = 0;
 
-            foreach (Match match in MarkdownInlineRegex.Matches(line))
+            foreach (Match match in MarkdownInlineRegex.Matches(processedLine))
             {
                 if (match.Index > currentIndex)
-                    textBlock.Inlines.Add(new Run(line.Substring(currentIndex, match.Index - currentIndex)));
+                    textBlock.Inlines.Add(new Run(processedLine.Substring(currentIndex, match.Index - currentIndex)));
 
                 if (match.Groups["bold"].Success)
                 {
                     var bold = new Bold();
                     bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
                     textBlock.Inlines.Add(bold);
+                }
+                else if (match.Groups["italic"].Success)
+                {
+                    var italic = new Italic();
+                    italic.Inlines.Add(new Run(match.Groups["italictext"].Value));
+                    textBlock.Inlines.Add(italic);
                 }
                 else if (match.Groups["kbd"].Success)
                 {
@@ -1596,8 +1659,8 @@ public partial class MainWindow
                 currentIndex = match.Index + match.Length;
             }
 
-            if (currentIndex < line.Length)
-                textBlock.Inlines.Add(new Run(line.Substring(currentIndex)));
+            if (currentIndex < processedLine.Length)
+                textBlock.Inlines.Add(new Run(processedLine.Substring(currentIndex)));
 
             panel.Children.Add(textBlock);
         }
@@ -1663,20 +1726,21 @@ public partial class MainWindow
 
         BtnSendComment.IsEnabled = false;
 
-        string tagPrefix = "";
+        // inject tag dynamically at send time
+        string fullBody = TxtCommentInput.Text;
         string tagSelection = (CmbCommentTag.SelectedItem as ComboBoxItem)?.Content?.ToString();
-        if (tagSelection != null && tagSelection != "–")
-        {
-            tagPrefix = $"!{tagSelection.ToUpper()}; ";
-        }
 
-        string fullBody = tagPrefix + TxtCommentInput.Text;
+        if (!string.IsNullOrEmpty(tagSelection) && tagSelection != "–")
+        {
+            // prepend the tag to the comment
+            fullBody = $"!{tagSelection.ToUpper()};\n{fullBody}";
+        }
 
         string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
         if (dict.TryGetValue(levelId, out var cache))
         {
-            // Safety net: in case the node ID didn't cache properly
+            // in case the node id didnt cache properly
             if (string.IsNullOrEmpty(cache.DiscussionNodeId))
             {
                 await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
@@ -1704,6 +1768,7 @@ public partial class MainWindow
                 if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
                 {
                     TxtCommentInput.Text = "";
+                    CmbCommentTag.SelectedIndex = 0; // reset tag selection upon success
 
                     // enqueue unsubscribe through the gated helper so it counts against the limit
                     string nodeId = cache.DiscussionNodeId;
@@ -2199,5 +2264,101 @@ public partial class MainWindow
             string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
             UpdateCommunityUIAsync(levelId, _isSqlMode);
         });
+    }
+
+    private void BtnTabComment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender == BtnTabEdit)
+        {
+            BtnTabEdit.Background = SolidColorBrush.Parse("#202124");
+            BtnTabEdit.Foreground = SolidColorBrush.Parse("#32A852");
+            BtnTabEdit.FontWeight = FontWeight.SemiBold;
+
+            BtnTabPreview.Background = Brushes.Transparent;
+            BtnTabPreview.Foreground = SolidColorBrush.Parse("#CCCCCC");
+            BtnTabPreview.FontWeight = FontWeight.Normal;
+
+            TxtCommentInput.IsVisible = true;
+            PnlCommentPreview.IsVisible = false;
+            BtnMarkdownToolbar.IsVisible = true;
+        }
+        else
+        {
+            BtnTabPreview.Background = SolidColorBrush.Parse("#202124");
+            BtnTabPreview.Foreground = SolidColorBrush.Parse("#32A852");
+            BtnTabPreview.FontWeight = FontWeight.SemiBold;
+
+            BtnTabEdit.Background = Brushes.Transparent;
+            BtnTabEdit.Foreground = SolidColorBrush.Parse("#CCCCCC");
+            BtnTabEdit.FontWeight = FontWeight.Normal;
+
+            TxtCommentInput.IsVisible = false;
+            PnlCommentPreview.IsVisible = true;
+            BtnMarkdownToolbar.IsVisible = false;
+
+            PnlCommentPreviewContent.Children.Clear();
+            if (string.IsNullOrWhiteSpace(TxtCommentInput.Text))
+            {
+                PnlCommentPreviewContent.Children.Add(new TextBlock
+                {
+                    Text = "Nichts zum Anzeigen.",
+                    Foreground = Brushes.Gray,
+                    FontStyle = Avalonia.Media.FontStyle.Italic
+                });
+            }
+            else
+            {
+                RenderMarkdownToPanel(PnlCommentPreviewContent, TxtCommentInput.Text);
+            }
+        }
+    }
+
+    private void BtnInsertMarkdown_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string format)
+        {
+            string text = TxtCommentInput.Text ?? "";
+            int start = TxtCommentInput.SelectionStart;
+            int end = TxtCommentInput.SelectionEnd;
+            string sel = text.Substring(start, end - start);
+
+            switch (format)
+            {
+                case "Heading":
+                    TxtCommentInput.Text = text.Insert(start, "## ");
+                    TxtCommentInput.SelectionStart = start + 3;
+                    TxtCommentInput.SelectionEnd = start + 3;
+                    break;
+                case "Bold":
+                    TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, $"**{sel}**");
+                    TxtCommentInput.SelectionStart = end == start ? start + 2 : start + sel.Length + 4;
+                    TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                    break;
+                case "Italic":
+                    TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, $"_{sel}_");
+                    TxtCommentInput.SelectionStart = end == start ? start + 1 : start + sel.Length + 2;
+                    TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                    break;
+                case "InlineCode":
+                    TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, $"`{sel}`");
+                    TxtCommentInput.SelectionStart = end == start ? start + 1 : start + sel.Length + 2;
+                    TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                    break;
+                case "CodeBlock":
+                    string block = $"```csharp\n{sel}\n```";
+                    TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
+                    TxtCommentInput.SelectionStart = end == start ? start + 10 : start + block.Length;
+                    TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                    break;
+                case "List":
+                    TxtCommentInput.Text = text.Insert(start, "- ");
+                    TxtCommentInput.SelectionStart = start + 2;
+                    TxtCommentInput.SelectionEnd = start + 2;
+                    break;
+            }
+
+            BtnMarkdownToolbar.Flyout?.Hide();
+            TxtCommentInput.Focus();
+        }
     }
 }
