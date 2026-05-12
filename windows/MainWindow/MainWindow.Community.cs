@@ -30,17 +30,62 @@ public partial class MainWindow
 {
     private static readonly System.Collections.Concurrent.ConcurrentQueue<(string Description, Func<Task> Action)> _apiQueue = new();
     private static bool _isApiQueueRunning = false;
+    private static int _apiQueueInFlight = 0;
     private static DateTime _nextAvailableApiTime = DateTime.MinValue;
     private static readonly Dictionary<string, CancellationTokenSource> _debounceTokens = new();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Description, Func<Task> Action)> _pendingDebounces = new();
     private CancellationTokenSource? _offlineCts;
     private bool _isKnownOffline = false;
+    private CancellationTokenSource? _fullQueueCts;
 
     private TextBlock? _cooldownLabel;
     private CancellationTokenSource? _cooldownCts;
 
+    private const int ApiQueueLimit = 10;
+
     public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
     public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
+
+    private bool TryEnqueueApiRequest(string description, Func<Task> action)
+    {
+        int effectiveCount = _apiQueue.Count + _pendingDebounces.Count;
+        if (effectiveCount >= ApiQueueLimit)
+        {
+            Debug.WriteLine($"[Queue] FULL ({effectiveCount}/{ApiQueueLimit}), rejected: \"{description}\"");
+            ShowFullQueueBannerAsync();
+            return false;
+        }
+        EnqueueApiRequest(description, action);
+        return true;
+    }
+
+    private async void ShowFullQueueBannerAsync()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            _fullQueueCts?.Cancel();
+            _fullQueueCts?.Dispose();
+            _fullQueueCts = new CancellationTokenSource();
+        });
+
+        var token = _fullQueueCts!.Token;
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            PnlCommunityActions.IsVisible = true;
+            if (TxtCommunityFullQueueStatus != null)
+                TxtCommunityFullQueueStatus.IsVisible = true;
+        });
+
+        try { await Task.Delay(3000, token); }
+        catch (TaskCanceledException) { return; }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (TxtCommunityFullQueueStatus != null)
+                TxtCommunityFullQueueStatus.IsVisible = false;
+        });
+    }
 
     private async Task ShowOfflineBannerOnceAsync()
     {
@@ -83,6 +128,7 @@ public partial class MainWindow
                 cts.Cancel();
                 cts.Dispose();
             }
+            // bypass limit check on flush
             EnqueueApiRequest(kvp.Value.Description, kvp.Value.Action);
         }
         _pendingDebounces.Clear();
@@ -92,6 +138,7 @@ public partial class MainWindow
     private static void EnqueueApiRequest(string description, Func<Task> action)
     {
         _apiQueue.Enqueue((description, action));
+        Debug.WriteLine($"[Queue] Enqueued: \"{description}\" | size: {_apiQueue.Count}");
         if (!_isApiQueueRunning)
         {
             _isApiQueueRunning = true;
@@ -99,21 +146,39 @@ public partial class MainWindow
             {
                 while (_apiQueue.TryDequeue(out var req))
                 {
+                    Interlocked.Increment(ref _apiQueueInFlight);
+                    Debug.WriteLine($"[Queue] Running: \"{req.Description}\" | remaining: {_apiQueue.Count}");
                     try
                     {
                         await req.Action();
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Queue] Error in \"{req.Description}\": {ex.Message}");
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref _apiQueueInFlight);
+                    }
                     _nextAvailableApiTime = DateTime.Now.AddSeconds(5);
                     await Task.Delay(5000); // 5s cooldown to not overwhelm api
                 }
+                Debug.WriteLine("[Queue] Runner finished, queue empty.");
                 _isApiQueueRunning = false;
             });
         }
     }
 
-    private void QueueApiRequestWithDebounce(string debounceKey, string description, Func<Task> action)
+    private bool QueueApiRequestWithDebounce(string debounceKey, string description, Func<Task> action)
     {
+        int effectiveCount = _apiQueue.Count + _pendingDebounces.Count;
+        if (effectiveCount >= ApiQueueLimit)
+        {
+            Debug.WriteLine($"[Queue] FULL ({effectiveCount}/{ApiQueueLimit}), debounce rejected: \"{description}\"");
+            ShowFullQueueBannerAsync();
+            return false;
+        }
+
         if (_debounceTokens.TryGetValue(debounceKey, out var cts))
         {
             cts.Cancel();
@@ -125,6 +190,7 @@ public partial class MainWindow
         var token = cts.Token;
 
         _pendingDebounces[debounceKey] = (description, action);
+        Debug.WriteLine($"[Queue] Debounce registered: \"{description}\" (key: {debounceKey}) | effective size: {effectiveCount + 1}");
 
         Task.Run(async () =>
         {
@@ -138,9 +204,15 @@ public partial class MainWindow
                         EnqueueApiRequest(pending.Description, pending.Action);
                     }
                 }
+                else
+                {
+                    Debug.WriteLine($"[Queue] Debounce cancelled: \"{description}\"");
+                }
             }
             catch (TaskCanceledException) { }
         });
+
+        return true;
     }
 
     private void SetCommunitySkeletonsVisible(bool isVisible)
@@ -1093,7 +1165,6 @@ public partial class MainWindow
 
             btnUpvote.Background = targetState ? SolidColorBrush.Parse("#256495ED") : Brushes.Transparent;
             btnUpvote.BorderBrush = targetState ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent;
-
             upvoteContent.Children.Clear();
             upvoteContent.Children.Add(LoadIcon(targetState ? "assets/icons/ic_upvote_filled.svg" : "assets/icons/ic_upvote.svg", 16));
             upvoteContent.Children.Add(new TextBlock
@@ -1103,7 +1174,6 @@ public partial class MainWindow
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            // queue upvote
             QueueApiRequestWithDebounce($"upvote_{comment.Id}",
                 $"Upvote on comment by {comment.Author}",
                 () => isReply ? ToggleReplyUpvoteAsync(comment.Id, targetState) : ToggleCommentUpvoteAsync(comment.Id, targetState));
@@ -1131,11 +1201,16 @@ public partial class MainWindow
 
             replyInputGrid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("*, Auto"),
+                RowDefinitions = new RowDefinitions("*, Auto"),
                 Margin = new Thickness(0, 10, 0, 0),
                 IsVisible = false
             };
             const int ReplyCharLimit = 1000;
+
+            var replyInputRow = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*, Auto")
+            };
 
             var txtReply = new TextBox
             {
@@ -1160,6 +1235,15 @@ public partial class MainWindow
             };
             var iconSendReply = LoadIcon("assets/icons/ic_send_disabled.svg", 18);
             btnSendReply.Content = iconSendReply;
+
+            var replyCooldownLabel = new TextBlock
+            {
+                Foreground = SolidColorBrush.Parse("#FF6B6B"),
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(0, 6, 0, 0),
+                IsVisible = false
+            };
+            CancellationTokenSource? replyCooldownCts = null;
 
             txtReply.TextChanged += (s, e) =>
             {
@@ -1190,28 +1274,61 @@ public partial class MainWindow
                 }
 
                 if (string.IsNullOrWhiteSpace(txtReply.Text)) return;
+
+                // per reply 20s cooldown
+                double secondsSinceLast = (DateTime.Now - _lastCommentTime).TotalSeconds;
+                if (secondsSinceLast < 20)
+                {
+                    int waitTime = (int)(20 - secondsSinceLast);
+                    replyCooldownCts?.Cancel();
+                    replyCooldownCts = new CancellationTokenSource();
+                    var rToken = replyCooldownCts.Token;
+                    replyCooldownLabel.IsVisible = true;
+                    try
+                    {
+                        for (int i = waitTime; i > 0; i--)
+                        {
+                            replyCooldownLabel.Text = $"Warte {i}s";
+                            await Task.Delay(1000, rToken);
+                        }
+                        replyCooldownLabel.IsVisible = false;
+                    }
+                    catch (TaskCanceledException) { }
+                    return;
+                }
+
                 btnSendReply.IsEnabled = false;
                 btnSendReply.Opacity = 0.5;
                 btnSendReply.Content = LoadIcon("assets/icons/ic_send_disabled.svg", 18);
 
+                _lastCommentTime = DateTime.Now;
+
                 Debug.WriteLine($"[Debug] Sent Reply to comment.Id=[{comment.Id}] in discussionId=[{discussionId}]...");
-                await SendReplyToGithubAsync(discussionId, comment.Id, txtReply.Text);
+                bool replySent = await SendReplyToGithubAsync(discussionId, comment.Id, txtReply.Text);
 
                 txtReply.Text = "";
                 replyInputGrid.IsVisible = false;
                 replyContent.Children[0] = LoadIcon("assets/icons/ic_comment_add.svg", 18);
                 ToolTip.SetTip(btnToggleReply, "Antwort verfassen");
 
-                // unsubscribe natively without risking api queue stall
-                _ = Task.Run(async () => {
-                    await Task.Delay(5000);
-                    await UnsubscribeFromDiscussionAsync(discussionId);
-                });
+                if (replySent)
+                {
+                    // enqueue unsubscribe immediately so app close logic can wait for it
+                    string nodeId = discussionId;
+                    EnqueueApiRequest("Von Diskussion abmelden (Antwort)", () => UnsubscribeFromDiscussionAsync(nodeId));
+                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                    await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                }
             };
 
             Grid.SetColumn(btnSendReply, 1);
-            replyInputGrid.Children.Add(txtReply);
-            replyInputGrid.Children.Add(btnSendReply);
+            replyInputRow.Children.Add(txtReply);
+            replyInputRow.Children.Add(btnSendReply);
+
+            Grid.SetRow(replyInputRow, 0);
+            Grid.SetRow(replyCooldownLabel, 1);
+            replyInputGrid.Children.Add(replyInputRow);
+            replyInputGrid.Children.Add(replyCooldownLabel);
 
             actionsPanel.Children.Add(btnToggleReply);
 
@@ -1589,11 +1706,9 @@ public partial class MainWindow
                 {
                     TxtCommentInput.Text = "";
 
-                    // unsubscribe user automatically outside of the queue logic
-                    _ = Task.Run(async () => {
-                        await Task.Delay(5000); // wait 5 seconds so github subscribes user first
-                        await UnsubscribeFromDiscussionAsync(cache.DiscussionNodeId);
-                    });
+                    // enqueue unsubscribe through the gated helper so it counts against the limit
+                    string nodeId = cache.DiscussionNodeId;
+                    EnqueueApiRequest("Von Diskussion abmelden (Kommentar)", () => UnsubscribeFromDiscussionAsync(nodeId));
 
                     // refetch immediately to show the new comment
                     await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
@@ -1616,7 +1731,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
+    private async Task<bool> SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
     {
         string mutation = @"mutation($discussionId: ID!, $replyToId: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $discussionId, replyToId: $replyToId, body: $body}) { comment { id } } }";
         var queryObj = new
@@ -1638,17 +1753,18 @@ public partial class MainWindow
 
             if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
             {
-                string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                return true;
             }
             else
             {
                 Debug.WriteLine($"GraphQL Reply Error: {resBody}");
+                return false;
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Reply Submit Error: {ex.Message}");
+            return false;
         }
     }
 

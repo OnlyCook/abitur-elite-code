@@ -760,7 +760,7 @@ public partial class MainWindow : Window
         FlushPendingDebounces();
 
         // intercept close if background api syncs are pending
-        if (GetApiQueueSnapshot().Count > 0 && !_isForceClosing)
+        if ((GetApiQueueSnapshot().Count > 0 || _apiQueueInFlight > 0) && !_isForceClosing)
         {
             e.Cancel = true;
             ShowApiQueueDialog();
@@ -918,7 +918,7 @@ public partial class MainWindow : Window
         syncTimer.Tick += (s, ev) =>
         {
             var queue = GetApiQueueSnapshot();
-            if (queue.Count == 0)
+            if (queue.Count == 0 && _apiQueueInFlight == 0)
             {
                 syncTimer.Stop();
                 _isForceClosing = true;

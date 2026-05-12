@@ -306,6 +306,7 @@
 										<Border Grid.Row="1" Name="PnlCommunityActions" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0" IsVisible="False">
 											<StackPanel>
 												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Grid ColumnDefinitions="Auto, Auto, *, Auto" Margin="15,10">
 													<Button Grid.Column="0" Name="BtnLike" Background="Transparent" Margin="0,0,10,0" Cursor="Hand" Click="BtnLike_Click">
 														<StackPanel Orientation="Horizontal" Spacing="5">
