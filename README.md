@@ -114,7 +114,7 @@ Auf Linux und macOS ist die Update-Benachrichtigung ebenfalls aktiv. Wenn du auf
 1. Lade die neue Version herunter und entpacke sie.
 2. Du kannst die alte App/den alten Ordner löschen und stattdessen die neue Version an einen beliebigen Ort verschieben.
 
-> **Keine Sorge um deine Speicherstände!** Auf Linux und macOS ist der "Portable Mode" standardmäßig deaktiviert. Das bedeutet, deine Fortschritte werden sicher in einem versteckten System-Verzeichnis abgelegt. Wenn du die neue Version der App öffnest (egal von wo), wird dein kompletter Fortschritt automatisch geladen (falls du den "Portable Mode" nicht aktiviert hast).
+> **Keine Sorge um deine Speicherstände!** Auf Linux und macOS ist der "Portable Mode" standardmäßig deaktiviert. Das bedeutet, deine Fortschritte werden sicher in einem versteckten System-Verzeichnis abgelegt. Wenn du die neue Version der App öffnest (egal von wo), wird dein kompletter Fortschritt automatisch geladen (falls du den "Portable Mode" **nicht** selbst aktiviert hast).
 
 ## Skip-Codes & Lösungen
 Eine Übersicht aller Level-Codes sowie der Lösungen zu den jeweiligen Levels findest du in der [LEVEL_CODES.md](py/LEVEL_CODES.md).

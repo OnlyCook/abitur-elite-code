@@ -1538,7 +1538,7 @@ public partial class SettingsWindow : Window
         var deviceResp = await http.PostAsync("https://github.com/login/device/code",
             new FormUrlEncodedContent(new[] {
             new KeyValuePair<string, string>("client_id", ClientId),
-            new KeyValuePair<string, string>("scope", "public_repo write:discussion")
+            new KeyValuePair<string, string>("scope", "public_repo write:discussion notifications")
             }));
 
         var deviceData = JsonDocument.Parse(await deviceResp.Content.ReadAsStringAsync());

@@ -286,7 +286,8 @@
 
 															<Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto" Margin="0,10,0,0">
 																<TextBlock Name="TxtCommentCharCount" Text="0 / 5000" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
-																<Button Grid.Column="1" Name="BtnSendComment" Background="#3C3C3C" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
+																<TextBlock Grid.Column="1" Name="TxtCooldownMessage" Foreground="#FF6B6B" FontWeight="Bold" Margin="0,0,15,0" VerticalAlignment="Center" IsVisible="False" />
+																<Button Grid.Column="2" Name="BtnSendComment" Background="#3C3C3C" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
 																	<svg:Svg Name="IconSendComment" Path="/assets/icons/ic_send_disabled.svg" Width="20" Height="20" />
 																</Button>
 															</Grid>

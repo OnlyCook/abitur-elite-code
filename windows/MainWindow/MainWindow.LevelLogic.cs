@@ -1,7 +1,6 @@
 ﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -17,12 +16,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -32,8 +27,6 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
-    private CancellationTokenSource? _reactionDebounceCts;
-
     private void BtnLevelSelect_Click(object sender, RoutedEventArgs e)
     {
         if (_isSqlMode && sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
@@ -2114,200 +2107,5 @@ public partial class MainWindow
             DiscordRpcManager.UpdatePresence($"SQL Level {level.Id}", "Querying greatness", "mysql_icon", "MySQL");
 
         UpdateCommunityUIAsync(level.Id.ToString(), true);
-    }
-
-    private async void UpdateCommunityUIAsync(string levelId, bool isSql)
-    {
-        Debug.WriteLine("[Debug] Fetching level " + levelId);
-
-        PnlCommunityActions.IsVisible = false;
-        PnlCommentsSection.IsVisible = false;
-        _currentActiveDiscussionId = -1;
-
-        if (IconToggleComments != null)
-            IconToggleComments.Path = "/assets/icons/ic_comment.svg";
-
-        Debug.WriteLine($"[Debug] Discussion Mappings == null?: {_discussionMappings == null}");
-
-        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || !NetworkInterface.GetIsNetworkAvailable() || _discussionMappings == null)
-            return;
-
-        string modeKey = isSql ? "SQL" : "C#";
-        if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
-            return; // no discussion mapped
-
-        int discussionNum = _discussionMappings[modeKey][levelId];
-        _currentActiveDiscussionId = discussionNum;
-
-        var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-
-        // use cache if younger than 5 minutes
-        if (dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
-        {
-            ApplyCommunityUiData(cache);
-        }
-        else
-        {
-            // fetch fresh data
-            await FetchCommunityDataAsync(discussionNum, isSql, levelId, false);
-        }
-    }
-
-    private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
-    {
-        _isFetchingComments = true;
-        TxtCommentsLoading.IsVisible = true;
-
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-
-        var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-        if (!dict.TryGetValue(levelId, out var cache))
-        {
-            cache = new DiscussionCache();
-            dict[levelId] = cache;
-        }
-
-        var queryObj = new
-        {
-            query = @"query($num: Int!, $cursor: String) {
-                repository(owner: ""OnlyCook"", name: ""aec-community"") {
-                    discussion(number: $num) {
-                        id
-                        upvotes: reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
-                        downvotes: reactions(content: THUMBS_DOWN) { totalCount viewerHasReacted }
-                        comments(first: 20, after: $cursor) {
-                            totalCount
-                            pageInfo { endCursor hasNextPage }
-                            nodes {
-                                id
-                                author { login }
-                                body
-                                createdAt
-                                upvoteCount
-                                viewerHasUpvoted
-                                replies(first: 20) {
-                                    nodes {
-                                        id
-                                        author { login }
-                                        body
-                                        createdAt
-                                        reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }",
-            variables = new { num = discussionNumber, cursor = fetchNextPage ? cache.EndCursor : null }
-        };
-
-        try
-        {
-            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("https://api.github.com/graphql", content).ConfigureAwait(false);
-            string jsonString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            if (response.IsSuccessStatusCode)
-            {
-                using (var doc = JsonDocument.Parse(jsonString))
-                {
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("data", out var data) &&
-                        data.TryGetProperty("repository", out var repo) &&
-                        repo.ValueKind != JsonValueKind.Null)
-                    {
-                        var discussion = repo.GetProperty("discussion");
-
-                        if (!fetchNextPage)
-                        {
-                            cache.DiscussionNodeId = discussion.GetProperty("id").GetString();
-                            cache.Likes = discussion.GetProperty("upvotes").GetProperty("totalCount").GetInt32();
-                            cache.ViewerHasLiked = discussion.GetProperty("upvotes").GetProperty("viewerHasReacted").GetBoolean();
-                            cache.Dislikes = discussion.GetProperty("downvotes").GetProperty("totalCount").GetInt32();
-                            cache.ViewerHasDisliked = discussion.GetProperty("downvotes").GetProperty("viewerHasReacted").GetBoolean();
-                            cache.Comments.Clear();
-                        }
-
-                        var commentsData = discussion.GetProperty("comments");
-                        cache.TotalComments = commentsData.GetProperty("totalCount").GetInt32();
-
-                        var pageInfo = commentsData.GetProperty("pageInfo");
-                        cache.EndCursor = pageInfo.GetProperty("endCursor").ValueKind != JsonValueKind.Null ? pageInfo.GetProperty("endCursor").GetString() : null;
-                        cache.HasNextPage = pageInfo.GetProperty("hasNextPage").GetBoolean();
-
-                        foreach (var node in commentsData.GetProperty("nodes").EnumerateArray())
-                        {
-                            var newComment = new GithubComment
-                            {
-                                Id = node.GetProperty("id").GetString(),
-                                Author = node.GetProperty("author").GetProperty("login").GetString(),
-                                Body = node.GetProperty("body").GetString(),
-                                CreatedAt = node.GetProperty("createdAt").GetDateTime(),
-                                Upvotes = node.GetProperty("upvoteCount").GetInt32(),
-                                ViewerHasUpvoted = node.GetProperty("viewerHasUpvoted").GetBoolean()
-                            };
-
-                            if (node.TryGetProperty("replies", out var repliesProp) && repliesProp.TryGetProperty("nodes", out var repNodes))
-                            {
-                                foreach (var rep in repNodes.EnumerateArray())
-                                {
-                                    newComment.Replies.Add(new GithubReply
-                                    {
-                                        Id = rep.GetProperty("id").GetString(),
-                                        Author = rep.GetProperty("author").GetProperty("login").GetString(),
-                                        Body = rep.GetProperty("body").GetString(),
-                                        CreatedAt = rep.GetProperty("createdAt").GetDateTime(),
-                                        Upvotes = rep.GetProperty("reactions").GetProperty("totalCount").GetInt32(),
-                                        ViewerHasUpvoted = rep.GetProperty("reactions").GetProperty("viewerHasReacted").GetBoolean()
-                                    });
-                                }
-                            }
-                            cache.Comments.Add(newComment);
-                        }
-
-                        cache.LastFetched = DateTime.Now;
-                        SaveSystem.SaveCommunityCache(_communityCache);
-
-                        await Dispatcher.UIThread.InvokeAsync(() => {
-                            ApplyCommunityUiData(cache);
-                            TxtCommentsLocked.IsVisible = false;
-                            if (PnlCommentsSection.IsVisible) RenderCachedComments();
-                        });
-                    }
-                    else
-                    {
-                        await Dispatcher.UIThread.InvokeAsync(() => TxtCommentsLocked.IsVisible = true);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[Community] Fetch Error: {ex.Message}");
-        }
-        finally
-        {
-            await Dispatcher.UIThread.InvokeAsync(() => {
-                _isFetchingComments = false;
-                TxtCommentsLoading.IsVisible = false;
-                if (cache.HasNextPage && PnlCommentsSection.IsVisible) BtnLoadMoreComments.IsVisible = true;
-            });
-        }
-    }
-
-    private void ApplyCommunityUiData(DiscussionCache cache)
-    {
-        TxtLikeCount.Text = cache.Likes.ToString();
-        TxtDislikeCount.Text = cache.Dislikes.ToString();
-        TxtCommentCount.Text = cache.TotalComments.ToString();
-
-        if (IconLike != null)
-            IconLike.Path = cache.ViewerHasLiked ? "/assets/icons/ic_like_filled.svg" : "/assets/icons/ic_like.svg";
-
-        if (IconDislike != null)
-            IconDislike.Path = cache.ViewerHasDisliked ? "/assets/icons/ic_dislike_filled.svg" : "/assets/icons/ic_dislike.svg";
-
-        PnlCommunityActions.IsVisible = true;
     }
 }
