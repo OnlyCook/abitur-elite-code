@@ -256,6 +256,7 @@
 												<StackPanel Name="PnlTaskRelationalModel" Spacing="10" Margin="0,20,0,0" />
 
 												<StackPanel Name="PnlCommentsSection" IsVisible="False" Margin="0,40,0,0">
+													<Separator Background="#333" Margin="0,0,0,20" />
 													<Grid ColumnDefinitions="*, Auto" Margin="0,0,0,15">
 														<TextBlock Text="Kommentare" FontSize="18" FontWeight="Bold" Foreground="#6495ED" VerticalAlignment="Center" />
 														<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
@@ -267,7 +268,7 @@
 															</ComboBox>
 														</StackPanel>
 													</Grid>
-													
+
 													<Border Background="#1A1A1A" CornerRadius="6" Padding="15" Margin="0,0,0,20" BorderBrush="#333" BorderThickness="1">
 														<Grid RowDefinitions="Auto, *, Auto">
 															<Grid ColumnDefinitions="Auto, *" Margin="0,0,0,10">
@@ -293,6 +294,7 @@
 													</Border>
 
 													<StackPanel Name="PnlCommentsList" Spacing="15" />
+													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar." Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLoading" Text="Lädt..." Foreground="Gray" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<Button Name="BtnLoadMoreComments" Content="Mehr laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
@@ -355,7 +357,7 @@
 
 											<StackPanel Name="PnlDiagramSwitch" Orientation="Vertical" Spacing="5"
 														HorizontalAlignment="Left" VerticalAlignment="Bottom"
-														Margin="10,0,0,60" IsVisible="False">
+														Margin="15,0,0,60" IsVisible="False">
 												<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
 														Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
 														ToolTip.Tip="Diagramm 1">
@@ -380,7 +382,7 @@
 													ToolTip.Tip="Diagramm zurücksetzen"
 													HorizontalAlignment="Left"
 													VerticalAlignment="Bottom"
-													Margin="10"
+													Margin="15,10,10,10"
 													Click="BtnResetDiagram_Click">
 												<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20" />
 											</Button>
@@ -388,7 +390,7 @@
 											<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
 													   Foreground="#666" FontSize="12"
 													   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-													   Margin="10" />
+													   Margin="10,10,15,10" />
 										</Panel>
 
 										<GridSplitter Name="UmlRelationalSplitter" IsVisible="False" Grid.Row="1"

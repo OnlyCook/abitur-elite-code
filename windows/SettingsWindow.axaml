@@ -90,16 +90,16 @@
                             HorizontalAlignment="Center"
                             Spacing="10"
                             Margin="10">
-                    <Button x:Name="BtnSave"
-                            Width="50" Height="40"
-                            Background="#32A852"
-                            CornerRadius="5"
-                            IsEnabled="False"
-                            Opacity="0.5" />
                     <Button x:Name="BtnReset"
                             Width="50" Height="40"
                             Background="#B43232"
                             CornerRadius="5" />
+					<Button x:Name="BtnSave"
+                            Width="60" Height="40"
+                            Background="#32A852"
+                            CornerRadius="5"
+                            IsEnabled="False"
+                            Opacity="0.5" />
                 </StackPanel>
             </Grid>
 

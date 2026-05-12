@@ -93,6 +93,7 @@ public partial class MainWindow
 
                 var txtLevelCode = new TextBox
                 {
+                    Watermark = "–––",
                     Width = 60,
                     MaxLength = 3,
                     Background = SolidColorBrush.Parse("#141414"),
@@ -100,6 +101,7 @@ public partial class MainWindow
                     BorderBrush = SolidColorBrush.Parse("#333"),
                     CornerRadius = new CornerRadius(4),
                     HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
                     FontFamily = MonospaceFontFamily
                 };
 
@@ -353,6 +355,7 @@ public partial class MainWindow
                     Watermark = "Suchen...",
                     MinWidth = 150,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalContentAlignment = VerticalAlignment.Center,
                     Background = SolidColorBrush.Parse("#141414"),
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(1),
@@ -864,9 +867,9 @@ public partial class MainWindow
                         {
                             var btnEdit = new Button
                             {
-                                Content = LoadIcon("assets/icons/ic_edit.svg", 16),
+                                Content = LoadIcon("assets/icons/ic_edit.svg", 17),
                                 Background = Brushes.Transparent,
-                                Padding = new Thickness(8)
+                                Padding = new Thickness(7)
                             };
                             ToolTip.SetTip(btnEdit, "Level im Designer bearbeiten");
                             btnEdit.Click += (_, __) =>
@@ -880,9 +883,9 @@ public partial class MainWindow
                         // delete button
                         var btnDelete = new Button
                         {
-                            Content = LoadIcon("assets/icons/ic_delete.svg", 16),
+                            Content = LoadIcon("assets/icons/ic_delete.svg", 17),
                             Background = Brushes.Transparent,
-                            Padding = new Thickness(8)
+                            Padding = new Thickness(7)
                         };
                         ToolTip.SetTip(btnDelete, "Level löschen");
                         btnDelete.Click += async (_, __) =>
@@ -2188,8 +2191,7 @@ public partial class MainWindow
                                         author { login }
                                         body
                                         createdAt
-                                        upvoteCount
-                                        viewerHasUpvoted
+                                        reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
                                     }
                                 }
                             }
@@ -2256,8 +2258,8 @@ public partial class MainWindow
                                         Author = rep.GetProperty("author").GetProperty("login").GetString(),
                                         Body = rep.GetProperty("body").GetString(),
                                         CreatedAt = rep.GetProperty("createdAt").GetDateTime(),
-                                        Upvotes = rep.GetProperty("upvoteCount").GetInt32(),
-                                        ViewerHasUpvoted = rep.GetProperty("viewerHasUpvoted").GetBoolean()
+                                        Upvotes = rep.GetProperty("reactions").GetProperty("totalCount").GetInt32(),
+                                        ViewerHasUpvoted = rep.GetProperty("reactions").GetProperty("viewerHasReacted").GetBoolean()
                                     });
                                 }
                             }

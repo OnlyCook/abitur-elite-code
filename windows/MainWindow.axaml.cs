@@ -2434,7 +2434,7 @@ public partial class MainWindow : Window
             else
             {
                 // no next level -> course completed
-                AddToConsole("\n🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", SolidColorBrush.Parse("#FFD700"));
+                AddToConsole("🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", SolidColorBrush.Parse("#FFD700"));
                 BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                 BtnNextLevel.IsEnabled = true;
                 BtnNextLevel.Opacity = 1.0;
@@ -3979,6 +3979,12 @@ public partial class MainWindow : Window
 
         if (!dict.TryGetValue(levelKey, out var cache)) return;
 
+        var txtEmpty = this.FindControl<TextBlock>("TxtCommentsEmpty");
+        if (txtEmpty != null)
+        {
+            txtEmpty.IsVisible = cache.Comments.Count == 0;
+        }
+
         string sortMode = (CmbCommentSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Top";
         var sortedComments = cache.Comments.ToList();
 
@@ -4169,7 +4175,7 @@ public partial class MainWindow : Window
             Padding = new Thickness(15),
             BorderBrush = SolidColorBrush.Parse("#333"),
             BorderThickness = new Thickness(1),
-            Margin = new Thickness(isReply ? 30 : 0, 5, 0, 0)
+            Margin = new Thickness(0, 5, 0, 0)
         };
 
         var mainStack = new StackPanel { Spacing = 8 };
@@ -4198,6 +4204,10 @@ public partial class MainWindow : Window
         }
 
         // header
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*, Auto")
+        };
         var headerPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -4228,16 +4238,99 @@ public partial class MainWindow : Window
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(6, 2),
                 Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
                 Child = new TextBlock
                 {
                     Text = activeTag,
                     FontSize = 10,
                     Foreground = tagColor,
-                    FontWeight = FontWeight.Bold
+                    FontWeight = FontWeight.Bold,
+                    VerticalAlignment = VerticalAlignment.Center
                 }
             });
         }
-        mainStack.Children.Add(headerPanel);
+        headerGrid.Children.Add(headerPanel);
+
+        var btnMore = new Button
+        {
+            Background = Brushes.Transparent,
+            Padding = new Thickness(5),
+            Content = LoadIcon("assets/icons/ic_more.svg", 16)
+        };
+        Grid.SetColumn(btnMore, 1);
+        headerGrid.Children.Add(btnMore);
+        Button btnEdit = null;
+        Button btnDelete = null;
+
+        if (comment.Author == AppSettings.GithubUsername)
+        {
+            btnMore.Cursor = Cursor.Parse("Hand");
+
+            var flyout = new Avalonia.Controls.Flyout();
+            var flyoutStack = new StackPanel { Spacing = 5 };
+
+            btnEdit = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon("assets/icons/ic_edit.svg", 16),
+                        new TextBlock
+                        {
+                            Text = "Bearbeiten",
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            btnDelete = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon("assets/icons/ic_delete.svg", 16),
+                        new TextBlock
+                        {
+                            Text = "Löschen",
+                            Foreground = Brushes.Red,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            flyoutStack.Children.Add(btnEdit);
+            flyoutStack.Children.Add(btnDelete);
+            flyout.Content = flyoutStack;
+            btnMore.Flyout = flyout;
+        }
+        else
+        {
+            // non-user comment/reply -> make button invisible decoy
+            btnMore.Opacity = 0;
+            btnMore.IsHitTestVisible = false;
+        }
+
+        mainStack.Children.Add(headerGrid);
 
         // body (with spoiler handling and collapse layout for long comments)
         var bodyWrapper = new Grid();
@@ -4307,7 +4400,8 @@ public partial class MainWindow : Window
                         },
                         new GradientStop
                         {
-                            Color = bgColor, Offset = 1.0
+                            Color = bgColor,
+                            Offset = 1.0
                         }
                     }
                 }
@@ -4367,6 +4461,51 @@ public partial class MainWindow : Window
 
         mainStack.Children.Add(bodyWrapper);
 
+        var editGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            IsVisible = false,
+            Margin = new Thickness(0, 5, 0, 5)
+        };
+        var txtEdit = new TextBox
+        {
+            Text = comment.Body,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Brushes.White,
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            CornerRadius = new CornerRadius(4),
+            MaxHeight = 150
+        };
+        var editActions = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+        var btnCancelEdit = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Cursor = Cursor.Parse("Hand")
+        };
+        var btnSaveEdit = new Button
+        {
+            Content = "Speichern",
+            Background = SolidColorBrush.Parse("#32A852"),
+            Cursor = Cursor.Parse("Hand")
+        };
+
+        editActions.Children.Add(btnCancelEdit);
+        editActions.Children.Add(btnSaveEdit);
+        Grid.SetRow(editActions, 1);
+        editGrid.Children.Add(txtEdit);
+        editGrid.Children.Add(editActions);
+
+        mainStack.Children.Add(editGrid);
+
         var actionsPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -4418,12 +4557,16 @@ public partial class MainWindow : Window
             });
 
             btnUpvote.IsEnabled = false;
-            await ToggleCommentUpvoteAsync(comment.Id, oldState);
+            if (isReply)
+                await ToggleReplyUpvoteAsync(comment.Id, oldState);
+            else
+                await ToggleCommentUpvoteAsync(comment.Id, oldState);
             btnUpvote.IsEnabled = true;
         };
         actionsPanel.Children.Add(btnUpvote);
 
         // reply button and box setup
+        Grid replyInputGrid = null;
         if (!isReply)
         {
             var btnToggleReply = new Button
@@ -4441,7 +4584,7 @@ public partial class MainWindow : Window
             btnToggleReply.Content = replyContent;
             ToolTip.SetTip(btnToggleReply, "Antwort verfassen");
 
-            var replyInputGrid = new Grid
+            replyInputGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("*, Auto"),
                 Margin = new Thickness(0, 10, 0, 0),
@@ -4508,7 +4651,7 @@ public partial class MainWindow : Window
 
             actionsPanel.Children.Add(btnToggleReply);
 
-            StackPanel repliesStack = null;
+            Border repliesContainer = null;
             if (comment.Replies.Count > 0)
             {
                 var btnShowReplies = new Button
@@ -4534,19 +4677,26 @@ public partial class MainWindow : Window
 
                 actionsPanel.Children.Add(btnShowReplies);
 
-                repliesStack = new StackPanel
+                repliesContainer = new Border
                 {
-                    Spacing = 8,
-                    Margin = new Thickness(0, 10, 0, 0),
+                    BorderThickness = new Thickness(2, 0, 0, 0),
+                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    Margin = new Thickness(15, 10, 0, 0),
+                    Padding = new Thickness(15, 0, 0, 0),
                     IsVisible = false
                 };
+                var repliesStack = new StackPanel
+                {
+                    Spacing = 8
+                };
+                repliesContainer.Child = repliesStack;
 
                 btnShowReplies.Click += (s, e) =>
                 {
-                    repliesStack.IsVisible = !repliesStack.IsVisible;
-                    txtShowReplies.Text = repliesStack.IsVisible ? "Antworten ausblenden" : comment.Replies.Count == 1 ? "1 Antwort" : $"{comment.Replies.Count} Antworten";
+                    repliesContainer.IsVisible = !repliesContainer.IsVisible;
+                    txtShowReplies.Text = repliesContainer.IsVisible ? "Antworten ausblenden" : comment.Replies.Count == 1 ? "1 Antwort" : $"{comment.Replies.Count} Antworten";
                     showRepliesContent.Children[0] = LoadIcon(
-                        repliesStack.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
+                        repliesContainer.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
                 };
 
                 foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
@@ -4564,12 +4714,49 @@ public partial class MainWindow : Window
             }
 
             mainStack.Children.Add(actionsPanel);
-            mainStack.Children.Add(replyInputGrid);
-            if (repliesStack != null) mainStack.Children.Add(repliesStack);
+            if (replyInputGrid != null) mainStack.Children.Add(replyInputGrid);
+            if (repliesContainer != null) mainStack.Children.Add(repliesContainer);
         }
         else
         {
             mainStack.Children.Add(actionsPanel);
+        }
+
+        if (btnMore != null && btnEdit != null && btnDelete != null)
+        {
+            btnEdit.Click += (s, e) =>
+            {
+                btnMore.Flyout?.Hide();
+                bodyWrapper.IsVisible = false;
+                actionsPanel.IsVisible = false;
+                if (!isReply && replyInputGrid != null) replyInputGrid.IsVisible = false;
+                editGrid.IsVisible = true;
+            };
+
+            btnCancelEdit.Click += (s, e) =>
+            {
+                editGrid.IsVisible = false;
+                bodyWrapper.IsVisible = true;
+                actionsPanel.IsVisible = true;
+                txtEdit.Text = comment.Body;
+            };
+
+            btnSaveEdit.Click += async (s, e) =>
+            {
+                btnSaveEdit.IsEnabled = false;
+                await UpdateCommentOrReplyAsync(comment.Id, txtEdit.Text);
+                string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+            };
+
+            btnDelete.Click += async (s, e) =>
+            {
+                btnMore.Flyout?.Hide();
+                btnDelete.IsEnabled = false;
+                await DeleteCommentOrReplyAsync(comment.Id);
+                string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+            };
         }
 
         border.Child = mainStack;
@@ -4856,6 +5043,80 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Debug.WriteLine($"Toggle Upvote Error: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateCommentOrReplyAsync(string id, string body)
+    {
+        string mutation = @"mutation($id: ID!, $body: String!) { updateDiscussionComment(input: {commentId: $id, body: $body}) { comment { id } } }";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                id = id,
+                body = body
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Community] Update Comment Error: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteCommentOrReplyAsync(string id)
+    {
+        string mutation = @"mutation($id: ID!) { deleteDiscussionComment(input: {id: $id}) { comment { id } } }";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                id = id
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Community] Delete Comment Error: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleReplyUpvoteAsync(string subjectId, bool isCurrentlyUpvoted)
+    {
+        string op = isCurrentlyUpvoted ? "removeReaction" : "addReaction";
+        string mutation = $@"mutation($subjectId: ID!) {{ {op}(input: {{subjectId: $subjectId, content: THUMBS_UP}}) {{ clientMutationId }} }}";
+        var queryObj = new
+        {
+            query = mutation,
+            variables = new
+            {
+                subjectId = subjectId
+            }
+        };
+
+        try
+        {
+            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            await _httpClient.PostAsync("https://api.github.com/graphql", content);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Community] Toggle Reply Upvote Error: {ex.Message}");
         }
     }
 
