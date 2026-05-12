@@ -28,16 +28,70 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
-    private static readonly System.Collections.Concurrent.ConcurrentQueue<Func<Task>> _apiQueue = new();
+    private static readonly System.Collections.Concurrent.ConcurrentQueue<(string Description, Func<Task> Action)> _apiQueue = new();
     private static bool _isApiQueueRunning = false;
+    private static DateTime _nextAvailableApiTime = DateTime.MinValue;
     private static readonly Dictionary<string, CancellationTokenSource> _debounceTokens = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Description, Func<Task> Action)> _pendingDebounces = new();
+    private CancellationTokenSource? _offlineCts;
+    private bool _isKnownOffline = false;
 
     private TextBlock? _cooldownLabel;
     private CancellationTokenSource? _cooldownCts;
 
-    private static void EnqueueApiRequest(Func<Task> action)
+    public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
+    public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
+
+    private async Task ShowOfflineBannerOnceAsync()
     {
-        _apiQueue.Enqueue(action);
+        _offlineCts?.Cancel();
+        _offlineCts?.Dispose();
+        _offlineCts = new CancellationTokenSource();
+        var token = _offlineCts.Token;
+
+        // disable all interaction and reveal bar in bare bones state
+        BtnLike.IsEnabled = false;
+        BtnDislike.IsEnabled = false;
+        BtnToggleComments.IsEnabled = false;
+        PnlCommentsSection.IsVisible = false;
+        SetCommunitySkeletonsVisible(false);
+
+        PnlCommunityActions.IsVisible = true;
+        if (TxtCommunityOfflineStatus != null)
+            TxtCommunityOfflineStatus.IsVisible = true;
+
+        try
+        {
+            await Task.Delay(3000, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (TxtCommunityOfflineStatus != null)
+            TxtCommunityOfflineStatus.IsVisible = false;
+        PnlCommunityActions.IsVisible = false;
+    }
+
+    private void FlushPendingDebounces()
+    {
+        foreach (var kvp in _pendingDebounces)
+        {
+            if (_debounceTokens.TryGetValue(kvp.Key, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            EnqueueApiRequest(kvp.Value.Description, kvp.Value.Action);
+        }
+        _pendingDebounces.Clear();
+        _debounceTokens.Clear();
+    }
+
+    private static void EnqueueApiRequest(string description, Func<Task> action)
+    {
+        _apiQueue.Enqueue((description, action));
         if (!_isApiQueueRunning)
         {
             _isApiQueueRunning = true;
@@ -45,7 +99,12 @@ public partial class MainWindow
             {
                 while (_apiQueue.TryDequeue(out var req))
                 {
-                    try { await req(); } catch { }
+                    try
+                    {
+                        await req.Action();
+                    }
+                    catch { }
+                    _nextAvailableApiTime = DateTime.Now.AddSeconds(5);
                     await Task.Delay(5000); // 5s cooldown to not overwhelm api
                 }
                 _isApiQueueRunning = false;
@@ -53,7 +112,7 @@ public partial class MainWindow
         }
     }
 
-    private void QueueApiRequestWithDebounce(string debounceKey, Func<Task> action)
+    private void QueueApiRequestWithDebounce(string debounceKey, string description, Func<Task> action)
     {
         if (_debounceTokens.TryGetValue(debounceKey, out var cts))
         {
@@ -65,6 +124,8 @@ public partial class MainWindow
         _debounceTokens[debounceKey] = cts;
         var token = cts.Token;
 
+        _pendingDebounces[debounceKey] = (description, action);
+
         Task.Run(async () =>
         {
             try
@@ -72,28 +133,79 @@ public partial class MainWindow
                 await Task.Delay(1000, token); // 1 second wait to check for misclicks
                 if (!token.IsCancellationRequested)
                 {
-                    EnqueueApiRequest(action);
+                    if (_pendingDebounces.TryRemove(debounceKey, out var pending))
+                    {
+                        EnqueueApiRequest(pending.Description, pending.Action);
+                    }
                 }
             }
             catch (TaskCanceledException) { }
         });
     }
 
+    private void SetCommunitySkeletonsVisible(bool isVisible)
+    {
+        if (SkeletonLike != null) SkeletonLike.IsVisible = isVisible;
+        if (SkeletonDislike != null) SkeletonDislike.IsVisible = isVisible;
+        if (SkeletonComment != null) SkeletonComment.IsVisible = isVisible;
+
+        if (TxtLikeCount != null) TxtLikeCount.IsVisible = !isVisible;
+        if (TxtDislikeCount != null) TxtDislikeCount.IsVisible = !isVisible;
+        if (TxtCommentCount != null) TxtCommentCount.IsVisible = !isVisible;
+    }
+
+    private static async Task<bool> CheckRealConnectivityAsync()
+    {
+        try
+        {
+            using var ping = new System.Net.NetworkInformation.Ping();
+            var reply = await ping.SendPingAsync("8.8.8.8", 2000);
+            return reply.Status == System.Net.NetworkInformation.IPStatus.Success;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private async void UpdateCommunityUIAsync(string levelId, bool isSql)
     {
         Debug.WriteLine("[Debug] Fetching level " + levelId);
 
-        PnlCommunityActions.IsVisible = false;
+        // reset comment section and active discussion, but keep the panel visible
         PnlCommentsSection.IsVisible = false;
         _currentActiveDiscussionId = -1;
 
         if (IconToggleComments != null)
             IconToggleComments.Path = "/assets/icons/ic_comment.svg";
 
-        Debug.WriteLine($"[Debug] Discussion Mappings == null?: {_discussionMappings == null}");
-
-        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || !NetworkInterface.GetIsNetworkAvailable() || _discussionMappings == null)
+        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || _discussionMappings == null)
+        {
+            // only hide the panel when community is genuinely unavailable
+            PnlCommunityActions.IsVisible = false;
             return;
+        }
+
+        // show skeletons immediately (no abrupt flashing)
+        PnlCommunityActions.IsVisible = true;
+        SetCommunitySkeletonsVisible(true);
+
+        bool isOnline = await CheckRealConnectivityAsync();
+
+        if (!isOnline)
+        {
+            if (!_isKnownOffline)
+            {
+                // first time we notice being offline: show the banner once, then stay silent
+                _isKnownOffline = true;
+                await ShowOfflineBannerOnceAsync();
+            }
+            // already known offline: just do nothing, community stays hidden
+            return;
+        }
+
+        // internet connection spotted
+        _isKnownOffline = false;
 
         string modeKey = isSql ? "SQL" : "C#";
         if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
@@ -104,20 +216,31 @@ public partial class MainWindow
 
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
-        // use cache if younger than 5 minutes
+        // use cache if younger than 5 minutes, but show real counts (if not offline)
         if (dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
         {
+            SetCommunitySkeletonsVisible(false);
             ApplyCommunityUiData(cache);
         }
         else
         {
-            // fetch fresh data
+            // fresh fetch: skeletons are already showing from above, just trigger the fetch
             await FetchCommunityDataAsync(discussionNum, isSql, levelId, false);
         }
     }
 
     private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
     {
+        if (!await CheckRealConnectivityAsync())
+        {
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+            return;
+        }
+
         _isFetchingComments = true;
         TxtCommentsLoading.IsVisible = true;
 
@@ -252,19 +375,37 @@ public partial class MainWindow
         catch (Exception ex)
         {
             Debug.WriteLine($"[Community] Fetch Error: {ex.Message}");
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+
+            var dictLocal = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+            if (dictLocal.TryGetValue(levelId, out var cacheData) && string.IsNullOrEmpty(cacheData.DiscussionNodeId))
+            {
+                dictLocal.Remove(levelId);
+            }
         }
         finally
         {
             await Dispatcher.UIThread.InvokeAsync(() => {
                 _isFetchingComments = false;
                 TxtCommentsLoading.IsVisible = false;
-                if (cache.HasNextPage && PnlCommentsSection.IsVisible) BtnLoadMoreComments.IsVisible = true;
+                if (cache != null && cache.HasNextPage && PnlCommentsSection.IsVisible) BtnLoadMoreComments.IsVisible = true;
             });
         }
     }
 
     private void ApplyCommunityUiData(DiscussionCache cache)
     {
+        SetCommunitySkeletonsVisible(false);
+
+        // re-enable controls (in case hidden cuz offline before)
+        BtnLike.IsEnabled = true;
+        BtnDislike.IsEnabled = true;
+        BtnToggleComments.IsEnabled = true;
+
         TxtLikeCount.Text = cache.Likes.ToString();
         TxtDislikeCount.Text = cache.Dislikes.ToString();
         TxtCommentCount.Text = cache.TotalComments.ToString();
@@ -274,6 +415,11 @@ public partial class MainWindow
 
         if (IconDislike != null)
             IconDislike.Path = cache.ViewerHasDisliked ? "/assets/icons/ic_dislike_filled.svg" : "/assets/icons/ic_dislike.svg";
+
+        // re-enable buttons in case they were disabled by previously being offline
+        BtnLike.IsEnabled = true;
+        BtnDislike.IsEnabled = true;
+        BtnToggleComments.IsEnabled = true;
 
         PnlCommunityActions.IsVisible = true;
     }
@@ -296,8 +442,18 @@ public partial class MainWindow
         }
     }
 
-    private void BtnToggleComments_Click(object sender, RoutedEventArgs e)
+    private async void BtnToggleComments_Click(object sender, RoutedEventArgs e)
     {
+        if (!await CheckRealConnectivityAsync())
+        {
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+            return;
+        }
+
         PnlCommentsSection.IsVisible = !PnlCommentsSection.IsVisible;
         IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comment_hide.svg" : "/assets/icons/ic_comment.svg";
 
@@ -309,6 +465,16 @@ public partial class MainWindow
 
     private async void BtnLoadMoreComments_Click(object sender, RoutedEventArgs e)
     {
+        if (!await CheckRealConnectivityAsync())
+        {
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+            return;
+        }
+
         if (_isFetchingComments || _currentActiveDiscussionId == -1) return;
 
         string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
@@ -384,8 +550,18 @@ public partial class MainWindow
         ToggleReaction(false);
     }
 
-    private void ToggleReaction(bool isLike)
+    private async void ToggleReaction(bool isLike)
     {
+        if (!await CheckRealConnectivityAsync())
+        {
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+            return;
+        }
+
         if (string.IsNullOrEmpty(AppSettings.GithubToken) || _currentActiveDiscussionId == -1) return;
 
         string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
@@ -432,7 +608,7 @@ public partial class MainWindow
 
         ApplyCommunityUiData(cache);
 
-        QueueApiRequestWithDebounce($"level_react_{cache.DiscussionNodeId}", () => SyncReactionToGithubAsync(cache));
+        QueueApiRequestWithDebounce($"level_react_{cache.DiscussionNodeId}", $"Reaction for {(_isSqlMode ? "SQL" : "C#")} level {levelId}", () => SyncReactionToGithubAsync(cache));
     }
 
 
@@ -898,8 +1074,18 @@ public partial class MainWindow
         });
         btnUpvote.Content = upvoteContent;
 
-        btnUpvote.Click += (s, e) =>
+        btnUpvote.Click += async (s, e) =>
         {
+            if (!await CheckRealConnectivityAsync())
+            {
+                if (!_isKnownOffline)
+                {
+                    _isKnownOffline = true;
+                    await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+                }
+                return;
+            }
+
             // optimistic ui state update
             bool targetState = !comment.ViewerHasUpvoted;
             comment.ViewerHasUpvoted = targetState;
@@ -918,10 +1104,9 @@ public partial class MainWindow
             });
 
             // queue upvote
-            QueueApiRequestWithDebounce($"upvote_{comment.Id}", () =>
-                isReply
-                    ? ToggleReplyUpvoteAsync(comment.Id, targetState)
-                    : ToggleCommentUpvoteAsync(comment.Id, targetState));
+            QueueApiRequestWithDebounce($"upvote_{comment.Id}",
+                $"Upvote on comment by {comment.Author}",
+                () => isReply ? ToggleReplyUpvoteAsync(comment.Id, targetState) : ToggleCommentUpvoteAsync(comment.Id, targetState));
         };
         actionsPanel.Children.Add(btnUpvote);
 
@@ -994,6 +1179,16 @@ public partial class MainWindow
 
             btnSendReply.Click += async (s, e) =>
             {
+                if (!await CheckRealConnectivityAsync())
+                {
+                    if (!_isKnownOffline)
+                    {
+                        _isKnownOffline = true;
+                        await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+                    }
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(txtReply.Text)) return;
                 btnSendReply.IsEnabled = false;
                 btnSendReply.Opacity = 0.5;
@@ -1112,6 +1307,16 @@ public partial class MainWindow
 
             btnSaveEdit.Click += async (s, e) =>
             {
+                if (!await CheckRealConnectivityAsync())
+                {
+                    if (!_isKnownOffline)
+                    {
+                        _isKnownOffline = true;
+                        await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+                    }
+                    return;
+                }
+
                 btnSaveEdit.IsEnabled = false;
                 await UpdateCommentOrReplyAsync(comment.Id, txtEdit.Text);
                 string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
@@ -1120,6 +1325,16 @@ public partial class MainWindow
 
             btnDelete.Click += async (s, e) =>
             {
+                if (!await CheckRealConnectivityAsync())
+                {
+                    if (!_isKnownOffline)
+                    {
+                        _isKnownOffline = true;
+                        await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+                    }
+                    return;
+                }
+
                 btnMore.Flyout?.Hide();
                 btnDelete.IsEnabled = false;
                 await DeleteCommentOrReplyAsync(comment.Id);
@@ -1310,6 +1525,16 @@ public partial class MainWindow
 
     private async void BtnSendComment_Click(object sender, RoutedEventArgs e)
     {
+        if (!await CheckRealConnectivityAsync())
+        {
+            if (!_isKnownOffline)
+            {
+                _isKnownOffline = true;
+                await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+            }
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(TxtCommentInput.Text)) return;
 
         // global 20s cooldown verification upon click

@@ -209,7 +209,10 @@ public partial class SettingsWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (_, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        dialog.KeyDown += (_, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
 
         var grid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
         grid.Children.Add(new TextBlock
@@ -259,7 +262,10 @@ public partial class SettingsWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (_, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        dialog.KeyDown += (_, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
 
         var grid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
         grid.Children.Add(new TextBlock
@@ -332,11 +338,22 @@ public partial class SettingsWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (_, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        dialog.KeyDown += (_, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
 
-        var grid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+        var grid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            Margin = new Thickness(20)
+        };
 
-        var contentPanel = new StackPanel { Spacing = 15, VerticalAlignment = VerticalAlignment.Center };
+        var contentPanel = new StackPanel
+        {
+            Spacing = 15,
+            VerticalAlignment = VerticalAlignment.Center
+        };
         contentPanel.Children.Add(new TextBlock
         {
             Text = title,
@@ -347,7 +364,7 @@ public partial class SettingsWindow : Window
         contentPanel.Children.Add(new TextBlock
         {
             Text = message,
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.White
         });
         grid.Children.Add(contentPanel);
@@ -1536,10 +1553,12 @@ public partial class SettingsWindow : Window
 
         // request device code
         var deviceResp = await http.PostAsync("https://github.com/login/device/code",
-            new FormUrlEncodedContent(new[] {
-            new KeyValuePair<string, string>("client_id", ClientId),
-            new KeyValuePair<string, string>("scope", "public_repo write:discussion notifications")
-            }));
+            new FormUrlEncodedContent(new[] 
+            {
+                new KeyValuePair<string, string>("client_id", ClientId),
+                new KeyValuePair<string, string>("scope", "public_repo write:discussion notifications")
+            }
+        ));
 
         var deviceData = JsonDocument.Parse(await deviceResp.Content.ReadAsStringAsync());
         string userCode = deviceData.RootElement.GetProperty("user_code").GetString()!;
@@ -1557,7 +1576,10 @@ public partial class SettingsWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (_, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        dialog.KeyDown += (_, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
 
         var grid = new Grid
         {
@@ -1570,14 +1592,225 @@ public partial class SettingsWindow : Window
             Spacing = 15,
             VerticalAlignment = VerticalAlignment.Center
         };
-        contentPanel.Children.Add(new TextBlock
+
+        var titlePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 10
+        };
+
+        titlePanel.Children.Add(new TextBlock
         {
             Text = "GitHub Authentifizierung",
             FontWeight = FontWeight.Bold,
             Foreground = SolidColorBrush.Parse("#2ea043"),
             FontSize = 18,
-            HorizontalAlignment = HorizontalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center
         });
+
+        var btnInfo = new Button
+        {
+            Content = "?",
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            CornerRadius = new CornerRadius(15),
+            Width = 24,
+            Height = 24,
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        ToolTip.SetTip(btnInfo, "Warum diese Berechtigungen?");
+
+        btnInfo.Click += async (_, _) =>
+        {
+            var infoDialog = new Window
+            {
+                Title = "Transparenz & Datenschutz",
+                Width = 580,
+                Height = 520,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+            infoDialog.KeyDown += (s, ev) =>
+            {
+                if (ev.Key == Key.Escape) infoDialog.Close();
+            };
+
+            var infoGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*, Auto"),
+                Margin = new Thickness(20)
+            };
+
+            var contentStack = new StackPanel
+            {
+                Spacing = 15
+            };
+
+            contentStack.Children.Add(new TextBlock
+            {
+                Text = "Transparenz & Datenschutz",
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                Foreground = SolidColorBrush.Parse("#2ea043")
+            });
+
+            contentStack.Children.Add(new TextBlock
+            {
+                Text = "Um die Community Features nutzen zu können, fordert diese App 3 spezifische GitHub-Berechtigungen an:",
+                Foreground = Brushes.White,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+            });
+
+            Control CreatePermItem(string num, string title, string code, string desc)
+            {
+                var pnl = new StackPanel
+                {
+                    Spacing = 4,
+                    Margin = new Thickness(0, 5, 0, 10)
+                };
+                var titlePanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 10
+                };
+
+                titlePanel.Children.Add(new Border
+                {
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    CornerRadius = new CornerRadius(12),
+                    Width = 24,
+                    Height = 24,
+                    Child = new TextBlock
+                    {
+                        Text = num,
+                        Foreground = Brushes.White,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        FontWeight = FontWeight.Bold,
+                        FontSize = 12
+                    }
+                });
+
+                titlePanel.Children.Add(new TextBlock
+                {
+                    Text = title,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontSize = 15
+                });
+                titlePanel.Children.Add(new TextBlock
+                {
+                    Text = $"({code})",
+                    Foreground = SolidColorBrush.Parse("#888888"),
+                    FontSize = 12,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                pnl.Children.Add(titlePanel);
+
+                var descText = new TextBlock
+                {
+                    Text = desc,
+                    Foreground = SolidColorBrush.Parse("#CCCCCC"),
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    Margin = new Thickness(34, 0, 0, 0),
+                    LineHeight = 18
+                };
+                pnl.Children.Add(descText);
+
+                return pnl;
+            }
+
+            contentStack.Children.Add(CreatePermItem("1", "Lesen von Repositories", "public_repo",
+                "Wird benötigt, um die Level-Diskussionen und Kommentare überhaupt abrufen und anzeigen zu können."));
+
+            contentStack.Children.Add(CreatePermItem("2", "Diskussionen schreiben", "write:discussion",
+                "Wird benötigt, damit du Kommentare und Antworten verfassen sowie Upvotes/Likes vergeben kannst."));
+
+            contentStack.Children.Add(CreatePermItem("3", "Benachrichtigungen", "notifications",
+                "Schreibst du einen Kommentar, abonniert dich GitHub automatisch. Diese Berechtigung nutzen wir ausschließlich, um Diskussionen direkt danach wieder stummzuschalten, damit du nicht mit E-Mails zugespammt wirst."));
+
+            var promiseCard = new Border
+            {
+                Background = SolidColorBrush.Parse("#1A1E1C"),
+                BorderBrush = SolidColorBrush.Parse("#2ea043"),
+                BorderThickness = new Thickness(3, 0, 0, 0),
+                Padding = new Thickness(15),
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+
+            var promiseStack = new StackPanel
+            {
+                Spacing = 10
+            };
+            promiseStack.Children.Add(new TextBlock
+            {
+                Text = "Unser Versprechen",
+                FontWeight = FontWeight.Bold,
+                Foreground = SolidColorBrush.Parse("#2ea043"),
+                FontSize = 15
+            });
+
+            var promiseText = new TextBlock
+            {
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                LineHeight = 20
+            };
+            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf diesem Repository aus:\n") { Foreground = Brushes.LightGray });
+            promiseText.Inlines.Add(new Run("https://github.com/OnlyCook/aec-community\n\n") { Foreground = SolidColorBrush.Parse("#6495ED") });
+            promiseText.Inlines.Add(new Run("Wir werden niemals deine Benachrichtigungen oder privaten Daten lesen.") { FontWeight = FontWeight.Bold, Foreground = Brushes.White });
+
+            promiseStack.Children.Add(promiseText);
+
+            promiseStack.Children.Add(new TextBlock
+            {
+                Text = "Tipp: Wenn du dennoch Bedenken hast, kannst du jederzeit einen separaten GitHub-Account nur für die Community Features erstellen.",
+                FontStyle = FontStyle.Italic,
+                Foreground = Brushes.Gray,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Margin = new Thickness(0, 5, 0, 0)
+            });
+
+            promiseCard.Child = promiseStack;
+            contentStack.Children.Add(promiseCard);
+
+            var scroll = new ScrollViewer
+            {
+                Content = contentStack,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            infoGrid.Children.Add(scroll);
+
+            var btnCloseInfo = new Button
+            {
+                Content = "Verstanden",
+                Background = SolidColorBrush.Parse("#2ea043"),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(4),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Padding = new Thickness(10, 6),
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            Grid.SetRow(btnCloseInfo, 1);
+            btnCloseInfo.Click += (s, ev) => infoDialog.Close();
+
+            infoGrid.Children.Add(btnCloseInfo);
+            infoDialog.Content = infoGrid;
+
+            await infoDialog.ShowDialog(dialog);
+        };
+
+        titlePanel.Children.Add(btnInfo);
+        contentPanel.Children.Add(titlePanel);
 
         contentPanel.Children.Add(new TextBlock
         {
@@ -1601,11 +1834,14 @@ public partial class SettingsWindow : Window
             FontWeight = FontWeight.Bold,
             FontFamily = new FontFamily("Consolas, monospace"),
             TextAlignment = TextAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             IsReadOnly = true,
             Background = SolidColorBrush.Parse("#1A1A1A"),
             Foreground = SolidColorBrush.Parse("#007ACC"),
             BorderBrush = SolidColorBrush.Parse("#333"),
             CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4),
             Margin = new Thickness(0, 10, 0, 10)
         };
 
@@ -1614,7 +1850,7 @@ public partial class SettingsWindow : Window
             Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18),
             Background = SolidColorBrush.Parse("#3C3C3C"),
             Padding = new Thickness(10),
-            CornerRadius = new CornerRadius(4),
+            CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -1683,11 +1919,13 @@ public partial class SettingsWindow : Window
                 await Task.Delay(TimeSpan.FromSeconds(interval + 1));
 
                 var pollResp = await http.PostAsync("https://github.com/login/oauth/access_token",
-                    new FormUrlEncodedContent(new[] {
-                    new KeyValuePair<string, string>("client_id", ClientId),
-                    new KeyValuePair<string, string>("device_code", deviceCode),
-                    new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
-                    }));
+                    new FormUrlEncodedContent(new[]
+                    {
+                        new KeyValuePair<string, string>("client_id", ClientId),
+                        new KeyValuePair<string, string>("device_code", deviceCode),
+                        new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
+                    }
+                ));
 
                 var pollDoc = JsonDocument.Parse(await pollResp.Content.ReadAsStringAsync());
                 if (pollDoc.RootElement.TryGetProperty("access_token", out var tokenProp))
