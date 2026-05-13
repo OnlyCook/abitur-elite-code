@@ -980,7 +980,7 @@ public partial class MainWindow
                 Margin = new Thickness(0, 10, 0, 0)
             };
 
-            RenderMarkdownToPanel(spoilerContent, bodyToRender);
+            MarkdownRenderer.RenderMarkdownToPanel(spoilerContent, bodyToRender, _isSqlMode, true);
 
             spoilerBtn.Click += (s, e) =>
             {
@@ -992,7 +992,7 @@ public partial class MainWindow
         }
         else
         {
-            RenderMarkdownToPanel(bodyContainer, bodyToRender);
+            MarkdownRenderer.RenderMarkdownToPanel(bodyContainer, bodyToRender, _isSqlMode, true);
         }
 
         bool isLong = bodyToRender.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).Length > 5;
@@ -1504,229 +1504,6 @@ public partial class MainWindow
         }
 
         return border;
-    }
-
-    private void RenderMarkdownToPanel(StackPanel panel, string text)
-    {
-        var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-        bool inCodeBlock = false;
-        StringBuilder codeBuilder = new StringBuilder();
-
-        foreach (var line in lines)
-        {
-            if (line.TrimStart().StartsWith("```"))
-            {
-                if (inCodeBlock)
-                {
-                    inCodeBlock = false;
-                    var codeContent = codeBuilder.ToString().TrimEnd('\r', '\n');
-
-                    var codeBlockEditor = new TextEditor
-                    {
-                        Document = new TextDocument(codeContent),
-                        SyntaxHighlighting = _isSqlMode ? SqlCodeEditor.GetDarkSqlHighlighting() : CsharpCodeEditor.GetDarkCsharpHighlighting(),
-                        FontFamily = new FontFamily(MonospaceFontFamily),
-                        FontSize = 13,
-                        IsReadOnly = true,
-                        ShowLineNumbers = false,
-                        Background = Brushes.Transparent,
-                        Foreground = Brushes.White,
-                        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                        VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                        Padding = new Thickness(10, 6, 10, 6),
-                        MinHeight = 0
-                    };
-                    codeBlockEditor.Options.ShowSpaces = false;
-                    codeBlockEditor.Options.ShowTabs = false;
-                    codeBlockEditor.Options.HighlightCurrentLine = false;
-
-                    var border = new Border
-                    {
-                        Background = SolidColorBrush.Parse("#1A1A1A"),
-                        CornerRadius = new CornerRadius(6),
-                        ClipToBounds = true,
-                        Margin = new Thickness(0, 5, 0, 5),
-                        BorderBrush = SolidColorBrush.Parse("#333"),
-                        BorderThickness = new Thickness(1),
-                        Child = codeBlockEditor
-                    };
-                    panel.Children.Add(border);
-                    codeBuilder.Clear();
-                }
-                else
-                {
-                    inCodeBlock = true;
-                }
-                continue;
-            }
-
-            if (inCodeBlock)
-            {
-                codeBuilder.AppendLine(line);
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                panel.Children.Add(new Control { Height = 8 });
-                continue;
-            }
-
-            string trimmedLine = line.TrimStart();
-            int headerLevel = 0;
-            string processedLine = line;
-
-            if (trimmedLine.StartsWith("### "))
-            {
-                headerLevel = 3;
-                processedLine = trimmedLine.Substring(4);
-            }
-            else if (trimmedLine.StartsWith("## "))
-            {
-                headerLevel = 2;
-                processedLine = trimmedLine.Substring(3);
-            }
-            else if (trimmedLine.StartsWith("# "))
-            {
-                headerLevel = 1;
-                processedLine = trimmedLine.Substring(2);
-            }
-
-            var textBlock = new SelectableTextBlock
-            {
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.White,
-                Margin = new Thickness(0, 2)
-            };
-
-            // apply smaller sizing for headers (than github)
-            if (headerLevel == 1)
-            {
-                textBlock.FontSize = 18;
-                textBlock.FontWeight = FontWeight.Bold;
-                textBlock.Margin = new Thickness(0, 10, 0, 5);
-            }
-            else if (headerLevel == 2)
-            {
-                textBlock.FontSize = 16;
-                textBlock.FontWeight = FontWeight.SemiBold;
-                textBlock.Margin = new Thickness(0, 8, 0, 4);
-            }
-            else if (headerLevel == 3)
-            {
-                textBlock.FontSize = 14;
-                textBlock.FontWeight = FontWeight.Medium;
-                textBlock.Margin = new Thickness(0, 6, 0, 2);
-            }
-
-            int currentIndex = 0;
-
-            foreach (Match match in MarkdownInlineRegex.Matches(processedLine))
-            {
-                if (match.Index > currentIndex)
-                    textBlock.Inlines.Add(new Run(processedLine.Substring(currentIndex, match.Index - currentIndex)));
-
-                if (match.Groups["bold"].Success)
-                {
-                    var bold = new Bold();
-                    bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
-                    textBlock.Inlines.Add(bold);
-                }
-                else if (match.Groups["italic"].Success)
-                {
-                    var italic = new Italic();
-                    italic.Inlines.Add(new Run(match.Groups["italictext"].Value));
-                    textBlock.Inlines.Add(italic);
-                }
-                else if (match.Groups["kbd"].Success)
-                {
-                    textBlock.Inlines.Add(new InlineUIContainer(new Border
-                    {
-                        Background = SolidColorBrush.Parse("#3C3C3C"),
-                        BorderBrush = SolidColorBrush.Parse("#555555"),
-                        BorderThickness = new Thickness(1),
-                        CornerRadius = new CornerRadius(3),
-                        Padding = new Thickness(4, 1),
-                        Margin = new Thickness(2, 0),
-                        Child = new TextBlock
-                        {
-                            Text = match.Groups["kbdtext"].Value,
-                            FontSize = 11,
-                            FontFamily = FontFamily.Parse(MonospaceFontFamily),
-                            Foreground = Brushes.White,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }
-                    })
-                    {
-                        BaselineAlignment = BaselineAlignment.Center
-                    });
-                }
-                else if (match.Groups["code"].Success)
-                {
-                    textBlock.Inlines.Add(new InlineUIContainer(new Border
-                    {
-                        Background = SolidColorBrush.Parse("#2D2D30"),
-                        CornerRadius = new CornerRadius(3),
-                        Padding = new Thickness(4, 1),
-                        Margin = new Thickness(2, 0),
-                        Child = new TextBlock
-                        {
-                            Text = match.Groups["codetext"].Value,
-                            FontSize = 12,
-                            FontFamily = FontFamily.Parse(MonospaceFontFamily),
-                            Foreground = SolidColorBrush.Parse("#DCDCAA"),
-                            VerticalAlignment = VerticalAlignment.Center
-                        }
-                    })
-                    {
-                        BaselineAlignment = BaselineAlignment.Center
-                    });
-                }
-
-                currentIndex = match.Index + match.Length;
-            }
-
-            if (currentIndex < processedLine.Length)
-                textBlock.Inlines.Add(new Run(processedLine.Substring(currentIndex)));
-
-            panel.Children.Add(textBlock);
-        }
-
-        // safety check for unclosed blocks
-        if (inCodeBlock && codeBuilder.Length > 0)
-        {
-            var codeContent = codeBuilder.ToString().TrimEnd('\r', '\n');
-            var codeBlockEditor = new TextEditor
-            {
-                Document = new TextDocument(codeContent),
-                SyntaxHighlighting = _isSqlMode ? SqlCodeEditor.GetDarkSqlHighlighting() : CsharpCodeEditor.GetDarkCsharpHighlighting(),
-                FontFamily = new FontFamily(MonospaceFontFamily),
-                FontSize = 13,
-                IsReadOnly = true,
-                ShowLineNumbers = false,
-                Background = Brushes.Transparent,
-                Foreground = Brushes.White,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Padding = new Thickness(10, 6, 10, 6),
-                MinHeight = 0
-            };
-            codeBlockEditor.Options.ShowSpaces = false;
-            codeBlockEditor.Options.ShowTabs = false;
-            codeBlockEditor.Options.HighlightCurrentLine = false;
-
-            var border = new Border
-            {
-                Background = SolidColorBrush.Parse("#1A1A1A"),
-                CornerRadius = new CornerRadius(6),
-                ClipToBounds = true,
-                Margin = new Thickness(0, 5, 0, 5),
-                BorderBrush = SolidColorBrush.Parse("#333"),
-                BorderThickness = new Thickness(1),
-                Child = codeBlockEditor
-            };
-            panel.Children.Add(border);
-        }
     }
 
     private async void BtnSendComment_Click(object sender, RoutedEventArgs e)
@@ -2335,7 +2112,7 @@ public partial class MainWindow
             }
             else
             {
-                RenderMarkdownToPanel(PnlCommentPreviewContent, TxtCommentInput.Text);
+                MarkdownRenderer.RenderMarkdownToPanel(PnlCommentPreviewContent, TxtCommentInput.Text, _isSqlMode, true);
             }
         }
     }

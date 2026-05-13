@@ -182,9 +182,6 @@ public partial class MainWindow : Window
     private bool _isFetchingComments = false;
     private int _currentActiveDiscussionId = -1;
     private DateTime _lastCommentTime = DateTime.MinValue;
-    private static readonly Regex MarkdownInlineRegex = new Regex(
-        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<italic>_(?<italictext>[^\*]+)_)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
-        RegexOptions.Compiled | RegexOptions.Singleline);
     private bool _isForceClosing = false;
 
     public bool SkipSaveOnExit { get; set; } = false;

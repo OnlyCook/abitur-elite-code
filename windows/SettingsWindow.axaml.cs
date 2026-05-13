@@ -1156,8 +1156,8 @@ public partial class SettingsWindow : Window
 
         var separator = new Border
         {
-            Height = 0.75,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Height = 1,
+            Background = SolidColorBrush.Parse("#303030"),
             Margin = new Thickness(0, 5, 0, 5)
         };
 
@@ -1519,6 +1519,13 @@ public partial class SettingsWindow : Window
         actionRow.Children.Add(_btnCheckUpdate);
         actionRow.Children.Add(_btnUpdateApp);
 
+        var separator = new Border
+        {
+            Height = 1,
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+
         // create inner content panel for updates
         var innerContentPanel = new StackPanel
         {
@@ -1536,11 +1543,12 @@ public partial class SettingsWindow : Window
         innerContentPanel.Children.Add(_txtVersionInfo);
         innerContentPanel.Children.Add(_updateProgressBar);
         innerContentPanel.Children.Add(actionRow);
+        innerContentPanel.Children.Add(separator);
 
         _patchNotesPanel = new StackPanel
         {
             Spacing = 10,
-            Margin = new Thickness(0, 20, 0, 0)
+            Margin = new Thickness(0, 0, 0, 0)
         };
         innerContentPanel.Children.Add(_patchNotesPanel);
 
@@ -1681,66 +1689,7 @@ public partial class SettingsWindow : Window
         };
 
         // parse markdown lines
-        var lines = release.Body.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-        foreach (var line in lines)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                bodyPanel.Children.Add(new Control { Height = 8 });
-                continue;
-            }
-
-            if (line.StartsWith("### "))
-            {
-                bodyPanel.Children.Add(new TextBlock
-                {
-                    Text = line.Substring(4),
-                    FontSize = 13,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = SolidColorBrush.Parse("#B0B0B0"),
-                    Margin = new Thickness(0, 10, 0, 2)
-                });
-            }
-            else if (line.StartsWith("## "))
-            {
-                bodyPanel.Children.Add(new TextBlock
-                {
-                    Text = line.Substring(3),
-                    FontSize = 14,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 8, 0, 4)
-                });
-            }
-            else
-            {
-                var textBlock = new TextBlock
-                {
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                    Foreground = Brushes.LightGray
-                };
-
-                string contentToParse = line;
-
-                if (line.StartsWith("- "))
-                {
-                    textBlock.Margin = new Thickness(15, 0, 0, 0);
-                    textBlock.Inlines?.Add(new Run("• ") { FontWeight = FontWeight.Bold });
-                    contentToParse = line.Substring(2);
-                }
-
-                if (textBlock.Inlines != null)
-                {
-                    var inlines = ParseMarkdownInlines(contentToParse);
-                    foreach (var inline in inlines)
-                    {
-                        textBlock.Inlines.Add(inline);
-                    }
-                }
-
-                bodyPanel.Children.Add(textBlock);
-            }
-        }
+        MarkdownRenderer.RenderMarkdownToPanel(bodyPanel, release.Body, isSqlMode: false, useSelectableText: false);
 
         var separator = new Border
         {
@@ -1752,90 +1701,6 @@ public partial class SettingsWindow : Window
         _patchNotesPanel.Children.Add(header);
         _patchNotesPanel.Children.Add(bodyPanel);
         _patchNotesPanel.Children.Add(separator);
-    }
-
-    // regex for parsing markdown inlines
-    private static readonly Regex MarkdownInlineRegex = new Regex(
-        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
-        RegexOptions.Compiled | RegexOptions.Singleline);
-
-    private IEnumerable<Inline> ParseMarkdownInlines(string text)
-    {
-        var inlines = new List<Inline>();
-        int currentIndex = 0;
-
-        foreach (Match match in MarkdownInlineRegex.Matches(text))
-        {
-            // add text before the match
-            if (match.Index > currentIndex)
-            {
-                inlines.Add(new Run(text.Substring(currentIndex, match.Index - currentIndex)));
-            }
-
-            if (match.Groups["bold"].Success)
-            {
-                var bold = new Bold();
-                bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
-                inlines.Add(bold);
-            }
-            else if (match.Groups["kbd"].Success)
-            {
-                var border = new Border
-                {
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
-                    BorderBrush = SolidColorBrush.Parse("#555555"),
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(4, 1),
-                    Margin = new Thickness(2, 0),
-                    Child = new TextBlock
-                    {
-                        Text = match.Groups["kbdtext"].Value,
-                        FontSize = 11,
-                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
-                        Foreground = Brushes.White,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
-                };
-                // moves badge downward
-                inlines.Add(new InlineUIContainer(border)
-                {
-                    BaselineAlignment = BaselineAlignment.Center
-                });
-            }
-            else if (match.Groups["code"].Success)
-            {
-                var border = new Border
-                {
-                    Background = SolidColorBrush.Parse("#2D2D30"),
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(4, 1),
-                    Margin = new Thickness(2, 0),
-                    Child = new TextBlock
-                    {
-                        Text = match.Groups["codetext"].Value,
-                        FontSize = 12,
-                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
-                        Foreground = SolidColorBrush.Parse("#DCDCAA"),
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
-                };
-                // moves badge downward
-                inlines.Add(new InlineUIContainer(border)
-                {
-                    BaselineAlignment = BaselineAlignment.Center
-                });
-            }
-
-            currentIndex = match.Index + match.Length;
-        }
-
-        if (currentIndex < text.Length)
-        {
-            inlines.Add(new Run(text.Substring(currentIndex)));
-        }
-
-        return inlines;
     }
 
     private void BuildMiscPanel()
@@ -2340,14 +2205,14 @@ public partial class SettingsWindow : Window
                 return pnl;
             }
 
-            contentStack.Children.Add(CreatePermItem("1", "Lesen von Repositories", "public_repo",
+            contentStack.Children.Add(CreatePermItem("1", "Benachrichtigungen", "notifications",
+                "Schreibst du einen Kommentar, abonniert dich GitHub automatisch. Diese Berechtigung nutzen wir ausschließlich, um Diskussionen direkt danach wieder stummzuschalten, damit du nicht mit E-Mails zugespammt wirst."));
+
+            contentStack.Children.Add(CreatePermItem("2", "Lesen von Repositories", "public_repo",
                 "Wird benötigt, um die Level-Diskussionen und Kommentare überhaupt abrufen und anzeigen zu können."));
 
-            contentStack.Children.Add(CreatePermItem("2", "Diskussionen schreiben", "write:discussion",
+            contentStack.Children.Add(CreatePermItem("3", "Diskussionen schreiben", "write:discussion",
                 "Wird benötigt, damit du Kommentare und Antworten verfassen sowie Upvotes/Likes vergeben kannst."));
-
-            contentStack.Children.Add(CreatePermItem("3", "Benachrichtigungen", "notifications",
-                "Schreibst du einen Kommentar, abonniert dich GitHub automatisch. Diese Berechtigung nutzen wir ausschließlich, um Diskussionen direkt danach wieder stummzuschalten, damit du nicht mit E-Mails zugespammt wirst."));
 
             var promiseCard = new Border
             {
@@ -2375,8 +2240,11 @@ public partial class SettingsWindow : Window
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 LineHeight = 20
             };
-            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf diesem Repository aus:\n") { Foreground = Brushes.LightGray });
-            promiseText.Inlines.Add(new Run("https://github.com/OnlyCook/aec-community\n\n") { Foreground = SolidColorBrush.Parse("#6495ED") });
+            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf Diskussionen von diesem Repository aus:\n") { Foreground = Brushes.LightGray });
+            promiseText.Inlines.Add(new Run("https://github.com/OnlyCook/aec-community\n\n")
+            {
+                Foreground = SolidColorBrush.Parse("#6495ED")
+            });
             promiseText.Inlines.Add(new Run("Wir werden niemals deine Benachrichtigungen oder privaten Daten lesen.") { FontWeight = FontWeight.Bold, Foreground = Brushes.White });
 
             promiseStack.Children.Add(promiseText);
@@ -2452,7 +2320,7 @@ public partial class SettingsWindow : Window
             Foreground = SolidColorBrush.Parse("#007ACC"),
             BorderBrush = SolidColorBrush.Parse("#333"),
             CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(6,4),
+            Padding = new Thickness(8,4),
             Margin = new Thickness(0, 10, 0, 10)
         };
 
