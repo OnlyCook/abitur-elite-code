@@ -13,6 +13,8 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private bool _isPointerDown = false;
+
     private void ConfigureEditor()
     {
         CodeEditor.Options.ConvertTabsToSpaces = true;
@@ -23,6 +25,7 @@ public partial class MainWindow
         CodeEditor.Options.EnableEmailHyperlinks = false;
         CodeEditor.Options.HighlightCurrentLine = true;
         CodeEditor.WordWrap = AppSettings.IsWordWrapEnabled;
+        CodeEditor.TextArea.SelectionBrush = Brushes.Transparent;
 
         CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         CodeEditor.FontSize = AppSettings.EditorFontSize;
@@ -68,6 +71,19 @@ public partial class MainWindow
             UpdateDiagnostics();
         };
 
+        // track pointer manually to stop paradoxical behavior (what am i even saying)
+        CodeEditor.AddHandler(PointerPressedEvent, (s, e) => _isPointerDown = true, RoutingStrategies.Tunnel);
+        CodeEditor.AddHandler(PointerReleasedEvent, (s, e) =>
+        {
+            _isPointerDown = false;
+            // trigger autocomplete now that the click is fully complete
+            if (AppSettings.IsAutocompleteEnabled && CodeEditor.SelectionLength == 0)
+            {
+                _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
+                CodeEditor.TextArea.TextView.Redraw();
+            }
+        }, RoutingStrategies.Tunnel);
+
         CodeEditor.TextArea.Caret.PositionChanged += (s, e) =>
         {
             // clamp caret in vim normal mode
@@ -82,8 +98,19 @@ public partial class MainWindow
 
             if (AppSettings.IsAutocompleteEnabled)
             {
-                _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
-                CodeEditor.TextArea.TextView.Redraw();
+                if (CodeEditor.SelectionLength > 0)
+                {
+                    if (_csharpAutocompleteService.HasSuggestion)
+                    {
+                        _csharpAutocompleteService.ClearSuggestion();
+                        CodeEditor.TextArea.TextView.Redraw();
+                    }
+                }
+                else if (!_isPointerDown) // prevent layout paradox during clicks
+                {
+                    _csharpAutocompleteService.UpdateSuggestion(CodeEditor.Text, CodeEditor.CaretOffset);
+                    CodeEditor.TextArea.TextView.Redraw();
+                }
             }
         };
 

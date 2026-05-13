@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Xml;
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
@@ -16,6 +11,13 @@ using AvaloniaEdit.Rendering;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace AbiturEliteCode;
 
@@ -445,13 +447,17 @@ public class IndentationGuideRenderer : IBackgroundRenderer
             string text = _editor.Document.GetText(line.FirstDocumentLine);
             if (string.IsNullOrWhiteSpace(text)) indentLevel = GetContextIndent(_editor.Document, lineNum);
 
+            // get the height of the first wrapped text line so we don't draw over the wrapped text
+            var firstTextLine = line.TextLines.FirstOrDefault();
+            double drawHeight = firstTextLine != null ? firstTextLine.Height : line.Height;
+
             for (int i = 0; i < indentLevel; i++)
             {
                 double x = i * indentWidth + spaceWidth / 2 - textView.ScrollOffset.X;
                 if (x < 0) continue;
 
                 var top = new Point(x, line.VisualTop - textView.ScrollOffset.Y);
-                var bottom = new Point(x, line.VisualTop + line.Height - textView.ScrollOffset.Y);
+                var bottom = new Point(x, line.VisualTop + drawHeight - textView.ScrollOffset.Y);
 
                 bool isActive = i == activeGuideIndex && lineNum > scopeStart && lineNum < scopeEnd;
 
@@ -1773,12 +1779,14 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
 {
     private readonly TextEditor _editor;
     private readonly SolidColorBrush _highlightBrush;
+    private readonly SolidColorBrush _mainSelectionBrush;
     private string _currentSelection = "";
 
     public SelectionHighlightRenderer(TextEditor editor)
     {
         _editor = editor;
         _highlightBrush = new SolidColorBrush(Color.Parse("#35FFFFFF"));
+        _mainSelectionBrush = new SolidColorBrush(Color.Parse("#264F78"));
 
         _editor.TextArea.SelectionChanged += (s, e) =>
         {
@@ -1789,8 +1797,8 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
             if (_currentSelection != newSelection)
             {
                 _currentSelection = newSelection;
-                _editor.TextArea.TextView.InvalidateLayer(Layer);
             }
+            _editor.TextArea.TextView.InvalidateLayer(Layer);
         };
     }
 
@@ -1798,18 +1806,235 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (string.IsNullOrEmpty(_currentSelection) || _editor.Document == null) return;
+        if (_editor.Document == null) return;
 
-        string docText = _editor.Document.Text;
-        int index = 0;
+        // base width calculation for monospace fonts
+        double spaceWidth = textView.WideSpaceWidth;
+        if (double.IsNaN(spaceWidth) || spaceWidth == 0) spaceWidth = _editor.FontSize / 2.0;
 
-        while ((index = docText.IndexOf(_currentSelection, index, StringComparison.Ordinal)) != -1)
+        // draw the actual user selection and form the blob
+        if (!_editor.TextArea.Selection.IsEmpty)
         {
-            var segment = new TextSegment { StartOffset = index, Length = _currentSelection.Length };
-            foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
-                drawingContext.DrawRectangle(_highlightBrush, null, rect);
-            index += _currentSelection.Length;
+            var mainRects = new List<Rect>();
+            foreach (var segment in _editor.TextArea.Selection.Segments)
+            {
+                ProcessSegment(textView, segment, spaceWidth, mainRects);
+            }
+
+            // draw base rects with rounded corners
+            foreach (var rect in mainRects)
+            {
+                drawingContext.DrawRectangle(_mainSelectionBrush, null, rect, 4, 4);
+            }
+
+            // draw sharp bridges to eliminate inner rounded corners and form a single blob
+            for (int i = 0; i < mainRects.Count; i++)
+            {
+                for (int j = i + 1; j < mainRects.Count; j++)
+                {
+                    var r1 = mainRects[i];
+                    var r2 = mainRects[j];
+
+                    // vertical bridging (stacked lines)
+                    double intersectX = Math.Max(r1.X, r2.X);
+                    double intersectRight = Math.Min(r1.Right, r2.Right);
+                    double width = intersectRight - intersectX;
+
+                    if (width > 0)
+                    {
+                        if (Math.Abs(r1.Bottom - r2.Top) <= 1.5)
+                            drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(intersectX, r1.Bottom - 4, width, 8));
+                        else if (Math.Abs(r2.Bottom - r1.Top) <= 1.5)
+                            drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(intersectX, r2.Bottom - 4, width, 8));
+                    }
+
+                    // horizontal bridging (same line wrapped elements)
+                    double intersectY = Math.Max(r1.Top, r2.Top);
+                    double intersectBottom = Math.Min(r1.Bottom, r2.Bottom);
+                    double height = intersectBottom - intersectY;
+
+                    if (height > 0)
+                    {
+                        if (Math.Abs(r1.Right - r2.X) <= 1.5)
+                            drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(r1.Right - 4, intersectY, 8, height));
+                        else if (Math.Abs(r2.Right - r1.X) <= 1.5)
+                            drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(r2.Right - 4, intersectY, 8, height));
+                    }
+                }
+            }
         }
+
+        // draw highlighted matching background words (kept separate as requested)
+        if (!string.IsNullOrEmpty(_currentSelection))
+        {
+            string docText = _editor.Document.Text;
+            int index = 0;
+
+            while ((index = docText.IndexOf(_currentSelection, index, StringComparison.Ordinal)) != -1)
+            {
+                int currentIndex = index;
+                // skip drawing highlight over the main selection box to prevent color stacking
+                bool isMainSelection = !_editor.TextArea.Selection.IsEmpty &&
+                    _editor.TextArea.Selection.Segments.Any(s => s.StartOffset == currentIndex && s.Length == _currentSelection.Length);
+
+                if (!isMainSelection)
+                {
+                    var matchRects = new List<Rect>();
+                    var segment = new TextSegment { StartOffset = index, Length = _currentSelection.Length };
+
+                    ProcessSegment(textView, segment, spaceWidth, matchRects);
+
+                    foreach (var rect in matchRects)
+                    {
+                        drawingContext.DrawRectangle(_highlightBrush, null, rect, 4, 4);
+                    }
+                }
+                index += _currentSelection.Length;
+            }
+        }
+    }
+
+    private void ProcessSegment(TextView textView, ISegment segment, double spaceWidth, List<Rect> targetList)
+    {
+        // safely split segments by word wrapped lines and clamp them
+        foreach (var line in textView.VisualLines)
+        {
+            int segmentStart = Math.Max(segment.Offset, line.FirstDocumentLine.Offset);
+            int lineEndWithNewline = line.LastDocumentLine.Offset + line.LastDocumentLine.TotalLength;
+            int segmentEnd = Math.Min(segment.EndOffset, lineEndWithNewline);
+
+            if (segmentStart < segmentEnd)
+            {
+                if (line.TextLines.Count <= 1)
+                {
+                    // no word wrap on this line
+                    var subSegment = new TextSegment
+                    {
+                        StartOffset = segmentStart,
+                        Length = segmentEnd - segmentStart
+                    };
+                    var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, subSegment, false);
+                    double expectedWidth = CalculateExpectedWidth(subSegment, line, spaceWidth);
+
+                    foreach (var rect in rects)
+                    {
+                        var drawRect = rect;
+                        if (drawRect.Width > expectedWidth + (spaceWidth * 0.5))
+                        {
+                            drawRect = new Rect(drawRect.X, drawRect.Y, expectedWidth, drawRect.Height);
+                        }
+                        drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);
+                        targetList.Add(drawRect);
+                    }
+                }
+                else
+                {
+                    // word wrapped line: intersect using visual columns to prevent offset drift and mirroring
+                    int startVC = line.GetVisualColumn(segmentStart - line.FirstDocumentLine.Offset);
+                    int endVC = line.GetVisualColumn(segmentEnd - line.FirstDocumentLine.Offset);
+
+                    int currentVC = 0;
+                    for (int tli = 0; tli < line.TextLines.Count; tli++)
+                    {
+                        var textLine = line.TextLines[tli];
+                        bool isLastTextLine = tli == line.TextLines.Count - 1;
+
+                        int lineStartVC = currentVC;
+                        int lineEndVC = lineStartVC + textLine.Length;
+
+                        int overlapStartVC = Math.Max(startVC, lineStartVC);
+                        int overlapEndVC = Math.Min(endVC, lineEndVC);
+
+                        if (overlapStartVC < overlapEndVC)
+                        {
+                            // safely map the visual columns back to document offsets
+                            int relStart = line.GetRelativeOffset(overlapStartVC);
+                            int relEnd = line.GetRelativeOffset(overlapEndVC);
+
+                            int docStart = line.FirstDocumentLine.Offset + relStart;
+                            int docEnd = line.FirstDocumentLine.Offset + relEnd;
+
+                            var subSegment = new TextSegment
+                            {
+                                StartOffset = docStart,
+                                Length = docEnd - docStart
+                            };
+
+                            var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, subSegment, false);
+                            double expectedWidth = CalculateExpectedWidth(subSegment, line, spaceWidth);
+
+                            double maxRight = double.MaxValue;
+                            bool isFirstRect = true;
+
+                            foreach (var rect in rects)
+                            {
+                                var drawRect = rect;
+
+                                if (!isLastTextLine)
+                                {
+                                    // anchor the right boundary once at the first rects x plus the exact content width; any rect bleeding past the wrap point gets cropped or skipped
+                                    if (isFirstRect)
+                                    {
+                                        maxRight = drawRect.X + expectedWidth;
+                                        isFirstRect = false;
+                                    }
+                                    if (drawRect.X >= maxRight) continue;
+                                    if (drawRect.Right > maxRight)
+                                        drawRect = new Rect(drawRect.X, drawRect.Y, maxRight - drawRect.X, drawRect.Height);
+                                }
+                                else
+                                {
+                                    // strict clamp on the right side prevents stretching into oblivion
+                                    if (drawRect.Width > expectedWidth + (spaceWidth * 0.5))
+                                        drawRect = new Rect(drawRect.X, drawRect.Y, expectedWidth, drawRect.Height);
+                                }
+
+                                drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);
+                                targetList.Add(drawRect);
+                            }
+                        }
+                        currentVC += textLine.Length; // increment correctly by visual column count
+                    }
+                }
+            }
+        }
+    }
+
+    private double CalculateExpectedWidth(TextSegment subSegment, VisualLine line, double spaceWidth)
+    {
+        int tabSize = _editor.Options.IndentationSize;
+        int currentVisualColumn = 0;
+
+        // calculate starting visual column to align tabs correctly relative to the un-wrapped document line
+        string lineTextBefore = _editor.Document.GetText(line.FirstDocumentLine.Offset, subSegment.StartOffset - line.FirstDocumentLine.Offset);
+        foreach (char c in lineTextBefore)
+        {
+            if (c == '\t')
+                currentVisualColumn = ((currentVisualColumn / tabSize) + 1) * tabSize;
+            else
+                currentVisualColumn++;
+        }
+
+        // calculate exact expected width accounting for tab stops
+        string segmentText = _editor.Document.GetText(subSegment.StartOffset, subSegment.Length);
+        double expectedWidth = 0;
+        foreach (char c in segmentText)
+        {
+            if (c == '\t')
+            {
+                int nextTabStop = ((currentVisualColumn / tabSize) + 1) * tabSize;
+                int spaces = nextTabStop - currentVisualColumn;
+                expectedWidth += spaces * spaceWidth;
+                currentVisualColumn = nextTabStop;
+            }
+            else
+            {
+                expectedWidth += spaceWidth;
+                currentVisualColumn++;
+            }
+        }
+
+        return expectedWidth;
     }
 }
 
@@ -1835,7 +2060,11 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
         int offset = _editor.CaretOffset;
         if (offset > _editor.Document.TextLength) return;
 
-        var segment = new TextSegment { StartOffset = offset, Length = 1 };
+        var segment = new TextSegment
+        {
+            StartOffset = offset,
+            Length = 1
+        };
         // draw block caret (with space width cuz mono space)
         char c = offset < _editor.Document.TextLength ? _editor.Document.GetCharAt(offset) : '\n';
 
@@ -1843,11 +2072,33 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
         if (rect != default)
         {
             var drawRect = rect;
-            if (c == '\n' || c == '\r' || rect.Width == 0)
+
+            double charWidth = textView.WideSpaceWidth;
+            if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2.0;
+
+            // handle tabs for vim block caret properly
+            double targetWidth = charWidth;
+            if (c == '\t')
             {
-                double charWidth = textView.WideSpaceWidth;
-                if (double.IsNaN(charWidth) || charWidth == 0) charWidth = _editor.FontSize / 2.0;
-                drawRect = new Rect(rect.X, rect.Y, charWidth, rect.Height);
+                int tabSize = _editor.Options.IndentationSize;
+                int currentVisualColumn = 0;
+                var line = _editor.Document.GetLineByOffset(offset);
+                string lineTextBefore = _editor.Document.GetText(line.Offset, offset - line.Offset);
+                foreach (char ch in lineTextBefore)
+                {
+                    if (ch == '\t')
+                        currentVisualColumn = ((currentVisualColumn / tabSize) + 1) * tabSize;
+                    else
+                        currentVisualColumn++;
+                }
+                int nextTabStop = ((currentVisualColumn / tabSize) + 1) * tabSize;
+                targetWidth = (nextTabStop - currentVisualColumn) * charWidth;
+            }
+
+            // prevent infinite stretch on wrap boundaries
+            if (c == '\n' || c == '\r' || rect.Width == 0 || rect.Width > targetWidth * 1.5)
+            {
+                drawRect = new Rect(rect.X, rect.Y, targetWidth, rect.Height);
             }
 
             drawingContext.DrawRectangle(_brush, null, drawRect);

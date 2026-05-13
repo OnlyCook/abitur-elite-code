@@ -27,6 +27,7 @@ public partial class MainWindow
         SqlQueryEditor.Options.EnableEmailHyperlinks = false;
         SqlQueryEditor.Options.HighlightCurrentLine = true;
         SqlQueryEditor.WordWrap = AppSettings.IsSqlWordWrapEnabled;
+        SqlQueryEditor.TextArea.SelectionBrush = Brushes.Transparent;
 
         SqlQueryEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
@@ -84,6 +85,17 @@ public partial class MainWindow
             }
         };
 
+        SqlQueryEditor.AddHandler(PointerPressedEvent, (s, e) => _isPointerDown = true, RoutingStrategies.Tunnel);
+        SqlQueryEditor.AddHandler(PointerReleasedEvent, (s, e) =>
+        {
+            _isPointerDown = false;
+            if (AppSettings.IsSqlAutocompleteEnabled && SqlQueryEditor.SelectionLength == 0)
+            {
+                _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
+                SqlQueryEditor.TextArea.TextView.Redraw();
+            }
+        }, RoutingStrategies.Tunnel);
+
         SqlQueryEditor.TextArea.Caret.PositionChanged += (s, e) =>
         {
             // clamp caret in vim normal mode
@@ -98,8 +110,19 @@ public partial class MainWindow
 
             if (AppSettings.IsSqlAutocompleteEnabled)
             {
-                _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
-                SqlQueryEditor.TextArea.TextView.Redraw();
+                if (SqlQueryEditor.SelectionLength > 0)
+                {
+                    if (_sqlAutocompleteService.HasSuggestion)
+                    {
+                        _sqlAutocompleteService.ClearSuggestion();
+                        SqlQueryEditor.TextArea.TextView.Redraw();
+                    }
+                }
+                else if (!_isPointerDown) // prevent layout paradox during clicks
+                {
+                    _sqlAutocompleteService.UpdateSuggestion(SqlQueryEditor.Text, SqlQueryEditor.CaretOffset);
+                    SqlQueryEditor.TextArea.TextView.Redraw();
+                }
             }
         };
 
