@@ -9,7 +9,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -395,7 +397,7 @@ public partial class SettingsWindow : Window
         await dialog.ShowDialog(this);
     }
 
-    private async Task<bool> ShowConfirmDialog(string title, string message)
+    private async Task<bool> ShowConfirmDialog(string title, string message, int height)
     {
         bool confirmed = false;
 
@@ -403,7 +405,7 @@ public partial class SettingsWindow : Window
         {
             Title = title,
             Width = 380,
-            Height = 175,
+            Height = height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
             Background = SolidColorBrush.Parse("#252526"),
@@ -1021,14 +1023,33 @@ public partial class SettingsWindow : Window
             Margin = new Thickness(0, 0, 0, 15)
         });
 
-        var btnGenerate = new Button
+        var btnGenerateOffline = new Button
         {
-            Content = "Save-Code generieren",
+            Content = "Code generieren",
             Background = SolidColorBrush.Parse("#3C3C3C"),
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(15, 8)
         };
+        ToolTip.SetTip(btnGenerateOffline, "Generiert lokal einen langen Code ohne Ablaufdatum oder benötigten Internetanschluss");
+
+        var btnGenerateOnline = new Button
+        {
+            Content = "Kurz-Code generieren",
+            Background = SolidColorBrush.Parse("#32A852"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(15, 8)
+        };
+        ToolTip.SetTip(btnGenerateOnline, "Generiert einen 8-stelligen Code online durch 'Pastefy' der nach 14 Tagen abläuft");
+
+        var btnGeneratePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10
+        };
+        btnGeneratePanel.Children.Add(btnGenerateOffline);
+        btnGeneratePanel.Children.Add(btnGenerateOnline);
 
         var exportCodePanel = new StackPanel
         {
@@ -1063,10 +1084,49 @@ public partial class SettingsWindow : Window
         exportCodePanel.Children.Add(txtExport);
         exportCodePanel.Children.Add(btnCopyExport);
 
-        btnGenerate.Click += (_, _) =>
+        btnGenerateOffline.Click += (_, _) =>
         {
-            txtExport.Text = SaveSystem.ExportSaveString();
+            string rawCode = SaveSystem.ExportSaveString();
+            string formattedCode = $"AEC-SAVE-{DateTime.Now:dd.MM.yyyy}-{rawCode}";
+
+            txtExport.Text = formattedCode;
+            txtExport.Foreground = SolidColorBrush.Parse("#007ACC");
+            txtExport.FontSize = 14;
+            txtExport.FontWeight = FontWeight.Normal;
+            txtExport.Width = 300;
+            txtExport.TextAlignment = TextAlignment.Left;
+
             exportCodePanel.IsVisible = true;
+        };
+
+        btnGenerateOnline.Click += async (_, _) =>
+        {
+            btnGenerateOnline.Content = "Wird generiert...";
+            btnGenerateOnline.IsEnabled = false;
+
+            string rawCode = SaveSystem.ExportSaveString();
+            string formattedCode = $"AEC-SAVE-{DateTime.Now:dd.MM.yyyy}-{rawCode}";
+
+            string? shortId = await UploadToPastefy(formattedCode);
+
+            if (shortId != null)
+            {
+                txtExport.Text = shortId;
+                txtExport.Foreground = SolidColorBrush.Parse("#32A852"); // green for short code
+                txtExport.FontSize = 17;
+                txtExport.FontWeight = FontWeight.Bold;
+                txtExport.Width = 300;
+                txtExport.TextAlignment = TextAlignment.Center;
+
+                exportCodePanel.IsVisible = true;
+            }
+            else
+            {
+                await ShowWarningDialog("Netzwerkfehler", "Es konnte keine Verbindung zu Pastefy hergestellt werden. Bitte überprüfe deine Internetverbindung oder nutze den Offline-Code.", 380, 180);
+            }
+
+            btnGenerateOnline.Content = "Kurz-Code generieren";
+            btnGenerateOnline.IsEnabled = true;
         };
 
         btnCopyExport.Click += async (_, _) =>
@@ -1099,7 +1159,7 @@ public partial class SettingsWindow : Window
 
         var txtImport = new TextBox
         {
-            Watermark = "Save-Code hier einfügen...",
+            Watermark = "Code hier einfügen...",
             Width = 300,
             FontFamily = new FontFamily("Consolas, monospace"),
             Background = Brushes.Transparent,
@@ -1133,16 +1193,67 @@ public partial class SettingsWindow : Window
 
         btnImport.Click += async (_, _) =>
         {
-            string code = txtImport.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(code)) return;
+            string input = txtImport.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(input)) return;
 
-            if (SaveSystem.HasActiveSave())
+            btnImport.IsEnabled = false;
+
+            string actualCode = input;
+            string dateStr = "Unbekannt";
+            bool isOnline = false;
+
+            // short Code parsing via pastefy
+            if (!input.StartsWith("AEC-SAVE-") && input.Length < 50)
             {
-                bool confirm = await ShowConfirmDialog("Spielstand überschreiben?", "Möchtest du deinen aktuellen Spielstand wirklich überschreiben? Ein lokales Backup wird zur Sicherheit angelegt.");
-                if (!confirm) return;
+                string? fetched = await FetchFromPastefy(input);
+                if (!string.IsNullOrEmpty(fetched) && fetched.StartsWith("AEC-SAVE-"))
+                {
+                    isOnline = true;
+                    var fetchedParts = fetched.Split(new[] { '-' }, 4);
+                    if (fetchedParts.Length == 4)
+                    {
+                        dateStr = fetchedParts[2];
+                        actualCode = fetchedParts[3];
+                    }
+                }
+                else
+                {
+                    await ShowWarningDialog("Fehler", "Der eingegebene Kurz-Code ist ungültig, abgelaufen oder es besteht keine Internetverbindung.", 380, 180);
+                    btnImport.IsEnabled = true;
+                    return;
+                }
+            }
+            // standard new format parsing
+            else if (input.StartsWith("AEC-SAVE-"))
+            {
+                var parts = input.Split(new[] { '-' }, 4);
+                if (parts.Length == 4)
+                {
+                    dateStr = parts[2];
+                    actualCode = parts[3];
+                }
             }
 
-            bool success = SaveSystem.ImportSaveString(code);
+            // provide context about the loaded code inside confirmation prompt
+            string confirmMsg = isOnline
+                ? $"Möchtest du das Online-Backup vom {dateStr} wirklich laden?"
+                : $"Möchtest du das lokale Backup vom {dateStr} wirklich laden?";
+
+            if (dateStr == "Unbekannt")
+                confirmMsg = "Möchtest du dieses ältere oder unformatierte Backup laden?";
+
+            if (SaveSystem.HasActiveSave())
+                confirmMsg += "\n\nDein aktueller Spielstand wird überschrieben! Ein lokales Notfall-Backup wird zur Sicherheit angelegt.";
+
+            bool confirm = await ShowConfirmDialog("Spielstand überschreiben?", confirmMsg, 200);
+
+            if (!confirm)
+            {
+                btnImport.IsEnabled = true;
+                return;
+            }
+
+            bool success = SaveSystem.ImportSaveString(actualCode);
             if (success)
             {
                 btnRevert.IsVisible = SaveSystem.HasBackup();
@@ -1155,11 +1266,13 @@ public partial class SettingsWindow : Window
             {
                 await ShowWarningDialog("Fehler", "Der eingegebene Save-Code ist ungültig oder beschädigt.", 350, 150);
             }
+
+            btnImport.IsEnabled = true;
         };
 
         btnRevert.Click += async (_, _) =>
         {
-            bool confirm = await ShowConfirmDialog("Rückgängig machen?", "Möchtest du den Zustand vor dem letzten Import wiederherstellen?");
+            bool confirm = await ShowConfirmDialog("Rückgängig machen?", "Möchtest du den Zustand vor dem letzten Import wiederherstellen?", 140);
             if (confirm)
             {
                 SaveSystem.RevertSave();
@@ -1169,7 +1282,7 @@ public partial class SettingsWindow : Window
             }
         };
 
-        innerContentPanel.Children.Add(btnGenerate);
+        innerContentPanel.Children.Add(btnGeneratePanel);
         innerContentPanel.Children.Add(exportCodePanel);
         innerContentPanel.Children.Add(separator);
         innerContentPanel.Children.Add(importPanel);
@@ -1181,6 +1294,62 @@ public partial class SettingsWindow : Window
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
+    }
+
+    private async Task<string?> UploadToPastefy(string content)
+    {
+        try
+        {
+            using var http = new HttpClient();
+            var payload = new
+            {
+                title = "AbiturEliteCode Backup",
+                content = content,
+                visibility = "UNLISTED",
+                expire_at = DateTime.Now.AddDays(14).ToString("yyyy-MM-dd HH:mm:ss") // expires in 14 days
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var body = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await http.PostAsync("https://pastefy.app/api/v2/paste", body);
+            if (response.IsSuccessStatusCode)
+            {
+                var resJson = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(resJson);
+
+                if (doc.RootElement.TryGetProperty("paste", out var pasteNode) &&
+                    pasteNode.TryGetProperty("id", out var idNode))
+                {
+                    return idNode.GetString();
+                }
+            }
+        }
+        catch { }
+
+        return null;
+    }
+
+    private async Task<string?> FetchFromPastefy(string id)
+    {
+        try
+        {
+            using var http = new HttpClient();
+            var response = await http.GetAsync($"https://pastefy.app/api/v2/paste/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var resJson = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(resJson);
+
+                if (doc.RootElement.TryGetProperty("content", out var contentNode))
+                {
+                    return contentNode.GetString();
+                }
+            }
+        }
+        catch { }
+
+        return null;
     }
 
     private void RestartApplication()
