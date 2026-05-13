@@ -187,6 +187,8 @@ public partial class MainWindow : Window
         RegexOptions.Compiled | RegexOptions.Singleline);
     private bool _isForceClosing = false;
 
+    public bool SkipSaveOnExit { get; set; } = false;
+
     private void LogAddSplash(string str, int val)
     {
         _splash?.AddLoadingProgress(val);
@@ -412,7 +414,10 @@ public partial class MainWindow : Window
             }
         };
 
-        _layoutAutoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _layoutAutoSaveTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
         _layoutAutoSaveTimer.Tick += (s, e) =>
         {
             _layoutAutoSaveTimer.Stop();
@@ -767,14 +772,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        // save current progress before closing the app
-        if (_isDesignerMode)
+        // skip saving if we are restarting to apply an imported save
+        if (!SkipSaveOnExit)
         {
-            SaveDesignerDraft();
-        }
-        else
-        {
-            SaveCurrentProgress();
+            // save current progress before closing the app
+            if (_isDesignerMode)
+            {
+                SaveDesignerDraft();
+            }
+            else
+            {
+                SaveCurrentProgress();
+            }
         }
 
         base.OnClosing(e);

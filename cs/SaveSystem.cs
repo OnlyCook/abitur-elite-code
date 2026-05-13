@@ -193,6 +193,119 @@ public static class SaveSystem
         }
     }
 
+    public static string ExportSaveString()
+    {
+        var dict = new Dictionary<string, string>();
+        string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+
+        // use short keys to optimize compression length
+        string sPath = Path.Combine(dir, "savegame.elitedata");
+        if (File.Exists(sPath)) dict["s"] = File.ReadAllText(sPath);
+
+        string cPath = Path.Combine(dir, "customsave.elitedata");
+        if (File.Exists(cPath)) dict["c"] = File.ReadAllText(cPath);
+
+        string ccPath = Path.Combine(dir, "communitycache.elitedata");
+        if (File.Exists(ccPath)) dict["cc"] = File.ReadAllText(ccPath);
+
+        string json = System.Text.Json.JsonSerializer.Serialize(dict);
+        byte[] bytes = Encoding.UTF8.GetBytes(json);
+
+        using var ms = new MemoryStream();
+        using (var bs = new System.IO.Compression.BrotliStream(ms, System.IO.Compression.CompressionLevel.Optimal))
+        {
+            bs.Write(bytes, 0, bytes.Length);
+        }
+        return Convert.ToBase64String(ms.ToArray());
+    }
+
+    public static bool ImportSaveString(string base64)
+    {
+        try
+        {
+            byte[] comp = Convert.FromBase64String(base64);
+            using var ms = new MemoryStream(comp);
+            using var bs = new System.IO.Compression.BrotliStream(ms, System.IO.Compression.CompressionMode.Decompress);
+            using var msOut = new MemoryStream();
+            bs.CopyTo(msOut);
+
+            string json = Encoding.UTF8.GetString(msOut.ToArray());
+            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            if (dict == null) return false;
+
+            BackupCurrentSave();
+
+            string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+
+            if (dict.TryGetValue("s", out var sData)) File.WriteAllText(Path.Combine(dir, "savegame.elitedata"), sData);
+            if (dict.TryGetValue("c", out var cData)) File.WriteAllText(Path.Combine(dir, "customsave.elitedata"), cData);
+            if (dict.TryGetValue("cc", out var ccData)) File.WriteAllText(Path.Combine(dir, "communitycache.elitedata"), ccData);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static void BackupCurrentSave()
+    {
+        string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+        var files = new[] { "savegame.elitedata", "customsave.elitedata", "communitycache.elitedata" };
+
+        foreach (var f in files)
+        {
+            string p = Path.Combine(dir, f);
+            string bp = Path.Combine(dir, "backup_" + f);
+            if (File.Exists(p)) File.Copy(p, bp, true);
+            else if (File.Exists(bp)) File.Delete(bp);
+        }
+    }
+
+    public static void RevertSave()
+    {
+        string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+        var files = new[] 
+        {
+            "savegame.elitedata",
+            "customsave.elitedata",
+            "communitycache.elitedata"
+        };
+
+        foreach (var f in files)
+        {
+            string p = Path.Combine(dir, f);
+            string bp = Path.Combine(dir, "backup_" + f);
+
+            if (File.Exists(bp))
+            {
+                File.Copy(bp, p, true);
+            }
+            else if (File.Exists(p))
+            {
+                // delete file if it didnt exist in the backup
+                File.Delete(p);
+            }
+        }
+    }
+
+    public static bool HasBackup()
+    {
+        string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+        return File.Exists(Path.Combine(dir, "backup_savegame.elitedata")) ||
+               File.Exists(Path.Combine(dir, "backup_customsave.elitedata")) ||
+               File.Exists(Path.Combine(dir, "backup_communitycache.elitedata"));
+    }
+
+    public static bool HasActiveSave()
+    {
+        string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+        return File.Exists(Path.Combine(dir, "savegame.elitedata")) ||
+               File.Exists(Path.Combine(dir, "customsave.elitedata")) ||
+               File.Exists(Path.Combine(dir, "communitycache.elitedata"));
+    }
+
     private static string SerializeSettings(PlayerSettings s)
     {
         var parts = new List<string>();

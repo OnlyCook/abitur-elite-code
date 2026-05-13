@@ -275,12 +275,12 @@
 															<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto" Margin="0,0,0,10">
 																<Button Grid.Column="0" Name="BtnTabEdit" Content="Editieren"
 																		Background="#202124" Foreground="#32A852" FontWeight="SemiBold"
-																		CornerRadius="6" Padding="12,6" Margin="0,0,5,0" Cursor="Hand"
+																		CornerRadius="6" Padding="12,6" Margin="0,0,5,0"
 																		Click="BtnTabComment_Click" />
 
 																<Button Grid.Column="1" Name="BtnTabPreview" Content="Vorschau"
 																		Background="Transparent" Foreground="#CCCCCC"
-																		CornerRadius="6" Padding="12,6" Cursor="Hand"
+																		CornerRadius="6" Padding="12,6"
 																		Click="BtnTabComment_Click" />
 
 																<Button Grid.Column="3" Name="BtnMarkdownToolbar" Background="Transparent" Padding="5" Cursor="Hand" ToolTip.Tip="Markdown Formatierung">
@@ -291,19 +291,19 @@
 																				<Button Tag="Heading" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
 																					<StackPanel Orientation="Horizontal" Spacing="8">
 																						<svg:Svg Path="/assets/icons/ic_md_heading.svg" Width="16" Height="16" />
-																						<TextBlock Text="Heading" VerticalAlignment="Center" />
+																						<TextBlock Text="Überschrift" VerticalAlignment="Center" />
 																					</StackPanel>
 																				</Button>
 																				<Button Tag="Bold" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
 																					<StackPanel Orientation="Horizontal" Spacing="8">
 																						<svg:Svg Path="/assets/icons/ic_md_bold.svg" Width="16" Height="16" />
-																						<TextBlock Text="Bold" VerticalAlignment="Center" />
+																						<TextBlock Text="Fett" VerticalAlignment="Center" />
 																					</StackPanel>
 																				</Button>
 																				<Button Tag="Italic" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">
 																					<StackPanel Orientation="Horizontal" Spacing="8">
 																						<svg:Svg Path="/assets/icons/ic_md_italic.svg" Width="16" Height="16" />
-																						<TextBlock Text="Italic" VerticalAlignment="Center" />
+																						<TextBlock Text="Kursiv" VerticalAlignment="Center" />
 																					</StackPanel>
 																				</Button>
 																				<Button Tag="InlineCode" Click="BtnInsertMarkdown_Click" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Cursor="Hand">

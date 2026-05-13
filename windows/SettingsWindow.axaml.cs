@@ -60,7 +60,7 @@ public partial class SettingsWindow : Window
 
     private Control _editorPanel = null!;
     private StackPanel _displayPanel = null!;
-    private StackPanel _dataPanel = null!;
+    private Control _dataPanel = null!;
     private Control _updatesPanel = null!;
     private Button _btnScrollTop = null!;
     private StackPanel _miscPanel = null!;
@@ -333,13 +333,13 @@ public partial class SettingsWindow : Window
         await dialog.ShowDialog(this);
     }
 
-    private async Task ShowWarningDialog(string title, string message)
+    private async Task ShowWarningDialog(string title, string message, int width, int height)
     {
         var dialog = new Window
         {
             Title = "Hinweis",
-            Width = 400,
-            Height = 200,
+            Width = width,
+            Height = height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
             Background = SolidColorBrush.Parse("#252526"),
@@ -393,6 +393,78 @@ public partial class SettingsWindow : Window
         dialog.Content = grid;
 
         await dialog.ShowDialog(this);
+    }
+
+    private async Task<bool> ShowConfirmDialog(string title, string message)
+    {
+        bool confirmed = false;
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 380,
+            Height = 175,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (_, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
+
+        var grid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            Margin = new Thickness(20)
+        };
+        grid.Children.Add(new TextBlock
+        {
+            Text = message,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 10,
+            Margin = new Thickness(0, 15, 0, 0)
+        };
+        Grid.SetRow(btnPanel, 1);
+
+        var btnConfirm = new Button
+        {
+            Content = "Bestätigen",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+
+        btnConfirm.Click += (_, _) =>
+        {
+            confirmed = true;
+            dialog.Close();
+        };
+        btnCancel.Click += (_, _) => dialog.Close();
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnConfirm);
+        grid.Children.Add(btnPanel);
+        dialog.Content = grid;
+
+        await dialog.ShowDialog(this);
+        return confirmed;
     }
 
     private void BuildEditorPanel()
@@ -533,7 +605,8 @@ public partial class SettingsWindow : Window
             if (_chkError.IsChecked == true && !AppSettings.IsErrorHighlightingEnabled)
                 await ShowWarningDialog(
                     "Error-Hervorhebung",
-                    "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück."
+                    "In der Prüfung müssen Fehler selbstständig gefunden werden. Es wird empfohlen ohne dieses Feature zu üben!\n\nAchtung: Diese Funktion setzt sich nach jedem Level-Wechsel zurück.",
+                    400, 250
                 );
 
             AppSettings.IsErrorHighlightingEnabled = _chkError.IsChecked ?? false;
@@ -561,7 +634,8 @@ public partial class SettingsWindow : Window
             if (_chkErrorExplain.IsChecked == true && !AppSettings.IsErrorExplanationEnabled)
                 await ShowWarningDialog(
                     "Error-Erklärungen",
-                    "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung. Nutze dies nur, wenn du absolut nicht weiterkommst."
+                    "Detaillierte Fehlerbeschreibungen stehen in der Prüfung nicht zur Verfügung. Nutze dies nur, wenn du absolut nicht weiterkommst.",
+                    400, 180
                 );
             AppSettings.IsErrorExplanationEnabled = _chkErrorExplain.IsChecked ?? false;
             CheckChanges();
@@ -632,24 +706,62 @@ public partial class SettingsWindow : Window
             CheckChanges();
         };
 
-        var fontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = !_ctx.IsSqlMode };
+        var fontRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            IsVisible = !_ctx.IsSqlMode
+        };
         fontRow.Children.Add(_sliderFontSize);
 
-        var fontSizeValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        var fontSizeValPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 2
+        };
         fontSizeValPanel.Children.Add(txtFontSizeVal);
-        fontSizeValPanel.Children.Add(new TextBlock { Text = "px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        fontSizeValPanel.Children.Add(new TextBlock
+        {
+            Text = "px",
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        });
         fontRow.Children.Add(fontSizeValPanel);
 
-        var sqlFontRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = _ctx.IsSqlMode };
+        var sqlFontRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            IsVisible = _ctx.IsSqlMode
+        };
         sqlFontRow.Children.Add(_sliderSqlFontSize);
 
-        var sqlFontSizeValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        var sqlFontSizeValPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 2
+        };
         sqlFontSizeValPanel.Children.Add(txtSqlFontSizeVal);
-        sqlFontSizeValPanel.Children.Add(new TextBlock { Text = "px", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        sqlFontSizeValPanel.Children.Add(new TextBlock
+        {
+            Text = "px",
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        });
         sqlFontRow.Children.Add(sqlFontSizeValPanel);
 
-        var lblCsharpFont = new TextBlock { Text = "C# Editor Schriftgröße", Foreground = Brushes.LightGray, IsVisible = !_ctx.IsSqlMode };
-        var lblSqlFont = new TextBlock { Text = "SQL Editor Schriftgröße", Foreground = Brushes.LightGray, IsVisible = _ctx.IsSqlMode };
+        var lblCsharpFont = new TextBlock
+        {
+            Text = "C# Editor Schriftgröße",
+            Foreground = Brushes.LightGray,
+            IsVisible = !_ctx.IsSqlMode
+        };
+        var lblSqlFont = new TextBlock
+        {
+            Text = "SQL Editor Schriftgröße",
+            Foreground = Brushes.LightGray,
+            IsVisible = _ctx.IsSqlMode
+        };
 
         string editorTitle = _ctx.IsSqlMode ? "SQL Query Editor" : "C# Code Editor";
         var editorContentPanel = new StackPanel { Spacing = 15 };
@@ -752,7 +864,10 @@ public partial class SettingsWindow : Window
         }
 
         txtScaleVal.LostFocus += (_, _) => UpdateScaleFromText();
-        txtScaleVal.KeyUp += (_, ev) => { if (ev.Key == Key.Enter) UpdateScaleFromText(); };
+        txtScaleVal.KeyUp += (_, ev) =>
+        {
+            if (ev.Key == Key.Enter) UpdateScaleFromText();
+        };
 
         var chkAutoSaveLayout = new CheckBox
         {
@@ -792,12 +907,25 @@ public partial class SettingsWindow : Window
 
         btnResetLayout.Click += (_, _) => _ctx.ResetAppLayout();
 
-        var scaleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var scaleRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10
+        };
         scaleRow.Children.Add(_sliderScale);
 
-        var scaleValPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        var scaleValPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 2
+        };
         scaleValPanel.Children.Add(txtScaleVal);
-        scaleValPanel.Children.Add(new TextBlock { Text = "%", Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center });
+        scaleValPanel.Children.Add(new TextBlock
+        {
+            Text = "%",
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        });
         scaleRow.Children.Add(scaleValPanel);
 
         _displayPanel = new StackPanel { Spacing = 15 };
@@ -809,15 +937,25 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _displayPanel.Children.Add(new TextBlock { Text = "UI Skalierung", Foreground = Brushes.LightGray });
+        _displayPanel.Children.Add(new TextBlock
+        {
+            Text = "UI Skalierung",
+            Foreground = Brushes.LightGray
+        });
         _displayPanel.Children.Add(scaleRow);
-        _displayPanel.Children.Add(new Border { Height = 1, Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 10, 0, 10) });
+        _displayPanel.Children.Add(new Border
+        {
+            Height = 1,
+            Background = SolidColorBrush.Parse("#333"),
+            Margin = new Thickness(0, 10, 0, 10)
+        });
         _displayPanel.Children.Add(chkAutoSaveLayout);
         _displayPanel.Children.Add(btnResetLayout);
     }
 
     private void BuildDataPanel()
     {
+        // portable mode
         _chkPortable = new CheckBox
         {
             Content = "Portable Mode",
@@ -826,7 +964,7 @@ public partial class SettingsWindow : Window
         };
         var txtPortableInfo = new TextBlock
         {
-            Text = "Wenn aktiviert, wird der Speicherstand direkt neben der ausführbaren Datei gespeichert. Ideal für USB-Sticks.",
+            Text = "Wenn aktiviert, wird der Speicherstand direkt neben der ausführbaren Datei gespeichert. Ideal für USB-Sticks und empfohlen für Schulcomputer.",
             Foreground = Brushes.Gray,
             FontSize = 12,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
@@ -845,8 +983,9 @@ public partial class SettingsWindow : Window
 
         _chkPortable.IsCheckedChanged += (_, _) => CheckChanges();
 
-        _dataPanel = new StackPanel { Spacing = 15 };
-        _dataPanel.Children.Add(new TextBlock
+        var innerContentPanel = new StackPanel { Spacing = 15 };
+
+        innerContentPanel.Children.Add(new TextBlock
         {
             Text = "Daten & Speicher",
             FontSize = 18,
@@ -854,9 +993,220 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _dataPanel.Children.Add(_chkPortable);
-        _dataPanel.Children.Add(txtPortableInfo);
+        innerContentPanel.Children.Add(_chkPortable);
+        innerContentPanel.Children.Add(txtPortableInfo);
+
+        // backup and recovery
+        innerContentPanel.Children.Add(new Border
+        {
+            Height = 1,
+            Background = SolidColorBrush.Parse("#333"),
+            Margin = new Thickness(0, 15, 0, 15)
+        });
+
+        innerContentPanel.Children.Add(new TextBlock
+        {
+            Text = "Backup & Wiederherstellung",
+            FontSize = 16,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 0, 0, 10)
+        });
+
+        innerContentPanel.Children.Add(new TextBlock
+        {
+            Text = "Übertrage deinen Spielstand als Code auf ein anderes Gerät. Hinweis: Die GitHub-Anmeldung wird aus Sicherheitsgründen nicht mit kopiert.",
+            Foreground = Brushes.LightGray,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 15)
+        });
+
+        var btnGenerate = new Button
+        {
+            Content = "Save-Code generieren",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(15, 8)
+        };
+
+        var exportCodePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            IsVisible = false,
+            Margin = new Thickness(0, 10, 0, 5)
+        };
+
+        var txtExport = new TextBox
+        {
+            IsReadOnly = true,
+            Width = 300,
+            FontFamily = new FontFamily("Consolas, monospace"),
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = SolidColorBrush.Parse("#007ACC"),
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            CornerRadius = new CornerRadius(6),
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+
+        var btnCopyExport = new Button
+        {
+            Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18),
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Padding = new Thickness(10),
+            CornerRadius = new CornerRadius(6),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        ToolTip.SetTip(btnCopyExport, "Code kopieren");
+
+        exportCodePanel.Children.Add(txtExport);
+        exportCodePanel.Children.Add(btnCopyExport);
+
+        btnGenerate.Click += (_, _) =>
+        {
+            txtExport.Text = SaveSystem.ExportSaveString();
+            exportCodePanel.IsVisible = true;
+        };
+
+        btnCopyExport.Click += async (_, _) =>
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(txtExport.Text))
+            {
+                await topLevel.Clipboard.SetTextAsync(txtExport.Text);
+                btnCopyExport.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyExport.Content = _ctx.LoadIcon("assets/icons/ic_success.svg", 18);
+                await Task.Delay(500);
+                btnCopyExport.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyExport.Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18);
+            }
+        };
+
+        var separator = new Border
+        {
+            Height = 0.75,
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Margin = new Thickness(0, 5, 0, 5)
+        };
+
+        var importPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            Margin = new Thickness(0, 5, 0, 10)
+        };
+
+        var txtImport = new TextBox
+        {
+            Watermark = "Save-Code hier einfügen...",
+            Width = 300,
+            FontFamily = new FontFamily("Consolas, monospace"),
+            Background = Brushes.Transparent,
+            BorderBrush = SolidColorBrush.Parse("#555"),
+            CornerRadius = new CornerRadius(4),
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+
+        var btnImport = new Button
+        {
+            Content = _ctx.LoadIcon("assets/icons/ic_load.svg", 18),
+            Background = SolidColorBrush.Parse("#007ACC"),
+            Padding = new Thickness(10),
+            CornerRadius = new CornerRadius(6),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        ToolTip.SetTip(btnImport, "Code laden");
+
+        importPanel.Children.Add(txtImport);
+        importPanel.Children.Add(btnImport);
+
+        var btnRevert = new Button
+        {
+            Content = "Letzten Import rückgängig machen",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(15, 8),
+            IsVisible = SaveSystem.HasBackup()
+        };
+
+        btnImport.Click += async (_, _) =>
+        {
+            string code = txtImport.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(code)) return;
+
+            if (SaveSystem.HasActiveSave())
+            {
+                bool confirm = await ShowConfirmDialog("Spielstand überschreiben?", "Möchtest du deinen aktuellen Spielstand wirklich überschreiben? Ein lokales Backup wird zur Sicherheit angelegt.");
+                if (!confirm) return;
+            }
+
+            bool success = SaveSystem.ImportSaveString(code);
+            if (success)
+            {
+                btnRevert.IsVisible = SaveSystem.HasBackup();
+                txtImport.Text = string.Empty;
+                await ShowWarningDialog("Erfolgreich", "Der Spielstand wurde erfolgreich geladen!\n\nDas Programm wird nun automatisch neu gestartet, um die Änderungen zu übernehmen.", 400, 200);
+
+                RestartApplication();
+            }
+            else
+            {
+                await ShowWarningDialog("Fehler", "Der eingegebene Save-Code ist ungültig oder beschädigt.", 350, 150);
+            }
+        };
+
+        btnRevert.Click += async (_, _) =>
+        {
+            bool confirm = await ShowConfirmDialog("Rückgängig machen?", "Möchtest du den Zustand vor dem letzten Import wiederherstellen?");
+            if (confirm)
+            {
+                SaveSystem.RevertSave();
+                await ShowWarningDialog("Erfolgreich", "Der vorherige Zustand wurde wiederhergestellt.\n\nDas Programm wird nun automatisch neu gestartet, um die Änderungen zu übernehmen.", 400, 200);
+
+                RestartApplication();
+            }
+        };
+
+        innerContentPanel.Children.Add(btnGenerate);
+        innerContentPanel.Children.Add(exportCodePanel);
+        innerContentPanel.Children.Add(separator);
+        innerContentPanel.Children.Add(importPanel);
+        innerContentPanel.Children.Add(btnRevert);
+
+        _dataPanel = new ScrollViewer
+        {
+            Content = innerContentPanel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
     }
+
+    private void RestartApplication()
+    {
+        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            // set flag to bypass auto save on close (prevents saves to be overwritten)
+            if (desktop.MainWindow is MainWindow mw)
+            {
+                mw.SkipSaveOnExit = true;
+            }
+
+            var module = System.Diagnostics.Process.GetCurrentProcess().MainModule;
+            if (module != null)
+            {
+                System.Diagnostics.Process.Start(module.FileName);
+            }
+
+            desktop.Shutdown();
+        }
+        else
+        {
+            Environment.Exit(0);
+        }
+    }
+
 
     private void BuildUpdatesPanel()
     {
@@ -981,12 +1331,19 @@ public partial class SettingsWindow : Window
             }
         };
 
-        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var actionRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10
+        };
         actionRow.Children.Add(_btnCheckUpdate);
         actionRow.Children.Add(_btnUpdateApp);
 
         // create inner content panel for updates
-        var innerContentPanel = new StackPanel { Spacing = 15 };
+        var innerContentPanel = new StackPanel
+        {
+            Spacing = 15
+        };
         innerContentPanel.Children.Add(new TextBlock
         {
             Text = "Updates",
@@ -1000,7 +1357,11 @@ public partial class SettingsWindow : Window
         innerContentPanel.Children.Add(_updateProgressBar);
         innerContentPanel.Children.Add(actionRow);
 
-        _patchNotesPanel = new StackPanel { Spacing = 10, Margin = new Thickness(0, 20, 0, 0) };
+        _patchNotesPanel = new StackPanel
+        {
+            Spacing = 10,
+            Margin = new Thickness(0, 20, 0, 0)
+        };
         innerContentPanel.Children.Add(_patchNotesPanel);
 
         var updateScrollViewer = new ScrollViewer
@@ -1133,7 +1494,11 @@ public partial class SettingsWindow : Window
             Margin = new Thickness(0, 15, 0, 5)
         };
 
-        var bodyPanel = new StackPanel { Spacing = 2, Margin = new Thickness(0, 0, 0, 10) };
+        var bodyPanel = new StackPanel
+        {
+            Spacing = 2,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
 
         // parse markdown lines
         var lines = release.Body.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
@@ -1439,7 +1804,12 @@ public partial class SettingsWindow : Window
         });
         _miscPanel.Children.Add(_chkSqlAntiSpoiler);
         _miscPanel.Children.Add(_chkDiscordRpc);
-        _miscPanel.Children.Add(new Border { Height = 1, Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 10, 0, 10) });
+        _miscPanel.Children.Add(new Border
+        {
+            Height = 1,
+            Background = SolidColorBrush.Parse("#333"),
+            Margin = new Thickness(0, 10, 0, 10)
+        });
         _miscPanel.Children.Add(_chkCommunityFeatures);
         _miscPanel.Children.Add(_communitySubPanel);
 
