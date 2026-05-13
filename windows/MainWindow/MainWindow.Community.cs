@@ -793,7 +793,7 @@ public partial class MainWindow
             Padding = new Thickness(15),
             BorderBrush = SolidColorBrush.Parse("#333"),
             BorderThickness = new Thickness(1),
-            Margin = new Thickness(0, 5, 0, 0)
+            Margin = isReply ? new Thickness(20, 0, 0, 0) : new Thickness(0, 5, 0, 0)
         };
 
         var mainStack = new StackPanel { Spacing = 8 };
@@ -1377,7 +1377,7 @@ public partial class MainWindow
                     BorderThickness = new Thickness(2, 0, 0, 0),
                     BorderBrush = SolidColorBrush.Parse("#333"),
                     Margin = new Thickness(15, 10, 0, 0),
-                    Padding = new Thickness(15, 0, 0, 0),
+                    Padding = new Thickness(0, 0, 0, 0),
                     IsVisible = false
                 };
                 var repliesStack = new StackPanel
@@ -1475,6 +1475,34 @@ public partial class MainWindow
         }
 
         border.Child = mainStack;
+
+        if (isReply)
+        {
+            var replyWrapper = new Grid
+            {
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+
+            // reddit curve pointing to username
+            var branchLine = new Border
+            {
+                BorderBrush = SolidColorBrush.Parse("#333"),
+                BorderThickness = new Thickness(2, 0, 0, 2),
+                CornerRadius = new CornerRadius(0, 0, 0, 10),
+                Width = 25,
+                Height = 34,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(-2, 0, 0, 0),
+                ZIndex = -1
+            };
+
+            replyWrapper.Children.Add(branchLine);
+            replyWrapper.Children.Add(border);
+
+            return replyWrapper;
+        }
+
         return border;
     }
 
@@ -2324,10 +2352,16 @@ public partial class MainWindow
             switch (format)
             {
                 case "Heading":
-                    TxtCommentInput.Text = text.Insert(start, "## ");
-                    TxtCommentInput.SelectionStart = start + 3;
-                    TxtCommentInput.SelectionEnd = start + 3;
-                    break;
+                    {
+                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
+                        string prefix = needsNewLine ? "\n" : "";
+                        int offset = needsNewLine ? 1 : 0;
+
+                        TxtCommentInput.Text = text.Insert(start, $"{prefix}## ");
+                        TxtCommentInput.SelectionStart = start + 3 + offset;
+                        TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                        break;
+                    }
                 case "Bold":
                     TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, $"**{sel}**");
                     TxtCommentInput.SelectionStart = end == start ? start + 2 : start + sel.Length + 4;
@@ -2344,16 +2378,28 @@ public partial class MainWindow
                     TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
                     break;
                 case "CodeBlock":
-                    string block = $"```csharp\n{sel}\n```";
-                    TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
-                    TxtCommentInput.SelectionStart = end == start ? start + 10 : start + block.Length;
-                    TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
-                    break;
+                    {
+                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
+                        string prefix = needsNewLine ? "\n" : "";
+                        int offset = needsNewLine ? 1 : 0;
+
+                        string block = $"{prefix}```csharp\n{sel}\n```";
+                        TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
+                        TxtCommentInput.SelectionStart = end == start ? start + 10 + offset : start + block.Length;
+                        TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                        break;
+                    }
                 case "List":
-                    TxtCommentInput.Text = text.Insert(start, "- ");
-                    TxtCommentInput.SelectionStart = start + 2;
-                    TxtCommentInput.SelectionEnd = start + 2;
-                    break;
+                    {
+                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
+                        string prefix = needsNewLine ? "\n" : "";
+                        int offset = needsNewLine ? 1 : 0;
+
+                        TxtCommentInput.Text = text.Insert(start, $"{prefix}- ");
+                        TxtCommentInput.SelectionStart = start + 2 + offset;
+                        TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                        break;
+                    }
             }
 
             BtnMarkdownToolbar.Flyout?.Hide();

@@ -367,7 +367,7 @@ public partial class SettingsWindow : Window
         {
             Text = title,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#32A852"),
+            Foreground = SolidColorBrush.Parse("#B43232"),
             FontSize = 16
         });
         contentPanel.Children.Add(new TextBlock
@@ -1026,6 +1026,8 @@ public partial class SettingsWindow : Window
         var btnGenerateOffline = new Button
         {
             Content = "Code generieren",
+            Width = 155,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
             Background = SolidColorBrush.Parse("#3C3C3C"),
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
@@ -1036,6 +1038,8 @@ public partial class SettingsWindow : Window
         var btnGenerateOnline = new Button
         {
             Content = "Kurz-Code generieren",
+            Width = 185,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
             Background = SolidColorBrush.Parse("#32A852"),
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
@@ -1123,6 +1127,13 @@ public partial class SettingsWindow : Window
             else
             {
                 await ShowWarningDialog("Netzwerkfehler", "Es konnte keine Verbindung zu Pastefy hergestellt werden. Bitte überprüfe deine Internetverbindung oder nutze den Offline-Code.", 380, 180);
+            }
+
+            // spam prevention
+            for (int i = 5; i > 0; i--)
+            {
+                btnGenerateOnline.Content = $"Bitte warten... ({i}s)";
+                await Task.Delay(1000); // wait 1 second per loop
             }
 
             btnGenerateOnline.Content = "Kurz-Code generieren";
