@@ -183,6 +183,9 @@ public partial class MainWindow : Window
     private int _currentActiveDiscussionId = -1;
     private DateTime _lastCommentTime = DateTime.MinValue;
     private bool _isForceClosing = false;
+    private Flyout _inboxFlyout;
+    private DispatcherTimer _notificationPollTimer;
+    public DateTime _lastNotificationRefreshTime = DateTime.MinValue;
 
     public bool SkipSaveOnExit { get; set; } = false;
 

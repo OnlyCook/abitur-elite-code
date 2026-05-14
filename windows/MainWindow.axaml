@@ -1040,6 +1040,19 @@
 							<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 
 								<Panel>
+									<Button Name="BtnInbox"
+											Background="#464646" Width="40"
+											CornerRadius="5" Click="BtnInbox_Click" ToolTip.Tip="Posteingang">
+										<svg:Svg Path="/assets/icons/ic_inbox.svg" Width="20" Height="20" />
+									</Button>
+
+									<Border Name="BadgeInbox" IsVisible="False" Background="#007ACC" Width="10"
+											Height="10" CornerRadius="5"
+											HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0"
+											BorderBrush="#1E1E1E" BorderThickness="1" IsHitTestVisible="False" />
+								</Panel>
+
+								<Panel>
 									<Button Name="BtnSettings"
 											Background="#464646" Width="40"
 											CornerRadius="5" Click="BtnSettings_Click" ToolTip.Tip="Einstellungen">

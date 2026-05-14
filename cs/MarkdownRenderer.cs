@@ -14,7 +14,7 @@ namespace AbiturEliteCode;
 public static class MarkdownRenderer
 {
     private static readonly Regex MarkdownInlineRegex = new Regex(
-        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<italic>_(?<italictext>.*?)_)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
+        @"(?<bold>\*\*(?<boldtext>.*?)\*\*)|(?<underline>__(?<underlinetext>.*?)__)|(?<italic>_(?<italictext>.*?)_)|(?<kbd><kbd>(?<kbdtext>.*?)</kbd>)|(?<code>`(?<codetext>.*?)`)",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
     public static void RenderMarkdownToPanel(StackPanel panel, string text, bool isSqlMode = false, bool useSelectableText = true)
@@ -117,7 +117,10 @@ public static class MarkdownRenderer
             if (isList)
             {
                 textBlock.Margin = new Thickness(15, 0, 0, 0);
-                textBlock.Inlines!.Add(new Run("• ") { FontWeight = FontWeight.Bold });
+                textBlock.Inlines!.Add(new Run("• ")
+                {
+                    FontWeight = FontWeight.Bold
+                });
             }
 
             ParseInlines(textBlock.Inlines!, processedLine);
@@ -144,6 +147,12 @@ public static class MarkdownRenderer
                 var bold = new Bold();
                 bold.Inlines.Add(new Run(match.Groups["boldtext"].Value));
                 inlines.Add(bold);
+            }
+            else if (match.Groups["underline"].Success)
+            {
+                var underline = new Underline();
+                underline.Inlines.Add(new Run(match.Groups["underlinetext"].Value));
+                inlines.Add(underline);
             }
             else if (match.Groups["italic"].Success)
             {

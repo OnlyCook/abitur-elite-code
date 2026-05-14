@@ -58,6 +58,8 @@ public class PlayerSettings
     [SettingKey("sqlspoilertime")] public double SqlSpoilerHintTotalSeconds { get; set; }
     [SettingKey("relationaltip")] public bool RelationalModelTipShown { get; set; }
     [SettingKey("communityhint")] public bool CommunityHintShown { get; set; }
+    [SettingKey("formspreecd")] public double LastFormspreeTime { get; set; }
+    [SettingKey("notispaused")] public bool AreNotificationsPaused { get; set; }
 }
 
 public class PlayerData
@@ -795,4 +797,17 @@ public class CommunityCacheData
 {
     public Dictionary<string, DiscussionCache> CsharpDiscussions { get; set; } = new();
     public Dictionary<string, DiscussionCache> SqlDiscussions { get; set; } = new();
+
+    public List<AppNotification> Notifications { get; set; } = new();
+    public Dictionary<string, int> Subscriptions { get; set; } = new();
+}
+
+public class AppNotification
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Message { get; set; }
+    public DateTime Date { get; set; }
+    public bool IsRead { get; set; }
+    public string TargetDiscussionId { get; set; }
+    public string TargetCommentId { get; set; }
 }
