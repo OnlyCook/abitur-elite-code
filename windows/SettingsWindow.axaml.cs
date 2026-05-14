@@ -837,13 +837,18 @@ public partial class SettingsWindow : Window
 
     private void BuildDisplayPanel()
     {
+        // clamp ui scale and round to whole percentage before loading
+        AppSettings.UiScale = Math.Clamp(Math.Round(AppSettings.UiScale * 100) / 100.0, 0.5, 2.0);
+
         _sliderScale = new Slider
         {
             Minimum = 0.5,
             Maximum = 2.0,
             Value = AppSettings.UiScale,
             Width = 200,
-            HorizontalAlignment = HorizontalAlignment.Left
+            HorizontalAlignment = HorizontalAlignment.Left,
+            TickFrequency = 0.01,
+            IsSnapToTickEnabled = true
         };
         var txtScaleVal = new TextBox
         {
@@ -860,7 +865,9 @@ public partial class SettingsWindow : Window
             string input = txtScaleVal.Text?.Replace("%", "").Trim() ?? "100";
             if (double.TryParse(input.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
             {
-                _sliderScale.Value = Math.Clamp(val / 100.0, _sliderScale.Minimum, _sliderScale.Maximum);
+                // round to whole number before clamping
+                double roundedVal = Math.Round(val);
+                _sliderScale.Value = Math.Clamp(roundedVal / 100.0, _sliderScale.Minimum, _sliderScale.Maximum);
             }
             txtScaleVal.Text = $"{_sliderScale.Value * 100:F0}";
         }
@@ -891,8 +898,9 @@ public partial class SettingsWindow : Window
         // event handlers
         _sliderScale.ValueChanged += (_, ev) =>
         {
-            AppSettings.UiScale = ev.NewValue;
-            txtScaleVal.Text = $"{ev.NewValue * 100:F0}";
+            double roundedScale = Math.Round(ev.NewValue * 100) / 100.0;
+            AppSettings.UiScale = roundedScale;
+            txtScaleVal.Text = $"{roundedScale * 100:F0}";
             _ctx.ApplyUiScale();
             CheckChanges();
         };
@@ -1008,7 +1016,7 @@ public partial class SettingsWindow : Window
 
         innerContentPanel.Children.Add(new TextBlock
         {
-            Text = "Backup & Wiederherstellung",
+            Text = "Backup / Wiederherstellung",
             FontSize = 16,
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,

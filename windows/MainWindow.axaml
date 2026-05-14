@@ -13,6 +13,12 @@
         RequestedThemeVariant="Dark">
 
 	<Window.Styles>
+		<!-- easier text selection -->
+		<Style Selector="SelectableTextBlock">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="HorizontalAlignment" Value="Stretch" />
+		</Style>
+
 		<!-- tabs -->
 		<Style Selector="TabItem">
 			<Setter Property="FontSize" Value="15" />
@@ -1142,15 +1148,15 @@
 						</GridSplitter>
 
 						<Panel Grid.Row="3">
-							<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="#101010"
-									BorderBrush="#333" BorderThickness="1">
-								<ScrollViewer Name="ConsoleScroller" HorizontalScrollBarVisibility="Disabled"
-											  VerticalScrollBarVisibility="Auto">
+							<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
+								<ScrollViewer Name="ConsoleScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 									<SelectableTextBlock Name="TxtConsole"
 														 FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
 														 FontSize="13"
 														 Padding="15"
-														 TextWrapping="Wrap" />
+														 TextWrapping="Wrap"
+														 VerticalAlignment="Stretch"
+														 MinHeight="{Binding $parent[ScrollViewer].Bounds.Height}" />
 								</ScrollViewer>
 							</Border>
 
