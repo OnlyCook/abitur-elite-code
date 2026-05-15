@@ -1618,9 +1618,34 @@ public partial class MainWindow
                 }
 
                 btnSaveEdit.IsEnabled = false;
-                await UpdateCommentOrReplyAsync(comment.Id, txtEdit.Text);
-                string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                string newBody = txtEdit.Text;
+
+                // optimistic ui update
+                editGrid.IsVisible = false;
+                bodyWrapper.IsVisible = true;
+                actionsPanel.IsVisible = true;
+                
+                // prevent re-editing the old text before fetch finishes
+                comment.Body = newBody; 
+
+                EnqueueApiRequest("Kommentar bearbeiten", async () => 
+                {
+                    bool updated = await UpdateCommentOrReplyAsync(comment.Id, newBody);
+
+                    await Dispatcher.UIThread.InvokeAsync(async () => 
+                    {
+                        if (updated)
+                        {
+                            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                            await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                        }
+                        else
+                        {
+                            // if it failed, re-enable the edit button if user opens the edit view again
+                            btnSaveEdit.IsEnabled = true; 
+                        }
+                    });
+                });
             };
 
             btnDelete.Click += async (s, e) =>
@@ -1637,9 +1662,29 @@ public partial class MainWindow
 
                 btnMore.Flyout?.Hide();
                 btnDelete.IsEnabled = false;
-                await DeleteCommentOrReplyAsync(comment.Id);
-                string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+
+                // visually hide the comment instantly (optimistic)
+                border.IsVisible = false;
+
+                EnqueueApiRequest("Kommentar löschen", async () => 
+                {
+                    bool deleted = await DeleteCommentOrReplyAsync(comment.Id);
+
+                    await Dispatcher.UIThread.InvokeAsync(async () => 
+                    {
+                        if (deleted)
+                        {
+                            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                            await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                        }
+                        else
+                        {
+                            // if it failed, show it again and re-enable the button
+                            border.IsVisible = true;
+                            btnDelete.IsEnabled = true; 
+                        }
+                    });
+                });
             };
         }
 
@@ -1740,6 +1785,13 @@ public partial class MainWindow
                 var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
                 string resBody = await resp.Content.ReadAsStringAsync();
 
+                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+                {
+                    BtnSendComment.IsEnabled = true;
+                    await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                    return;
+                }
+
                 if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
                 {
                     // auto subscribe if question
@@ -1801,6 +1853,12 @@ public partial class MainWindow
             var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
             string resBody = await resp.Content.ReadAsStringAsync();
 
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            {
+                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                return false;
+            }
+
             if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
             {
                 return true;
@@ -1844,54 +1902,76 @@ public partial class MainWindow
         }
     }
 
-    private async Task UpdateCommentOrReplyAsync(string id, string body)
+    private async Task<bool> UpdateCommentOrReplyAsync(string id, string body)
     {
-        string mutation = @"mutation($id: ID!, $body: String!) { updateDiscussionComment(input: {commentId: $id, body: $body}) { comment { id } } }";
-        var queryObj = new
+        var payload = new
         {
-            query = mutation,
-            variables = new
-            {
-                id = id,
-                body = body
-            }
+            commentId = id,
+            body = body
         };
 
         try
         {
-            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-            await resp.Content.ReadAsStringAsync();
+
+            // route to the proxy worker via put
+            var resp = await _httpClient.PutAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
+            string resBody = await resp.Content.ReadAsStringAsync();
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            {
+                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                return false;
+            }
+
+            if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
+            {
+                return true;
+            }
+            else
+            {
+                Debug.WriteLine($"[Community] Worker Proxy Update Error: {resBody}");
+                return false;
+            }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Community] Update Comment Error: {ex.Message}");
+            return false;
         }
     }
 
-    private async Task DeleteCommentOrReplyAsync(string id)
+    private async Task<bool> DeleteCommentOrReplyAsync(string id)
     {
-        string mutation = @"mutation($id: ID!) { deleteDiscussionComment(input: {id: $id}) { comment { id } } }";
-        var queryObj = new
-        {
-            query = mutation,
-            variables = new
-            {
-                id = id
-            }
-        };
-
         try
         {
-            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-            await resp.Content.ReadAsStringAsync();
+
+            // route to the proxy worker via delete
+            var resp = await _httpClient.DeleteAsync($"https://aec-community-proxy.theactualcooker.workers.dev?commentId={id}");
+            string resBody = await resp.Content.ReadAsStringAsync();
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            {
+                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                return false;
+            }
+
+            if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
+            {
+                return true;
+            }
+            else
+            {
+                Debug.WriteLine($"[Community] Worker Proxy Delete Error: {resBody}");
+                return false;
+            }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Community] Delete Comment Error: {ex.Message}");
+            return false;
         }
     }
 
@@ -2844,7 +2924,8 @@ public partial class MainWindow
                     }
                 };
 
-                btnDel.Click += (s, e) => {
+                btnDel.Click += (s, e) =>
+                {
                     _communityCache.Notifications.Remove(notif);
                     SaveSystem.SaveCommunityCache(_communityCache);
                     ShowInboxFlyout();
@@ -3109,6 +3190,57 @@ public partial class MainWindow
         btnPanel.Children.Add(btnReport);
         stack.Children.Add(btnPanel);
         dialog.Content = stack;
+        await dialog.ShowDialog(this);
+    }
+
+    private async void ShowBanDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "Gesperrt",
+            Width = 400,
+            Height = 220,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+
+        var stack = new StackPanel
+        {
+            Spacing = 15,
+            Margin = new Thickness(20),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Account gesperrt",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = SolidColorBrush.Parse("#FF5555")
+        });
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Dein Account wurde aufgrund von Spam oder unangemessenem Verhalten temporär oder permanent für die Community-Features gesperrt.\n\nBitte kontaktiere den Support, falls dies ein Irrtum ist.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brushes.LightGray
+        });
+
+        var btnOk = new Button
+        {
+            Content = "Verstanden",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 10, 0, 0),
+            Cursor = Avalonia.Input.Cursor.Parse("Hand")
+        };
+        btnOk.Click += (s, e) => dialog.Close();
+
+        stack.Children.Add(btnOk);
+        dialog.Content = stack;
+
         await dialog.ShowDialog(this);
     }
 }
