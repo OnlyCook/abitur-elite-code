@@ -8,7 +8,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using AvaloniaEdit.Document;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -395,13 +394,32 @@ public partial class MainWindow
 
                         foreach (var node in commentsData.GetProperty("nodes").EnumerateArray())
                         {
+                            string commentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                            string commentBody = node.GetProperty("body").GetString();
+                            bool isBotComment = false;
+
+                            // intercept bot messages and extract the real author
+                            if (commentAuthor == "aec-community-bot")
+                            {
+                                isBotComment = true;
+                                var match = System.Text.RegularExpressions.Regex.Match(commentBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                if (match.Success)
+                                {
+                                    commentAuthor = match.Groups[1].Value;
+                                    commentBody = match.Groups[2].Value;
+                                }
+                            }
+
+                            int rawUpvotes = node.GetProperty("upvoteCount").GetInt32();
+
                             var newComment = new GithubComment
                             {
                                 Id = node.GetProperty("id").GetString(),
-                                Author = node.GetProperty("author").GetProperty("login").GetString(),
-                                Body = node.GetProperty("body").GetString(),
+                                Author = commentAuthor,
+                                Body = commentBody,
                                 CreatedAt = ConvertToGermanTime(node.GetProperty("createdAt").GetDateTime().ToUniversalTime()),
-                                Upvotes = node.GetProperty("upvoteCount").GetInt32(),
+                                // deduct 1 upvote if posted by the bot to remove its own auto upvote (no ones gonna know)
+                                Upvotes = isBotComment ? Math.Max(0, rawUpvotes - 1) : rawUpvotes,
                                 ViewerHasUpvoted = node.GetProperty("viewerHasUpvoted").GetBoolean()
                             };
 
@@ -409,11 +427,25 @@ public partial class MainWindow
                             {
                                 foreach (var rep in repNodes.EnumerateArray())
                                 {
+                                    string replyAuthor = rep.GetProperty("author").GetProperty("login").GetString();
+                                    string replyBody = rep.GetProperty("body").GetString();
+
+                                    // intercept bot messages for replies as well
+                                    if (replyAuthor == "aec-community-bot")
+                                    {
+                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                        if (match.Success)
+                                        {
+                                            replyAuthor = match.Groups[1].Value;
+                                            replyBody = match.Groups[2].Value;
+                                        }
+                                    }
+
                                     newComment.Replies.Add(new GithubReply
                                     {
                                         Id = rep.GetProperty("id").GetString(),
-                                        Author = rep.GetProperty("author").GetProperty("login").GetString(),
-                                        Body = rep.GetProperty("body").GetString(),
+                                        Author = replyAuthor,
+                                        Body = replyBody,
                                         CreatedAt = ConvertToGermanTime(rep.GetProperty("createdAt").GetDateTime().ToUniversalTime()),
                                         Upvotes = rep.GetProperty("reactions").GetProperty("totalCount").GetInt32(),
                                         ViewerHasUpvoted = rep.GetProperty("reactions").GetProperty("viewerHasReacted").GetBoolean()
@@ -797,12 +829,13 @@ public partial class MainWindow
 
         var mainStack = new StackPanel { Spacing = 8 };
 
-        string bodyToRender = comment.Body;
+        // remove zero-width space so mentions display normally in the ui
+        string bodyToRender = comment.Body.Replace("@\u200B", "@");
         string activeTag = null;
         IBrush tagColor = Brushes.Gray;
 
-        // dynamically highlight any mentions
-        bodyToRender = System.Text.RegularExpressions.Regex.Replace(bodyToRender, @"(@[a-zA-Z0-9_-]+)", "__$1__");
+        // dynamically highlight any mentions toward user
+        bodyToRender = System.Text.RegularExpressions.Regex.Replace(bodyToRender, $@"(@{System.Text.RegularExpressions.Regex.Escape(AppSettings.GithubUsername)})", "__$1__");
 
         var tags = new Dictionary<string, (string Label, string Color)>
         {
@@ -943,7 +976,7 @@ public partial class MainWindow
                 Cursor = Cursor.Parse("Hand")
             };
 
-            if (!isReply) // only allow users own comment to be subscribed to
+            if (!isReply) // allow subscribing only to comments
             {
                 var isSubscribed = _communityCache.Subscriptions.ContainsKey(comment.Id);
                 var btnSubscribe = new Button
@@ -1434,8 +1467,11 @@ public partial class MainWindow
 
                 _lastCommentTime = DateTime.Now;
 
+                // inject zero-width space to bypass githubs native mention system
+                string replyText = System.Text.RegularExpressions.Regex.Replace(txtReply.Text, @"@([A-Za-z0-9-]+)", "@\u200B$1");
+
                 Debug.WriteLine($"[Debug] Sent Reply to comment.Id=[{comment.Id}] in discussionId=[{discussionId}]...");
-                bool replySent = await SendReplyToGithubAsync(discussionId, comment.Id, txtReply.Text);
+                bool replySent = await SendReplyToGithubAsync(discussionId, comment.Id, replyText);
 
                 txtReply.Text = "";
                 replyInputGrid.IsVisible = false;
@@ -1444,9 +1480,10 @@ public partial class MainWindow
 
                 if (replySent)
                 {
-                    // enqueue unsubscribe immediately so app close logic can wait for it
-                    string nodeId = discussionId;
-                    EnqueueApiRequest("Von Diskussion abmelden (Antwort)", () => UnsubscribeFromDiscussionAsync(nodeId));
+                    // auto subscribe to the parent comment so the background poller can look for mentions in future replies
+                    _communityCache.Subscriptions[comment.Id] = comment.Replies.Count + 1;
+                    SaveSystem.SaveCommunityCache(_communityCache);
+
                     string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                     await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                 }
@@ -1664,6 +1701,9 @@ public partial class MainWindow
 
         // inject tag dynamically at send time
         string fullBody = TxtCommentInput.Text;
+        // inject zero-width space to bypass githubs native mention system
+        fullBody = System.Text.RegularExpressions.Regex.Replace(fullBody, @"@([A-Za-z0-9-]+)", "@\u200B$1");
+
         string tagSelection = (CmbCommentTag.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
         if (!string.IsNullOrEmpty(tagSelection) && tagSelection != "–")
@@ -1684,22 +1724,21 @@ public partial class MainWindow
 
             _lastCommentTime = DateTime.Now;
 
-            string mutation = @"mutation($discussionId: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $discussionId, body: $body}) { comment { id } } }";
-            var queryObj = new
+            // send payload to cloudflare worker (instead of github directly)
+            var payload = new
             {
-                query = mutation,
-                variables = new
-                {
-                    discussionId = cache.DiscussionNodeId,
-                    body = fullBody
-                }
+                discussionId = cache.DiscussionNodeId,
+                body = fullBody
             };
 
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-                var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-                string resBody = await resp.Content.ReadAsStringAsync(); // consume response to free socket connection
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+
+                // route to the proxy worker
+                var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
+                string resBody = await resp.Content.ReadAsStringAsync();
 
                 if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
                 {
@@ -1722,16 +1761,12 @@ public partial class MainWindow
                     TxtCommentInput.Text = "";
                     CmbCommentTag.SelectedIndex = 0; // reset tag selection upon success
 
-                    // enqueue unsubscribe through the gated helper so it counts against the limit
-                    string nodeId = cache.DiscussionNodeId;
-                    EnqueueApiRequest("Von Diskussion abmelden (Kommentar)", () => UnsubscribeFromDiscussionAsync(nodeId));
-
                     // refetch immediately to show the new comment
                     await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                 }
                 else
                 {
-                    Debug.WriteLine($"GraphQL Error: {resBody}");
+                    Debug.WriteLine($"Worker Proxy Error: {resBody}");
                     BtnSendComment.IsEnabled = true;
                 }
             }
@@ -1749,22 +1784,21 @@ public partial class MainWindow
 
     private async Task<bool> SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
     {
-        string mutation = @"mutation($discussionId: ID!, $replyToId: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $discussionId, replyToId: $replyToId, body: $body}) { comment { id } } }";
-        var queryObj = new
+        // send payload to cloudflare worker (instead of github directly)
+        var payload = new
         {
-            query = mutation,
-            variables = new
-            {
-                discussionId = discussionNodeId,
-                replyToId = commentNodeId,
-                body = body
-            }
+            discussionId = discussionNodeId,
+            replyToId = commentNodeId,
+            body = body
         };
 
         try
         {
-            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+
+            // route to the proxy worker
+            var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
             string resBody = await resp.Content.ReadAsStringAsync();
 
             if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
@@ -1773,7 +1807,7 @@ public partial class MainWindow
             }
             else
             {
-                Debug.WriteLine($"GraphQL Reply Error: {resBody}");
+                Debug.WriteLine($"Worker Proxy Reply Error: {resBody}");
                 return false;
             }
         }
@@ -1885,34 +1919,6 @@ public partial class MainWindow
         {
             Debug.WriteLine($"[Community] Toggle Reply Upvote Error: {ex.Message}");
         }
-    }
-
-    private async Task UnsubscribeFromDiscussionAsync(string discussionNodeId)
-    {
-        if (string.IsNullOrEmpty(discussionNodeId)) return;
-
-        string mutation = @"mutation($id: ID!) { updateSubscription(input: {subscribableId: $id, state: IGNORED}) { subscribable { viewerSubscription } } }";
-        var queryObj = new
-        {
-            query = mutation,
-            variables = new
-            {
-                id = discussionNodeId
-            }
-        };
-
-        try
-        {
-            var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-            string resBody = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode || resBody.Contains("\"errors\":"))
-            {
-                Debug.WriteLine($"GraphQL Unsubscribe Error: {resBody}");
-            }
-        }
-        catch { }
     }
 
     private async void ShowCooldownMessage(int waitTime)
@@ -2372,115 +2378,111 @@ public partial class MainWindow
         bool hasNewNotifications = false;
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
-        // check rest api for direct mentions (@username)
-        try
-        {
-            var notifResp = await _httpClient.GetAsync("https://api.github.com/notifications?participating=true");
-            if (notifResp.IsSuccessStatusCode)
-            {
-                using var doc = JsonDocument.Parse(await notifResp.Content.ReadAsStringAsync());
-                foreach (var element in doc.RootElement.EnumerateArray())
-                {
-                    var repoName = element.GetProperty("repository").GetProperty("name").GetString();
-                    var reason = element.GetProperty("reason").GetString();
-
-                    // only process mentions from community repo
-                    if (repoName == "aec-community" && reason == "mention")
-                    {
-                        string threadId = element.GetProperty("id").GetString();
-
-                        _communityCache.Notifications.Add(new AppNotification
-                        {
-                            Message = "Jemand hat dich in einem Kommentar erwähnt (@).",
-                            Date = DateTime.Now,
-                            IsRead = false
-                        });
-                        hasNewNotifications = true;
-
-                        // mark as read on github so we dont process it again
-                        await _httpClient.PatchAsync($"https://api.github.com/notifications/threads/{threadId}", null);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[Community] Polling Mentions Error: {ex.Message}");
-        }
-
-        // check graphql api for subscribed comment replies
+        // check graphql api for subscribed comment replies and bootleg mentions
         if (_communityCache.Subscriptions.Count > 0)
         {
             try
             {
-                var ids = _communityCache.Subscriptions.Keys.ToList();
-                var queryObj = new
+                var allIds = _communityCache.Subscriptions.Keys.ToList();
+                int chunkSize = 50; // chunk to prevent graphql complexity limits for heavy users
+
+                for (int i = 0; i < allIds.Count; i += chunkSize)
                 {
-                    query = @"query($ids: [ID!]!) {
-                        nodes(ids: $ids) {
-                            ... on DiscussionComment {
-                                id
-                                replies(last: 1) {
-                                    totalCount
-                                    nodes { author { login } }
+                    var ids = allIds.Skip(i).Take(chunkSize).ToList();
+                    var queryObj = new
+                    {
+                        query = @"query($ids: [ID!]!) {
+                            nodes(ids: $ids) {
+                                ... on DiscussionComment {
+                                    id
+                                    author { login }
+                                    replies(last: 5) {
+                                        totalCount
+                                        nodes { id author { login } body }
+                                    }
                                 }
                             }
-                        }
-                    }",
-                    variables = new { ids = ids }
-                };
+                        }",
+                        variables = new { ids = ids }
+                    };
 
-                var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-                var graphqlResp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+                    var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+                    var graphqlResp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
 
-                if (graphqlResp.IsSuccessStatusCode)
-                {
-                    using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
-                    if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
+                    if (graphqlResp.IsSuccessStatusCode)
                     {
-                        foreach (var node in nodes.EnumerateArray())
+                        using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
+                        if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
                         {
-                            if (node.ValueKind == JsonValueKind.Null) continue;
-
-                            string commentId = node.GetProperty("id").GetString();
-                            var repliesData = node.GetProperty("replies");
-                            int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
-
-                            if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                            foreach (var node in nodes.EnumerateArray())
                             {
-                                if (newTotalCount > lastKnownCount)
-                                {
-                                    string author = "Jemand";
-                                    var replyNodes = repliesData.GetProperty("nodes");
-                                    if (replyNodes.GetArrayLength() > 0)
-                                    {
-                                        author = replyNodes[0].GetProperty("author").GetProperty("login").GetString();
-                                    }
+                                if (node.ValueKind == JsonValueKind.Null) continue;
 
-                                    if (author != AppSettings.GithubUsername)
+                                string commentId = node.GetProperty("id").GetString();
+                                string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                                var repliesData = node.GetProperty("replies");
+                                int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
+
+                                if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                                {
+                                    if (newTotalCount > lastKnownCount)
                                     {
-                                        string foundDiscId = null;
-                                        foreach (var cache in _communityCache.CsharpDiscussions.Values.Concat(_communityCache.SqlDiscussions.Values))
+                                        int diff = newTotalCount - lastKnownCount;
+                                        var replyNodes = repliesData.GetProperty("nodes").EnumerateArray().ToList();
+
+                                        // only evaluate the newly added replies
+                                        var newReplies = replyNodes.Skip(Math.Max(0, replyNodes.Count - diff)).ToList();
+
+                                        foreach (var replyNode in newReplies)
                                         {
-                                            if (cache.Comments.Any(c => c.Id == commentId || c.Replies.Any(r => r.Id == commentId)))
+                                            string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
+                                            if (replyAuthor == AppSettings.GithubUsername) continue;
+
+                                            string replyBody = replyNode.GetProperty("body").GetString();
+
+                                            string foundDiscId = null;
+                                            foreach (var cache in _communityCache.CsharpDiscussions.Values.Concat(_communityCache.SqlDiscussions.Values))
                                             {
-                                                foundDiscId = cache.DiscussionNodeId;
-                                                break;
+                                                if (cache.Comments.Any(c => c.Id == commentId || c.Replies.Any(r => r.Id == commentId)))
+                                                {
+                                                    foundDiscId = cache.DiscussionNodeId;
+                                                    break;
+                                                }
+                                            }
+
+                                            // check for our injected zero-width space mention or a normal text mention fallback
+                                            bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}") ||
+                                                               replyBody.Contains($"@{AppSettings.GithubUsername}");
+
+                                            if (isMentioned)
+                                            {
+                                                _communityCache.Notifications.Add(new AppNotification
+                                                {
+                                                    Message = $"{replyAuthor} hat dich in einer Antwort erwähnt (@).",
+                                                    Date = DateTime.Now,
+                                                    IsRead = false,
+                                                    TargetDiscussionId = foundDiscId,
+                                                    TargetCommentId = commentId
+                                                });
+                                                hasNewNotifications = true;
+                                            }
+                                            else if (parentAuthor == AppSettings.GithubUsername)
+                                            {
+                                                // only trigger standard reply notification if they explicitly own the parent comment
+                                                _communityCache.Notifications.Add(new AppNotification
+                                                {
+                                                    Message = $"{replyAuthor} hat auf deinen abonnierten Kommentar geantwortet.",
+                                                    Date = DateTime.Now,
+                                                    IsRead = false,
+                                                    TargetDiscussionId = foundDiscId,
+                                                    TargetCommentId = commentId
+                                                });
+                                                hasNewNotifications = true;
                                             }
                                         }
 
-                                        _communityCache.Notifications.Add(new AppNotification
-                                        {
-                                            Message = $"{author} hat auf deinen abonnierten Kommentar geantwortet.",
-                                            Date = DateTime.Now,
-                                            IsRead = false,
-                                            TargetDiscussionId = foundDiscId,
-                                            TargetCommentId = commentId
-                                        });
-                                        hasNewNotifications = true;
+                                        _communityCache.Subscriptions[commentId] = newTotalCount;
                                     }
-
-                                    _communityCache.Subscriptions[commentId] = newTotalCount;
                                 }
                             }
                         }

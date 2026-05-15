@@ -1985,10 +1985,10 @@ public partial class SettingsWindow : Window
 
         // request device code
         var deviceResp = await http.PostAsync("https://github.com/login/device/code",
-            new FormUrlEncodedContent(new[] 
+            new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("client_id", ClientId),
-                new KeyValuePair<string, string>("scope", "public_repo write:discussion notifications")
+                new KeyValuePair<string, string>("scope", "public_repo write:discussion")
             }
         ));
 
@@ -2147,9 +2147,9 @@ public partial class SettingsWindow : Window
 
             contentStack.Children.Add(new TextBlock
             {
-                Text = "Um die Community Features nutzen zu können, fordert diese App 3 spezifische GitHub-Berechtigungen an:",
+                Text = "Um die Community Features nutzen zu können, fordert diese App 2 spezifische GitHub-Berechtigungen an:",
                 Foreground = Brushes.White,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                TextWrapping = TextWrapping.Wrap
             });
 
             Control CreatePermItem(string num, string title, string code, string desc)
@@ -2204,7 +2204,7 @@ public partial class SettingsWindow : Window
                 {
                     Text = desc,
                     Foreground = SolidColorBrush.Parse("#CCCCCC"),
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(34, 0, 0, 0),
                     LineHeight = 18
                 };
@@ -2213,13 +2213,10 @@ public partial class SettingsWindow : Window
                 return pnl;
             }
 
-            contentStack.Children.Add(CreatePermItem("1", "Benachrichtigungen", "notifications",
-                "Schreibst du einen Kommentar, abonniert dich GitHub automatisch. Diese Berechtigung nutzen wir ausschließlich, um Diskussionen direkt danach wieder stummzuschalten, damit du nicht mit E-Mails zugespammt wirst."));
+            contentStack.Children.Add(CreatePermItem("1", "Lesen von Repositories", "public_repo",
+                "Wird benötigt, um die Level-Diskussionen und Kommentare überhaupt abrufen und hier anzeigen zu können."));
 
-            contentStack.Children.Add(CreatePermItem("2", "Lesen von Repositories", "public_repo",
-                "Wird benötigt, um die Level-Diskussionen und Kommentare überhaupt abrufen und anzeigen zu können."));
-
-            contentStack.Children.Add(CreatePermItem("3", "Diskussionen schreiben", "write:discussion",
+            contentStack.Children.Add(CreatePermItem("2", "Diskussionen schreiben", "write:discussion",
                 "Wird benötigt, damit du Kommentare und Antworten verfassen sowie Upvotes/Likes vergeben kannst."));
 
             var promiseCard = new Border
@@ -2245,15 +2242,21 @@ public partial class SettingsWindow : Window
 
             var promiseText = new TextBlock
             {
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                TextWrapping = TextWrapping.Wrap,
                 LineHeight = 20
             };
-            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf Diskussionen von diesem Repository aus:\n") { Foreground = Brushes.LightGray });
+            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf diesem Repository aus:\n")
+            {
+                Foreground = Brushes.LightGray
+            });
             promiseText.Inlines.Add(new Run("https://github.com/OnlyCook/aec-community\n\n")
             {
                 Foreground = SolidColorBrush.Parse("#6495ED")
             });
-            promiseText.Inlines.Add(new Run("Wir werden niemals deine Benachrichtigungen oder privaten Daten lesen.") { FontWeight = FontWeight.Bold, Foreground = Brushes.White });
+            promiseText.Inlines.Add(new Run("Das Repository wird automatisch stummgeschaltet, damit du niemals ungewollte E-Mails von GitHub erhältst.")
+            {
+                Foreground = Brushes.White
+            });
 
             promiseStack.Children.Add(promiseText);
 
@@ -2262,7 +2265,7 @@ public partial class SettingsWindow : Window
                 Text = "Tipp: Wenn du dennoch Bedenken hast, kannst du jederzeit einen separaten GitHub-Account nur für die Community Features erstellen.",
                 FontStyle = FontStyle.Italic,
                 Foreground = Brushes.Gray,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 5, 0, 0)
             });
 
@@ -2302,7 +2305,7 @@ public partial class SettingsWindow : Window
         contentPanel.Children.Add(new TextBlock
         {
             Text = "1. Klicke auf 'Im Browser öffnen'.\n2. Füge den unten stehenden Code auf der GitHub-Seite ein.\n3. Bestätige die Autorisierung.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.White,
             LineHeight = 22
         });
@@ -2434,6 +2437,18 @@ public partial class SettingsWindow : Window
                                 if (userDoc.RootElement.TryGetProperty("login", out var loginProp))
                                     AppSettings.GithubUsername = loginProp.GetString() ?? string.Empty;
                             }
+                        }
+                        catch { }
+
+                        // auto-ignore the repository to prevent github emails/notifications natively
+                        try
+                        {
+                            using var ignoreClient = new HttpClient();
+                            ignoreClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {AppSettings.GithubToken}");
+                            ignoreClient.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode");
+                            ignoreClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+                            var ignorePayload = new StringContent("{\"ignored\": true}", Encoding.UTF8, "application/json");
+                            await ignoreClient.PutAsync("https://api.github.com/repos/OnlyCook/aec-community/subscription", ignorePayload);
                         }
                         catch { }
 
