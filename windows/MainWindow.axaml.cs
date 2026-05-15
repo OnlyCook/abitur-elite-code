@@ -186,6 +186,9 @@ public partial class MainWindow : Window
     private Flyout _inboxFlyout;
     private DispatcherTimer _notificationPollTimer;
     public DateTime _lastNotificationRefreshTime = DateTime.MinValue;
+    private bool _isProgrammaticTextChange = false;
+    private string _targetHighlightCommentId = null;
+    private string _targetHighlightReplyId = null;
 
     public bool SkipSaveOnExit { get; set; } = false;
 

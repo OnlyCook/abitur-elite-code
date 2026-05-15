@@ -807,6 +807,16 @@ public partial class MainWindow
 
     private void TxtCommentInput_TextChanged(object sender, TextChangedEventArgs e)
     {
+        // prevent manual '@' usage to force usage of the tag button
+        if (!_isProgrammaticTextChange && TxtCommentInput.Text != null && TxtCommentInput.Text.Contains("@"))
+        {
+            _isProgrammaticTextChange = true;
+            int caret = TxtCommentInput.CaretIndex;
+            TxtCommentInput.Text = TxtCommentInput.Text.Replace("@", "");
+            TxtCommentInput.CaretIndex = Math.Max(0, caret - 1);
+            _isProgrammaticTextChange = false;
+        }
+
         int length = TxtCommentInput.Text?.Length ?? 0;
         TxtCommentCharCount.Text = $"{length} / 5000";
 
@@ -825,7 +835,7 @@ public partial class MainWindow
         IconSendComment.Path = canSend ? "/assets/icons/ic_send.svg" : "/assets/icons/ic_send_disabled.svg";
     }
 
-    private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false, Action<string> onTagUser = null)
+    private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false, Action<string> onTagUser = null, GithubComment parentComment = null)
     {
         var border = new Border
         {
@@ -836,6 +846,13 @@ public partial class MainWindow
             BorderThickness = new Thickness(1),
             Margin = isReply ? new Thickness(20, 0, 0, 0) : new Thickness(0, 5, 0, 0)
         };
+
+        // highlight visualizer for notifications
+        if ((!isReply && comment.Id == _targetHighlightCommentId) || (isReply && comment.Id == _targetHighlightReplyId))
+        {
+            border.BorderBrush = SolidColorBrush.Parse("#6495ED");
+            border.BorderThickness = new Thickness(2);
+        }
 
         var mainStack = new StackPanel { Spacing = 8 };
 
@@ -935,6 +952,59 @@ public partial class MainWindow
             Margin = new Thickness(-5)
         };
 
+        bool hasUserReplied = !isReply && comment.Replies.Any(r => r.Author == AppSettings.GithubUsername);
+        if (!isReply && (comment.Author == AppSettings.GithubUsername || hasUserReplied))
+        {
+            var isSubscribed = _communityCache.Subscriptions.ContainsKey(comment.Id);
+            var btnSubscribe = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16),
+                        new TextBlock
+                        {
+                            Text = isSubscribed ? "Deabonnieren" : "Abonnieren",
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            btnSubscribe.Click += (s, e) =>
+            {
+                if (isSubscribed)
+                {
+                    _communityCache.Subscriptions.Remove(comment.Id);
+                }
+                else
+                {
+                    _communityCache.Subscriptions.Add(comment.Id, comment.Replies.Count);
+                }
+
+                SaveSystem.SaveCommunityCache(_communityCache);
+                btnMore.Flyout?.Hide();
+
+                isSubscribed = !isSubscribed;
+                var contentStack = (StackPanel)btnSubscribe.Content;
+                var textBlock = (TextBlock)contentStack.Children[1];
+
+                contentStack.Children[0] = LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16);
+                textBlock.Text = isSubscribed ? "Deabonnieren" : "Abonnieren";
+            };
+
+            flyoutStack.Children.Add(btnSubscribe);
+        }
+
         if (comment.Author == AppSettings.GithubUsername)
         {
             btnEdit = new Button
@@ -985,60 +1055,6 @@ public partial class MainWindow
                 CornerRadius = new CornerRadius(4),
                 Cursor = Cursor.Parse("Hand")
             };
-
-            if (!isReply) // allow subscribing only to comments
-            {
-                var isSubscribed = _communityCache.Subscriptions.ContainsKey(comment.Id);
-                var btnSubscribe = new Button
-                {
-                    Content = new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Spacing = 8,
-                        Children =
-                        {
-                            LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16),
-                            new TextBlock
-                            {
-                                Text = isSubscribed ? "Deabonnieren" : "Abonnieren",
-                                VerticalAlignment = VerticalAlignment.Center
-                            }
-                        }
-                    },
-                    Background = Brushes.Transparent,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Padding = new Thickness(10, 8),
-                    CornerRadius = new CornerRadius(4),
-                    Cursor = Cursor.Parse("Hand")
-                };
-
-                btnSubscribe.Click += (s, e) =>
-                {
-                    if (isSubscribed)
-                    {
-                        _communityCache.Subscriptions.Remove(comment.Id);
-                    }
-                    else
-                    {
-                        _communityCache.Subscriptions.Add(comment.Id, comment.Replies.Count);
-                    }
-
-                    SaveSystem.SaveCommunityCache(_communityCache);
-                    btnMore.Flyout?.Hide();
-
-                    // update local ui without refreshing the whole section
-                    isSubscribed = !isSubscribed;
-                    var contentStack = (StackPanel)btnSubscribe.Content;
-                    var iconContainer = contentStack.Children[0];
-                    var textBlock = (TextBlock)contentStack.Children[1];
-
-                    contentStack.Children[0] = LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16);
-                    textBlock.Text = isSubscribed ? "Deabonnieren" : "Abonnieren";
-                };
-
-                flyoutStack.Children.Add(btnSubscribe);
-            }
 
             flyoutStack.Children.Add(btnEdit);
             flyoutStack.Children.Add(btnDelete);
@@ -1388,6 +1404,8 @@ public partial class MainWindow
                 ColumnDefinitions = new ColumnDefinitions("*, Auto")
             };
 
+            string activeReplyTag = ""; 
+
             var txtReply = new TextBox
             {
                 Watermark = "Antwort verfassen...",
@@ -1423,6 +1441,58 @@ public partial class MainWindow
 
             txtReply.TextChanged += (s, e) =>
             {
+                if (_isProgrammaticTextChange) return;
+
+                string text = txtReply.Text ?? "";
+                bool textModified = false;
+                int caret = txtReply.CaretIndex;
+
+                // check if the active tag was touched, modified or prepended to
+                if (!string.IsNullOrEmpty(activeReplyTag))
+                {
+                    if (!text.StartsWith(activeReplyTag))
+                    {
+                        if (text.StartsWith("@"))
+                        {
+                            int spaceIdx = text.IndexOf(' ');
+                            if (spaceIdx != -1)
+                                text = text.Substring(spaceIdx + 1).TrimStart();
+                            else
+                                text = "";
+                        }
+                        activeReplyTag = "";
+                        textModified = true;
+                        caret = Math.Min(caret, text.Length);
+                    }
+                }
+
+                // prevent manual '@' anywhere
+                int expectedAtCount = string.IsNullOrEmpty(activeReplyTag) ? 0 : 1;
+                int actualAtCount = text.Count(c => c == '@');
+
+                if (actualAtCount > expectedAtCount)
+                {
+                    if (!string.IsNullOrEmpty(activeReplyTag) && text.StartsWith(activeReplyTag))
+                    {
+                        string remainder = text.Substring(activeReplyTag.Length).Replace("@", "");
+                        text = activeReplyTag + remainder;
+                    }
+                    else
+                    {
+                        text = text.Replace("@", "");
+                    }
+                    textModified = true;
+                    caret = Math.Max(0, caret - 1);
+                }
+
+                if (textModified)
+                {
+                    _isProgrammaticTextChange = true;
+                    txtReply.Text = text;
+                    txtReply.CaretIndex = Math.Min(caret, text.Length);
+                    _isProgrammaticTextChange = false;
+                }
+
                 bool canSend = !string.IsNullOrWhiteSpace(txtReply.Text);
                 btnSendReply.IsEnabled = canSend;
                 btnSendReply.Opacity = canSend ? 1.0 : 0.5;
@@ -1485,6 +1555,7 @@ public partial class MainWindow
                 Debug.WriteLine($"[Debug] Sent Reply to comment.Id=[{comment.Id}] in discussionId=[{discussionId}]...");
                 bool replySent = await SendReplyToGithubAsync(discussionId, comment.Id, replyText);
 
+                activeReplyTag = "";
                 txtReply.Text = "";
                 replyInputGrid.IsVisible = false;
                 replyContent.Children[0] = LoadIcon("assets/icons/ic_comment_add.svg", 18);
@@ -1504,16 +1575,28 @@ public partial class MainWindow
             Action<string> localTagAction = (username) =>
             {
                 replyInputGrid.IsVisible = true;
-                string tag = $"@{username} ";
-
-                int insertPos = txtReply.CaretIndex;
-                if (insertPos < 0) insertPos = txtReply.Text?.Length ?? 0;
+                string newTag = $"@{username} ";
 
                 string currentText = txtReply.Text ?? string.Empty;
-                txtReply.Text = currentText.Insert(insertPos, tag);
 
-                txtReply.Focus();
-                txtReply.CaretIndex = insertPos + tag.Length;
+                // remove existing tag if present to prevent stacking tags
+                if (!string.IsNullOrEmpty(activeReplyTag) && currentText.StartsWith(activeReplyTag))
+                {
+                    currentText = currentText.Substring(activeReplyTag.Length);
+                }
+
+                activeReplyTag = newTag;
+
+                _isProgrammaticTextChange = true;
+                txtReply.Text = activeReplyTag + currentText.TrimStart();
+
+                // enqueue the reset to focus and set caret properly
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _isProgrammaticTextChange = false;
+                    txtReply.Focus();
+                    txtReply.CaretIndex = activeReplyTag.Length;
+                });
             };
 
             Grid.SetColumn(btnSendReply, 1);
@@ -1575,6 +1658,13 @@ public partial class MainWindow
                         repliesContainer.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
                 };
 
+                if (comment.Id == _targetHighlightCommentId && comment.Replies.Count > 0)
+                {
+                    repliesContainer.IsVisible = true;
+                    txtShowReplies.Text = "Antworten ausblenden";
+                    showRepliesContent.Children[0] = LoadIcon("assets/icons/ic_comment_hide.svg", 16);
+                }
+
                 foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
                 {
                     repliesStack.Children.Add(CreateCommentUI(new GithubComment
@@ -1585,7 +1675,7 @@ public partial class MainWindow
                         CreatedAt = reply.CreatedAt,
                         Upvotes = reply.Upvotes,
                         ViewerHasUpvoted = reply.ViewerHasUpvoted
-                    }, discussionId, true, localTagAction));
+                    }, discussionId, true, localTagAction, comment));
                 }
             }
 
@@ -1689,11 +1779,21 @@ public partial class MainWindow
                 // visually hide the comment instantly (optimistic)
                 border.IsVisible = false;
 
-                EnqueueApiRequest("Kommentar löschen", async () => 
+                EnqueueApiRequest("Kommentar löschen", async () =>
                 {
                     bool deleted = await DeleteCommentOrReplyAsync(comment.Id);
 
-                    await Dispatcher.UIThread.InvokeAsync(async () => 
+                    if (deleted && isReply && parentComment != null && parentComment.Author != AppSettings.GithubUsername)
+                    {
+                        bool hasOtherReplies = parentComment.Replies.Any(r => r.Id != comment.Id && r.Author == AppSettings.GithubUsername);
+                        if (!hasOtherReplies)
+                        {
+                            _communityCache.Subscriptions.Remove(parentComment.Id);
+                            SaveSystem.SaveCommunityCache(_communityCache);
+                        }
+                    }
+
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
                         if (deleted)
                         {
@@ -1819,21 +1919,18 @@ public partial class MainWindow
 
                 if (resp.IsSuccessStatusCode && !resBody.Contains("\"errors\":"))
                 {
-                    // auto subscribe if question
-                    if (tagSelection == "Frage")
+                    // auto subscribe to users own comment
+                    try
                     {
-                        try
+                        using var doc = JsonDocument.Parse(resBody);
+                        var id = doc.RootElement.GetProperty("data").GetProperty("addDiscussionComment").GetProperty("comment").GetProperty("id").GetString();
+                        if (!string.IsNullOrEmpty(id))
                         {
-                            using var doc = JsonDocument.Parse(resBody);
-                            var id = doc.RootElement.GetProperty("data").GetProperty("addDiscussionComment").GetProperty("comment").GetProperty("id").GetString();
-                            if (!string.IsNullOrEmpty(id))
-                            {
-                                _communityCache.Subscriptions.Add(id, 0);
-                                SaveSystem.SaveCommunityCache(_communityCache);
-                            }
+                            _communityCache.Subscriptions[id] = 0;
+                            SaveSystem.SaveCommunityCache(_communityCache);
                         }
-                        catch { }
                     }
+                    catch { }
 
                     TxtCommentInput.Text = "";
                     CmbCommentTag.SelectedIndex = 0; // reset tag selection upon success
@@ -2520,8 +2617,10 @@ public partial class MainWindow
                             nodes(ids: $ids) {
                                 ... on DiscussionComment {
                                     id
+                                    discussion { id }
                                     author { login }
-                                    replies(last: 5) {
+                                    body
+                                    replies(last: 15) {
                                         totalCount
                                         nodes { id author { login } body }
                                     }
@@ -2544,7 +2643,21 @@ public partial class MainWindow
                                 if (node.ValueKind == JsonValueKind.Null) continue;
 
                                 string commentId = node.GetProperty("id").GetString();
+                                string discId = node.GetProperty("discussion").GetProperty("id").GetString();
                                 string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                                string parentBody = node.GetProperty("body").GetString();
+
+                                // intercept bot messages to get real parent author
+                                if (parentAuthor == "aec-community-bot")
+                                {
+                                    var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                    if (match.Success)
+                                    {
+                                        parentAuthor = match.Groups[1].Value;
+                                        parentBody = match.Groups[2].Value; // extract body to clean the html tag
+                                    }
+                                }
+
                                 var repliesData = node.GetProperty("replies");
                                 int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
 
@@ -2561,51 +2674,54 @@ public partial class MainWindow
                                         foreach (var replyNode in newReplies)
                                         {
                                             string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
-                                            if (replyAuthor == AppSettings.GithubUsername) continue;
-
                                             string replyBody = replyNode.GetProperty("body").GetString();
 
-                                            string foundDiscId = null;
-                                            foreach (var cache in _communityCache.CsharpDiscussions.Values.Concat(_communityCache.SqlDiscussions.Values))
+                                            // intercept bot messages for the reply author too (fixed regex)
+                                            if (replyAuthor == "aec-community-bot")
                                             {
-                                                if (cache.Comments.Any(c => c.Id == commentId || c.Replies.Any(r => r.Id == commentId)))
+                                                var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                if (match.Success)
                                                 {
-                                                    foundDiscId = cache.DiscussionNodeId;
-                                                    break;
+                                                    replyAuthor = match.Groups[1].Value;
+                                                    replyBody = match.Groups[2].Value; // extract body to clean the html tag
                                                 }
                                             }
 
-                                            // check for our injected zero-width space mention or a normal text mention fallback
-                                            bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}") ||
-                                                               replyBody.Contains($"@{AppSettings.GithubUsername}");
+                                            // use case-insensitive check
+                                            if (string.Equals(replyAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
 
-                                            if (isMentioned)
+                                            // check for our injected zero-width space mention or a normal text mention fallback (now case-insensitive)
+                                            bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
+                                            bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
+                                                               replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
+
+                                            if (!isAuthor && isMentioned)
                                             {
                                                 _communityCache.Notifications.Add(new AppNotification
                                                 {
-                                                    Message = $"{replyAuthor} hat dich in einer Antwort erwähnt (@).",
+                                                    Message = $"{replyAuthor} hat dich in einer Antwort erwähnt.",
                                                     Date = DateTime.Now,
                                                     IsRead = false,
-                                                    TargetDiscussionId = foundDiscId,
-                                                    TargetCommentId = commentId
+                                                    TargetDiscussionId = discId, // directly assigned from graphql
+                                                    TargetCommentId = commentId,
+                                                    TargetReplyId = replyNode.GetProperty("id").GetString()
                                                 });
                                                 hasNewNotifications = true;
                                             }
-                                            else if (parentAuthor == AppSettings.GithubUsername)
+                                            else if (isAuthor)
                                             {
-                                                // only trigger standard reply notification if they explicitly own the parent comment
                                                 _communityCache.Notifications.Add(new AppNotification
                                                 {
-                                                    Message = $"{replyAuthor} hat auf deinen abonnierten Kommentar geantwortet.",
+                                                    Message = $"{replyAuthor} hat auf deinen Kommentar geantwortet.",
                                                     Date = DateTime.Now,
                                                     IsRead = false,
-                                                    TargetDiscussionId = foundDiscId,
-                                                    TargetCommentId = commentId
+                                                    TargetDiscussionId = discId, // directly assigned from graphql
+                                                    TargetCommentId = commentId,
+                                                    TargetReplyId = replyNode.GetProperty("id").GetString()
                                                 });
                                                 hasNewNotifications = true;
                                             }
                                         }
-
                                         _communityCache.Subscriptions[commentId] = newTotalCount;
                                     }
                                 }
@@ -2622,8 +2738,18 @@ public partial class MainWindow
 
         if (hasNewNotifications)
         {
-            SaveSystem.SaveCommunityCache(_communityCache);
-            await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+            if (_inboxFlyout != null && _inboxFlyout.IsOpen)
+            {
+                // mark as read if flyout already open
+                foreach (var n in _communityCache.Notifications) n.IsRead = true;
+                SaveSystem.SaveCommunityCache(_communityCache);
+                await Dispatcher.UIThread.InvokeAsync(() => { ShowInboxFlyout(); });
+            }
+            else
+            {
+                SaveSystem.SaveCommunityCache(_communityCache);
+                await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+            }
         }
     }
 
@@ -2914,8 +3040,10 @@ public partial class MainWindow
                     Cursor = new Cursor(StandardCursorType.Hand)
                 };
 
-                btnGo.Click += (s, e) => 
+                btnGo.Click += (s, e) =>
                 {
+                    if (_isCustomLevelMode) return; // locked in level designer
+
                     _inboxFlyout?.Hide();
                     if (!string.IsNullOrEmpty(notif.TargetDiscussionId))
                     {
@@ -2946,9 +3074,11 @@ public partial class MainWindow
 
                         if (targetLevelId != null)
                         {
+                            _targetHighlightCommentId = notif.TargetCommentId;
+                            _targetHighlightReplyId = notif.TargetReplyId;
+
                             _isSqlMode = isTargetSql;
 
-                            // switch the actual open level view inside the editor
                             if (isTargetSql)
                             {
                                 if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
@@ -2965,6 +3095,9 @@ public partial class MainWindow
                             UpdateCommunityUIAsync(targetLevelId, isTargetSql);
                             PnlCommentsSection.IsVisible = true;
                             RenderCachedComments();
+
+                            _targetHighlightCommentId = null;
+                            _targetHighlightReplyId = null;
                         }
                     }
                 };

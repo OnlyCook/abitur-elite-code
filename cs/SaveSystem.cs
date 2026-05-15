@@ -811,4 +811,5 @@ public class AppNotification
     public bool IsRead { get; set; }
     public string TargetDiscussionId { get; set; }
     public string TargetCommentId { get; set; }
+    public string TargetReplyId { get; set; }
 }

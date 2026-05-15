@@ -2212,7 +2212,7 @@ public partial class SettingsWindow : Window
             }
 
             contentStack.Children.Add(CreatePermItem("1", "Lesen von Repositories", "public_repo",
-                "Wird benötigt, um die Level-Diskussionen und Kommentare abrufen und hier anzeigen zu können, als auch um Level und Kommentare zu bewerten."));
+                "Wird benötigt, um die Level-Diskussionen und Kommentare abrufen und hier anzeigen zu können, als auch diese zu bewerten."));
 
             var promiseCard = new Border
             {
