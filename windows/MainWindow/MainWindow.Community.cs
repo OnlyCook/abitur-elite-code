@@ -322,7 +322,7 @@ public partial class MainWindow
         var queryObj = new
         {
             query = @"query($num: Int!, $cursor: String) {
-                repository(owner: ""OnlyCook"", name: ""aec-community"") {
+                repository(owner: ""aec-community-bot"", name: ""aec-community"") {
                     discussion(number: $num) {
                         id
                         upvotes: reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
@@ -681,6 +681,8 @@ public partial class MainWindow
 
         if (string.IsNullOrEmpty(AppSettings.GithubToken) || _currentActiveDiscussionId == -1) return;
 
+        if (CheckAndHandlePermaBan()) return;
+
         string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
         if (!dict.TryGetValue(levelId, out var cache)) return;
@@ -756,7 +758,15 @@ public partial class MainWindow
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             var resp = await _httpClient.PostAsync("https://api.github.com/graphql", httpContent);
-            await resp.Content.ReadAsStringAsync();
+            string respBody = await resp.Content.ReadAsStringAsync();
+
+            // detect github block (perma-ban)
+            if (respBody.Contains("\"FORBIDDEN\"") && respBody.Contains("does not have the correct permissions"))
+            {
+                playerData.Settings.IsPermaBanned = true;
+                SaveSystem.Save(playerData);
+                await Dispatcher.UIThread.InvokeAsync(ShowPermaBanDialog);
+            }
         }
 
         try
@@ -1058,7 +1068,7 @@ public partial class MainWindow
                     HorizontalContentAlignment = HorizontalAlignment.Left,
                     Padding = new Thickness(10, 8),
                     CornerRadius = new CornerRadius(4),
-                    Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                    Cursor = Cursor.Parse("Hand")
                 };
                 btnTag.Click += (s, e) =>
                 {
@@ -1090,7 +1100,7 @@ public partial class MainWindow
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 8),
                 CornerRadius = new CornerRadius(4),
-                Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                Cursor = Cursor.Parse("Hand")
             };
             btnReport.Click += (s, e) =>
             {
@@ -1122,7 +1132,7 @@ public partial class MainWindow
                 Foreground = Brushes.White,
                 Padding = new Thickness(10, 5),
                 CornerRadius = new CornerRadius(4),
-                Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                Cursor = Cursor.Parse("Hand")
             };
             var spoilerContent = new StackPanel
             {
@@ -1187,7 +1197,7 @@ public partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Padding = new Thickness(5),
                 Margin = new Thickness(0),
-                Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                Cursor = Cursor.Parse("Hand")
             };
 
             var expandContent = new StackPanel
@@ -1262,13 +1272,13 @@ public partial class MainWindow
         {
             Content = "Abbrechen",
             Background = SolidColorBrush.Parse("#3C3C3C"),
-            Cursor = Avalonia.Input.Cursor.Parse("Hand")
+            Cursor = Cursor.Parse("Hand")
         };
         var btnSaveEdit = new Button
         {
             Content = "Speichern",
             Background = SolidColorBrush.Parse("#32A852"),
-            Cursor = Avalonia.Input.Cursor.Parse("Hand")
+            Cursor = Cursor.Parse("Hand")
         };
 
         editActions.Children.Add(btnCancelEdit);
@@ -1294,7 +1304,7 @@ public partial class MainWindow
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(5),
-            Cursor = Avalonia.Input.Cursor.Parse("Hand")
+            Cursor = Cursor.Parse("Hand")
         };
         var upvoteContent = new StackPanel
         {
@@ -1321,6 +1331,8 @@ public partial class MainWindow
                 }
                 return;
             }
+
+            if (CheckAndHandlePermaBan()) return;
 
             // optimistic ui state update
             bool targetState = !comment.ViewerHasUpvoted;
@@ -1352,7 +1364,7 @@ public partial class MainWindow
             {
                 Background = Brushes.Transparent,
                 Padding = new Thickness(5),
-                Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                Cursor = Cursor.Parse("Hand")
             };
             var replyContent = new StackPanel
             {
@@ -1390,7 +1402,7 @@ public partial class MainWindow
             var btnSendReply = new Button
             {
                 Background = SolidColorBrush.Parse("#3C3C3C"),
-                Cursor = Avalonia.Input.Cursor.Parse("Hand"),
+                Cursor = Cursor.Parse("Hand"),
                 Margin = new Thickness(10, 0, 0, 0),
                 Padding = new Thickness(8, 6),
                 VerticalAlignment = VerticalAlignment.Bottom,
@@ -1522,7 +1534,7 @@ public partial class MainWindow
                 {
                     Background = Brushes.Transparent,
                     Padding = new Thickness(5),
-                    Cursor = Avalonia.Input.Cursor.Parse("Hand")
+                    Cursor = Cursor.Parse("Hand")
                 };
                 var showRepliesContent = new StackPanel
                 {
@@ -1618,6 +1630,11 @@ public partial class MainWindow
                 }
 
                 btnSaveEdit.IsEnabled = false;
+                if (CheckAndHandlePermaBan())
+                {
+                    btnSaveEdit.IsEnabled = true;
+                    return;
+                }
                 string newBody = txtEdit.Text;
 
                 // optimistic ui update
@@ -1662,6 +1679,12 @@ public partial class MainWindow
 
                 btnMore.Flyout?.Hide();
                 btnDelete.IsEnabled = false;
+
+                if (CheckAndHandlePermaBan())
+                {
+                    btnDelete.IsEnabled = true;
+                    return;
+                }
 
                 // visually hide the comment instantly (optimistic)
                 border.IsVisible = false;
@@ -1733,6 +1756,8 @@ public partial class MainWindow
         }
 
         if (string.IsNullOrWhiteSpace(TxtCommentInput.Text)) return;
+
+        if (CheckAndHandlePermaBan()) return;
 
         // global 20s cooldown verification upon click
         double secondsSinceLastComment = (DateTime.Now - _lastCommentTime).TotalSeconds;
@@ -1836,6 +1861,8 @@ public partial class MainWindow
 
     private async Task<bool> SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
     {
+        if (CheckAndHandlePermaBan()) return false;
+
         // send payload to cloudflare worker (instead of github directly)
         var payload = new
         {
@@ -1894,7 +1921,15 @@ public partial class MainWindow
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
             var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-            await resp.Content.ReadAsStringAsync();
+            string respBody = await resp.Content.ReadAsStringAsync();
+
+            // detect github block (perma-ban)
+            if (respBody.Contains("\"FORBIDDEN\"") && respBody.Contains("does not have the correct permissions"))
+            {
+                playerData.Settings.IsPermaBanned = true;
+                SaveSystem.Save(playerData);
+                await Dispatcher.UIThread.InvokeAsync(ShowPermaBanDialog);
+            }
         }
         catch (Exception ex)
         {
@@ -1993,7 +2028,17 @@ public partial class MainWindow
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
             var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
-            await resp.Content.ReadAsStringAsync();
+            string respBody = await resp.Content.ReadAsStringAsync();
+
+            Debug.WriteLine("[Community] Reply-Upvote body: " + respBody);
+
+            // detect github block (perma-ban)
+            if ((!resp.IsSuccessStatusCode || respBody.Contains("\"FORBIDDEN\"")) && respBody.Contains("blocked"))
+            {
+                playerData.Settings.IsPermaBanned = true;
+                SaveSystem.Save(playerData);
+                await Dispatcher.UIThread.InvokeAsync(ShowPermaBanDialog);
+            }
         }
         catch (Exception ex)
         {
@@ -3195,6 +3240,7 @@ public partial class MainWindow
 
     private async void ShowBanDialog()
     {
+        // soft ban: blocked by cloudflare proxy (spam/rate limit)
         var dialog = new Window
         {
             Title = "Gesperrt",
@@ -3215,7 +3261,7 @@ public partial class MainWindow
 
         stack.Children.Add(new TextBlock
         {
-            Text = "Account gesperrt",
+            Text = "Account temporär gesperrt",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
             Foreground = SolidColorBrush.Parse("#FF5555")
@@ -3223,7 +3269,7 @@ public partial class MainWindow
 
         stack.Children.Add(new TextBlock
         {
-            Text = "Dein Account wurde aufgrund von Spam oder unangemessenem Verhalten temporär oder permanent für die Community-Features gesperrt.\n\nBitte kontaktiere den Support, falls dies ein Irrtum ist.",
+            Text = "Dein Account wurde aufgrund von Spam oder unangemessenem Verhalten vorübergehend für Kommentare und Antworten gesperrt.\n\nBitte kontaktiere den Support, falls dies ein Irrtum ist.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.LightGray
         });
@@ -3234,7 +3280,7 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#3C3C3C"),
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 10, 0, 0),
-            Cursor = Avalonia.Input.Cursor.Parse("Hand")
+            Cursor = Cursor.Parse("Hand")
         };
         btnOk.Click += (s, e) => dialog.Close();
 
@@ -3242,5 +3288,65 @@ public partial class MainWindow
         dialog.Content = stack;
 
         await dialog.ShowDialog(this);
+    }
+
+    private async void ShowPermaBanDialog()
+    {
+        // permanent ban: user is blocked on github by aec-community-bot
+        var dialog = new Window
+        {
+            Title = "Permanent gesperrt",
+            Width = 420,
+            Height = 250,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+
+        var stack = new StackPanel
+        {
+            Spacing = 15,
+            Margin = new Thickness(20),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = "⛔ Account permanent gesperrt",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = SolidColorBrush.Parse("#FF2222")
+        });
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Dein Account wurde permanent aus der Community ausgeschlossen. Du kannst Kommentare und Bewertungen weiterhin lesen, aber keine Aktionen mehr durchführen.\n\nWende dich an den Support, wenn du dir extremst sicher bist, dass dies ein Fehler ist.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brushes.LightGray
+        });
+
+        var btnOk = new Button
+        {
+            Content = "Verstanden",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 10, 0, 0),
+            Cursor = Cursor.Parse("Hand")
+        };
+        btnOk.Click += (s, e) => dialog.Close();
+
+        stack.Children.Add(btnOk);
+        dialog.Content = stack;
+
+        await dialog.ShowDialog(this);
+    }
+
+    private bool CheckAndHandlePermaBan()
+    {
+        // returns true if the user is perma-banned, shows dialog and blocks the action
+        if (!playerData.Settings.IsPermaBanned) return false;
+        ShowPermaBanDialog();
+        return true;
     }
 }

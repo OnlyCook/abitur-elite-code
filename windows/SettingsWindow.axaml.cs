@@ -9,11 +9,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -1988,7 +1986,7 @@ public partial class SettingsWindow : Window
             new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("client_id", ClientId),
-                new KeyValuePair<string, string>("scope", "public_repo write:discussion")
+                new KeyValuePair<string, string>("scope", "public_repo")
             }
         ));
 
@@ -2147,7 +2145,7 @@ public partial class SettingsWindow : Window
 
             contentStack.Children.Add(new TextBlock
             {
-                Text = "Um die Community Features nutzen zu können, fordert diese App 2 spezifische GitHub-Berechtigungen an:",
+                Text = "Um die Community Features nutzen zu können, fordert diese App eine spezifische GitHub-Berechtigungen an:",
                 Foreground = Brushes.White,
                 TextWrapping = TextWrapping.Wrap
             });
@@ -2214,10 +2212,7 @@ public partial class SettingsWindow : Window
             }
 
             contentStack.Children.Add(CreatePermItem("1", "Lesen von Repositories", "public_repo",
-                "Wird benötigt, um die Level-Diskussionen und Kommentare überhaupt abrufen und hier anzeigen zu können."));
-
-            contentStack.Children.Add(CreatePermItem("2", "Diskussionen schreiben", "write:discussion",
-                "Wird benötigt, damit du Kommentare und Antworten verfassen sowie Upvotes/Likes vergeben kannst."));
+                "Wird benötigt, um die Level-Diskussionen und Kommentare abrufen und hier anzeigen zu können, als auch um Level und Kommentare zu bewerten."));
 
             var promiseCard = new Border
             {
@@ -2245,11 +2240,11 @@ public partial class SettingsWindow : Window
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 20
             };
-            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf diesem Repository aus:\n")
+            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf Diskussionen in diesem Repository aus:\n")
             {
                 Foreground = Brushes.LightGray
             });
-            promiseText.Inlines.Add(new Run("https://github.com/OnlyCook/aec-community\n\n")
+            promiseText.Inlines.Add(new Run("https://github.com/aec-community-bot/aec-community\n\n")
             {
                 Foreground = SolidColorBrush.Parse("#6495ED")
             });
@@ -2448,7 +2443,7 @@ public partial class SettingsWindow : Window
                             ignoreClient.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode");
                             ignoreClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
                             var ignorePayload = new StringContent("{\"ignored\": true}", Encoding.UTF8, "application/json");
-                            await ignoreClient.PutAsync("https://api.github.com/repos/OnlyCook/aec-community/subscription", ignorePayload);
+                            await ignoreClient.PutAsync("https://api.github.com/repos/aec-community-bot/aec-community/subscription", ignorePayload);
                         }
                         catch { }
 

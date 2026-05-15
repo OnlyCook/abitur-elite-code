@@ -48,6 +48,7 @@ public class PlayerSettings
     public string GithubToken { get; set; } = "";
     [SettingKey("githubusername")] public string GithubUsername { get; set; } = "";
     [SettingKey("installkey")] public string InstallKey { get; set; } = string.Empty;
+    [SettingKey("permabanned")] public bool IsPermaBanned { get; set; } = false;
 
     // internal game state (not settings)
     [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
