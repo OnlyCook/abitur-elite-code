@@ -1,5 +1,6 @@
 using AbiturEliteCode.cs;
 using AbiturEliteCode.screens;
+using AbiturEliteCode.windows;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -1813,11 +1814,21 @@ public partial class SettingsWindow : Window
                     return;
                 }
 
+                // prompt the user if they want to wait for the api queue to finish
+                if (!await CheckApiQueueBeforeLogout())
+                {
+                    _suppressCommunityHandler = true;
+                    _chkCommunityFeatures.IsChecked = true;
+                    _suppressCommunityHandler = false;
+                    return;
+                }
+
+                MainWindow.ClearApiQueue();
+
                 // sign out
                 AppSettings.GithubToken = string.Empty;
-                AppSettings.GithubUsername = string.Empty;
+                // leave username to be able to compare it on next login
                 SaveSystem.DeleteToken();
-                SaveSystem.ClearCommunityUserState();
                 AppSettings.ApplyTo(_ctx.PlayerData.Settings);
                 SaveSystem.Save(_ctx.PlayerData);
             }
@@ -1860,10 +1871,14 @@ public partial class SettingsWindow : Window
         {
             if (!string.IsNullOrEmpty(AppSettings.GithubToken))
             {
+                // prompt user if they want to wait for api queue to finish
+                if (!await CheckApiQueueBeforeLogout()) return;
+
+                MainWindow.ClearApiQueue();
+
                 AppSettings.GithubToken = string.Empty;
-                AppSettings.GithubUsername = string.Empty;
+                // leave username as is
                 SaveSystem.DeleteToken();
-                SaveSystem.ClearCommunityUserState();
 
                 // save immediately
                 AppSettings.ApplyTo(_ctx.PlayerData.Settings);
@@ -2467,7 +2482,17 @@ public partial class SettingsWindow : Window
                             {
                                 var userDoc = JsonDocument.Parse(await userResp.Content.ReadAsStringAsync());
                                 if (userDoc.RootElement.TryGetProperty("login", out var loginProp))
-                                    AppSettings.GithubUsername = loginProp.GetString() ?? string.Empty;
+                                {
+                                    string newUsername = loginProp.GetString() ?? string.Empty;
+
+                                    // clear community cache only if logged in as a different user (not on logout)
+                                    if (!string.IsNullOrEmpty(AppSettings.GithubUsername) && AppSettings.GithubUsername != newUsername)
+                                    {
+                                        SaveSystem.ClearCommunityUserState();
+                                    }
+
+                                    AppSettings.GithubUsername = newUsername;
+                                }
                             }
                         }
                         catch { }
@@ -2505,6 +2530,27 @@ public partial class SettingsWindow : Window
 
         await dialog.ShowDialog(this);
         _loginCts.Cancel(); // stop polling if window is closed manually
+    }
+
+    private async Task<bool> CheckApiQueueBeforeLogout()
+    {
+        if (MainWindow.GetApiQueueSnapshot().Count == 0 && MainWindow.GetApiQueueInFlightCount() == 0)
+            return true;
+
+        return await ShowLogoutApiQueueDialog();
+    }
+
+    private async Task<bool> ShowLogoutApiQueueDialog()
+    {
+        return await ApiQueueDialog.ShowAsync(this, new ApiQueueDialogConfig
+        {
+            SubtitleText = "Es befinden sich noch Aktionen in der Warteschlange. Wenn du dich jetzt abmeldest, werden diese abgebrochen und gehen verloren.",
+            CancelButtonText = "Abbrechen",
+            DestructiveButtonText = "Trotzdem abmelden",
+            GetSnapshot = MainWindow.GetApiQueueSnapshot,
+            GetNextAvailableApiTime = MainWindow.GetNextAvailableApiTime,
+            GetInFlightCount = MainWindow.GetApiQueueInFlightCount
+        });
     }
 
     private void NotifyMainWindowCommunityState()

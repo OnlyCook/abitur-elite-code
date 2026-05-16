@@ -611,7 +611,10 @@ public static class SaveSystem
             discussion.ViewerHasDisliked = false;
         }
 
-        SaveCommunityCache(cache);
+        cache.Notifications.Clear();
+        cache.Subscriptions.Clear();
+
+        SaveSystem.SaveCommunityCache(cache);
     }
 
     private static byte[] DeriveKey(string installKey)
