@@ -73,8 +73,14 @@ public partial class MainWindow
                 TxtCommunityFullQueueStatus.IsVisible = true;
         });
 
-        try { await Task.Delay(3000, token); }
-        catch (TaskCanceledException) { return; }
+        try
+        {
+            await Task.Delay(3000, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -113,6 +119,22 @@ public partial class MainWindow
         if (TxtCommunityOfflineStatus != null)
             TxtCommunityOfflineStatus.IsVisible = false;
         PnlCommunityActions.IsVisible = false;
+    }
+
+    private void ShowOutdatedBanner()
+    {
+        BtnLike.IsEnabled = false;
+        BtnDislike.IsEnabled = false;
+        BtnToggleComments.IsEnabled = false;
+        PnlCommentsSection.IsVisible = false;
+        SetCommunitySkeletonsVisible(true);
+
+        PnlCommunityActions.IsVisible = true;
+        if (TxtCommunityOfflineStatus != null)
+            TxtCommunityOfflineStatus.IsVisible = false;
+
+        if (TxtCommunityOutdatedStatus != null)
+            TxtCommunityOutdatedStatus.IsVisible = true;
     }
 
     private void FlushPendingDebounces()
@@ -261,6 +283,23 @@ public partial class MainWindow
         int discussionNum = _discussionMappings[modeKey][levelId];
         _currentActiveDiscussionId = discussionNum;
 
+        // check version before proceeding
+        if (!UpdateManager.HasCheckedForUpdates)
+        {
+            PnlCommunityActions.IsVisible = true;
+            SetCommunitySkeletonsVisible(true);
+            await UpdateManager.CheckForUpdatesAsync();
+        }
+
+        if (UpdateManager.IsOutdated)
+        {
+            ShowOutdatedBanner();
+            return;
+        }
+
+        var txtOutdated = this.FindControl<TextBlock>("TxtCommunityOutdatedStatus");
+        if (txtOutdated != null) txtOutdated.IsVisible = false;
+
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
         // check cache first to prevent skeleton flashing
@@ -297,6 +336,8 @@ public partial class MainWindow
 
     private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (!await CheckRealConnectivityAsync())
         {
             if (!_isKnownOffline)
@@ -561,6 +602,8 @@ public partial class MainWindow
 
     private async void BtnToggleComments_Click(object sender, RoutedEventArgs e)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (!await CheckRealConnectivityAsync())
         {
             if (!_isKnownOffline)
@@ -582,6 +625,8 @@ public partial class MainWindow
 
     private async void BtnLoadMoreComments_Click(object sender, RoutedEventArgs e)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (!await CheckRealConnectivityAsync())
         {
             if (!_isKnownOffline)
@@ -669,6 +714,8 @@ public partial class MainWindow
 
     private async void ToggleReaction(bool isLike)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (!await CheckRealConnectivityAsync())
         {
             if (!_isKnownOffline)
@@ -733,6 +780,8 @@ public partial class MainWindow
 
     private async Task SyncReactionToGithubAsync(DiscussionCache cache)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (string.IsNullOrEmpty(cache.DiscussionNodeId) || string.IsNullOrEmpty(AppSettings.GithubToken)) return;
 
         // local function to dispatch mutations to graphql
@@ -1222,7 +1271,7 @@ public partial class MainWindow
                 Spacing = 5
             };
             var expandIconContainer = new Panel();
-            expandIconContainer.Children.Add(LoadIcon("assets/icons/ic_expand.svg", 16));
+            expandIconContainer.Children.Add(LoadIcon("assets/icons/ic_chevron_down.svg", 16));
 
             var expandText = new TextBlock
             {
@@ -1244,7 +1293,7 @@ public partial class MainWindow
                 fogBorder.IsVisible = !isExpanded;
 
                 expandIconContainer.Children.Clear();
-                expandIconContainer.Children.Add(LoadIcon(isExpanded ? "assets/icons/ic_collapse.svg" : "assets/icons/ic_expand.svg", 16));
+                expandIconContainer.Children.Add(LoadIcon(isExpanded ? "assets/icons/ic_chevron_up.svg" : "assets/icons/ic_chevron_down.svg", 16));
                 expandText.Text = isExpanded ? "Weniger anzeigen" : "Mehr anzeigen";
             };
 
@@ -1845,6 +1894,8 @@ public partial class MainWindow
 
     private async void BtnSendComment_Click(object sender, RoutedEventArgs e)
     {
+        if (UpdateManager.IsOutdated) return;
+
         if (!await CheckRealConnectivityAsync())
         {
             if (!_isKnownOffline)
@@ -1958,6 +2009,7 @@ public partial class MainWindow
 
     private async Task<bool> SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
     {
+        if (UpdateManager.IsOutdated) return false;
         if (CheckAndHandlePermaBan()) return false;
 
         // send payload to cloudflare worker (instead of github directly)
@@ -2002,6 +2054,8 @@ public partial class MainWindow
 
     private async Task ToggleCommentUpvoteAsync(string subjectId, bool targetState)
     {
+        if (UpdateManager.IsOutdated) return;
+
         string op = targetState ? "addUpvote" : "removeUpvote";
         string mutation = $@"mutation($subjectId: ID!) {{ {op}(input: {{subjectId: $subjectId}}) {{ clientMutationId }} }}";
         var queryObj = new
@@ -2036,6 +2090,8 @@ public partial class MainWindow
 
     private async Task<bool> UpdateCommentOrReplyAsync(string id, string body)
     {
+        if (UpdateManager.IsOutdated) return false;
+
         var payload = new
         {
             commentId = id,
@@ -2076,6 +2132,8 @@ public partial class MainWindow
 
     private async Task<bool> DeleteCommentOrReplyAsync(string id)
     {
+        if (UpdateManager.IsOutdated) return false;
+
         try
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
@@ -2109,6 +2167,8 @@ public partial class MainWindow
 
     private async Task ToggleReplyUpvoteAsync(string subjectId, bool targetState)
     {
+        if (UpdateManager.IsOutdated) return;
+
         string op = targetState ? "addReaction" : "removeReaction";
         string mutation = $@"mutation($subjectId: ID!) {{ {op}(input: {{subjectId: $subjectId, content: THUMBS_UP}}) {{ clientMutationId }} }}";
         var queryObj = new
@@ -2594,6 +2654,7 @@ public partial class MainWindow
 
     private async Task PollNotificationsAsync()
     {
+        if (UpdateManager.IsOutdated) return;
         if (!await CheckRealConnectivityAsync()) return;
         if (playerData.Settings.AreNotificationsPaused) return;
 

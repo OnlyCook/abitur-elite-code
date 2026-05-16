@@ -20,8 +20,11 @@ public static class UpdateManager
         NetworkError
     }
 
-    public const string CurrentVersion = "0.9.0";
+    public const string CurrentVersion = "1.0.0";
     private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases/latest";
+
+    public static bool HasCheckedForUpdates { get; private set; } = false;
+    public static bool IsOutdated { get; private set; } = false;
 
     public static async Task<(UpdateStatus Status, bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
     {
@@ -31,7 +34,11 @@ public static class UpdateManager
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");
 
             var response = await client.GetAsync(GithubApiUrl);
-            if (!response.IsSuccessStatusCode) return (UpdateStatus.NetworkError, false, "", "");
+            if (!response.IsSuccessStatusCode)
+            {
+                HasCheckedForUpdates = true;
+                return (UpdateStatus.NetworkError, false, "", "");
+            }
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
@@ -59,15 +66,19 @@ public static class UpdateManager
                                     break;
                                 }
 
+                        IsOutdated = true;
+                        HasCheckedForUpdates = true;
                         return (UpdateStatus.Success, true, tag, downloadUrl);
                     }
             }
 
+            IsOutdated = false;
+            HasCheckedForUpdates = true;
             return (UpdateStatus.Success, false, "", "");
         }
         catch
         {
-            // catch no internet exception
+            HasCheckedForUpdates = true;
             return (UpdateStatus.NetworkError, false, "", "");
         }
     }

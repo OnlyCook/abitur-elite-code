@@ -1399,9 +1399,23 @@ public partial class SettingsWindow : Window
         _chkAutoUpdate = new CheckBox
         {
             Content = "Beim Start automatisch nach Updates suchen",
-            IsChecked = AppSettings.AutoCheckForUpdates,
-            Foreground = Brushes.White
+            // visually force to true if community features are enabled
+            IsChecked = AppSettings.IsCommunityFeaturesEnabled ? true : AppSettings.AutoCheckForUpdates,
+            Foreground = Brushes.White,
+            // lock control if community is enabled
+            IsHitTestVisible = !AppSettings.IsCommunityFeaturesEnabled,
+            Opacity = AppSettings.IsCommunityFeaturesEnabled ? 0.5 : 1.0
         };
+
+        var autoUpdateWrapper = new Panel
+        {
+            Background = Brushes.Transparent
+        };
+        autoUpdateWrapper.Children.Add(_chkAutoUpdate);
+        if (AppSettings.IsCommunityFeaturesEnabled)
+        {
+            ToolTip.SetTip(autoUpdateWrapper, "Community Features benötigen die aktuellste App-Version. Die automatische Update-Suche ist daher erzwungen.");
+        }
 
         _txtVersionInfo = new TextBlock
         {
@@ -1450,6 +1464,8 @@ public partial class SettingsWindow : Window
         // event handlers
         _chkAutoUpdate.IsCheckedChanged += (_, _) =>
         {
+            if (AppSettings.IsCommunityFeaturesEnabled) return;
+
             AppSettings.AutoCheckForUpdates = _chkAutoUpdate.IsChecked ?? false;
             CheckChanges();
         };
@@ -1545,7 +1561,7 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        innerContentPanel.Children.Add(_chkAutoUpdate);
+        innerContentPanel.Children.Add(autoUpdateWrapper);
         innerContentPanel.Children.Add(_txtVersionInfo);
         innerContentPanel.Children.Add(_updateProgressBar);
         innerContentPanel.Children.Add(actionRow);
@@ -1807,6 +1823,27 @@ public partial class SettingsWindow : Window
             }
 
             AppSettings.IsCommunityFeaturesEnabled = enabling;
+
+            // update the visually enforced auto update checkbox
+            if (_chkAutoUpdate != null)
+            {
+                if (enabling)
+                {
+                    _chkAutoUpdate.IsChecked = true;
+                    _chkAutoUpdate.IsHitTestVisible = false;
+                    _chkAutoUpdate.Opacity = 0.5;
+                    var wrapper = _chkAutoUpdate.Parent as Panel;
+                    if (wrapper != null) ToolTip.SetTip(wrapper, "Community Features benötigen die aktuellste App-Version. Die automatische Update-Suche ist daher erzwungen.");
+                }
+                else
+                {
+                    _chkAutoUpdate.IsChecked = AppSettings.AutoCheckForUpdates;
+                    _chkAutoUpdate.IsHitTestVisible = true;
+                    _chkAutoUpdate.Opacity = 1.0;
+                    var wrapper = _chkAutoUpdate.Parent as Panel;
+                    if (wrapper != null) ToolTip.SetTip(wrapper, null);
+                }
+            }
 
             // save immediately
             AppSettings.ApplyTo(_ctx.PlayerData.Settings);

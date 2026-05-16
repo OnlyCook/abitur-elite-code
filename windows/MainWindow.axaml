@@ -377,6 +377,7 @@
 
 										<Border Grid.Row="1" Name="PnlCommunityActions" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0" IsVisible="False">
 											<StackPanel>
+												<TextBlock Name="TxtCommunityOutdatedStatus" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
