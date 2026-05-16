@@ -455,6 +455,7 @@ public partial class MainWindow : Window
 
         _communityCache = SaveSystem.LoadCommunityCache();
         LoadDiscussionMappings();
+        UpdateInboxUI();
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-App");
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ""); // not really needed as user fills this in on login
 

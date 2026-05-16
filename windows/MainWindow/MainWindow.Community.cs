@@ -2937,47 +2937,119 @@ public partial class MainWindow
         var btnRefresh = new Button
         {
             Background = Brushes.Transparent,
+            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
         ToolTip.SetTip(btnRefresh, "Aktualisieren");
 
-        double secondsSinceLastRefresh = (DateTime.Now - _lastNotificationRefreshTime).TotalSeconds;
-
-        // visual cooldown loop
-        async void StartCooldownUI(int startElapsed)
+        var refreshContentGrid = new Grid
         {
+            Width = 18,
+            Height = 18,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var refreshIcon = LoadIcon("assets/icons/ic_refresh.svg", 18);
+        var cooldownArc = new Avalonia.Controls.Shapes.Arc
+        {
+            Width = 18,
+            Height = 18,
+            StartAngle = -90,
+            SweepAngle = 0,
+            Stroke = SolidColorBrush.Parse("#6495ED"),
+            StrokeThickness = 3,
+            IsVisible = false
+        };
+
+        refreshContentGrid.Children.Add(refreshIcon);
+        refreshContentGrid.Children.Add(cooldownArc);
+
+        DispatcherTimer? cooldownTimer = null;
+
+        // smooth circular cooldown loop
+        void StartCooldownUI()
+        {
+            cooldownTimer?.Stop();
             btnRefresh.IsEnabled = false;
-            btnRefresh.Opacity = 0.5;
 
-            string[] steps = { "12-5", "25", "37-5", "62-5", "75", "87-5" };
-            for (int i = startElapsed; i < 6; i++)
+            // hide icon entirely while showing the arc
+            refreshIcon.IsVisible = false;
+            cooldownArc.IsVisible = true;
+
+            cooldownTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            double totalCooldown = 9.5;
+
+            cooldownTimer.Tick += (s, e) =>
             {
-                btnRefresh.Content = LoadIcon($"assets/icons/ic_clock_loader_{steps[i]}.svg", 18);
-                Debug.WriteLine("[Debug] Looped: " + i + "; Showing: " + steps[i]);
-                await Task.Delay(1667);
-            }
+                double elapsedNow = (DateTime.Now - _lastNotificationRefreshTime).TotalSeconds;
+                double remaining = 10.0 - elapsedNow;
 
-            btnRefresh.Content = LoadIcon("assets/icons/ic_refresh.svg", 18);
-            btnRefresh.IsEnabled = true;
-            btnRefresh.Opacity = 1.0;
+                if (remaining <= 0)
+                {
+                    cooldownTimer.Stop();
+                    btnRefresh.IsEnabled = true;
+
+                    // restore original state
+                    refreshIcon.IsVisible = true;
+                    cooldownArc.IsVisible = false;
+                    cooldownArc.SweepAngle = 0;
+                }
+                else
+                {
+                    // sweep from 360 down to 0
+                    cooldownArc.SweepAngle = (remaining / totalCooldown) * 360;
+                }
+            };
+            cooldownTimer.Start();
         }
 
-        if (secondsSinceLastRefresh < 10)
+        double secondsSinceLastRefresh = (DateTime.Now - _lastNotificationRefreshTime).TotalSeconds;
+
+        if (secondsSinceLastRefresh < 0.5)
         {
-            int frame = (int)(secondsSinceLastRefresh / (10.0 / 6.0));
-            StartCooldownUI(frame);
+            // currently in checkmark animation phase
+            btnRefresh.Content = LoadIcon("assets/icons/ic_success.svg", 18);
+            btnRefresh.Background = SolidColorBrush.Parse("#2E8B57");
+            btnRefresh.IsEnabled = false;
+
+            Task.Run(async () => {
+                double waitTime = 0.5 - secondsSinceLastRefresh;
+                if (waitTime > 0) await Task.Delay((int)(waitTime * 1000));
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    btnRefresh.Content = refreshContentGrid;
+                    btnRefresh.Background = Brushes.Transparent;
+                    StartCooldownUI();
+                });
+            });
+        }
+        else if (secondsSinceLastRefresh < 10)
+        {
+            btnRefresh.Content = refreshContentGrid;
+            StartCooldownUI();
         }
         else
         {
-            btnRefresh.Content = LoadIcon("assets/icons/ic_refresh.svg", 18);
+            btnRefresh.Content = refreshContentGrid;
         }
 
-        btnRefresh.Click += (s, e) =>
+        btnRefresh.Click += async (s, e) =>
         {
             if ((DateTime.Now - _lastNotificationRefreshTime).TotalSeconds < 10) return; // 10s cooldown
 
             _lastNotificationRefreshTime = DateTime.Now;
-            StartCooldownUI(0);
+            btnRefresh.IsEnabled = false;
+
+            // temporarily show success icon and color
+            btnRefresh.Content = LoadIcon("assets/icons/ic_success.svg", 18);
+            btnRefresh.Background = SolidColorBrush.Parse("#2E8B57");
+
+            await Task.Delay(500);
+
+            btnRefresh.Content = refreshContentGrid;
+            btnRefresh.Background = Brushes.Transparent;
+            StartCooldownUI();
 
             EnqueueApiRequest("Manuelle Benachrichtigungsprüfung", async () =>
             {
@@ -2993,6 +3065,8 @@ public partial class MainWindow
         {
             Content = LoadIcon("assets/icons/ic_unsubscribe.svg", 18),
             Background = Brushes.Transparent,
+            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
         ToolTip.SetTip(btnUnsubscribeAll, "Alle deabonnieren");
@@ -3001,6 +3075,8 @@ public partial class MainWindow
         {
             Content = LoadIcon("assets/icons/ic_delete_all.svg", 18),
             Background = Brushes.Transparent,
+            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
         ToolTip.SetTip(btnDeleteAll, "Alle Benachrichtigungen löschen");
@@ -3009,21 +3085,37 @@ public partial class MainWindow
         {
             Content = LoadIcon("assets/icons/ic_support.svg", 18),
             Background = Brushes.Transparent,
+            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
         ToolTip.SetTip(btnSupport, "Support & Hilfe");
 
-        btnDeleteAll.Click += (s, e) =>
+        btnDeleteAll.Click += async (s, e) =>
         {
             _communityCache.Notifications.Clear();
             SaveSystem.SaveCommunityCache(_communityCache);
+
+            // temporarily show success icon and color
+            btnDeleteAll.Content = LoadIcon("assets/icons/ic_success.svg", 18);
+            btnDeleteAll.Background = SolidColorBrush.Parse("#2E8B57");
+            await Task.Delay(500);
+
             ShowInboxFlyout(); // re-render
         };
 
-        btnUnsubscribeAll.Click += (s, e) =>
+        btnUnsubscribeAll.Click += async (s, e) =>
         {
             _communityCache.Subscriptions.Clear();
             SaveSystem.SaveCommunityCache(_communityCache);
+
+            // temporarily show success icon and color
+            btnUnsubscribeAll.Content = LoadIcon("assets/icons/ic_success.svg", 18);
+            btnUnsubscribeAll.Background = SolidColorBrush.Parse("#2E8B57");
+            await Task.Delay(500);
+
+            btnUnsubscribeAll.Content = LoadIcon("assets/icons/ic_unsubscribe.svg", 18);
+            btnUnsubscribeAll.Background = Brushes.Transparent;
         };
 
         btnSupport.Click += (s, e) =>
@@ -3314,6 +3406,9 @@ public partial class MainWindow
 
     private async void ShowReportDialog(string targetId, string author, string discussionId, string body, DateTime createdAt)
     {
+        bool isPrankReady = false;
+        bool isPranking = false;
+
         var dialog = new Window
         {
             Title = "Melden",
@@ -3324,9 +3419,11 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
+
         dialog.KeyDown += (s, ev) =>
         {
-            if (ev.Key == Key.Escape)
+            // prevent escaping during the prank
+            if (ev.Key == Key.Escape && !isPranking)
                 dialog.Close();
         };
 
@@ -3336,19 +3433,23 @@ public partial class MainWindow
             Margin = new Thickness(20),
             VerticalAlignment = VerticalAlignment.Center
         };
-        stack.Children.Add(new TextBlock
+
+        var txtTitle = new TextBlock
         {
             Text = $"Kommentar von {author} melden",
             FontSize = 16,
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.Red
-        });
-        stack.Children.Add(new TextBlock
+        };
+        stack.Children.Add(txtTitle);
+
+        var txtWarning = new TextBlock
         {
             Text = "Möchtest du diesen Kommentar wirklich melden? Ein Missbrauch dieser Funktion kann zum Ausschluss führen.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.LightGray
-        });
+        };
+        stack.Children.Add(txtWarning);
 
         var txtReason = new TextBox
         {
@@ -3371,12 +3472,15 @@ public partial class MainWindow
             TextWrapping = TextWrapping.Wrap
         };
 
+        stack.Children.Add(txtError);
+
         var btnPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10,
             HorizontalAlignment = HorizontalAlignment.Right
         };
+
         var btnCancel = new Button
         {
             Content = "Abbrechen",
@@ -3393,16 +3497,95 @@ public partial class MainWindow
             IsEnabled = secondsSinceLast >= 30
         };
 
-        btnCancel.Click += (s, e) => dialog.Close();
+        btnCancel.Click += async (s, e) =>
+        {
+            if (isPrankReady && !isPranking)
+            {
+                isPranking = true;
+                btnCancel.IsEnabled = false;
+
+                // underline "kann zum Ausschluss führen"
+                txtWarning.Text = null;
+                txtWarning.Inlines = new Avalonia.Controls.Documents.InlineCollection
+                {
+                    new Avalonia.Controls.Documents.Run
+                    {
+                        Text = "Möchtest du diesen Kommentar wirklich melden? Ein Missbrauch dieser Funktion "
+                    },
+                    new Avalonia.Controls.Documents.Run
+                    {
+                        Text = "kann zum Ausschluss führen.",
+                        TextDecorations = TextDecorations.Underline
+                    }
+                };
+
+                await Task.Delay(2000);
+
+                // change title to target the user themself
+                txtTitle.Text = $"Kommentar von {AppSettings.GithubUsername} melden";
+
+                await Task.Delay(1500);
+
+                // clear reason textbox if it was typed in
+                if (!string.IsNullOrEmpty(txtReason.Text))
+                {
+                    txtReason.Text = "";
+                    await Task.Delay(1000);
+                }
+
+                // type our own reason
+                string prankText = "soll perma ban kassieren";
+                for (int i = 1; i <= prankText.Length; i++)
+                {
+                    txtReason.Text = prankText.Substring(0, i);
+                    txtReason.CaretIndex = i;
+                    await Task.Delay(40);
+                }
+
+                await Task.Delay(1500);
+
+                // change button appearance
+                btnCancel.Content = "Melden :D";
+                btnCancel.Background = SolidColorBrush.Parse("#B43232");
+                btnCancel.IsEnabled = true;
+
+                await Task.Delay(1000);
+
+                // simulate press
+                btnCancel.Background = SolidColorBrush.Parse("#8B0000"); // darker red
+                await Task.Delay(200);
+
+                dialog.Close();
+                return;
+            }
+
+            if (!isPranking)
+            {
+                dialog.Close();
+            }
+        };
+
         btnReport.Click += async (s, e) =>
         {
-            if (author == "OnlyCook")
+            if (author == "OnlyCook" || author == "aec-community-bot")
             {
-                txtError.Text = "Du kannst mich nicht an mich verpetzen.";
+                dialog.Height += 30;
+
+                txtError.Text = author == "OnlyCook"
+                    ? "Du kannst mich nicht an mich verpetzen."
+                    : "Der Bot kann sich nicht selbst bannen.";
+
                 txtError.IsVisible = true;
                 btnReport.IsVisible = false;
+
                 btnCancel.Content = "Ok :C";
                 btnCancel.Background = SolidColorBrush.Parse("#32a852");
+
+                if (author == "OnlyCook")
+                {
+                    isPrankReady = true;
+                }
+
                 return;
             }
 
@@ -3437,7 +3620,6 @@ public partial class MainWindow
             dialog.Close();
         };
 
-        btnPanel.Children.Add(txtError);
         btnPanel.Children.Add(btnCancel);
         btnPanel.Children.Add(btnReport);
         stack.Children.Add(btnPanel);
