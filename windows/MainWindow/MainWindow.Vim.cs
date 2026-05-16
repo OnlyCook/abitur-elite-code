@@ -74,10 +74,51 @@ public partial class MainWindow
     {
         if (VimCol1 == null || VimCol2 == null)
             return;
+
         VimCol1.Children.Clear();
         VimCol2.Children.Clear();
 
-        void AddCategory(StackPanel col, string title, (string cmd, string desc)[] items)
+        bool isEasyMode = playerData.Settings.IsVimEasyModeEnabled;
+
+        if (CcVimCheatSheetToggle != null)
+        {
+            string activeColor = isEasyMode ? "#32A852" : "#007ACC";
+
+            var btnToggleMode = new Button
+            {
+                Background = Brushes.Transparent,
+                Padding = new Thickness(0),
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+
+            ToolTip.SetTip(btnToggleMode, isEasyMode ? "Zum Pro Mode wechseln (Alle Befehle)" : "Zum Easy Mode wechseln (Wichtigste Befehle)");
+
+            var titleStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Margin = new Thickness(4)
+            };
+
+            titleStack.Children.Add(LoadIcon(isEasyMode ? "assets/icons/ic_script.svg" : "assets/icons/ic_terminal.svg", 24));
+            titleStack.Children.Add(new TextBlock
+            {
+                Text = isEasyMode ? "Vim Cheat Sheet (Easy)" : "Vim Cheat Sheet (Pro)",
+                FontSize = 20,
+                Foreground = SolidColorBrush.Parse(activeColor),
+                FontWeight = FontWeight.Bold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            btnToggleMode.Content = titleStack;
+
+            btnToggleMode.Click -= BtnToggleMode_Click; // remove old event (safety)
+            btnToggleMode.Click += BtnToggleMode_Click;
+
+            CcVimCheatSheetToggle.Content = btnToggleMode;
+        }
+
+        void AddCategory(StackPanel col, string title, (string cmd, string desc)[] items, Control customTopContent = null)
         {
             var group = new StackPanel { Spacing = 5 };
             group.Children.Add(
@@ -91,7 +132,16 @@ public partial class MainWindow
                 }
             );
 
-            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("60, *") };
+            // insert custom visual content below the title if provided
+            if (customTopContent != null)
+            {
+                group.Children.Add(customTopContent);
+            }
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("65, *")
+            };
             int row = 0;
             foreach (var item in items)
             {
@@ -126,10 +176,71 @@ public partial class MainWindow
             col.Children.Add(group);
         }
 
+        Control hjklVisual = null;
+        if (isEasyMode)
+        {
+            var visGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto, Auto"),
+                ColumnDefinitions = new ColumnDefinitions("Auto, Auto, Auto"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 5, 0, 10)
+            };
+
+            Border CreateKey(string key, string arrow)
+            {
+                var border = new Border
+                {
+                    Background = SolidColorBrush.Parse("#333"),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(12, 6),
+                    Margin = new Thickness(2)
+                };
+                var stack = new StackPanel
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                stack.Children.Add(new TextBlock
+                {
+                    Text = arrow,
+                    Foreground = Brushes.LightGray,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontSize = 12
+                });
+                stack.Children.Add(new TextBlock
+                {
+                    Text = key,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeight.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+                border.Child = stack;
+                return border;
+            }
+
+            var kKey = CreateKey("k", "↑"); Grid.SetRow(kKey, 0); Grid.SetColumn(kKey, 1);
+            var hKey = CreateKey("h", "←"); Grid.SetRow(hKey, 1); Grid.SetColumn(hKey, 0);
+            var jKey = CreateKey("j", "↓"); Grid.SetRow(jKey, 1); Grid.SetColumn(jKey, 1);
+            var lKey = CreateKey("l", "→"); Grid.SetRow(lKey, 1); Grid.SetColumn(lKey, 2);
+
+            visGrid.Children.Add(kKey);
+            visGrid.Children.Add(hKey);
+            visGrid.Children.Add(jKey);
+            visGrid.Children.Add(lKey);
+
+            hjklVisual = visGrid;
+        }
+
         AddCategory(
             VimCol1,
             "Modus Wechseln",
-            new[]
+            isEasyMode ? new[]
+            {
+                ("i", "Insert Modus (vor Cursor)"),
+                ("a", "Insert Modus (nach Cursor)"),
+                ("v", "Visual Modus (Markieren)"),
+                ("ESC", "Zurück zum Normal Mode")
+            } : new[]
             {
                 ("i", "Insert Modus (vor Cursor)"),
                 ("a", "Insert Modus (nach Cursor)"),
@@ -143,8 +254,14 @@ public partial class MainWindow
 
         AddCategory(
             VimCol1,
-            "Bewegung (Normal/Visual)",
-            new[]
+            "Bewegung",
+            isEasyMode ? new[]
+            {
+                ("w", "Ein Wort vor"),
+                ("b", "Ein Wort zurück"),
+                ("0", "Zeilenanfang"),
+                ("$", "Zeilenende")
+            } : new[]
             {
                 ("h", "Links"),
                 ("j", "Unten"),
@@ -153,20 +270,30 @@ public partial class MainWindow
                 ("w", "Wortanfang vorwärts"),
                 ("b", "Wortanfang rückwärts"),
                 ("e", "Wortende vorwärts"),
-                ("W / B", "Wort vor/zurück (nur Leer)"),
+                ("W", "Wort vor (nur Leer)"),
+                ("B", "Wort zurück (nur Leer)"),
                 ("0", "Zeilenanfang"),
                 ("$", "Zeilenende"),
                 ("gg", "Dateianfang"),
                 ("G", "Dateiende")
-            }
+            },
+            hjklVisual
         );
 
         AddCategory(
             VimCol2,
             "Bearbeiten",
-            new[]
+            isEasyMode ? new[]
             {
-                ("x / d", "Zeichen / Markierung löschen"),
+                ("x", "Zeichen löschen"),
+                ("dd", "Ganze Zeile löschen"),
+                ("u", "Rückgängig (Undo)"),
+                ("yy", "Zeile kopieren (Yank)"),
+                ("p", "Einfügen (Paste)")
+            } : new[]
+            {
+                ("x", "Zeichen löschen"),
+                ("d", "Markierung löschen"),
                 ("dd", "Ganze Zeile löschen"),
                 ("D", "Löschen bis Zeilenende"),
                 ("dw", "Wort löschen"),
@@ -182,7 +309,13 @@ public partial class MainWindow
         AddCategory(
             VimCol2,
             "System",
-            new[]
+            isEasyMode ? new[]
+            {
+                (":w", "Speichern"),
+                (":q", "Schließen (Simuliert)"), // needed for success in life
+                (":10", "Zu Zeile 10 springen"),
+                ("/", "Suche (Text eingeben + Enter)")
+            } : new[]
             {
                 (":w", "Speichern"),
                 (":q", "Schließen (Simuliert)"),
@@ -190,6 +323,13 @@ public partial class MainWindow
                 ("/", "Suche (Text eingeben + Enter)")
             }
         );
+    }
+
+    private void BtnToggleMode_Click(object sender, RoutedEventArgs e)
+    {
+        playerData.Settings.IsVimEasyModeEnabled = !playerData.Settings.IsVimEasyModeEnabled;
+        SaveSystem.Save(playerData);
+        BuildVimCheatSheet();
     }
 
     private void HandleVimNormalInput(KeyEventArgs e)
@@ -545,7 +685,42 @@ public partial class MainWindow
                 break;
             case "p":
                 if (!string.IsNullOrEmpty(_vimClipboard))
-                    ActiveEditor.Document.Insert(ActiveEditor.CaretOffset, _vimClipboard);
+                {
+                    // blockwise / line paste
+                    if (_vimClipboard.EndsWith("\n") || _vimClipboard.EndsWith("\r\n"))
+                    {
+                        var line = ActiveEditor.Document.GetLineByOffset(ActiveEditor.CaretOffset);
+                        int insertOffset;
+
+                        if (line.NextLine != null)
+                        {
+                            insertOffset = line.NextLine.Offset;
+                        }
+                        else
+                        {
+                            // if at the end of file, append newline first
+                            ActiveEditor.Document.Insert(line.EndOffset, Environment.NewLine);
+                            insertOffset = ActiveEditor.Document.TextLength;
+                        }
+
+                        ActiveEditor.Document.Insert(insertOffset, _vimClipboard);
+                        ActiveEditor.CaretOffset = insertOffset;
+                    }
+                    else
+                    {
+                        // characterwise paste (after cursor)
+                        int insertOffset = ActiveEditor.CaretOffset;
+                        if (insertOffset < ActiveEditor.Document.TextLength)
+                        {
+                            var line = ActiveEditor.Document.GetLineByOffset(insertOffset);
+                            if (insertOffset < line.EndOffset)
+                                insertOffset++;
+                        }
+
+                        ActiveEditor.Document.Insert(insertOffset, _vimClipboard);
+                        ActiveEditor.CaretOffset = insertOffset;
+                    }
+                }
                 break;
 
             // --- MULTI-KEY STARTERS ---
@@ -759,11 +934,25 @@ public partial class MainWindow
         }
 
         bool isNormal = _vimMode == VimMode.Normal;
-        if (_csharpBlockCaret != null) _csharpBlockCaret.IsEnabled = isNormal && AppSettings.IsVimEnabled;
-        if (_sqlBlockCaret != null) _sqlBlockCaret.IsEnabled = isNormal && AppSettings.IsSqlVimEnabled;
-        if (_tutorialBlockCaret != null) _tutorialBlockCaret.IsEnabled = isNormal && _isTutorialMode;
+        bool isCommandPending = _vimMode == VimMode.CommandPending;
 
-        var caretBrush = isNormal ? Brushes.Transparent : Brushes.White;
+        if (_csharpBlockCaret != null)
+        {
+            _csharpBlockCaret.IsEnabled = (isNormal || isCommandPending) && AppSettings.IsVimEnabled;
+            _csharpBlockCaret.IsHalfHeight = isCommandPending;
+        }
+        if (_sqlBlockCaret != null)
+        {
+            _sqlBlockCaret.IsEnabled = (isNormal || isCommandPending) && AppSettings.IsSqlVimEnabled;
+            _sqlBlockCaret.IsHalfHeight = isCommandPending;
+        }
+        if (_tutorialBlockCaret != null)
+        {
+            _tutorialBlockCaret.IsEnabled = (isNormal || isCommandPending) && _isTutorialMode;
+            _tutorialBlockCaret.IsHalfHeight = isCommandPending;
+        }
+
+        var caretBrush = (isNormal || isCommandPending) ? Brushes.Transparent : Brushes.White;
         CodeEditor.TextArea.Caret.CaretBrush = caretBrush;
         SqlQueryEditor.TextArea.Caret.CaretBrush = caretBrush;
         if (TutorialEditor != null) TutorialEditor.TextArea.Caret.CaretBrush = caretBrush;
@@ -1144,7 +1333,7 @@ public partial class MainWindow
                     BorderThickness = new Thickness(1, 1, 1, 3),
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(6, 0),
-                    Margin = new Thickness(2, 0, 2, -4),
+                    Margin = new Thickness(2, 0, 2, -5),
                     Child = new TextBlock
                     {
                         Text = key,

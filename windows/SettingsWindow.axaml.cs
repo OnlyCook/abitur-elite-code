@@ -3,7 +3,6 @@ using AbiturEliteCode.screens;
 using AbiturEliteCode.windows;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -90,6 +89,8 @@ public partial class SettingsWindow : Window
         BtnReset.Content = ctx.LoadIcon("assets/icons/ic_restart.svg", 20);
         ToolTip.SetTip(BtnSave, "Einstellungen speichern");
         ToolTip.SetTip(BtnReset, "Auf Standard zurücksetzen");
+
+        BtnCatEditor.Content = _ctx.IsSqlMode ? "SQL Editor" : "C# Editor";
 
         UpdatesBadge.IsVisible = ctx.UpdateAvailable;
 
@@ -206,7 +207,11 @@ public partial class SettingsWindow : Window
 
     private async Task AttemptClose()
     {
-        if (!BtnSave.IsEnabled) { Close(); return; }
+        if (!BtnSave.IsEnabled)
+        {
+            Close();
+            return;
+        }
 
         var dialog = new Window
         {
@@ -223,7 +228,11 @@ public partial class SettingsWindow : Window
             if (ev.Key == Key.Escape) dialog.Close();
         };
 
-        var grid = new Grid { RowDefinitions = new RowDefinitions("*, Auto"), Margin = new Thickness(20) };
+        var grid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto"),
+            Margin = new Thickness(20)
+        };
         grid.Children.Add(new TextBlock
         {
             Text = "Du hast ungespeicherte Änderungen. Möchtest du diese speichern?",
@@ -241,12 +250,39 @@ public partial class SettingsWindow : Window
         };
         Grid.SetRow(btnPanel, 1);
 
-        var btnSaveClose = new Button { Content = "Speichern", Background = SolidColorBrush.Parse("#32A852"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
-        var btnDiscard = new Button { Content = "Verwerfen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
-        var btnCancel = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+        var btnSaveClose = new Button
+        {
+            Content = "Speichern",
+            Background = SolidColorBrush.Parse("#32A852"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnDiscard = new Button
+        {
+            Content = "Verwerfen",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
 
-        btnSaveClose.Click += (_, _) => { PerformSave(); dialog.Close(); Close(); };
-        btnDiscard.Click += (_, _) => { dialog.Close(); Close(); };
+        btnSaveClose.Click += (_, _) =>
+        {
+            PerformSave();
+            dialog.Close();
+            Close();
+        };
+        btnDiscard.Click += (_, _) =>
+        {
+            dialog.Close();
+            Close();
+        };
         btnCancel.Click += (_, _) => dialog.Close();
 
         btnPanel.Children.Add(btnCancel);

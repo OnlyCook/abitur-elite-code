@@ -1,6 +1,5 @@
 ﻿using AbiturEliteCode.cs;
 using Avalonia;
-using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit;
@@ -15,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -1843,9 +1841,32 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                     if (width > 0)
                     {
                         if (Math.Abs(r1.Bottom - r2.Top) <= 1.5)
+                        {
                             drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(intersectX, r1.Bottom - 4, width, 8));
+
+                            // fill inward corners for a seamless blob
+                            if (r1.Right > intersectRight + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectRight, r1.Bottom), 4, true, true);
+                            if (r1.X < intersectX - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectX, r1.Bottom), 4, true, false);
+                            if (r2.Right > intersectRight + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectRight, r2.Top), 4, false, true);
+                            if (r2.X < intersectX - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectX, r2.Top), 4, false, false);
+                        }
                         else if (Math.Abs(r2.Bottom - r1.Top) <= 1.5)
+                        {
                             drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(intersectX, r2.Bottom - 4, width, 8));
+
+                            if (r2.Right > intersectRight + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectRight, r2.Bottom), 4, true, true);
+                            if (r2.X < intersectX - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectX, r2.Bottom), 4, true, false);
+                            if (r1.Right > intersectRight + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectRight, r1.Top), 4, false, true);
+                            if (r1.X < intersectX - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(intersectX, r1.Top), 4, false, false);
+                        }
                     }
 
                     // horizontal bridging (same line wrapped elements)
@@ -1856,9 +1877,31 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                     if (height > 0)
                     {
                         if (Math.Abs(r1.Right - r2.X) <= 1.5)
+                        {
                             drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(r1.Right - 4, intersectY, 8, height));
+
+                            if (r1.Bottom > intersectBottom + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r1.Right, intersectBottom), 4, true, true);
+                            if (r1.Top < intersectY - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r1.Right, intersectY), 4, false, true);
+                            if (r2.Bottom > intersectBottom + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r2.X, intersectBottom), 4, true, false);
+                            if (r2.Top < intersectY - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r2.X, intersectY), 4, false, false);
+                        }
                         else if (Math.Abs(r2.Right - r1.X) <= 1.5)
+                        {
                             drawingContext.DrawRectangle(_mainSelectionBrush, null, new Rect(r2.Right - 4, intersectY, 8, height));
+
+                            if (r2.Bottom > intersectBottom + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r2.Right, intersectBottom), 4, true, true);
+                            if (r2.Top < intersectY - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r2.Right, intersectY), 4, false, true);
+                            if (r1.Bottom > intersectBottom + 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r1.X, intersectBottom), 4, true, false);
+                            if (r1.Top < intersectY - 0.1)
+                                DrawInwardCorner(drawingContext, _mainSelectionBrush, new Point(r1.X, intersectY), 4, false, false);
+                        }
                     }
                 }
             }
@@ -1892,6 +1935,42 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                 index += _currentSelection.Length;
             }
         }
+    }
+
+    private void DrawInwardCorner(DrawingContext ctx, SolidColorBrush brush, Point corner, double radius, bool solidTop, bool solidLeft)
+    {
+        var geometry = new StreamGeometry();
+        using (var gc = geometry.Open())
+        {
+            gc.BeginFigure(corner, true);
+
+            if (solidTop && solidLeft)
+            {
+                // empty space is bottom-right
+                gc.LineTo(new Point(corner.X + radius, corner.Y));
+                gc.ArcTo(new Point(corner.X, corner.Y + radius), new Size(radius, radius), 0, false, SweepDirection.CounterClockwise);
+            }
+            else if (solidTop && !solidLeft)
+            {
+                // empty space is bottom-left
+                gc.LineTo(new Point(corner.X - radius, corner.Y));
+                gc.ArcTo(new Point(corner.X, corner.Y + radius), new Size(radius, radius), 0, false, SweepDirection.Clockwise);
+            }
+            else if (!solidTop && solidLeft)
+            {
+                // empty space is top-right
+                gc.LineTo(new Point(corner.X + radius, corner.Y));
+                gc.ArcTo(new Point(corner.X, corner.Y - radius), new Size(radius, radius), 0, false, SweepDirection.Clockwise);
+            }
+            else if (!solidTop && !solidLeft)
+            {
+                // empty space is top-left
+                gc.LineTo(new Point(corner.X - radius, corner.Y));
+                gc.ArcTo(new Point(corner.X, corner.Y - radius), new Size(radius, radius), 0, false, SweepDirection.CounterClockwise);
+            }
+        }
+
+        ctx.DrawGeometry(brush, null, geometry);
     }
 
     private void ProcessSegment(TextView textView, ISegment segment, double spaceWidth, List<Rect> targetList)
@@ -2050,6 +2129,7 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
     }
 
     public bool IsEnabled { get; set; } = false;
+    public bool IsHalfHeight { get; set; } = false;
 
     public KnownLayer Layer => KnownLayer.Caret;
 
@@ -2065,7 +2145,7 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
             StartOffset = offset,
             Length = 1
         };
-        // draw block caret (with space width cuz mono space)
+
         char c = offset < _editor.Document.TextLength ? _editor.Document.GetCharAt(offset) : '\n';
 
         var rect = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment).FirstOrDefault();
@@ -2095,10 +2175,22 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
                 targetWidth = (nextTabStop - currentVisualColumn) * charWidth;
             }
 
+            double targetHeight = rect.Height;
+            double targetY = rect.Y;
+
+            if (IsHalfHeight)
+            {
+                targetHeight = rect.Height / 2.0;
+            }
+
             // prevent infinite stretch on wrap boundaries
             if (c == '\n' || c == '\r' || rect.Width == 0 || rect.Width > targetWidth * 1.5)
             {
-                drawRect = new Rect(rect.X, rect.Y, targetWidth, rect.Height);
+                drawRect = new Rect(rect.X, targetY, targetWidth, targetHeight);
+            }
+            else
+            {
+                drawRect = new Rect(rect.X, targetY, rect.Width, targetHeight);
             }
 
             drawingContext.DrawRectangle(_brush, null, drawRect);

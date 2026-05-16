@@ -744,10 +744,12 @@ public partial class MainWindow
                 if (inReplies && _currentActiveTopLevelComment != null)
                 {
                     if (IconScrollTop != null) IconScrollTop.Path = "/assets/icons/ic_arrow_up_alt.svg";
+                    ToolTip.SetTip(BtnScrollTopComments, "Zurück zum Kommentar");
                 }
                 else
                 {
                     if (IconScrollTop != null) IconScrollTop.Path = "/assets/icons/ic_arrow_up.svg";
+                    ToolTip.SetTip(BtnScrollTopComments, "Zurück nach oben");
                 }
             }
         }
@@ -3240,12 +3242,14 @@ public partial class MainWindow
                     Background = Brushes.Transparent,
                     Cursor = new Cursor(StandardCursorType.Hand)
                 };
+                ToolTip.SetTip(btnGo, "Gehe zum betroffenen Kommentar (möglicherweise inakkurat)");
                 var btnDel = new Button
                 {
                     Content = LoadIcon("assets/icons/ic_delete.svg", 16),
                     Background = Brushes.Transparent,
                     Cursor = new Cursor(StandardCursorType.Hand)
                 };
+                ToolTip.SetTip(btnDel, "Benachrichtigung löschen");
 
                 btnGo.Click += (s, e) =>
                 {

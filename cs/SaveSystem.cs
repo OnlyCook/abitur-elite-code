@@ -51,6 +51,7 @@ public class PlayerSettings
     [SettingKey("permabanned")] public bool IsPermaBanned { get; set; } = false;
 
     // internal game state (not settings)
+    [SettingKey("vimeasy")] public bool IsVimEasyModeEnabled { get; set; } = true;
     [SettingKey("tabtips")] public int TabTipShownCount { get; set; }
     [SettingKey("vimscore")] public int VimTutorialHighscore { get; set; }
     [SettingKey("lastscreenwidth")] public double LastScreenWidth { get; set; }
