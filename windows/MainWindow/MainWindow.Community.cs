@@ -40,6 +40,10 @@ public partial class MainWindow
 
     private const int ApiQueueLimit = 10;
 
+    private int _visibleCommentsCount = 20;
+    private HashSet<string> _expandedCommentIds = new();
+    private Control? _currentActiveTopLevelComment = null;
+
     public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
     public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
 
@@ -267,6 +271,9 @@ public partial class MainWindow
         PnlCommentsSection.IsVisible = false;
         _currentActiveDiscussionId = -1;
 
+        if (BtnScrollTopComments != null)
+            BtnScrollTopComments.IsVisible = false;
+
         if (IconToggleComments != null)
             IconToggleComments.Path = "/assets/icons/ic_comment.svg";
 
@@ -282,6 +289,13 @@ public partial class MainWindow
             return; // no discussion mapped
 
         int discussionNum = _discussionMappings[modeKey][levelId];
+
+        if (_currentActiveDiscussionId != discussionNum)
+        {
+            _visibleCommentsCount = 20;
+            _expandedCommentIds.Clear();
+        }
+
         _currentActiveDiscussionId = discussionNum;
 
         // check version before proceeding
@@ -533,7 +547,10 @@ public partial class MainWindow
             await Dispatcher.UIThread.InvokeAsync(() => {
                 _isFetchingComments = false;
                 TxtCommentsLoading.IsVisible = false;
-                if (cache != null && cache.HasNextPage && PnlCommentsSection.IsVisible) BtnLoadMoreComments.IsVisible = true;
+                if (cache != null && PnlCommentsSection.IsVisible)
+                {
+                    BtnLoadMoreComments.IsVisible = (_visibleCommentsCount < cache.Comments.Count) || cache.HasNextPage;
+                }
             });
         }
     }
@@ -618,6 +635,11 @@ public partial class MainWindow
         PnlCommentsSection.IsVisible = !PnlCommentsSection.IsVisible;
         IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comment_hide.svg" : "/assets/icons/ic_comment.svg";
 
+        if (!PnlCommentsSection.IsVisible && BtnScrollTopComments != null)
+        {
+            BtnScrollTopComments.IsVisible = false;
+        }
+
         if (PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
         {
             RenderCachedComments();
@@ -641,26 +663,118 @@ public partial class MainWindow
         if (_isFetchingComments || _currentActiveDiscussionId == -1) return;
 
         string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-        await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, true);
+        var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+
+        if (dict.TryGetValue(levelId, out var cache))
+        {
+            if (_visibleCommentsCount < cache.Comments.Count)
+            {
+                // just load 20 more from our local cache
+                _visibleCommentsCount += 20;
+                RenderCachedComments();
+            }
+            else if (cache.HasNextPage)
+            {
+                // we have exhausted cache, query github api
+                _visibleCommentsCount += 20;
+                await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, true);
+            }
+        }
     }
 
     private void TaskScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        // dynamic loading when scrolled to bottom
-        if (!PnlCommentsSection.IsVisible || _isFetchingComments || _currentActiveDiscussionId == -1) return;
-
-        var scrollViewer = sender as ScrollViewer;
-        if (scrollViewer != null)
+        if (PnlCommentsSection == null || !PnlCommentsSection.IsVisible || TaskScrollViewer == null)
         {
-            if (scrollViewer.Offset.Y >= scrollViewer.Extent.Height - scrollViewer.Viewport.Height - 50)
-            {
-                var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-                string levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+            if (BtnScrollTopComments != null) BtnScrollTopComments.IsVisible = false;
+            return;
+        }
 
-                if (dict.TryGetValue(levelKey, out var cache) && cache.HasNextPage)
+        double scrollY = TaskScrollViewer.Offset.Y;
+
+        if (BtnScrollTopComments != null)
+        {
+            double commentsTop = 0;
+            var commentsTransform = PnlCommentsSection.TransformToVisual(TaskScrollViewer.Content as Control);
+            if (commentsTransform != null)
+            {
+                commentsTop = commentsTransform.Value.Transform(new Point(0, 0)).Y;
+            }
+
+            // show button only after scrolling down past the comment input
+            BtnScrollTopComments.IsVisible = scrollY > (commentsTop + 200);
+
+            if (PnlCommentsList != null && PnlCommentsList.IsVisible)
+            {
+                bool inReplies = false;
+                _currentActiveTopLevelComment = null;
+
+                var contentControl = TaskScrollViewer.Content as Control;
+                if (contentControl != null)
                 {
-                    BtnLoadMoreComments_Click(null, null);
+                    // check whether we are looking at a top level comments replies
+                    foreach (var child in PnlCommentsList.Children)
+                    {
+                        if (child is Border b && b.Child is StackPanel sp)
+                        {
+                            var repliesContainer = sp.Children.OfType<Border>().FirstOrDefault(c => c.Name == "RepliesContainer");
+                            if (repliesContainer != null && repliesContainer.IsVisible)
+                            {
+                                var repliesTransform = repliesContainer.TransformToVisual(contentControl);
+                                if (repliesTransform != null)
+                                {
+                                    var repliesBounds = new Rect(repliesTransform.Value.Transform(new Point(0, 0)), repliesContainer.Bounds.Size);
+
+                                    // the top-level comment part is above the replies container
+                                    double topLevelBottom = repliesBounds.Top;
+
+                                    // if the whole top-level comment is above viewport and the replies are still visible
+                                    if (topLevelBottom < scrollY && repliesBounds.Bottom > scrollY + 50)
+                                    {
+                                        inReplies = true;
+                                        _currentActiveTopLevelComment = child;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+
+                if (inReplies && _currentActiveTopLevelComment != null)
+                {
+                    if (IconScrollTop != null) IconScrollTop.Path = "/assets/icons/ic_arrow_up_alt.svg";
+                }
+                else
+                {
+                    if (IconScrollTop != null) IconScrollTop.Path = "/assets/icons/ic_arrow_up.svg";
+                }
+            }
+        }
+    }
+
+    private void BtnScrollTopComments_Click(object sender, RoutedEventArgs e)
+    {
+        if (TaskScrollViewer == null) return;
+
+        if (_currentActiveTopLevelComment != null)
+        {
+            // jump up to the top-level comment that owns the replies we are looking at
+            var transform = _currentActiveTopLevelComment.TransformToVisual(TaskScrollViewer.Content as Control);
+            if (transform != null)
+            {
+                double y = transform.Value.Transform(new Point(0, 0)).Y;
+                TaskScrollViewer.Offset = new Vector(TaskScrollViewer.Offset.X, Math.Max(0, y - 10));
+            }
+        }
+        else
+        {
+            // jump back to the very top of the comment section
+            var transform = PnlCommentsSection.TransformToVisual(TaskScrollViewer.Content as Control);
+            if (transform != null)
+            {
+                double y = transform.Value.Transform(new Point(0, 0)).Y;
+                TaskScrollViewer.Offset = new Vector(TaskScrollViewer.Offset.X, Math.Max(0, y - 10));
             }
         }
     }
@@ -695,12 +809,15 @@ public partial class MainWindow
             sortedComments = sortedComments.OrderBy(c => c.CreatedAt).ToList();
         }
 
-        foreach (var comment in sortedComments)
+        int toShow = Math.Min(_visibleCommentsCount, sortedComments.Count);
+        for (int i = 0; i < toShow; i++)
         {
-            PnlCommentsList.Children.Add(CreateCommentUI(comment, cache.DiscussionNodeId));
+            PnlCommentsList.Children.Add(CreateCommentUI(sortedComments[i], cache.DiscussionNodeId));
         }
 
-        BtnLoadMoreComments.IsVisible = cache.HasNextPage;
+        bool hasMoreLocal = _visibleCommentsCount < sortedComments.Count;
+        bool hasMoreRemote = cache.HasNextPage;
+        BtnLoadMoreComments.IsVisible = hasMoreLocal || hasMoreRemote;
     }
 
     public void BtnLike_Click(object sender, RoutedEventArgs e)
@@ -1635,6 +1752,9 @@ public partial class MainWindow
                     _communityCache.Subscriptions[comment.Id] = comment.Replies.Count + 1;
                     SaveSystem.SaveCommunityCache(_communityCache);
 
+                    // keep parent replies visible after refreshing
+                    _expandedCommentIds.Add(comment.Id);
+
                     string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                     await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                 }
@@ -1706,6 +1826,7 @@ public partial class MainWindow
 
                 repliesContainer = new Border
                 {
+                    Name = "RepliesContainer",
                     BorderThickness = new Thickness(2, 0, 0, 0),
                     BorderBrush = SolidColorBrush.Parse("#333"),
                     Margin = new Thickness(15, 10, 0, 0),
@@ -1724,18 +1845,25 @@ public partial class MainWindow
                     txtShowReplies.Text = repliesContainer.IsVisible ? "Antworten ausblenden" : comment.Replies.Count == 1 ? "1 Antwort" : $"{comment.Replies.Count} Antworten";
                     showRepliesContent.Children[0] = LoadIcon(
                         repliesContainer.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
+
+                    if (repliesContainer.IsVisible) _expandedCommentIds.Add(comment.Id);
+                    else _expandedCommentIds.Remove(comment.Id);
                 };
 
-                if (comment.Id == _targetHighlightCommentId && comment.Replies.Count > 0)
+                if ((comment.Id == _targetHighlightCommentId && comment.Replies.Count > 0) || _expandedCommentIds.Contains(comment.Id))
                 {
                     repliesContainer.IsVisible = true;
                     txtShowReplies.Text = "Antworten ausblenden";
                     showRepliesContent.Children[0] = LoadIcon("assets/icons/ic_comment_hide.svg", 16);
+                    _expandedCommentIds.Add(comment.Id);
                 }
+
+                int maxRepliesShown = 10;
+                var replyUIs = new List<Control>();
 
                 foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
                 {
-                    repliesStack.Children.Add(CreateCommentUI(new GithubComment
+                    var rUI = CreateCommentUI(new GithubComment
                     {
                         Id = reply.Id,
                         Author = reply.Author,
@@ -1743,7 +1871,41 @@ public partial class MainWindow
                         CreatedAt = reply.CreatedAt,
                         Upvotes = reply.Upvotes,
                         ViewerHasUpvoted = reply.ViewerHasUpvoted
-                    }, discussionId, true, localTagAction, comment));
+                    }, discussionId, true, localTagAction, comment);
+
+                    replyUIs.Add(rUI);
+                    repliesStack.Children.Add(rUI);
+                }
+
+                // add button for loading more replies if there are more than 10
+                if (replyUIs.Count > 10)
+                {
+                    var btnLoadMoreReplies = new Button
+                    {
+                        Content = "Weitere Antworten laden...",
+                        Background = Brushes.Transparent,
+                        Foreground = SolidColorBrush.Parse("#6495ED"),
+                        Margin = new Thickness(20, 5, 0, 0),
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    };
+
+                    void UpdateRepliesVisibility()
+                    {
+                        for (int i = 0; i < replyUIs.Count; i++)
+                        {
+                            replyUIs[i].IsVisible = i < maxRepliesShown;
+                        }
+                        btnLoadMoreReplies.IsVisible = maxRepliesShown < replyUIs.Count;
+                    }
+
+                    btnLoadMoreReplies.Click += (s, e) =>
+                    {
+                        maxRepliesShown += 10;
+                        UpdateRepliesVisibility();
+                    };
+
+                    repliesStack.Children.Add(btnLoadMoreReplies);
+                    UpdateRepliesVisibility();
                 }
             }
 

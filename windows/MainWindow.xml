@@ -370,22 +370,14 @@
 													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar." Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLoading" Text="Lädt..." Foreground="Gray" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
-													<Button Name="BtnLoadMoreComments" Content="Weitere Kommentare laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
+													<Button Name="BtnLoadMoreComments" Content="Mehr laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
 												</StackPanel>
 											</StackPanel>
 										</ScrollViewer>
 
-										<Button Grid.Row="0" Name="BtnScrollTopComments"
-												Width="40" Height="40" CornerRadius="20" Background="#3C3C3C"
-												HorizontalAlignment="Right" VerticalAlignment="Bottom"
-												Margin="0,0,25,25" IsVisible="False"
-												Click="BtnScrollTopComments_Click">
-											<svg:Svg Name="IconScrollTop" Path="/assets/icons/ic_arrow_up.svg" Width="28" Height="28" />
-										</Button>
-
 										<Border Grid.Row="1" Name="PnlCommunityActions" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0" IsVisible="False">
 											<StackPanel>
-												<TextBlock Name="TxtCommunityOutdatedStatus	" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityOutdatedStatus" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
