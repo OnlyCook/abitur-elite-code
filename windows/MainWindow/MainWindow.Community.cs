@@ -1154,8 +1154,7 @@ public partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 8),
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
 
             btnSubscribe.Click += (s, e) =>
@@ -1205,8 +1204,7 @@ public partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 8),
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
 
             btnDelete = new Button
@@ -1230,8 +1228,7 @@ public partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 8),
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
 
             flyoutStack.Children.Add(btnEdit);
@@ -1261,8 +1258,7 @@ public partial class MainWindow
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
                     Padding = new Thickness(10, 8),
-                    CornerRadius = new CornerRadius(4),
-                    Cursor = Cursor.Parse("Hand")
+                    CornerRadius = new CornerRadius(4)
                 };
                 btnTag.Click += (s, e) =>
                 {
@@ -1293,8 +1289,7 @@ public partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 8),
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
             btnReport.Click += (s, e) =>
             {
@@ -1465,14 +1460,12 @@ public partial class MainWindow
         var btnCancelEdit = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
-            Cursor = Cursor.Parse("Hand")
+            Background = SolidColorBrush.Parse("#3C3C3C")
         };
         var btnSaveEdit = new Button
         {
             Content = "Speichern",
-            Background = SolidColorBrush.Parse("#32A852"),
-            Cursor = Cursor.Parse("Hand")
+            Background = SolidColorBrush.Parse("#32A852")
         };
 
         editActions.Children.Add(btnCancelEdit);
@@ -1497,8 +1490,7 @@ public partial class MainWindow
             BorderBrush = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(5),
-            Cursor = Cursor.Parse("Hand")
+            Padding = new Thickness(5)
         };
         var upvoteContent = new StackPanel
         {
@@ -1565,7 +1557,6 @@ public partial class MainWindow
             {
                 Background = Brushes.Transparent,
                 Padding = new Thickness(5),
-                Cursor = Cursor.Parse("Hand")
             };
             var replyContent = new StackPanel
             {
@@ -1804,8 +1795,7 @@ public partial class MainWindow
                 var btnShowReplies = new Button
                 {
                     Background = Brushes.Transparent,
-                    Padding = new Thickness(5),
-                    Cursor = Cursor.Parse("Hand")
+                    Padding = new Thickness(5)
                 };
                 var showRepliesContent = new StackPanel
                 {
@@ -2581,12 +2571,21 @@ public partial class MainWindow
             {
                 case "Heading":
                     {
-                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
-                        string prefix = needsNewLine ? "\n" : "";
-                        int offset = needsNewLine ? 1 : 0;
+                        int lineEnd = text.IndexOf('\n', start);
+                        int insertPos = lineEnd == -1 ? text.Length : lineEnd;
+                        bool atLineStart = start == 0 || text[start - 1] == '\n';
 
-                        TxtCommentInput.Text = text.Insert(start, $"{prefix}## ");
-                        TxtCommentInput.SelectionStart = start + 3 + offset;
+                        if (atLineStart)
+                        {
+                            TxtCommentInput.Text = text.Insert(start, "## ");
+                            TxtCommentInput.SelectionStart = start + 3;
+                        }
+                        else
+                        {
+                            TxtCommentInput.Text = text.Insert(insertPos, "\n## ");
+                            TxtCommentInput.SelectionStart = insertPos + 4;
+                        }
+
                         TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
                         break;
                     }
@@ -2607,24 +2606,66 @@ public partial class MainWindow
                     break;
                 case "CodeBlock":
                     {
-                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
-                        string prefix = needsNewLine ? "\n" : "";
-                        int offset = needsNewLine ? 1 : 0;
+                        if (end > start)
+                        {
+                            bool atLineStart = start == 0 || text[start - 1] == '\n';
+                            string prefix = atLineStart ? "" : "\n";
 
-                        string block = $"{prefix}```csharp\n{sel}\n```";
-                        TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
-                        TxtCommentInput.SelectionStart = end == start ? start + 10 + offset : start + block.Length;
+                            string block = $"{prefix}```csharp\n{sel}\n```";
+                            TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
+                            TxtCommentInput.SelectionStart = start + block.Length;
+                            TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                            break;
+                        }
+
+                        int lineEnd = text.IndexOf('\n', start);
+                        int insertPos = lineEnd == -1 ? text.Length : lineEnd;
+                        bool needsNewLine = !(start == 0 || text[start - 1] == '\n');
+
+                        if (needsNewLine)
+                        {
+                            TxtCommentInput.Text = text.Insert(insertPos, "\n```csharp\n\n```");
+                            TxtCommentInput.SelectionStart = insertPos + 11;
+                        }
+                        else
+                        {
+                            TxtCommentInput.Text = text.Insert(start, "```csharp\n\n```");
+                            TxtCommentInput.SelectionStart = start + 10;
+                        }
+
                         TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
                         break;
                     }
                 case "List":
                     {
-                        bool needsNewLine = start > 0 && text[start - 1] != '\n';
-                        string prefix = needsNewLine ? "\n" : "";
-                        int offset = needsNewLine ? 1 : 0;
+                        int insertPos;
+                        if (end > start)
+                        {
+                            string block = string.Join("\n", sel
+                                .Split('\n')
+                                .Select(line => $"- {line}"));
+                            TxtCommentInput.Text = text.Remove(start, end - start).Insert(start, block);
+                            TxtCommentInput.SelectionStart = start + block.Length;
+                            TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
+                            break;
+                        }
 
-                        TxtCommentInput.Text = text.Insert(start, $"{prefix}- ");
-                        TxtCommentInput.SelectionStart = start + 2 + offset;
+                        int lineStart = start == 0 ? 0 : text.LastIndexOf('\n', start - 1) + 1;
+                        bool needsNewLine = lineStart < start;
+
+                        if (needsNewLine)
+                        {
+                            int lineEnd = text.IndexOf('\n', start);
+                            insertPos = lineEnd == -1 ? text.Length : lineEnd;
+                            TxtCommentInput.Text = text.Insert(insertPos, "\n- ");
+                            TxtCommentInput.SelectionStart = insertPos + 3;
+                        }
+                        else
+                        {
+                            TxtCommentInput.Text = text.Insert(lineStart, "- ");
+                            TxtCommentInput.SelectionStart = lineStart + 2;
+                        }
+
                         TxtCommentInput.SelectionEnd = TxtCommentInput.SelectionStart;
                         break;
                     }
@@ -3668,8 +3709,7 @@ public partial class MainWindow
             Content = "Verstanden",
             Background = SolidColorBrush.Parse("#3C3C3C"),
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 10, 0, 0),
-            Cursor = Cursor.Parse("Hand")
+            Margin = new Thickness(0, 10, 0, 0)
         };
         btnOk.Click += (s, e) => dialog.Close();
 
@@ -3720,8 +3760,7 @@ public partial class MainWindow
             Content = "Verstanden",
             Background = SolidColorBrush.Parse("#3C3C3C"),
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 10, 0, 0),
-            Cursor = Cursor.Parse("Hand")
+            Margin = new Thickness(0, 10, 0, 0)
         };
         btnOk.Click += (s, e) => dialog.Close();
 

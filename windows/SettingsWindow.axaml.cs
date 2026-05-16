@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -2292,17 +2293,51 @@ public partial class SettingsWindow : Window
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 20
             };
-            promiseText.Inlines!.Add(new Run("Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf Diskussionen in diesem Repository aus:\n")
+
+            const string repoUrl = "https://github.com/aec-community-bot/aec-community";
+
+            promiseStack.Children.Add(new TextBlock
             {
-                Foreground = Brushes.LightGray
+                Text = "Wir greifen auf nichts anderes als deinen Benutzernamen zu und führen nur Aktionen auf Diskussionen in diesem Repository aus:",
+                Foreground = Brushes.LightGray,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 20
             });
-            promiseText.Inlines.Add(new Run("https://github.com/aec-community-bot/aec-community\n\n")
+
+            var repoLink = new Button
             {
-                Foreground = SolidColorBrush.Parse("#6495ED")
-            });
-            promiseText.Inlines.Add(new Run("Das Repository wird automatisch stummgeschaltet, damit du niemals ungewollte E-Mails von GitHub erhältst.")
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Content = new TextBlock
+                {
+                    Text = repoUrl,
+                    Foreground = SolidColorBrush.Parse("#6495ED"),
+                    TextDecorations = TextDecorations.Underline,
+                    TextWrapping = TextWrapping.Wrap
+                }
+            };
+            repoLink.Click += (_, _) =>
             {
-                Foreground = Brushes.White
+                try
+                {
+                    Process.Start(new ProcessStartInfo(repoUrl)
+                    {
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            promiseStack.Children.Add(repoLink);
+
+            promiseStack.Children.Add(new TextBlock
+            {
+                Text = "Das Repository wird automatisch stummgeschaltet, damit du niemals ungewollte E-Mails von GitHub erhältst.",
+                Foreground = Brushes.White,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 20
             });
 
             promiseStack.Children.Add(promiseText);
@@ -2313,7 +2348,7 @@ public partial class SettingsWindow : Window
                 FontStyle = FontStyle.Italic,
                 Foreground = Brushes.Gray,
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 5, 0, 0)
+                Margin = new Thickness(0, -25, 0, 0)
             });
 
             promiseCard.Child = promiseStack;
@@ -2334,8 +2369,7 @@ public partial class SettingsWindow : Window
                 Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4),
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Padding = new Thickness(10, 6),
-                Cursor = new Cursor(StandardCursorType.Hand)
+                Padding = new Thickness(10, 6)
             };
             Grid.SetRow(btnCloseInfo, 1);
             btnCloseInfo.Click += (s, ev) => infoDialog.Close();
