@@ -167,6 +167,13 @@ public partial class MainWindow : Window
     private readonly PlayerData playerData;
     private List<SqlLevel> sqlLevels;
 
+    // animation variables
+    private readonly string[] _chevronFrames = { ">  ", ">> ", ">>>", " >>", "  >", "   " };
+    private DispatcherTimer _loadingAnimationTimer;
+    private Run _csharpLoadingRun;
+    private TextBlock _sqlLoadingBlock;
+    private int _loadingAnimationFrame;
+
     // cache
     private static List<MetadataReference>? _cachedReferences;
     private readonly Dictionary<string, IImage> _diagramCache = new();
@@ -1862,15 +1869,27 @@ public partial class MainWindow : Window
 
                     string capturedTitle = currentHintTitle;
 
+                    var iconImage = LoadIcon("assets/icons/ic_chevron_right.svg", 16);
+                    iconImage.Margin = new Thickness(0, 0, 5, 0);
+                    iconImage.VerticalAlignment = VerticalAlignment.Center;
+
                     var btnText = new TextBlock
                     {
-                        Text = "▶ " + capturedTitle,
+                        Text = capturedTitle,
                         VerticalAlignment = VerticalAlignment.Center
                     };
 
+                    var btnContentStack = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    btnContentStack.Children.Add(iconImage);
+                    btnContentStack.Children.Add(btnText);
+
                     var btn = new Button
                     {
-                        Content = btnText,
+                        Content = btnContentStack,
                         HorizontalAlignment = HorizontalAlignment.Stretch,
                         Background = SolidColorBrush.Parse("#3C3C41"),
                         Foreground = Brushes.White,
@@ -1882,7 +1901,11 @@ public partial class MainWindow : Window
                     {
                         bool isExpanded = contentPanel.IsVisible;
                         contentPanel.IsVisible = !isExpanded;
-                        btnText.Text = (isExpanded ? "▶ " : "▼ ") + capturedTitle;
+
+                        string newIconPath = isExpanded ? "assets/icons/ic_chevron_right.svg" : "assets/icons/ic_chevron_down.svg";
+                        var newSvgImage = new SvgImage();
+                        newSvgImage.Source = SvgSource.Load($"avares://AbiturEliteCode/{newIconPath}");
+                        iconImage.Source = newSvgImage;
                     };
 
                     stack.Children.Add(btn);
@@ -2076,9 +2099,27 @@ public partial class MainWindow : Window
 
         if (innerList.Children.Count > 0)
         {
+            var iconImage = LoadIcon("assets/icons/ic_chevron_right.svg", 16);
+            iconImage.Margin = new Thickness(0, 0, 5, 0);
+            iconImage.VerticalAlignment = VerticalAlignment.Center;
+
+            var btnText = new TextBlock
+            {
+                Text = "Voraussetzungen / Grundlagen",
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var btnContentStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            btnContentStack.Children.Add(iconImage);
+            btnContentStack.Children.Add(btnText);
+
             var btnToggle = new Button
             {
-                Content = "▶ Voraussetzungen / Grundlagen",
+                Content = btnContentStack,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Background = SolidColorBrush.Parse("#2b2b2b"),
                 Foreground = Brushes.White,
@@ -2090,7 +2131,12 @@ public partial class MainWindow : Window
             {
                 bool isExpanded = contentPanel.IsVisible;
                 contentPanel.IsVisible = !isExpanded;
-                btnToggle.Content = (isExpanded ? "▶ " : "▼ ") + "Voraussetzungen / Grundlagen";
+
+                string newIconPath = isExpanded ? "assets/icons/ic_chevron_right.svg" : "assets/icons/ic_chevron_down.svg";
+                var newSvgImage = new SvgImage();
+                newSvgImage.Source = SvgSource.Load($"avares://AbiturEliteCode/{newIconPath}");
+                iconImage.Source = newSvgImage;
+
                 if (!isExpanded) contentPanel.CornerRadius = new CornerRadius(6);
             };
 
@@ -2098,6 +2144,112 @@ public partial class MainWindow : Window
             prereqStack.Children.Add(contentPanel);
             targetPanel.Children.Add(prereqStack);
         }
+    }
+
+    private void StartCsharpLoadingAnimation(string baseText)
+    {
+        _loadingAnimationFrame = 0;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            _csharpLoadingRun = new Run
+            {
+                Text = $"{_chevronFrames[0]} {baseText}\n",
+                Foreground = Brushes.LightGray,
+                FontFamily = new FontFamily(MonospaceFontFamily)
+            };
+
+            TxtConsole.Inlines ??= new InlineCollection();
+            TxtConsole.Inlines.Add(_csharpLoadingRun);
+            ConsoleScroller?.ScrollToEnd();
+
+            _loadingAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+            _loadingAnimationTimer.Tick += (s, e) =>
+            {
+                if (_csharpLoadingRun != null)
+                {
+                    _loadingAnimationFrame = (_loadingAnimationFrame + 1) % _chevronFrames.Length;
+                    _csharpLoadingRun.Text = $"{_chevronFrames[_loadingAnimationFrame]} {baseText}\n";
+                }
+            };
+            _loadingAnimationTimer.Start();
+        });
+    }
+
+    private void StopCsharpLoadingAnimation()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_loadingAnimationTimer != null)
+            {
+                _loadingAnimationTimer.Stop();
+                _loadingAnimationTimer = null;
+            }
+
+            if (_csharpLoadingRun != null)
+            {
+                string currentText = _csharpLoadingRun.Text;
+                if (currentText.Length >= 4)
+                {
+                    string baseText = currentText.Substring(4).TrimEnd();
+                    _csharpLoadingRun.Text = $"> {baseText}\n";
+                }
+                _csharpLoadingRun = null;
+            }
+        });
+    }
+
+    private void StartSqlLoadingAnimation(string baseText)
+    {
+        _loadingAnimationFrame = 0;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            _sqlLoadingBlock = new TextBlock
+            {
+                Text = $"{_chevronFrames[0]} {baseText}",
+                Foreground = Brushes.Gray,
+                FontFamily = new FontFamily(MonospaceFontFamily),
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            PnlSqlOutput.Children.Add(_sqlLoadingBlock);
+            SqlOutputScroller?.ScrollToEnd();
+
+            _loadingAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+            _loadingAnimationTimer.Tick += (s, e) =>
+            {
+                if (_sqlLoadingBlock != null)
+                {
+                    _loadingAnimationFrame = (_loadingAnimationFrame + 1) % _chevronFrames.Length;
+                    _sqlLoadingBlock.Text = $"{_chevronFrames[_loadingAnimationFrame]} {baseText}";
+                }
+            };
+            _loadingAnimationTimer.Start();
+        });
+    }
+
+    private void StopSqlLoadingAnimation()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_loadingAnimationTimer != null)
+            {
+                _loadingAnimationTimer.Stop();
+                _loadingAnimationTimer = null;
+            }
+
+            if (_sqlLoadingBlock != null)
+            {
+                string currentText = _sqlLoadingBlock.Text;
+                if (currentText.Length >= 4)
+                {
+                    string baseText = currentText.Substring(4).TrimEnd();
+                    _sqlLoadingBlock.Text = $"> {baseText}";
+                }
+                _sqlLoadingBlock = null;
+            }
+        });
     }
 
     private async void BtnRun_Click(object sender, RoutedEventArgs e)
@@ -2108,6 +2260,14 @@ public partial class MainWindow : Window
             {
                 UpdateDraftFromUI();
                 RunSqlDesignerTest();
+                return;
+            }
+
+            if (_compilationCts != null)
+            {
+                _compilationCts.Cancel();
+                AddSqlOutput("System", "> Vorgang wird abgebrochen...", Brushes.LightGray);
+                BtnRun.IsEnabled = false;
                 return;
             }
 
@@ -2124,20 +2284,17 @@ public partial class MainWindow : Window
         }
 
         _compilationCts = new CancellationTokenSource();
-        BtnRun.Content = "■ ABBRECHEN";
+        IconRun.Path = "/assets/icons/ic_stop.svg";
         BtnRun.Width = 135;
         BtnRun.Background = SolidColorBrush.Parse("#B43232");
         ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
         TxtConsole.Inlines?.Clear();
 
-        if (!_hasRunOnce)
-        {
-            AddToConsole("> Compiler wird gestartet...\n", Brushes.LightGray);
-            _hasRunOnce = true;
-        }
+        string loadingText = !_hasRunOnce ? "Compiler wird gestartet..." : "Kompiliere...";
+        _hasRunOnce = true;
 
-        AddToConsole("> Kompiliere...\n", Brushes.LightGray);
+        StartCsharpLoadingAnimation(loadingText);
         SaveCurrentProgress();
 
         string codeText = CodeEditor.Text;
@@ -2312,16 +2469,19 @@ public partial class MainWindow : Window
 
             if (token.IsCancellationRequested)
             {
+                StopCsharpLoadingAnimation();
                 AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
             }
             else if (completedTask == timeoutTask)
             {
+                StopCsharpLoadingAnimation();
                 _compilationCts.Cancel();
                 stopwatch.Stop();
                 AddToConsole("\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 12 Sekunden überschritten.", Brushes.Red);
             }
             else
             {
+                StopCsharpLoadingAnimation();
                 var result = await processingTask;
                 stopwatch.Stop();
 
@@ -2376,10 +2536,12 @@ public partial class MainWindow : Window
         }
         catch (OperationCanceledException)
         {
+            StopCsharpLoadingAnimation();
             AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
         }
         catch (Exception ex)
         {
+            StopCsharpLoadingAnimation();
             AddToConsole($"\nSystem Fehler: {ex.Message}", Brushes.Red);
         }
         finally
@@ -2387,7 +2549,7 @@ public partial class MainWindow : Window
             _compilationCts?.Cancel();
             _compilationCts?.Dispose();
             _compilationCts = null;
-            BtnRun.Content = "▶ AUSFÜHREN";
+            IconRun.Path = "/assets/icons/ic_run.svg";
             BtnRun.Width = 135;
             BtnRun.Background = SolidColorBrush.Parse("#32A852");
             BtnRun.IsEnabled = true;
@@ -3254,141 +3416,186 @@ public partial class MainWindow : Window
 
     // --- SQL LOGIC ---
 
-    private void RunSqlQuery()
+    private async void RunSqlQuery()
     {
         string userQuery = SqlQueryEditor.Text.Trim();
         if (string.IsNullOrEmpty(userQuery)) return;
 
-        AddSqlOutput("Nutzer", userQuery, Brushes.White, true);
+        _compilationCts = new CancellationTokenSource();
+        IconRun.Path = "/assets/icons/ic_stop.svg";
+        BtnRun.Width = 135;
+        BtnRun.Background = SolidColorBrush.Parse("#B43232");
+        ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
-        var result = SqlLevelTester.Run(currentSqlLevel, userQuery);
-
-        if (result.ResultTable != null) AddSqlTable(result.ResultTable);
-
-        if (result.Success)
+        if (!_hasRunOnce)
         {
-            _consecutiveSqlFails = 0;
-            AddSqlOutput("System", result.Feedback, Brushes.LightGreen);
+            StartSqlLoadingAnimation("Datenbank wird initialisiert...");
+        }
+        _hasRunOnce = true;
 
-            if (_isCustomLevelMode)
+        var token = _compilationCts.Token;
+        var levelContext = currentSqlLevel;
+
+        try
+        {
+            var result = await Task.Run(() => SqlLevelTester.Run(levelContext, userQuery), token);
+
+            if (token.IsCancellationRequested)
             {
-                if (!customPlayerData.CompletedCustomSqlLevels.Contains(currentSqlLevel.Title))
-                {
-                    customPlayerData.CompletedCustomSqlLevels.Add(currentSqlLevel.Title);
-                    SaveSystem.SaveCustom(customPlayerData);
-                }
-
-                AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
-
-                UpdateNavigationButtons();
-                if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
-                {
-                    AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
-                }
-                else if (_nextCustomLevelPath == "SECTION_COMPLETE")
-                {
-                    BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
-                    BtnNextLevel.IsVisible = true;
-                }
-
+                StopSqlLoadingAnimation();
+                AddSqlOutput("System", "⚠ Abbruch durch Benutzer.", Brushes.Orange, true);
                 return;
             }
 
-            if (!playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id))
+            StopSqlLoadingAnimation();
+
+            AddSqlOutput("Nutzer", userQuery, Brushes.White, true);
+
+            if (result.ResultTable != null) AddSqlTable(result.ResultTable);
+
+            if (result.Success)
             {
-                playerData.CompletedSqlLevelIds.Add(currentSqlLevel.Id);
-
-                // trigger one time community hint
-                if (currentSqlLevel.Id == 1 && !playerData.Settings.CommunityHintShown && string.IsNullOrEmpty(AppSettings.GithubToken))
-                {
-                    ShowCommunityHint();
-                }
-            }
-
-            var nextLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
-
-            if (nextLvl != null)
-            {
-                if (nextLvl.Section != currentSqlLevel.Section)
-                {
-                    AddSqlOutput("System", "🎉 Sektion abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
-                    BtnNextLevel.Content = "NÄCHSTE SEKTION →";
-                }
-                else
-                {
-                    BtnNextLevel.Content = "NÄCHSTES LEVEL →";
-                }
-
-                if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
-                {
-                    playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
-                    AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
-                }
-            }
-            else
-            {
-                // no next level
-                AddSqlOutput("System", "🎉 Kurs abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
-                BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
-            }
-
-            BtnNextLevel.IsVisible = true;
-            BtnNextLevel.IsEnabled = true;
-            SaveSystem.Save(playerData);
-        }
-        else
-        {
-            if (result.Feedback != null &&
-                result.Feedback.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
-                _consecutiveSqlFails++;
-            else
                 _consecutiveSqlFails = 0;
+                AddSqlOutput("System", result.Feedback, Brushes.LightGreen);
 
-            // format error
-            string displayFeedback = result.Feedback ?? "Unbekannter Fehler.";
-            if (Regex.IsMatch(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:", RegexOptions.IgnoreCase))
-            {
-                // strip unnecessary prefix
-                displayFeedback = Regex.Replace(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:\s*", "",
-                    RegexOptions.IgnoreCase);
-
-                // attempt to map the error to a line number by locating the problematic token
-                var match = Regex.Match(displayFeedback, @"(?:column:|table:|near)\s*['""]?([a-zA-Z0-9_]+)['""]?",
-                    RegexOptions.IgnoreCase);
-                if (match.Success && match.Groups.Count > 1)
+                if (_isCustomLevelMode)
                 {
-                    string token = match.Groups[1].Value;
-                    int index = userQuery.IndexOf(token, StringComparison.OrdinalIgnoreCase);
-
-                    if (index != -1)
+                    if (!customPlayerData.CompletedCustomSqlLevels.Contains(levelContext.Title))
                     {
-                        int lineNumber = userQuery.Substring(0, index).Count(c => c == '\n') + 1;
+                        customPlayerData.CompletedCustomSqlLevels.Add(levelContext.Title);
+                        SaveSystem.SaveCustom(customPlayerData);
+                    }
 
-                        // capitalize first letter if it is a letter
-                        if (displayFeedback.Length > 0 && char.IsLetter(displayFeedback[0]))
-                            displayFeedback = char.ToUpper(displayFeedback[0]) + displayFeedback.Substring(1);
+                    AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
 
-                        displayFeedback = $"Zeile {lineNumber}: {displayFeedback}";
+                    UpdateNavigationButtons();
+                    if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
+                    {
+                        AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
+                    }
+                    else if (_nextCustomLevelPath == "SECTION_COMPLETE")
+                    {
+                        BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                        BtnNextLevel.IsVisible = true;
+                    }
+
+                    return;
+                }
+
+                if (!playerData.CompletedSqlLevelIds.Contains(levelContext.Id))
+                {
+                    playerData.CompletedSqlLevelIds.Add(levelContext.Id);
+
+                    // trigger one time community hint
+                    if (levelContext.Id == 1 && !playerData.Settings.CommunityHintShown && string.IsNullOrEmpty(AppSettings.GithubToken))
+                    {
+                        ShowCommunityHint();
                     }
                 }
-            }
 
-            DataTable expectedData = null;
-            if (currentSqlLevel.ExpectedResult != null && currentSqlLevel.ExpectedResult.Count > 0)
-            {
-                expectedData = new DataTable();
+                var nextLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == levelContext.NextLevelCode);
 
-                if (currentSqlLevel.ExpectedSchema != null && currentSqlLevel.ExpectedSchema.Count > 0)
-                    foreach (var col in currentSqlLevel.ExpectedSchema)
-                        expectedData.Columns.Add(col.Name, typeof(string));
+                if (nextLvl != null)
+                {
+                    if (nextLvl.Section != levelContext.Section)
+                    {
+                        AddSqlOutput("System", "🎉 Sektion abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                        BtnNextLevel.Content = "NÄCHSTE SEKTION →";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "NÄCHSTES LEVEL →";
+                    }
+
+                    if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
+                    {
+                        playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
+                        AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
+                    }
+                }
                 else
-                    for (int i = 0; i < currentSqlLevel.ExpectedResult[0].Length; i++)
-                        expectedData.Columns.Add($"Spalte {i + 1}", typeof(string));
+                {
+                    // no next level
+                    AddSqlOutput("System", "🎉 Kurs abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                    BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
+                }
 
-                foreach (var row in currentSqlLevel.ExpectedResult) expectedData.Rows.Add(row);
+                BtnNextLevel.IsVisible = true;
+                BtnNextLevel.IsEnabled = true;
+                SaveSystem.Save(playerData);
             }
+            else
+            {
+                if (result.Feedback != null &&
+                    result.Feedback.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
+                    _consecutiveSqlFails++;
+                else
+                    _consecutiveSqlFails = 0;
 
-            AddSqlOutput("Error", displayFeedback, Brushes.Orange, false, expectedData);
+                // format error
+                string displayFeedback = result.Feedback ?? "Unbekannter Fehler.";
+                if (Regex.IsMatch(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:", RegexOptions.IgnoreCase))
+                {
+                    // strip unnecessary prefix
+                    displayFeedback = Regex.Replace(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:\s*", "",
+                        RegexOptions.IgnoreCase);
+
+                    // attempt to map the error to a line number by locating the problematic token
+                    var match = Regex.Match(displayFeedback, @"(?:column:|table:|near)\s*['""]?([a-zA-Z0-9_]+)['""]?",
+                        RegexOptions.IgnoreCase);
+                    if (match.Success && match.Groups.Count > 1)
+                    {
+                        string tokenStr = match.Groups[1].Value;
+                        int index = userQuery.IndexOf(tokenStr, StringComparison.OrdinalIgnoreCase);
+
+                        if (index != -1)
+                        {
+                            int lineNumber = userQuery.Substring(0, index).Count(c => c == '\n') + 1;
+
+                        // capitalize first letter if it is a letter
+                            if (displayFeedback.Length > 0 && char.IsLetter(displayFeedback[0]))
+                                displayFeedback = char.ToUpper(displayFeedback[0]) + displayFeedback.Substring(1);
+
+                            displayFeedback = $"Zeile {lineNumber}: {displayFeedback}";
+                        }
+                    }
+                }
+
+                DataTable expectedData = null;
+                if (levelContext.ExpectedResult != null && levelContext.ExpectedResult.Count > 0)
+                {
+                    expectedData = new DataTable();
+
+                    if (levelContext.ExpectedSchema != null && levelContext.ExpectedSchema.Count > 0)
+                        foreach (var col in levelContext.ExpectedSchema)
+                            expectedData.Columns.Add(col.Name, typeof(string));
+                    else
+                        for (int i = 0; i < levelContext.ExpectedResult[0].Length; i++)
+                            expectedData.Columns.Add($"Spalte {i + 1}", typeof(string));
+
+                    foreach (var row in levelContext.ExpectedResult) expectedData.Rows.Add(row);
+                }
+
+                AddSqlOutput("Error", displayFeedback, Brushes.Orange, false, expectedData);
+            }
+        }
+        catch (Exception ex)
+        {
+            StopSqlLoadingAnimation();
+            AddSqlOutput("Error", $"System Fehler: {ex.Message}", Brushes.Red);
+        }
+        finally
+        {
+            StopSqlLoadingAnimation();
+            _compilationCts?.Cancel();
+            _compilationCts?.Dispose();
+            _compilationCts = null;
+            IconRun.Path = "/assets/icons/ic_run.svg";
+            BtnRun.Width = 135;
+            BtnRun.Background = SolidColorBrush.Parse("#32A852");
+            BtnRun.IsEnabled = true;
+            ToolTip.SetTip(BtnRun, "Ausführen (F5)");
+            SqlQueryEditor.Focus();
         }
     }
 

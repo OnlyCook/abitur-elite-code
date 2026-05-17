@@ -1006,7 +1006,10 @@ public partial class MainWindow
         CodeEditor.TextArea.Caret.Column = 1;
 
         // reset vim state and clear floating carets
+        CodeEditor.TextArea.ClearSelection();
         _vimMode = VimMode.Normal;
+        _vimDesiredColumn = -1;
+        UpdateVimUI();
         CodeEditor.TextArea.TextView.InvalidateVisual();
 
         // reset uml zoom
@@ -1945,7 +1948,10 @@ public partial class MainWindow
         SqlQueryEditor.TextArea.Caret.Column = 1;
 
         // reset vim state and clear floating carets
+        SqlQueryEditor.TextArea.ClearSelection();
         _vimMode = VimMode.Normal;
+        _vimDesiredColumn = -1;
+        UpdateVimUI();
         SqlQueryEditor.TextArea.TextView.InvalidateVisual();
 
         PnlSqlOutput.Children.Clear();
