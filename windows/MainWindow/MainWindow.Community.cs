@@ -386,8 +386,6 @@ public partial class MainWindow
         _isFetchingComments = true;
         TxtCommentsLoading.IsVisible = true;
 
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
         if (!dict.TryGetValue(levelId, out var cache))
         {
@@ -437,7 +435,10 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("https://api.github.com/graphql", content).ConfigureAwait(false);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+            requestMessage.Content = content;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var response = await _httpClient.SendAsync(requestMessage).ConfigureAwait(false);
             string jsonString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
@@ -478,7 +479,7 @@ public partial class MainWindow
                             if (commentAuthor == "aec-community-bot")
                             {
                                 isBotComment = true;
-                                var match = System.Text.RegularExpressions.Regex.Match(commentBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                var match = System.Text.RegularExpressions.Regex.Match(commentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                 if (match.Success)
                                 {
                                     commentAuthor = match.Groups[1].Value;
@@ -509,7 +510,7 @@ public partial class MainWindow
                                     // intercept bot messages for replies as well
                                     if (replyAuthor == "aec-community-bot")
                                     {
-                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                         if (match.Success)
                                         {
                                             replyAuthor = match.Groups[1].Value;
@@ -976,9 +977,11 @@ public partial class MainWindow
 
             var httpContent = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
 
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+            requestMessage.Content = httpContent;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", httpContent);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string respBody = await resp.Content.ReadAsStringAsync();
 
             Debug.WriteLine("[Community] Level-Vote body: " + respBody);
@@ -1060,7 +1063,7 @@ public partial class MainWindow
         IconSendComment.Path = canSend ? "/assets/icons/ic_send.svg" : "/assets/icons/ic_send_disabled.svg";
     }
 
-    
+
     private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false, Action<string> onTagUser = null, GithubComment parentComment = null)
     {
         var border = new Border
@@ -1629,7 +1632,7 @@ public partial class MainWindow
                 ColumnDefinitions = new ColumnDefinitions("*, Auto")
             };
 
-            string activeReplyTag = ""; 
+            string activeReplyTag = "";
 
             var txtReply = new TextBox
             {
@@ -1999,15 +2002,15 @@ public partial class MainWindow
                 editGrid.IsVisible = false;
                 bodyWrapper.IsVisible = true;
                 actionsPanel.IsVisible = true;
-                
-                // prevent re-editing the old text before fetch finishes
-                comment.Body = newBody; 
 
-                EnqueueApiRequest("Kommentar bearbeiten", async () => 
+                // prevent re-editing the old text before fetch finishes
+                comment.Body = newBody;
+
+                EnqueueApiRequest("Kommentar bearbeiten", async () =>
                 {
                     bool updated = await UpdateCommentOrReplyAsync(comment.Id, newBody);
 
-                    await Dispatcher.UIThread.InvokeAsync(async () => 
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
                         if (updated)
                         {
@@ -2017,7 +2020,7 @@ public partial class MainWindow
                         else
                         {
                             // if it failed, re-enable the edit button if user opens the edit view again
-                            btnSaveEdit.IsEnabled = true; 
+                            btnSaveEdit.IsEnabled = true;
                         }
                     });
                 });
@@ -2184,16 +2187,26 @@ public partial class MainWindow
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
                 // route to the proxy worker
-                var resp = await _httpClient.PostAsync(RenderEndpoint(1), content);
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(1));
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                var resp = await _httpClient.SendAsync(requestMessage);
                 string resBody = await resp.Content.ReadAsStringAsync();
 
-                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED" || resBody == "PERMA_BANNED")
                 {
                     BtnSendComment.IsEnabled = true;
-                    await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                    await Dispatcher.UIThread.InvokeAsync(resBody == "PERMA_BANNED" ? ShowPermaBanDialog : ShowBanDialog);
+                    return;
+                }
+
+                // handle new soft rate limit
+                if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+                {
+                    BtnSendComment.IsEnabled = true;
+                    ShowCooldownMessage(60);
                     return;
                 }
 
@@ -2251,15 +2264,26 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             // route to the proxy worker
-            var resp = await _httpClient.PostAsync(RenderEndpoint(1), content);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(1));
+            requestMessage.Content = content;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string resBody = await resp.Content.ReadAsStringAsync();
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED" || resBody == "PERMA_BANNED")
             {
-                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                BtnSendComment.IsEnabled = true;
+                await Dispatcher.UIThread.InvokeAsync(resBody == "PERMA_BANNED" ? ShowPermaBanDialog : ShowBanDialog);
+                return false;
+            }
+
+            // handle new soft rate limit
+            if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+            {
+                BtnSendComment.IsEnabled = true;
+                ShowCooldownMessage(60);
                 return false;
             }
 
@@ -2298,8 +2322,10 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+            requestMessage.Content = content;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string respBody = await resp.Content.ReadAsStringAsync();
 
             // detect github block (perma-ban)
@@ -2330,15 +2356,26 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             // route to the proxy worker via put
-            var resp = await _httpClient.PutAsync(RenderEndpoint(1), content);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Put, RenderEndpoint(1));
+            requestMessage.Content = content;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string resBody = await resp.Content.ReadAsStringAsync();
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED" || resBody == "PERMA_BANNED")
             {
-                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                BtnSendComment.IsEnabled = true;
+                await Dispatcher.UIThread.InvokeAsync(resBody == "PERMA_BANNED" ? ShowPermaBanDialog : ShowBanDialog);
+                return false;
+            }
+
+            // handle new soft rate limit
+            if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+            {
+                BtnSendComment.IsEnabled = true;
+                ShowCooldownMessage(60);
                 return false;
             }
 
@@ -2365,15 +2402,24 @@ public partial class MainWindow
 
         try
         {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-
             // route to the proxy worker via delete
-            var resp = await _httpClient.DeleteAsync($"{RenderEndpoint(1)}?commentId={id}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{RenderEndpoint(1)}?commentId={id}");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string resBody = await resp.Content.ReadAsStringAsync();
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED" || resBody == "PERMA_BANNED")
             {
-                await Dispatcher.UIThread.InvokeAsync(ShowBanDialog);
+                BtnSendComment.IsEnabled = true;
+                await Dispatcher.UIThread.InvokeAsync(resBody == "PERMA_BANNED" ? ShowPermaBanDialog : ShowBanDialog);
+                return false;
+            }
+
+            // handle new soft rate limit
+            if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+            {
+                BtnSendComment.IsEnabled = true;
+                ShowCooldownMessage(60);
                 return false;
             }
 
@@ -2412,8 +2458,10 @@ public partial class MainWindow
         try
         {
             var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-            var resp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+            requestMessage.Content = content;
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            var resp = await _httpClient.SendAsync(requestMessage);
             string respBody = await resp.Content.ReadAsStringAsync();
 
             Debug.WriteLine("[Community] Reply-Upvote body: " + respBody);
@@ -2785,7 +2833,6 @@ public partial class MainWindow
         if (playerData.Settings.AreNotificationsPaused) return;
 
         bool hasNewNotifications = false;
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
         // check graphql api for subscribed comment replies and bootleg mentions
         if (_communityCache.Subscriptions.Count > 0)
@@ -2818,7 +2865,10 @@ public partial class MainWindow
                     };
 
                     var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-                    var graphqlResp = await _httpClient.PostAsync("https://api.github.com/graphql", content);
+                    using var graphqlRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+                    graphqlRequest.Content = content;
+                    graphqlRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                    var graphqlResp = await _httpClient.SendAsync(graphqlRequest);
 
                     if (graphqlResp.IsSuccessStatusCode)
                     {
@@ -2849,7 +2899,7 @@ public partial class MainWindow
                                 // intercept bot messages to get real parent author
                                 if (parentAuthor == "aec-community-bot")
                                 {
-                                    var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                    var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                     if (match.Success)
                                     {
                                         parentAuthor = match.Groups[1].Value;
@@ -2878,7 +2928,7 @@ public partial class MainWindow
                                             // intercept bot messages for the reply author too (fixed regex)
                                             if (replyAuthor == "aec-community-bot")
                                             {
-                                                var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                                 if (match.Success)
                                                 {
                                                     replyAuthor = match.Groups[1].Value;
@@ -3516,14 +3566,19 @@ public partial class MainWindow
             var payload = new
             {
                 type = "Support Request",
-                user = AppSettings.GithubUsername,
+                user = AppSettings.GithubUsername, // treat this as hint (not proof)
                 message = txtMessage.Text
             };
 
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                await _httpClient.PostAsync(RenderEndpoint(0), content);
+
+                // attach the token so the receiving end can verify the identity if needed
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(0));
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                await _httpClient.SendAsync(requestMessage);
             }
             catch { }
 
@@ -3745,7 +3800,7 @@ public partial class MainWindow
             var payload = new
             {
                 type = "Report",
-                reporter = AppSettings.GithubUsername,
+                reporter = AppSettings.GithubUsername, // treat this as a hint (not proof)
                 reportedUser = author,
                 commentId = targetId,
                 discussionId = discussionId,
@@ -3757,7 +3812,12 @@ public partial class MainWindow
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                await _httpClient.PostAsync(RenderEndpoint(0), content);
+
+                // attach the token to prevent identity spoofing
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(0));
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                await _httpClient.SendAsync(requestMessage);
             }
             catch { }
 
