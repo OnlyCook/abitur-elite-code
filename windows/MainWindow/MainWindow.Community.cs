@@ -40,9 +40,13 @@ public partial class MainWindow
 
     private const int ApiQueueLimit = 10;
 
+    private const int SubscriptionCountLimit = 100;
+
     private int _visibleCommentsCount = 20;
     private HashSet<string> _expandedCommentIds = new();
     private Control? _currentActiveTopLevelComment = null;
+
+    private DispatcherTimer? _activeDiscussionRefreshTimer;
 
     public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
     public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
@@ -547,9 +551,18 @@ public partial class MainWindow
             await Dispatcher.UIThread.InvokeAsync(() => {
                 _isFetchingComments = false;
                 TxtCommentsLoading.IsVisible = false;
-                if (cache != null && PnlCommentsSection.IsVisible)
+                if (cache != null && PnlCommentsSection != null && PnlCommentsSection.IsVisible)
                 {
                     BtnLoadMoreComments.IsVisible = (_visibleCommentsCount < cache.Comments.Count) || cache.HasNextPage;
+                }
+
+                if (_activeDiscussionRefreshTimer != null)
+                {
+                    _activeDiscussionRefreshTimer.Stop();
+                    if (PnlCommentsSection != null && PnlCommentsSection.IsVisible)
+                    {
+                        _activeDiscussionRefreshTimer.Start();
+                    }
                 }
             });
         }
@@ -642,7 +655,13 @@ public partial class MainWindow
 
         if (PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
         {
+            _activeDiscussionRefreshTimer?.Stop();
+            _activeDiscussionRefreshTimer?.Start();
             RenderCachedComments();
+        }
+        else
+        {
+            _activeDiscussionRefreshTimer?.Stop();
         }
     }
 
@@ -1133,7 +1152,8 @@ public partial class MainWindow
         };
 
         bool hasUserReplied = !isReply && comment.Replies.Any(r => r.Author == AppSettings.GithubUsername);
-        if (!isReply && (comment.Author == AppSettings.GithubUsername || hasUserReplied))
+        bool isAuthor = comment.Author == AppSettings.GithubUsername;
+        if (!isReply && (isAuthor || hasUserReplied))
         {
             var isSubscribed = _communityCache.Subscriptions.ContainsKey(comment.Id);
             var btnSubscribe = new Button
@@ -1147,7 +1167,7 @@ public partial class MainWindow
                         LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16),
                         new TextBlock
                         {
-                            Text = isSubscribed ? "Deabonnieren" : "Abonnieren",
+                            Text = isSubscribed ? isAuthor ? "Deabonnieren" : "Deabonnieren (@)" : isAuthor ? "Abonnieren" : "Abonnieren (@)",
                             VerticalAlignment = VerticalAlignment.Center
                         }
                     }
@@ -1164,13 +1184,13 @@ public partial class MainWindow
                 if (isSubscribed)
                 {
                     _communityCache.Subscriptions.Remove(comment.Id);
+                    SaveSystem.SaveCommunityCache(_communityCache);
                 }
                 else
                 {
-                    _communityCache.Subscriptions.Add(comment.Id, comment.Replies.Count);
+                    AddOrUpdateSubscription(comment.Id, comment.Replies.Count);
                 }
 
-                SaveSystem.SaveCommunityCache(_communityCache);
                 btnMore.Flyout?.Hide();
 
                 isSubscribed = !isSubscribed;
@@ -1178,7 +1198,7 @@ public partial class MainWindow
                 var textBlock = (TextBlock)contentStack.Children[1];
 
                 contentStack.Children[0] = LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16);
-                textBlock.Text = isSubscribed ? "Deabonnieren" : "Abonnieren";
+                textBlock.Text = isSubscribed ? isAuthor ? "Deabonnieren" : "Deabonnieren (@)" : isAuthor ? "Abonnieren" : "Abonnieren (@)";
             };
 
             flyoutStack.Children.Add(btnSubscribe);
@@ -1742,8 +1762,7 @@ public partial class MainWindow
                 if (replySent)
                 {
                     // auto subscribe to the parent comment so the background poller can look for mentions in future replies
-                    _communityCache.Subscriptions[comment.Id] = comment.Replies.Count + 1;
-                    SaveSystem.SaveCommunityCache(_communityCache);
+                    AddOrUpdateSubscription(comment.Id, comment.Replies.Count + 1);
 
                     // keep parent replies visible after refreshing
                     _expandedCommentIds.Add(comment.Id);
@@ -2150,8 +2169,7 @@ public partial class MainWindow
                         var id = doc.RootElement.GetProperty("data").GetProperty("addDiscussionComment").GetProperty("comment").GetProperty("id").GetString();
                         if (!string.IsNullOrEmpty(id))
                         {
-                            _communityCache.Subscriptions[id] = 0;
-                            SaveSystem.SaveCommunityCache(_communityCache);
+                            AddOrUpdateSubscription(id, 0);
                         }
                     }
                     catch { }
@@ -2694,6 +2712,21 @@ public partial class MainWindow
         };
         _notificationPollTimer.Start();
 
+        // fast refresh timer for actively open discussion
+        _activeDiscussionRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _activeDiscussionRefreshTimer.Tick += async (s, e) =>
+        {
+            if (this.IsActive && PnlCommentsSection != null && PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
+            {
+                if (!_isFetchingComments && _apiQueueInFlight == 0 && !UpdateManager.IsOutdated)
+                {
+                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                    await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+                }
+            }
+        };
+        _activeDiscussionRefreshTimer.Start();
+
         // trigger initial poll shortly after startup
         Task.Run(async () =>
         {
@@ -3112,7 +3145,7 @@ public partial class MainWindow
             CornerRadius = new CornerRadius(4),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
-        ToolTip.SetTip(btnUnsubscribeAll, "Alle deabonnieren");
+        ToolTip.SetTip(btnUnsubscribeAll, $"Alle deabonnieren ({_communityCache.Subscriptions.Count}/100)");
 
         var btnDeleteAll = new Button
         {
@@ -3373,7 +3406,7 @@ public partial class MainWindow
         });
         stack.Children.Add(new TextBlock
         {
-            Text = "Sende mir eine Nachricht bzgl. Community-Features, Fehlern oder anderen Problemen.",
+            Text = "Sende mir eine Nachricht bezüglich Community-Features, Fehlern oder anderen Problemen.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.LightGray
         });
@@ -3781,5 +3814,19 @@ public partial class MainWindow
         ClearApiQueue();
         ShowPermaBanDialog();
         return true;
+    }
+
+    private void AddOrUpdateSubscription(string commentId, int count)
+    {
+        if (!_communityCache.Subscriptions.ContainsKey(commentId))
+        {
+            if (_communityCache.Subscriptions.Count >= SubscriptionCountLimit)
+            {
+                var oldest = _communityCache.Subscriptions.Keys.First();
+                _communityCache.Subscriptions.Remove(oldest);
+            }
+        }
+        _communityCache.Subscriptions[commentId] = count;
+        SaveSystem.SaveCommunityCache(_communityCache);
     }
 }

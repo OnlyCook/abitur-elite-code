@@ -78,7 +78,10 @@ public partial class SettingsWindow : Window
         var snapshot = AppSettings.TakeSnapshot();
         _restoreSnapshot = () => AppSettings.RestoreSnapshot(snapshot);
         _hasChangedFromSnapshot = () => AppSettings.HasChangedFrom(snapshot);
-        _refreshSnapshot = () => { snapshot = AppSettings.TakeSnapshot(); };
+        _refreshSnapshot = () =>
+        {
+            snapshot = AppSettings.TakeSnapshot();
+        };
 
         _isPortable = SaveSystem.IsPortableModeEnabled();
         _originalPortableState = _isPortable;
@@ -121,7 +124,11 @@ public partial class SettingsWindow : Window
 
         KeyDown += async (_, ev) =>
         {
-            if (ev.Key == Key.Escape) { ev.Handled = true; await AttemptClose(); }
+            if (ev.Key == Key.Escape)
+            {
+                ev.Handled = true;
+                await AttemptClose();
+            }
         };
 
         Closing += (_, _) =>

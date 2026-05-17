@@ -90,7 +90,7 @@
 								Orientation="Horizontal"
 								HorizontalAlignment="Center"
 								Spacing="10"
-								Margin="10">
+								Margin="10,15">
 						<Button x:Name="BtnReset"
                                 Width="50" Height="40"
                                 Background="#B43232"
@@ -120,7 +120,7 @@
                     HorizontalAlignment="Right"
                     Padding="15,8"
                     CornerRadius="4"
-                    Margin="20,0,20,10"
+                    Margin="20,-5,20,15"
                     Background="#3C3C3C"
                     Foreground="White" />
         </Grid>

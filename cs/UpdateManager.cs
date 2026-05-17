@@ -47,8 +47,13 @@ public static class UpdateManager
             if (root.TryGetProperty("tag_name", out var tagElement))
             {
                 string tag = tagElement.GetString()?.Trim() ?? "";
-                if (Version.TryParse(CurrentVersion, out var current) && Version.TryParse(tag, out var latest))
-                    if (latest > current)
+                string currentClean = CurrentVersion.Contains('-') ? CurrentVersion[..CurrentVersion.IndexOf('-')] : CurrentVersion;
+                string latestClean = tag.Contains('-') ? tag[..tag.IndexOf('-')] : tag;
+                bool currentIsPreRelease = CurrentVersion.Contains('-');
+                bool latestIsPreRelease = tag.Contains('-');
+
+                if (Version.TryParse(currentClean, out var current) && Version.TryParse(latestClean, out var latest))
+                    if (latest > current || (latest == current && currentIsPreRelease && !latestIsPreRelease))
                     {
                         string targetAsset = "AbiturEliteCode-win.zip";
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
