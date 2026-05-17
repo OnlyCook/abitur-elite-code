@@ -874,6 +874,7 @@ public partial class MainWindow : Window
             ShowTabTip();
 
         EvaluateSpoilerHintVisibility();
+        SyncRelationalModelVisibility();
     }
 
     public void RefreshTabStyles() => Dispatcher.UIThread.Post(UpdateTabStyles, DispatcherPriority.Render);
@@ -3083,7 +3084,6 @@ public partial class MainWindow : Window
             int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
             var startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
             LoadSqlLevel(startLevel);
-            UpdateVimState();
         }
         else
         {
@@ -3125,8 +3125,10 @@ public partial class MainWindow : Window
             }
 
             LoadLevel(currentLevel);
-            UpdateVimState();
         }
+
+        UpdateVimState();
+        SyncRelationalModelVisibility();
     }
 
     private Image LoadIcon(string path, double size)

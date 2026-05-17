@@ -39,6 +39,13 @@ public class TabDockManager
     private int _insertIndex = -1;
     private bool _isHardDock = false;
 
+    private readonly Avalonia.Controls.Shapes.Path[] _dockHints = new Avalonia.Controls.Shapes.Path[4];
+    private bool _isMorphAnimating = false;
+    private TimeSpan? _lastFrameTime;
+    private double _morphProgress = 0;
+    private DockPosition _activeMorphDock = DockPosition.None;
+    private DockPosition _animatingMorphDock = DockPosition.None;
+
     public TabDockManager(
         MainWindow window, Panel container, TabControl initialTabs,
         Canvas ghostCanvas, Canvas indicatorsCanvas, Border dropPreview, Border reorderIndicator)
@@ -122,6 +129,16 @@ public class TabDockManager
         // transition out
         _dropPreview.Opacity = 0;
         _reorderIndicator.Opacity = 0;
+
+        _activeMorphDock = DockPosition.None;
+        _animatingMorphDock = DockPosition.None;
+        _morphProgress = 0;
+        _isMorphAnimating = false;
+
+        foreach (var hint in _dockHints)
+            if (hint != null)
+                hint.Opacity = 0;
+
         _window.Cursor = Cursor.Default;
     }
 
@@ -149,6 +166,30 @@ public class TabDockManager
         };
 
         _ghostCanvas.Children.Add(_ghostElement);
+
+        // show hard dock indicators
+        for (int i = 0; i < 4; i++)
+        {
+            if (_dockHints[i] == null)
+            {
+                _dockHints[i] = new Avalonia.Controls.Shapes.Path
+                {
+                    Stroke = SolidColorBrush.Parse("#6495ED"),
+                    StrokeThickness = 2,
+                    Opacity = 0,
+                    IsHitTestVisible = false,
+                    ZIndex = 100
+                };
+                _indicatorsCanvas.Children.Add(_dockHints[i]);
+            }
+            _dockHints[i].Opacity = 1;
+        }
+
+        _activeMorphDock = DockPosition.None;
+        _animatingMorphDock = DockPosition.None;
+        _morphProgress = 0;
+        UpdateDockHintsGeometry();
+
         _window.Cursor = new Cursor(StandardCursorType.SizeAll);
     }
 
@@ -200,43 +241,24 @@ public class TabDockManager
 
             if (_isHardDock)
             {
-                showPreview = true;
-                var absPos = _container.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
-                if (absPos.HasValue)
+                if (_activeMorphDock != _dockPosition)
                 {
-                    double startX = absPos.Value.X;
-                    double startY = absPos.Value.Y;
-                    double pw = cw, ph = ch;
-                    double splitterBuffer = 4; // stops grid splitter overlap
-
-                    switch (_dockPosition)
-                    {
-                        case DockPosition.Left:
-                            pw = (cw / 2) - splitterBuffer;
-                            break;
-                        case DockPosition.Right:
-                            startX += (cw / 2) + splitterBuffer;
-                            pw = (cw / 2) - splitterBuffer;
-                            break;
-                        case DockPosition.Top:
-                            ph = (ch / 2) - splitterBuffer;
-                            break;
-                        case DockPosition.Bottom:
-                            startY += (ch / 2) + splitterBuffer;
-                            ph = (ch / 2) - splitterBuffer;
-                            break;
-                    }
-
-                    Canvas.SetLeft(_dropPreview, startX);
-                    Canvas.SetTop(_dropPreview, startY);
-                    _dropPreview.Width = pw;
-                    _dropPreview.Height = ph;
+                    _activeMorphDock = _dockPosition;
+                    _animatingMorphDock = _dockPosition;
+                    StartMorphAnimation();
                 }
 
-                _dropPreview.Opacity = showPreview ? 1 : 0;
-                _reorderIndicator.Opacity = showReorder ? 1 : 0;
+                _dropPreview.Opacity = 0; // hide regular preview since the morph handles it
+                _reorderIndicator.Opacity = 0;
                 return; // skip normal tab control hit testing
             }
+        }
+
+        // return morph to normal state when leaving the hard dock edge zones
+        if (_activeMorphDock != DockPosition.None)
+        {
+            _activeMorphDock = DockPosition.None;
+            StartMorphAnimation();
         }
 
         foreach (var tc in GetTabControls(_container))
@@ -559,6 +581,8 @@ public class TabDockManager
         // force refresh on all dynamic tabs
         _window.RefreshTabStyles();
 
+        _window.SyncRelationalModelVisibility();
+
         _window.TriggerLayoutAutoSave();
     }
 
@@ -789,5 +813,264 @@ public class TabDockManager
         if (parent is TabControl tc) yield return tc;
         foreach (var visual in parent.GetVisualDescendants())
             if (visual is TabControl childTc) yield return childTc;
+    }
+
+    private void StartMorphAnimation()
+    {
+        if (!_isMorphAnimating)
+        {
+            _isMorphAnimating = true;
+            _lastFrameTime = null;
+            TopLevel.GetTopLevel(_window)?.RequestAnimationFrame(MorphAnimationFrame);
+        }
+    }
+
+    private void MorphAnimationFrame(TimeSpan uptime)
+    {
+        if (!_isMorphAnimating) return;
+
+        // skip first frame to just record the start time accurately
+        if (_lastFrameTime == null)
+        {
+            _lastFrameTime = uptime;
+            TopLevel.GetTopLevel(_window)?.RequestAnimationFrame(MorphAnimationFrame);
+            return;
+        }
+
+        double deltaMs = (uptime - _lastFrameTime.Value).TotalMilliseconds;
+        _lastFrameTime = uptime;
+
+        // 150ms duration
+        double step = deltaMs * (1.0 / 150.0);
+        bool animating = false;
+
+        if (_activeMorphDock != DockPosition.None)
+        {
+            _morphProgress += step;
+            if (_morphProgress >= 1)
+            {
+                _morphProgress = 1;
+            }
+            else
+            {
+                animating = true;
+            }
+        }
+        else
+        {
+            _morphProgress -= step;
+            if (_morphProgress <= 0)
+            {
+                _morphProgress = 0;
+                _animatingMorphDock = DockPosition.None;
+            }
+            else
+            {
+                animating = true;
+            }
+        }
+
+        if (_ghostElement != null)
+        {
+            UpdateDockHintsGeometry();
+        }
+
+        if (animating)
+        {
+            // queue the next frame synced to the monitors refresh rate
+            TopLevel.GetTopLevel(_window)?.RequestAnimationFrame(MorphAnimationFrame);
+        }
+        else
+        {
+            _isMorphAnimating = false;
+        }
+    }
+
+    private void UpdateDockHintsGeometry()
+    {
+        var absPos1 = _container.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
+        if (!absPos1.HasValue) return;
+
+        double cw = _container.Bounds.Width;
+        double ch = _container.Bounds.Height;
+        var p0 = absPos1.Value;
+
+        double yCenterMin = ch * 0.40;
+        double xCenterMin = cw * 0.40;
+        double wLen = cw * 0.20;
+        double hLen = ch * 0.20;
+
+        double d = 25;
+        double hDepth = d / 2;
+        double r = 4;
+        double splitterBuffer = 4;
+        double r2 = 8;
+
+        double leftX = p0.X + 1;
+        double leftY = p0.Y + yCenterMin;
+        double rightX = p0.X + cw - hDepth - 1;
+        double rightY = p0.Y + yCenterMin;
+        double topX = p0.X + xCenterMin;
+        double topY = p0.Y + 1;
+        double bottomX = p0.X + xCenterMin;
+        double bottomY = p0.Y + ch - hDepth - 1;
+
+        Canvas.SetLeft(_dockHints[0], leftX);
+        Canvas.SetTop(_dockHints[0], leftY);
+        Canvas.SetLeft(_dockHints[1], rightX);
+        Canvas.SetTop(_dockHints[1], rightY);
+        Canvas.SetLeft(_dockHints[2], topX);
+        Canvas.SetTop(_dockHints[2], topY);
+        Canvas.SetLeft(_dockHints[3], bottomX);
+        Canvas.SetTop(_dockHints[3], bottomY);
+
+        Point Lerp(Point a, Point b, double tParam) => new Point(a.X + (b.X - a.X) * tParam, a.Y + (b.Y - a.Y) * tParam);
+
+        // quadratic ease out for a smoother natural effect
+        double t = 1 - Math.Pow(1 - _morphProgress, 2);
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (_dockHints[i] == null) continue;
+
+            DockPosition pos = i == 0 ? DockPosition.Left : i == 1 ? DockPosition.Right : i == 2 ? DockPosition.Top : DockPosition.Bottom;
+
+            bool isMorphed = (_animatingMorphDock == pos);
+            double currentT = isMorphed ? t : 0;
+
+            Point[] src = new Point[8];
+            Point[] tgt = new Point[8];
+
+            if (i == 0) // left
+            {
+                src[0] = new Point(0, 0);
+                src[1] = new Point(hDepth - r, hDepth - r);
+                src[2] = new Point(hDepth, hDepth);
+                src[3] = new Point(hDepth, hDepth + r);
+                src[4] = new Point(hDepth, hLen - hDepth - r);
+                src[5] = new Point(hDepth, hLen - hDepth);
+                src[6] = new Point(hDepth - r, hLen - hDepth + r);
+                src[7] = new Point(0, hLen);
+
+                double targetX = (p0.X + 1) - leftX;
+                double targetY = (p0.Y + 1) - leftY;
+                double pw = (cw / 2) - splitterBuffer - 1; // 1px off the left edge
+                double ph = ch - 2; // 1px off top and bottom
+
+                tgt[0] = new Point(targetX, targetY);
+                tgt[1] = new Point(targetX + pw - r2, targetY);
+                tgt[2] = new Point(targetX + pw, targetY);
+                tgt[3] = new Point(targetX + pw, targetY + r2);
+                tgt[4] = new Point(targetX + pw, targetY + ph - r2);
+                tgt[5] = new Point(targetX + pw, targetY + ph);
+                tgt[6] = new Point(targetX + pw - r2, targetY + ph);
+                tgt[7] = new Point(targetX, targetY + ph);
+            }
+            else if (i == 1) // right
+            {
+                src[0] = new Point(hDepth, 0);
+                src[1] = new Point(r, hDepth - r);
+                src[2] = new Point(0, hDepth);
+                src[3] = new Point(0, hDepth + r);
+                src[4] = new Point(0, hLen - hDepth - r);
+                src[5] = new Point(0, hLen - hDepth);
+                src[6] = new Point(r, hLen - hDepth + r);
+                src[7] = new Point(hDepth, hLen);
+
+                double targetX = (p0.X + (cw / 2) + splitterBuffer) - rightX;
+                double targetY = (p0.Y + 1) - rightY;
+                double pw = (cw / 2) - splitterBuffer - 1; // 1px off the right edge
+                double ph = ch - 2; // 1px off top and bottom
+
+                tgt[0] = new Point(targetX + pw, targetY);
+                tgt[1] = new Point(targetX + r2, targetY);
+                tgt[2] = new Point(targetX, targetY);
+                tgt[3] = new Point(targetX, targetY + r2);
+                tgt[4] = new Point(targetX, targetY + ph - r2);
+                tgt[5] = new Point(targetX, targetY + ph);
+                tgt[6] = new Point(targetX + r2, targetY + ph);
+                tgt[7] = new Point(targetX + pw, targetY + ph);
+            }
+            else if (i == 2) // top
+            {
+                src[0] = new Point(0, 0);
+                src[1] = new Point(hDepth - r, hDepth - r);
+                src[2] = new Point(hDepth, hDepth);
+                src[3] = new Point(hDepth + r, hDepth);
+                src[4] = new Point(wLen - hDepth - r, hDepth);
+                src[5] = new Point(wLen - hDepth, hDepth);
+                src[6] = new Point(wLen - hDepth + r, hDepth - r);
+                src[7] = new Point(wLen, 0);
+
+                double targetX = (p0.X + 1) - topX;
+                double targetY = (p0.Y + 1) - topY;
+                double pw = cw - 2; // 1px off left and right
+                double ph = (ch / 2) - splitterBuffer - 1; // 1px off the top edge
+
+                tgt[0] = new Point(targetX, targetY);
+                tgt[1] = new Point(targetX, targetY + ph - r2);
+                tgt[2] = new Point(targetX, targetY + ph);
+                tgt[3] = new Point(targetX + r2, targetY + ph);
+                tgt[4] = new Point(targetX + pw - r2, targetY + ph);
+                tgt[5] = new Point(targetX + pw, targetY + ph);
+                tgt[6] = new Point(targetX + pw, targetY + ph - r2);
+                tgt[7] = new Point(targetX + pw, targetY);
+            }
+            else if (i == 3) // bottom
+            {
+                src[0] = new Point(0, hDepth);
+                src[1] = new Point(hDepth - r, r);
+                src[2] = new Point(hDepth, 0);
+                src[3] = new Point(hDepth + r, 0);
+                src[4] = new Point(wLen - hDepth - r, 0);
+                src[5] = new Point(wLen - hDepth, 0);
+                src[6] = new Point(wLen - hDepth + r, r);
+                src[7] = new Point(wLen, hDepth);
+
+                double targetX = (p0.X + 1) - bottomX;
+                double targetY = (p0.Y + (ch / 2) + splitterBuffer) - bottomY;
+                double pw = cw - 2; // 1px off left and right
+                double ph = (ch / 2) - splitterBuffer - 1; // 1px off the bottom edge
+
+                tgt[0] = new Point(targetX, targetY + ph);
+                tgt[1] = new Point(targetX, targetY + r2);
+                tgt[2] = new Point(targetX, targetY);
+                tgt[3] = new Point(targetX + r2, targetY);
+                tgt[4] = new Point(targetX + pw - r2, targetY);
+                tgt[5] = new Point(targetX + pw, targetY);
+                tgt[6] = new Point(targetX + pw, targetY + r2);
+                tgt[7] = new Point(targetX + pw, targetY + ph);
+            }
+
+            // interpolate points smoothly towards the desired target area mapping
+            Point[] p = new Point[8];
+            for (int j = 0; j < 8; j++) p[j] = Lerp(src[j], tgt[j], currentT);
+
+            _dockHints[i].Data = StreamGeometry.Parse(System.FormattableString.Invariant(
+                $"M {p[0].X},{p[0].Y} L {p[1].X},{p[1].Y} Q {p[2].X},{p[2].Y} {p[3].X},{p[3].Y} L {p[4].X},{p[4].Y} Q {p[5].X},{p[5].Y} {p[6].X},{p[6].Y} L {p[7].X},{p[7].Y} Z"));
+
+            Color baseColor = Color.Parse("#1A6495ED");
+            Color activeColor = Color.Parse("#256495ED");
+
+            byte a = (byte)(baseColor.A + (activeColor.A - baseColor.A) * currentT);
+            byte rCol = (byte)(baseColor.R + (activeColor.R - baseColor.R) * currentT);
+            byte g = (byte)(baseColor.G + (activeColor.G - baseColor.G) * currentT);
+            byte bCol = (byte)(baseColor.B + (activeColor.B - baseColor.B) * currentT);
+
+            _dockHints[i].Fill = new SolidColorBrush(Color.FromArgb(a, rCol, g, bCol));
+
+            // pop the active morphing shape to the front so it overlaps others cleanly
+            _dockHints[i].ZIndex = isMorphed ? 101 : 100;
+
+            // fade out the non-active hints smoothly while morphing
+            if (_animatingMorphDock != DockPosition.None && !isMorphed)
+            {
+                _dockHints[i].Opacity = 1.0 - t;
+            }
+            else
+            {
+                _dockHints[i].Opacity = 1.0;
+            }
+        }
     }
 }

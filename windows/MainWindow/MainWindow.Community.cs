@@ -3860,7 +3860,7 @@ public partial class MainWindow
 
         stack.Children.Add(new TextBlock
         {
-            Text = "Dein Account wurde permanent aus der Community ausgeschlossen. Du kannst Kommentare und Bewertungen weiterhin lesen, aber keine Aktionen mehr durchführen.\n\nWende dich an den Support, wenn du dir extremst sicher bist, dass dies ein Fehler ist.",
+            Text = "Dein Account wurde permanent aus der Community ausgeschlossen. Du kannst Kommentare und Bewertungen weiterhin lesen, aber keine Aktionen mehr durchführen.\n\nWende dich an den Support, wenn du dir sehr sicher bist, dass dies ein Fehler ist.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.LightGray
         });

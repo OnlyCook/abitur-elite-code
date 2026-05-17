@@ -252,7 +252,7 @@
 								</Style>
 							</TabControl.Styles>
 
-							<TabItem Header="Aufgabe">
+							<TabItem Name="TabTask" Header="Aufgabe">
 								<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
 									<Grid RowDefinitions="*, Auto">
 
@@ -421,7 +421,7 @@
 								</Border>
 							</TabItem>
 
-							<TabItem Header="UML/Diagramme">
+							<TabItem Name="TabUml" Header="UML/Diagramme">
 								<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
 									<Grid Name="UmlTabGrid" RowDefinitions="*, 8, Auto">
 										<Panel Name="DiagramPanel" Grid.Row="0" Background="Transparent"

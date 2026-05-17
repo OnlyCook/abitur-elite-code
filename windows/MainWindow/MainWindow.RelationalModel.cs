@@ -338,7 +338,7 @@ public partial class MainWindow
             CornerRadius = new CornerRadius(4),
             Cursor = Cursor.Parse("Hand"),
             VerticalAlignment = VerticalAlignment.Center,
-            IsVisible = showEditControls
+            IsVisible = true
         };
         ToolTip.SetTip(btnCopyModel, "Modell kopieren");
         btnCopyModel.Click += async (s, e) =>
@@ -915,5 +915,66 @@ public partial class MainWindow
 
         playerData.Settings.RelationalModelTipShown = true;
         SaveSystem.Save(playerData);
+    }
+
+    public void SyncRelationalModelVisibility()
+    {
+        var tabTask = this.FindControl<TabItem>("TabTask");
+        var tabUml = this.FindControl<TabItem>("TabUml");
+        var umlBorder = this.FindControl<Border>("UmlRelationalBorder");
+        var umlSplitter = this.FindControl<GridSplitter>("UmlRelationalSplitter");
+        var umlGrid = this.FindControl<Grid>("UmlTabGrid");
+
+        if (tabTask == null || tabUml == null || umlBorder == null || umlSplitter == null) return;
+
+        // force hide all relational elements if we are not in sql mode
+        if (!_isSqlMode)
+        {
+            umlBorder.IsVisible = false;
+            umlSplitter.IsVisible = false;
+
+            if (umlGrid != null)
+            {
+                umlGrid.RowDefinitions = new RowDefinitions("*, 8, Auto");
+            }
+            return;
+        }
+
+        bool isTaskVisible = (tabTask.Parent as TabControl)?.SelectedItem == tabTask;
+        bool isUmlVisible = (tabUml.Parent as TabControl)?.SelectedItem == tabUml;
+
+        if (isTaskVisible && isUmlVisible)
+        {
+            // hide from uml tab to prevent duplicates
+            umlBorder.IsVisible = false;
+            umlSplitter.IsVisible = false;
+
+            // reset row definitions to clear fixed pixel sizes caused by grid splitter
+            if (umlGrid != null)
+            {
+                umlGrid.RowDefinitions = new RowDefinitions("*, 8, Auto");
+            }
+        }
+        else if (isUmlVisible)
+        {
+            // restore visibility if it actually has content
+            bool hasRelationalData = _currentRelationalModel != null && _currentRelationalModel.Count > 0;
+            if (hasRelationalData)
+            {
+                umlBorder.IsVisible = true;
+                umlSplitter.IsVisible = true;
+            }
+            else
+            {
+                // ensure it also collapses if there is no data
+                umlBorder.IsVisible = false;
+                umlSplitter.IsVisible = false;
+
+                if (umlGrid != null)
+                {
+                    umlGrid.RowDefinitions = new RowDefinitions("*, 8, Auto");
+                }
+            }
+        }
     }
 }
