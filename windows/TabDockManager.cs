@@ -99,6 +99,9 @@ public class TabDockManager
 
         if (_isDragging && _ghostElement != null)
         {
+            // force size all cursor during entire drag duration
+            _window.Cursor = new Cursor(StandardCursorType.SizeAll);
+
             var pos = e.GetPosition(_window);
             Canvas.SetLeft(_ghostElement, pos.X + 10);
             Canvas.SetTop(_ghostElement, pos.Y + 10);
@@ -282,10 +285,16 @@ public class TabDockManager
                 var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                 if (absPos.HasValue)
                 {
-                    Canvas.SetLeft(_dropPreview, absPos.Value.X);
-                    Canvas.SetTop(_dropPreview, absPos.Value.Y);
-                    _dropPreview.Width = _targetTabControl.Bounds.Width;
-                    _dropPreview.Height = _targetTabControl.Bounds.Height;
+                    // snap to integers and use margins to eliminate right/bottom edge layout interpolation jitter
+                    double startX = Math.Round(absPos.Value.X);
+                    double startY = Math.Round(absPos.Value.Y);
+                    double pw = Math.Round(_targetTabControl.Bounds.Width);
+                    double ph = Math.Round(_targetTabControl.Bounds.Height);
+
+                    double rightMargin = Math.Round(_indicatorsCanvas.Bounds.Width - startX - pw);
+                    double bottomMargin = Math.Round(_indicatorsCanvas.Bounds.Height - startY - ph);
+
+                    _dropPreview.Margin = new Thickness(startX, startY, rightMargin, bottomMargin);
                 }
 
                 _dropPreview.Opacity = showPreview ? 1 : 0;
@@ -453,33 +462,38 @@ public class TabDockManager
                     var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                     if (absPos.HasValue)
                     {
-                        double startX = absPos.Value.X;
-                        double startY = absPos.Value.Y;
-                        double pw = w, ph = h;
+                        // snap to integers to prevent sub-pixel layout rounding overshoot
+                        double startX = Math.Round(absPos.Value.X);
+                        double startY = Math.Round(absPos.Value.Y);
+                        double totalW = Math.Round(w);
+                        double totalH = Math.Round(h);
+                        double pw = totalW, ph = totalH;
                         double splitterBuffer = 4; // stops grid splitter overlap
 
                         switch (_dockPosition)
                         {
                             case DockPosition.Left:
-                                pw = (w / 2) - splitterBuffer;
+                                pw = Math.Round((totalW / 2) - splitterBuffer);
                                 break;
                             case DockPosition.Right:
-                                startX += (w / 2) + splitterBuffer;
-                                pw = (w / 2) - splitterBuffer;
+                                double offsetX = Math.Round((totalW / 2) + splitterBuffer);
+                                startX += offsetX;
+                                pw = totalW - offsetX; // derived via subtraction to fit
                                 break;
                             case DockPosition.Top:
-                                ph = (h / 2) - splitterBuffer;
+                                ph = Math.Round((totalH / 2) - splitterBuffer);
                                 break;
                             case DockPosition.Bottom:
-                                startY += (h / 2) + splitterBuffer;
-                                ph = (h / 2) - splitterBuffer;
+                                double offsetY = Math.Round((totalH / 2) + splitterBuffer);
+                                startY += offsetY;
+                                ph = totalH - offsetY; // derived via subtraction to fit
                                 break;
                         }
 
-                        Canvas.SetLeft(_dropPreview, startX);
-                        Canvas.SetTop(_dropPreview, startY);
-                        _dropPreview.Width = pw;
-                        _dropPreview.Height = ph;
+                        double rightMargin = Math.Round(_indicatorsCanvas.Bounds.Width - startX - pw);
+                        double bottomMargin = Math.Round(_indicatorsCanvas.Bounds.Height - startY - ph);
+
+                        _dropPreview.Margin = new Thickness(startX, startY, rightMargin, bottomMargin);
                     }
                 }
                 else
@@ -487,10 +501,16 @@ public class TabDockManager
                     var absPos = _targetTabControl.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
                     if (absPos.HasValue)
                     {
-                        Canvas.SetLeft(_dropPreview, absPos.Value.X);
-                        Canvas.SetTop(_dropPreview, absPos.Value.Y);
-                        _dropPreview.Width = w;
-                        _dropPreview.Height = h;
+                        // snap to integers to prevent sub-pixel layout rounding overshoot
+                        double startX = Math.Round(absPos.Value.X);
+                        double startY = Math.Round(absPos.Value.Y);
+                        double pw = Math.Round(w);
+                        double ph = Math.Round(h);
+
+                        double rightMargin = Math.Round(_indicatorsCanvas.Bounds.Width - startX - pw);
+                        double bottomMargin = Math.Round(_indicatorsCanvas.Bounds.Height - startY - ph);
+
+                        _dropPreview.Margin = new Thickness(startX, startY, rightMargin, bottomMargin);
                     }
                 }
             }
@@ -891,9 +911,10 @@ public class TabDockManager
         var absPos1 = _container.TranslatePoint(new Point(0, 0), _indicatorsCanvas);
         if (!absPos1.HasValue) return;
 
-        double cw = _container.Bounds.Width;
-        double ch = _container.Bounds.Height;
-        var p0 = absPos1.Value;
+        // round boundaries to prevent subpixel layout rounding overshoot
+        double cw = Math.Round(_container.Bounds.Width);
+        double ch = Math.Round(_container.Bounds.Height);
+        var p0 = new Point(Math.Round(absPos1.Value.X), Math.Round(absPos1.Value.Y));
 
         double yCenterMin = ch * 0.40;
         double xCenterMin = cw * 0.40;
@@ -908,7 +929,7 @@ public class TabDockManager
 
         double leftX = p0.X + 1;
         double leftY = p0.Y + yCenterMin;
-        double rightX = p0.X + cw - hDepth - 1;
+        double rightX = p0.X + cw - hDepth - 1.5; // manually move right half a pixel
         double rightY = p0.Y + yCenterMin;
         double topX = p0.X + xCenterMin;
         double topY = p0.Y + 1;
@@ -954,7 +975,7 @@ public class TabDockManager
 
                 double targetX = (p0.X + 1) - leftX;
                 double targetY = (p0.Y + 1) - leftY;
-                double pw = (cw / 2) - splitterBuffer - 1; // 1px off the left edge
+                double pw = Math.Round(cw / 2) - splitterBuffer - 1; // 1px off the left edge
                 double ph = ch - 2; // 1px off top and bottom
 
                 tgt[0] = new Point(targetX, targetY);
@@ -977,9 +998,10 @@ public class TabDockManager
                 src[6] = new Point(r, hLen - hDepth + r);
                 src[7] = new Point(hDepth, hLen);
 
+                double offset = Math.Round(cw / 2) + splitterBuffer;
                 double targetX = (p0.X + (cw / 2) + splitterBuffer) - rightX;
                 double targetY = (p0.Y + 1) - rightY;
-                double pw = (cw / 2) - splitterBuffer - 1; // 1px off the right edge
+                double pw = cw - offset - 1; // 1px off the right edge (derived via subtraction)
                 double ph = ch - 2; // 1px off top and bottom
 
                 tgt[0] = new Point(targetX + pw, targetY);
@@ -1005,7 +1027,7 @@ public class TabDockManager
                 double targetX = (p0.X + 1) - topX;
                 double targetY = (p0.Y + 1) - topY;
                 double pw = cw - 2; // 1px off left and right
-                double ph = (ch / 2) - splitterBuffer - 1; // 1px off the top edge
+                double ph = Math.Round(ch / 2) - splitterBuffer - 1; // 1px off the top edge
 
                 tgt[0] = new Point(targetX, targetY);
                 tgt[1] = new Point(targetX, targetY + ph - r2);
@@ -1027,10 +1049,11 @@ public class TabDockManager
                 src[6] = new Point(wLen - hDepth + r, r);
                 src[7] = new Point(wLen, hDepth);
 
+                double offset = Math.Round(ch / 2) + splitterBuffer;
                 double targetX = (p0.X + 1) - bottomX;
                 double targetY = (p0.Y + (ch / 2) + splitterBuffer) - bottomY;
                 double pw = cw - 2; // 1px off left and right
-                double ph = (ch / 2) - splitterBuffer - 1; // 1px off the bottom edge
+                double ph = ch - offset - 1; // 1px off the bottom edge (derived via subtraction)
 
                 tgt[0] = new Point(targetX, targetY + ph);
                 tgt[1] = new Point(targetX, targetY + r2);

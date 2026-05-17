@@ -1219,22 +1219,23 @@
 
 			<Canvas Name="DragGhostCanvas" IsHitTestVisible="False" ZIndex="1000" />
 			<Canvas Name="DropIndicatorsCanvas" IsHitTestVisible="False" ZIndex="999">
-				<Border Name="DropPreviewOverlay"
-				        Background="#256495ED"
-				        BorderBrush="#6495ED"
-				        BorderThickness="2"
-				        CornerRadius="8"
-				        Opacity="0">
-					<Border.Transitions>
-						<Transitions>
-							<DoubleTransition Property="Canvas.Left" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
-							<DoubleTransition Property="Canvas.Top" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
-							<DoubleTransition Property="Width" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
-							<DoubleTransition Property="Height" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
-							<DoubleTransition Property="Opacity" Duration="0:0:0.1" />
-						</Transitions>
-					</Border.Transitions>
-				</Border>
+				<Panel Width="{Binding $parent[Canvas].Bounds.Width}" Height="{Binding $parent[Canvas].Bounds.Height}">
+					<Border Name="DropPreviewOverlay"
+					        Background="#256495ED"
+					        BorderBrush="#6495ED"
+					        BorderThickness="2"
+					        CornerRadius="8"
+					        Opacity="0"
+					        HorizontalAlignment="Stretch"
+					        VerticalAlignment="Stretch">
+						<Border.Transitions>
+							<Transitions>
+								<ThicknessTransition Property="Margin" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+								<DoubleTransition Property="Opacity" Duration="0:0:0.1" />
+							</Transitions>
+						</Border.Transitions>
+					</Border>
+				</Panel>
 
 				<Border Name="TabReorderIndicator" Background="#6495ED" Width="2" CornerRadius="1" Opacity="0">
 					<Border.Transitions>
