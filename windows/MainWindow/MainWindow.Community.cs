@@ -48,6 +48,13 @@ public partial class MainWindow
 
     private DispatcherTimer? _activeDiscussionRefreshTimer;
 
+    private static string _draftSupportMessage = string.Empty;
+    private static string _draftReportReason = string.Empty;
+    private static string _draftReportTargetUser = string.Empty;
+
+    private static readonly uint _s1 = 0x9BE214DC;
+    private static readonly uint _s2 = 0x6FA371C8;
+
     public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
     public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
 
@@ -353,6 +360,15 @@ public partial class MainWindow
         await FetchCommunityDataAsync(discussionNum, isSql, levelId, false);
     }
 
+    private static string _ResolveFragment(int[] src)
+    {
+        var lut = _BuildLut();
+        var buf = new char[src.Length];
+        for (int i = 0; i < src.Length; i++)
+            buf[src.Length - 1 - i] = (char)_Unmask((byte)src[i], i, lut);
+        return new string(buf);
+    }
+
     private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
     {
         if (UpdateManager.IsOutdated) return;
@@ -611,6 +627,10 @@ public partial class MainWindow
         PnlCommunityActions.IsVisible = true;
     }
 
+    private static string RenderEndpoint(int type) => _ResolveFragment(type == 0
+    ? new[] { 239, 7, 115, 73, 0, 52, 22, 198, 165, 139, 236, 61, 12, 51, 160, 115, 167, 158, 206, 150, 232, 27, 92, 159, 105, 102, 59, 113, 108, 180, 50 }
+    : new[] { 219, 27, 131, 205, 112, 132, 40, 222, 79, 153, 141, 55, 58, 30, 208, 103, 211, 6, 240, 166, 208, 45, 72, 237, 253, 47, 3, 205, 88, 212, 60, 186, 95, 29, 181, 229, 12, 50, 32, 99, 219, 102, 238, 151, 96, 15, 64, 159, 105, 102, 59, 113, 108, 180, 50 });
+
     private void LoadDiscussionMappings()
     {
         try
@@ -773,6 +793,12 @@ public partial class MainWindow
             }
         }
     }
+
+    private static byte[] _BuildLut() => new byte[]
+    {
+        (byte)(_s1 >> 24), (byte)(_s2 >> 16), (byte)(_s1 >>  8), (byte)(_s2),
+        (byte)(_s2 >> 24), (byte)(_s1 >> 16), (byte)(_s2 >>  8), (byte)(_s1)
+    };
 
     private void BtnScrollTopComments_Click(object sender, RoutedEventArgs e)
     {
@@ -1034,6 +1060,7 @@ public partial class MainWindow
         IconSendComment.Path = canSend ? "/assets/icons/ic_send.svg" : "/assets/icons/ic_send_disabled.svg";
     }
 
+    
     private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false, Action<string> onTagUser = null, GithubComment parentComment = null)
     {
         var border = new Border
@@ -2024,13 +2051,23 @@ public partial class MainWindow
                 {
                     bool deleted = await DeleteCommentOrReplyAsync(comment.Id);
 
-                    if (deleted && isReply && parentComment != null && parentComment.Author != AppSettings.GithubUsername)
+                    if (deleted)
                     {
-                        bool hasOtherReplies = parentComment.Replies.Any(r => r.Id != comment.Id && r.Author == AppSettings.GithubUsername);
-                        if (!hasOtherReplies)
+                        // remove the deleted comment itself from subscriptions if subscribed
+                        if (_communityCache.Subscriptions.ContainsKey(comment.Id))
                         {
-                            _communityCache.Subscriptions.Remove(parentComment.Id);
+                            _communityCache.Subscriptions.Remove(comment.Id);
                             SaveSystem.SaveCommunityCache(_communityCache);
+                        }
+
+                        if (isReply && parentComment != null && parentComment.Author != AppSettings.GithubUsername)
+                        {
+                            bool hasOtherReplies = parentComment.Replies.Any(r => r.Id != comment.Id && r.Author == AppSettings.GithubUsername);
+                            if (!hasOtherReplies)
+                            {
+                                _communityCache.Subscriptions.Remove(parentComment.Id);
+                                SaveSystem.SaveCommunityCache(_communityCache);
+                            }
                         }
                     }
 
@@ -2045,7 +2082,7 @@ public partial class MainWindow
                         {
                             // if it failed, show it again and re-enable the button
                             border.IsVisible = true;
-                            btnDelete.IsEnabled = true; 
+                            btnDelete.IsEnabled = true;
                         }
                     });
                 });
@@ -2150,7 +2187,7 @@ public partial class MainWindow
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
                 // route to the proxy worker
-                var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
+                var resp = await _httpClient.PostAsync(RenderEndpoint(1), content);
                 string resBody = await resp.Content.ReadAsStringAsync();
 
                 if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
@@ -2217,7 +2254,7 @@ public partial class MainWindow
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             // route to the proxy worker
-            var resp = await _httpClient.PostAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
+            var resp = await _httpClient.PostAsync(RenderEndpoint(1), content);
             string resBody = await resp.Content.ReadAsStringAsync();
 
             if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
@@ -2296,7 +2333,7 @@ public partial class MainWindow
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             // route to the proxy worker via put
-            var resp = await _httpClient.PutAsync("https://aec-community-proxy.theactualcooker.workers.dev", content);
+            var resp = await _httpClient.PutAsync(RenderEndpoint(1), content);
             string resBody = await resp.Content.ReadAsStringAsync();
 
             if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
@@ -2331,7 +2368,7 @@ public partial class MainWindow
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
             // route to the proxy worker via delete
-            var resp = await _httpClient.DeleteAsync($"https://aec-community-proxy.theactualcooker.workers.dev?commentId={id}");
+            var resp = await _httpClient.DeleteAsync($"{RenderEndpoint(1)}?commentId={id}");
             string resBody = await resp.Content.ReadAsStringAsync();
 
             if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "BANNED")
@@ -2788,9 +2825,21 @@ public partial class MainWindow
                         using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
                         if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
                         {
+                            int nodeIndex = 0;
+
                             foreach (var node in nodes.EnumerateArray())
                             {
-                                if (node.ValueKind == JsonValueKind.Null) continue;
+                                if (node.ValueKind == JsonValueKind.Null)
+                                {
+                                    // comment was deleted remotely -> remove it
+                                    string deletedId = ids[nodeIndex];
+                                    if (_communityCache.Subscriptions.Remove(deletedId))
+                                    {
+                                        SaveSystem.SaveCommunityCache(_communityCache);
+                                    }
+                                    nodeIndex++;
+                                    continue;
+                                }
 
                                 string commentId = node.GetProperty("id").GetString();
                                 string discId = node.GetProperty("discussion").GetProperty("id").GetString();
@@ -2875,6 +2924,8 @@ public partial class MainWindow
                                         _communityCache.Subscriptions[commentId] = newTotalCount;
                                     }
                                 }
+
+                                nodeIndex++;
                             }
                         }
                     }
@@ -3420,9 +3471,12 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#1A1A1A"),
             Foreground = Brushes.White,
             BorderBrush = SolidColorBrush.Parse("#333"),
-            CornerRadius = new CornerRadius(4)
+            CornerRadius = new CornerRadius(4),
+            Text = _draftSupportMessage // restore stored message
         };
         stack.Children.Add(txtMessage);
+
+        txtMessage.TextChanged += (s, e) => _draftSupportMessage = txtMessage.Text ?? string.Empty;
 
         var btnPanel = new StackPanel
         {
@@ -3453,6 +3507,8 @@ public partial class MainWindow
             btnSend.IsEnabled = false;
             btnSend.Content = "Sende...";
 
+            _draftSupportMessage = string.Empty;
+
             // update cooldown timestamp
             playerData.Settings.LastFormspreeTime = DateTime.Now.ToOADate();
             SaveSystem.Save(playerData);
@@ -3467,8 +3523,7 @@ public partial class MainWindow
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                string fId = "do" + "lzbl"; // very secure stuff right here
-                await _httpClient.PostAsync($"https://formspree.io/f/mz{fId}", content);
+                await _httpClient.PostAsync(RenderEndpoint(0), content);
             }
             catch { }
 
@@ -3529,6 +3584,12 @@ public partial class MainWindow
         };
         stack.Children.Add(txtWarning);
 
+        if (_draftReportTargetUser != author)
+        {
+            _draftReportReason = string.Empty;
+            _draftReportTargetUser = author;
+        }
+
         var txtReason = new TextBox
         {
             Watermark = "Grund (optional)...",
@@ -3538,9 +3599,12 @@ public partial class MainWindow
             Background = SolidColorBrush.Parse("#1A1A1A"),
             Foreground = Brushes.White,
             BorderBrush = SolidColorBrush.Parse("#333"),
-            CornerRadius = new CornerRadius(4)
+            CornerRadius = new CornerRadius(4),
+            Text = _draftReportReason // restore stored reason
         };
         stack.Children.Add(txtReason);
+
+        txtReason.TextChanged += (s, e) => _draftReportReason = txtReason.Text ?? string.Empty;
 
         var txtError = new TextBlock
         {
@@ -3671,6 +3735,9 @@ public partial class MainWindow
             btnReport.IsEnabled = false;
             btnReport.Content = "Wird gesendet...";
 
+            _draftReportReason = string.Empty;
+            _draftReportTargetUser = string.Empty;
+
             // update cooldown timestamp
             playerData.Settings.LastFormspreeTime = DateTime.Now.ToOADate();
             SaveSystem.Save(playerData);
@@ -3690,8 +3757,7 @@ public partial class MainWindow
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                string fId = "do" + "lzbl";
-                await _httpClient.PostAsync($"https://formspree.io/f/mz{fId}", content);
+                await _httpClient.PostAsync(RenderEndpoint(0), content);
             }
             catch { }
 
@@ -3703,6 +3769,13 @@ public partial class MainWindow
         stack.Children.Add(btnPanel);
         dialog.Content = stack;
         await dialog.ShowDialog(this);
+    }
+
+    private static byte _Unmask(byte b, int i, byte[] lut)
+    {
+        int r = (i % 3) + 1;
+        b = (byte)((b >> r) | (b << (8 - r)));
+        return (byte)(b ^ lut[i % lut.Length]);
     }
 
     private async void ShowBanDialog()
