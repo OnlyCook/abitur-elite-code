@@ -841,10 +841,14 @@ public partial class MainWindow
             txtEmpty.IsVisible = cache.Comments.Count == 0;
         }
 
-        string sortMode = (CmbCommentSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Top";
+        string sortMode = (CmbCommentSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Beste";
         var sortedComments = cache.Comments.ToList();
 
-        if (sortMode == "Top")
+        if (sortMode == "Beste")
+        {
+            sortedComments = sortedComments.OrderByDescending(CalculateBestScore).ToList();
+        }
+        else if (sortMode == "Top")
         {
             sortedComments = sortedComments.OrderByDescending(c => c.Upvotes).ThenBy(c => c.CreatedAt).ToList();
         }
@@ -866,6 +870,14 @@ public partial class MainWindow
         bool hasMoreLocal = _visibleCommentsCount < sortedComments.Count;
         bool hasMoreRemote = cache.HasNextPage;
         BtnLoadMoreComments.IsVisible = hasMoreLocal || hasMoreRemote;
+    }
+
+    private double CalculateBestScore(GithubComment comment)
+    {
+        double ageInHours = (DateTime.Now - comment.CreatedAt).TotalHours;
+        // add 2 hours to base to prevent division by zero or overly high scores for brand new comments
+        // 1.5 acts as the gravity multiplier (higher gravity = age drags the score down faster)
+        return comment.Upvotes / Math.Pow(Math.Max(ageInHours, 0) + 2.0, 1.5);
     }
 
     public void BtnLike_Click(object sender, RoutedEventArgs e)
@@ -3529,6 +3541,15 @@ public partial class MainWindow
 
         txtMessage.TextChanged += (s, e) => _draftSupportMessage = txtMessage.Text ?? string.Empty;
 
+        var txtError = new TextBlock
+        {
+            Foreground = SolidColorBrush.Parse("#FF5555"),
+            FontWeight = FontWeight.SemiBold,
+            IsVisible = false,
+            TextWrapping = TextWrapping.Wrap
+        };
+        stack.Children.Add(txtError);
+
         var btnPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -3555,6 +3576,17 @@ public partial class MainWindow
         btnSend.Click += async (s, e) =>
         {
             if (string.IsNullOrWhiteSpace(txtMessage.Text)) return;
+
+            if (txtMessage.Text.Length > 5000)
+            {
+                dialog.Height = 280;
+
+                txtError.Text = "Die Nachricht darf maximal 5000 Zeichen lang sein.";
+                txtError.IsVisible = true;
+                return;
+            }
+
+            txtError.IsVisible = false;
             btnSend.IsEnabled = false;
             btnSend.Content = "Sende...";
 
@@ -3765,9 +3797,18 @@ public partial class MainWindow
 
         btnReport.Click += async (s, e) =>
         {
+            if (txtReason.Text?.Length > 5000)
+            {
+                dialog.Height = 280;
+
+                txtError.Text = "Der Grund darf maximal 5000 Zeichen lang sein.";
+                txtError.IsVisible = true;
+                return;
+            }
+
             if (author == "OnlyCook" || author == "aec-community-bot")
             {
-                dialog.Height += 30;
+                dialog.Height = 280;
 
                 txtError.Text = author == "OnlyCook"
                     ? "Du kannst mich nicht an mich verpetzen."

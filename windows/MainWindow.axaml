@@ -275,6 +275,7 @@
 														<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 															<TextBlock Text="Sortieren:" Foreground="Gray" VerticalAlignment="Center" />
 															<ComboBox Name="CmbCommentSort" Background="#1A1A1A" Foreground="White" SelectedIndex="0" SelectionChanged="CmbCommentSort_SelectionChanged">
+																<ComboBoxItem Content="Beste" />
 																<ComboBoxItem Content="Top" />
 																<ComboBoxItem Content="Neuste" />
 																<ComboBoxItem Content="Älteste" />
