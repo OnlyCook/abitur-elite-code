@@ -568,30 +568,37 @@
 							<TabItem Header="Level Designer" Name="TabDesigner" IsVisible="False">
 								<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0" ClipToBounds="True">
 									<Grid RowDefinitions="Auto, *">
-										<Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto"
-											  Margin="0,0,0,15">
+										<Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, Auto, *, Auto, Auto" Margin="0,0,0,15">
+
 											<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerExport_Click"
-													ToolTip.Tip="Level Exportieren">
+													ToolTip.Tip="Level Exportieren" Margin="0,0,10,0">
 												<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20" />
 											</Button>
 
-											<Button Grid.Column="1" Name="BtnDesignerSave" Background="#464646" Width="40"
+											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#8A2BE2"
+													Width="40" Height="40" CornerRadius="5"
+													Click="BtnDesignerPublish_Click" IsEnabled="False"
+													ToolTip.Tip="Level Veröffentlichen">
+												<svg:Svg Path="/assets/icons/ic_publish.svg" Width="20" Height="20" />
+											</Button>
+
+											<Button Grid.Column="2" Name="BtnDesignerSave" Background="#464646" Width="40"
 													Height="40" CornerRadius="5"
 													Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern"
 													Margin="10,0,0,0">
 												<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20" />
 											</Button>
 
-											<CheckBox Grid.Column="2" Name="ChkDesignerAutoSave" Content="Auto-Save"
+											<CheckBox Grid.Column="3" Name="ChkDesignerAutoSave" Content="Auto-Save"
 													  IsChecked="True"
 													  Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0" />
 
-											<TextBlock Grid.Column="4" Name="TxtDesignerStatus" Text="Bereit"
+											<TextBlock Grid.Column="5" Name="TxtDesignerStatus" Text="Bereit"
 													   VerticalAlignment="Center" Foreground="Gray" Margin="10,0,0,0" />
 
-											<Button Grid.Column="5" Name="BtnDesignerGuide" Background="#007ACC" Width="40"
+											<Button Grid.Column="6" Name="BtnDesignerGuide" Background="#007ACC" Width="40"
 													Height="40" CornerRadius="5"
 													Click="BtnDesignerGuide_Click" ToolTip.Tip="Guide / Hilfe (GitHub)"
 													Margin="10,0,0,0">

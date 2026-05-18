@@ -137,6 +137,7 @@ public partial class MainWindow
                 _verifiedExpectedResult = cleanedResult;
 
                 BtnDesignerExport.IsEnabled = true;
+                if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = true;
                 TxtDesignerStatus.Text = "Bereit zum Export";
                 AddSqlOutput("System",
                     "✓ DESIGNER TEST BESTANDEN! Die Musterlösung erzeugt exakt das erwartete Ergebnis.",
@@ -149,6 +150,7 @@ public partial class MainWindow
         {
             AddSqlOutput("Error", $"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{ex.Message}", Brushes.Orange);
             BtnDesignerExport.IsEnabled = false;
+            if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
             TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
             _verifiedSqlDraftState = null;
         }
@@ -188,6 +190,8 @@ public partial class MainWindow
             _currentSqlDraft.SampleSolution = TxtDesignSqlSample.Text ?? "";
 
             BtnDesignerExport.IsEnabled = false;
+            if (BtnDesignerPublish != null && _isSqlMode) BtnDesignerPublish.IsEnabled = false;
+            else if (BtnDesignerPublish != null && !_isSqlMode) BtnDesignerPublish.IsEnabled = false;
             TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
             _verifiedSqlDraftState = null;
 
@@ -247,6 +251,11 @@ public partial class MainWindow
                     _tabDockManager?.ForceCleanup();
                 }
             }
+        }
+
+        if (BtnDesignerPublish != null)
+        {
+            BtnDesignerPublish.IsVisible = enable && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken);
         }
 
         BtnExitDesigner.IsVisible = enable;
@@ -1013,6 +1022,7 @@ public partial class MainWindow
         _designerAutoSaveTimer.Stop();
         _designerAutoSaveTimer.Start();
         BtnDesignerExport.IsEnabled = false;
+        if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
         TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
         _verifiedSqlDraftState = null;
     }

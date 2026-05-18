@@ -2507,6 +2507,7 @@ public partial class MainWindow : Window
                             AddToConsole("✓ DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback,
                                 Brushes.LightGreen);
                             BtnDesignerExport.IsEnabled = true;
+                            if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = true;
                             _verifiedDraftState = pendingSnapshot;
                             TxtDesignerStatus.Text = "Bereit zum Export";
                         }
@@ -2525,6 +2526,7 @@ public partial class MainWindow : Window
 
                             AddToConsole($"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
                             BtnDesignerExport.IsEnabled = false;
+                            if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
                             _verifiedDraftState = null;
                         }
                     }
