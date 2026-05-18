@@ -2579,11 +2579,16 @@ public partial class MainWindow : Window
                 UpdateNavigationButtons();
                 if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
                 {
-                    AddToConsole("\n> Nächstes Level verfügbar.", Brushes.LightGray);
+                    AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
                 }
                 else if (_nextCustomLevelPath == "SECTION_COMPLETE")
                 {
-                    BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                    // adapt button text based on level type
+                    if (levelContext.Section == "Einzelne Levels")
+                        BtnNextLevel.Content = "LEVEL ABSCHLIESSEN ✓";
+                    else
+                        BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+
                     BtnNextLevel.IsVisible = true;
                 }
 
@@ -3200,6 +3205,8 @@ public partial class MainWindow : Window
 
     private void BtnModeSwitch_Click(object sender, RoutedEventArgs e)
     {
+        SaveCurrentProgress();
+
         _isSqlMode = !_isSqlMode;
         _isCustomLevelMode = false;
 
@@ -3246,8 +3253,14 @@ public partial class MainWindow : Window
             ApplySqlSyntaxHighlighting();
 
             sqlLevels ??= SqlCurriculum.GetLevels();
-            int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
-            var startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
+
+            // use local variable instead of reassigning currentSqlLevel
+            var startLevel = currentSqlLevel;
+            if (startLevel == null || startLevel.Id < 0)
+            {
+                int maxId = playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1;
+                startLevel = sqlLevels.FirstOrDefault(l => l.Id == maxId) ?? sqlLevels[0];
+            }
             LoadSqlLevel(startLevel);
         }
         else
@@ -3283,13 +3296,14 @@ public partial class MainWindow : Window
             ApplySyntaxHighlighting();
 
             levels ??= Curriculum.GetLevels();
-            if (currentLevel == null || currentLevel.Id < 0)
-            {
-                int maxId = playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1;
-                currentLevel = levels.FirstOrDefault(l => l.Id == maxId) ?? levels[0];
-            }
 
-            LoadLevel(currentLevel);
+            // fetch the highest unlocked unsolved c# level (or the highest overall if all are solved)
+            var unsolvedLevels = levels.Where(l => playerData.UnlockedLevelIds.Contains(l.Id) && !playerData.CompletedLevelIds.Contains(l.Id)).ToList();
+            var startLevel = unsolvedLevels.Any()
+                ? unsolvedLevels.OrderByDescending(l => l.Id).First()
+                : levels.FirstOrDefault(l => l.Id == (playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1)) ?? levels[0];
+
+            LoadLevel(startLevel);
         }
 
         UpdateVimState();
@@ -3366,9 +3380,12 @@ public partial class MainWindow : Window
 
     private async void ShowCustomSectionCompletedDialog()
     {
+        string section = _isSqlMode ? currentSqlLevel?.Section : currentLevel?.Section;
+        bool isSingleLevel = section == "Einzelne Levels";
+
         var dialog = new Window
         {
-            Title = "Sektion Abgeschlossen",
+            Title = isSingleLevel ? "Level Abgeschlossen" : "Sektion Abgeschlossen",
             Width = 400,
             Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -3379,7 +3396,7 @@ public partial class MainWindow : Window
         dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
 
         var rootStack = new StackPanel
-            { Spacing = 20, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
+        { Spacing = 20, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
 
         rootStack.Children.Add(new TextBlock
         {
@@ -3392,7 +3409,8 @@ public partial class MainWindow : Window
 
         rootStack.Children.Add(new TextBlock
         {
-            Text = "Du hast alle Levels in diesem Ordner abgeschlossen.",
+            // adapt text based on level type
+            Text = isSingleLevel ? "Du hast dieses eigene Level erfolgreich abgeschlossen." : "Du hast alle Levels in diesem Ordner abgeschlossen.",
             FontSize = 15,
             Foreground = Brushes.White,
             TextAlignment = TextAlignment.Center,
@@ -3413,7 +3431,6 @@ public partial class MainWindow : Window
         rootStack.Children.Add(btnClose);
         dialog.Content = new Border { Child = rootStack };
 
-        BtnNextLevel.IsVisible = false;
         await dialog.ShowDialog(this);
     }
 
@@ -3469,16 +3486,21 @@ public partial class MainWindow : Window
                         SaveSystem.SaveCustom(customPlayerData);
                     }
 
-                    AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", Brushes.LightGreen);
+                    AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
 
                     UpdateNavigationButtons();
                     if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
                     {
-                        AddSqlOutput("System", "> Nächstes Level verfügbar.", Brushes.LightGray);
+                        AddToConsole("\n> Nächstes Level verfügbar.", Brushes.LightGray);
                     }
                     else if (_nextCustomLevelPath == "SECTION_COMPLETE")
                     {
-                        BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+                        // adapt button text based on level type
+                        if (levelContext.Section == "Einzelne Levels")
+                            BtnNextLevel.Content = "LEVEL ABSCHLIESSEN ✓";
+                        else
+                            BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
+
                         BtnNextLevel.IsVisible = true;
                     }
 

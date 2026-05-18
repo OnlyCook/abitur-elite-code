@@ -253,6 +253,9 @@ public partial class MainWindow
         BtnLevelSelect.IsVisible = !enable;
 
         if (enable)
+            BtnCustomLevelReturn.IsVisible = false;
+
+        if (enable)
         {
             BtnPrevLevel.IsVisible = false;
             BtnNextLevel.IsVisible = false;
@@ -347,7 +350,7 @@ public partial class MainWindow
                 if (PnlTaskRelationalModel != null)
                 {
                     PnlTaskRelationalModel.Children.Clear();
-                    RenderRelationalModel(PnlTaskRelationalModel, false);
+                    RenderRelationalModel(PnlTaskRelationalModel, _currentSqlDraft.IsRelationalModelReadOnly);
                 }
 
                 if (PnlUmlRelationalModel != null) PnlUmlRelationalModel.Children.Clear();
@@ -395,6 +398,7 @@ public partial class MainWindow
             // update designer diagrams tabs and preview immediately on entry
             UpdateDesignerDiagramTabs();
             UpdateDesignerPreview();
+            SyncRelationalModelVisibility();
 
             _isLoadingDesigner = false;
         }

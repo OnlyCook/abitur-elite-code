@@ -148,8 +148,8 @@
 			<Grid Name="RootGrid" RowDefinitions="60,*">
 
 				<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
-					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto, Auto">
-						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
+					<Grid ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="30,0">
 							<TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="18" />
 							<TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="18" />
 						</StackPanel>
@@ -165,22 +165,29 @@
 						<Button Grid.Column="2" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
 								Background="#2D2D30" Foreground="White"
 								CornerRadius="4" Padding="15,8"
-								VerticalAlignment="Center" Margin="0,0,20,0"
+								VerticalAlignment="Center" Margin="0,0,10,0"
 								Click="BtnLevelSelect_Click" />
 
-						<Button Grid.Column="3" Name="BtnPrevLevel" Content="←"
+						<Button Grid.Column="3" Name="BtnCustomLevelReturn" IsVisible="false"
+								Background="#2D2D30" ToolTip.Tip="Eigenes Level gespeichert verlassen"
+								CornerRadius="4" VerticalAlignment="Center" Margin="0,0,20,0"
+								Click="BtnCustomLevelReturn_Click">
+							<svg:Svg Path="/assets/icons/ic_return.svg" Width="20" Height="20" />
+						</Button>
+						
+						<Button Grid.Column="4" Name="BtnPrevLevel" Content="←"
 								Background="#333" Foreground="White"
 								CornerRadius="4" Padding="15,8" FontWeight="Bold"
 								VerticalAlignment="Center" Margin="0,0,10,0"
 								Click="BtnPrevLevel_Click" />
 
-						<Button Grid.Column="4" Name="BtnNextLevel" Content="→"
+						<Button Grid.Column="5" Name="BtnNextLevel" Content="→"
 								Background="RoyalBlue" Foreground="White"
 								CornerRadius="4" Padding="15,8" FontWeight="Bold"
 								VerticalAlignment="Center" Margin="0,0,20,0"
 								Click="BtnNextLevel_Click" />
 
-						<Button Grid.Column="5" Name="BtnExitDesigner" Content="DESIGNER VERLASSEN"
+						<Button Grid.Column="6" Name="BtnExitDesigner" Content="DESIGNER VERLASSEN"
 								Background="#B43232" Foreground="White" IsVisible="False"
 								CornerRadius="4" Padding="15,8" FontWeight="Bold"
 								VerticalAlignment="Center" Margin="0,0,20,0"

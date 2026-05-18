@@ -43,6 +43,47 @@ public partial class MainWindow
             RefreshUI();
         };
 
+        string currentMiniConsoleError = null;
+
+        win.BtnMiniConsoleClose.Click += (_, __) => win.MiniConsolePanel.IsVisible = false;
+        win.BtnMiniConsoleCopy.Click += async (_, __) =>
+        {
+            var topLevel = GetTopLevel(win);
+            if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(currentMiniConsoleError))
+            {
+                await topLevel.Clipboard.SetTextAsync("Error: " + currentMiniConsoleError);
+                win.BtnMiniConsoleCopy.Background = SolidColorBrush.Parse("#2E8B57");
+                win.BtnMiniConsoleCopy.Content = LoadIcon("assets/icons/ic_success.svg", 14);
+                await Task.Delay(500);
+                win.BtnMiniConsoleCopy.Background = SolidColorBrush.Parse("#3C3C3C");
+                win.BtnMiniConsoleCopy.Content = LoadIcon("assets/icons/ic_copy.svg", 14);
+            }
+        };
+
+        void LogToMiniConsole(string msg, IBrush color, bool append = true, bool isError = false, string fullError = null)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                win.MiniConsolePanel.IsVisible = true;
+                if (!append) win.MiniConsoleText.Inlines?.Clear();
+
+                win.MiniConsoleText.Inlines ??= new Avalonia.Controls.Documents.InlineCollection();
+
+                ProcessTextWithEmojis(msg + "\n", color, win.MiniConsoleText.Inlines);
+
+                if (isError)
+                {
+                    win.BtnMiniConsoleCopy.IsVisible = true;
+                    currentMiniConsoleError = fullError;
+                }
+                else if (!append)
+                {
+                    win.BtnMiniConsoleCopy.IsVisible = false;
+                    currentMiniConsoleError = null;
+                }
+            });
+        }
+
         // ui refresh logic
         void RefreshUI()
         {
@@ -55,6 +96,8 @@ public partial class MainWindow
 
             if (!isCustomMode)
             {
+                win.MiniConsolePanel.IsVisible = false;
+
                 // title and badge
                 if (_isSqlMode)
                 {
@@ -557,137 +600,129 @@ public partial class MainWindow
                                 {
                                     if (_isSqlMode)
                                     {
-                                        AddSqlOutput("System", $"> Quick Export gestartet für: {cl.Name}...",
-                                            Brushes.LightGray);
+                                        LogToMiniConsole($"> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray, false);
                                         var draft = SqlLevelDesigner.LoadDraft(cl.FilePath);
 
-                                        var validData =
-                                            await Task
-                                                .Run<(bool Success, List<SqlExpectedColumn> Schema, List<string[]>
-                                                    Result)>(() =>
+                                        var validData = await Task.Run<(bool Success, List<SqlExpectedColumn> Schema, List<string[]> Result)>(() =>
+                                        {
+                                            try
+                                            {
+                                                using (var connection =
+                                                    new SqliteConnection("Data Source=:memory:"))
                                                 {
-                                                    try
+                                                    connection.Open();
+
+                                                    // run setup code
+                                                    using (var setupCmd = connection.CreateCommand())
                                                     {
-                                                        using (var connection =
-                                                               new SqliteConnection("Data Source=:memory:"))
+                                                        setupCmd.CommandText = draft.SetupScript;
+                                                        setupCmd.ExecuteNonQuery();
+                                                    }
+
+                                                    // exclude empty input buffers
+                                                    var cleanedSchema = draft.ExpectedSchema
+                                                        .Where(c => !string.IsNullOrWhiteSpace(c.Name))
+                                                        .ToList();
+                                                    int validCols = cleanedSchema.Count;
+
+                                                    var cleanedResult = new List<string[]>();
+                                                    foreach (var r in draft.ExpectedResult)
+                                                    {
+                                                        var rowData = r.Take(validCols).Select(c => c ?? "")
+                                                            .ToArray();
+                                                        if (rowData.Any(c => !string.IsNullOrWhiteSpace(c)))
+                                                            cleanedResult.Add(rowData);
+                                                    }
+
+                                                    if (validCols == 0)
+                                                        throw new Exception(
+                                                            "Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
+
+                                                    DataTable actualDt = null;
+                                                    string sampleSolution =
+                                                        SqlLevelTester.ConvertMysqlToSqlite(connection,
+                                                            draft.SampleSolution);
+
+                                                    if (draft.IsDmlMode)
+                                                    {
+                                                        using (var dmlCmd = connection.CreateCommand())
                                                         {
-                                                            connection.Open();
+                                                            dmlCmd.CommandText = sampleSolution;
+                                                            dmlCmd.ExecuteNonQuery();
+                                                        }
 
-                                                            // run setup code
-                                                            using (var setupCmd = connection.CreateCommand())
-                                                            {
-                                                                setupCmd.CommandText = draft.SetupScript;
-                                                                setupCmd.ExecuteNonQuery();
-                                                            }
+                                                        if (string.IsNullOrWhiteSpace(draft.VerificationQuery))
+                                                            throw new Exception(
+                                                                "Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
 
-                                                            // exclude empty input buffers
-                                                            var cleanedSchema = draft.ExpectedSchema
-                                                                .Where(c => !string.IsNullOrWhiteSpace(c.Name))
-                                                                .ToList();
-                                                            int validCols = cleanedSchema.Count;
+                                                        string verifyQuery =
+                                                            SqlLevelTester.ConvertMysqlToSqlite(connection,
+                                                                draft.VerificationQuery);
+                                                        actualDt = ExecuteDbQuery(connection, verifyQuery);
+                                                    }
+                                                    else
+                                                    {
+                                                        actualDt = ExecuteDbQuery(connection, sampleSolution);
+                                                    }
 
-                                                            var cleanedResult = new List<string[]>();
-                                                            foreach (var r in draft.ExpectedResult)
-                                                            {
-                                                                var rowData = r.Take(validCols).Select(c => c ?? "")
-                                                                    .ToArray();
-                                                                if (rowData.Any(c => !string.IsNullOrWhiteSpace(c)))
-                                                                    cleanedResult.Add(rowData);
-                                                            }
+                                                    if (actualDt.Columns.Count != validCols)
+                                                        throw new Exception(
+                                                            $"Spaltenanzahl stimmt nicht überein. Erwartet: {validCols}, Ist: {actualDt.Columns.Count}");
 
-                                                            if (validCols == 0)
+                                                    for (int i = 0; i < validCols; i++)
+                                                        if (!actualDt.Columns[i].ColumnName
+                                                                .Equals(cleanedSchema[i].Name,
+                                                                    StringComparison.OrdinalIgnoreCase))
+                                                            throw new Exception(
+                                                                $"Spaltenname an Position {i + 1} stimmt nicht. Erwartet: '{cleanedSchema[i].Name}', Ist: '{actualDt.Columns[i].ColumnName}'");
+
+                                                    if (actualDt.Rows.Count != cleanedResult.Count)
+                                                        throw new Exception(
+                                                            $"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
+
+                                                    for (int r = 0; r < cleanedResult.Count; r++)
+                                                    for (int c = 0; c < validCols; c++)
+                                                    {
+                                                        string expectedVal = cleanedResult[r][c] ?? "";
+                                                        if (expectedVal == "") expectedVal = "NULL";
+
+                                                        string actualVal = actualDt.Rows[r][c]?.ToString()
+                                                            ?.Replace(",", ".") ?? "";
+                                                        if (actualDt.Rows[r][c] == DBNull.Value ||
+                                                            string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
+
+                                                        if (double.TryParse(expectedVal, NumberStyles.Any,
+                                                                CultureInfo.InvariantCulture,
+                                                                out double expNum) &&
+                                                            double.TryParse(actualVal, NumberStyles.Any,
+                                                                CultureInfo.InvariantCulture,
+                                                                out double actNum))
+                                                        {
+                                                            if (Math.Abs(expNum - actNum) > 0.0001)
                                                                 throw new Exception(
-                                                                    "Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
-
-                                                            DataTable actualDt = null;
-                                                            string sampleSolution =
-                                                                SqlLevelTester.ConvertMysqlToSqlite(connection,
-                                                                    draft.SampleSolution);
-
-                                                            if (draft.IsDmlMode)
-                                                            {
-                                                                using (var dmlCmd = connection.CreateCommand())
-                                                                {
-                                                                    dmlCmd.CommandText = sampleSolution;
-                                                                    dmlCmd.ExecuteNonQuery();
-                                                                }
-
-                                                                if (string.IsNullOrWhiteSpace(draft.VerificationQuery))
-                                                                    throw new Exception(
-                                                                        "Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
-
-                                                                string verifyQuery =
-                                                                    SqlLevelTester.ConvertMysqlToSqlite(connection,
-                                                                        draft.VerificationQuery);
-                                                                actualDt = ExecuteDbQuery(connection, verifyQuery);
-                                                            }
-                                                            else
-                                                            {
-                                                                actualDt = ExecuteDbQuery(connection, sampleSolution);
-                                                            }
-
-                                                            if (actualDt.Columns.Count != validCols)
-                                                                throw new Exception(
-                                                                    $"Spaltenanzahl stimmt nicht überein. Erwartet: {validCols}, Ist: {actualDt.Columns.Count}");
-
-                                                            for (int i = 0; i < validCols; i++)
-                                                                if (!actualDt.Columns[i].ColumnName
-                                                                        .Equals(cleanedSchema[i].Name,
-                                                                            StringComparison.OrdinalIgnoreCase))
-                                                                    throw new Exception(
-                                                                        $"Spaltenname an Position {i + 1} stimmt nicht. Erwartet: '{cleanedSchema[i].Name}', Ist: '{actualDt.Columns[i].ColumnName}'");
-
-                                                            if (actualDt.Rows.Count != cleanedResult.Count)
-                                                                throw new Exception(
-                                                                    $"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
-
-                                                            for (int r = 0; r < cleanedResult.Count; r++)
-                                                            for (int c = 0; c < validCols; c++)
-                                                            {
-                                                                string expectedVal = cleanedResult[r][c] ?? "";
-                                                                if (expectedVal == "") expectedVal = "NULL";
-
-                                                                string actualVal = actualDt.Rows[r][c]?.ToString()
-                                                                    ?.Replace(",", ".") ?? "";
-                                                                if (actualDt.Rows[r][c] == DBNull.Value ||
-                                                                    string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
-
-                                                                if (double.TryParse(expectedVal, NumberStyles.Any,
-                                                                        CultureInfo.InvariantCulture,
-                                                                        out double expNum) &&
-                                                                    double.TryParse(actualVal, NumberStyles.Any,
-                                                                        CultureInfo.InvariantCulture,
-                                                                        out double actNum))
-                                                                {
-                                                                    if (Math.Abs(expNum - actNum) > 0.0001)
-                                                                        throw new Exception(
-                                                                            $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
-                                                                }
-                                                                else if (!expectedVal.Equals(actualVal,
-                                                                             StringComparison.OrdinalIgnoreCase))
-                                                                {
-                                                                    throw new Exception(
-                                                                        $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
-                                                                }
-                                                            }
-
-                                                            return (true, cleanedSchema, cleanedResult);
+                                                                    $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                        }
+                                                        else if (!expectedVal.Equals(actualVal,
+                                                                        StringComparison.OrdinalIgnoreCase))
+                                                        {
+                                                            throw new Exception(
+                                                                $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
                                                         }
                                                     }
-                                                    catch (Exception ex)
-                                                    {
-                                                        if (!cts.Token.IsCancellationRequested)
-                                                            Dispatcher.UIThread.InvokeAsync(() =>
-                                                                AddSqlOutput("Error",
-                                                                    $"❌ Export Fehler ({cl.Name}): {ex.Message}",
-                                                                    Brushes.Red));
-                                                        return (false, null, null);
-                                                    }
-                                                }, cts.Token);
+
+                                                    return (true, cleanedSchema, cleanedResult);
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                if (ex is TargetInvocationException tie && tie.InnerException != null) throw tie.InnerException;
+                                                throw;
+                                            }
+                                        }, cts.Token);
 
                                         if (!validData.Success) throw new Exception("Validierung fehlgeschlagen.");
 
-                                        AddSqlOutput("System", "> Generiere Diagramme...", Brushes.LightGray);
+                                        LogToMiniConsole("> Generiere Diagramme...", Brushes.LightGray, true);
 
                                         if (!string.IsNullOrWhiteSpace(draft.PlantUmlSource))
                                         {
@@ -696,19 +731,17 @@ public partial class MainWindow
                                                 await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
                                         }
 
-                                        SqlLevelDesigner.ExportLevel(cl.FilePath, draft, validData.Schema,
-                                            validData.Result);
+                                        SqlLevelDesigner.ExportLevel(cl.FilePath, draft, validData.Schema, validData.Result);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        AddSqlOutput("System", $"> {cl.Name} erfolgreich exportiert!",
-                                            Brushes.LightGreen);
+                                        LogToMiniConsole($"✓ {cl.Name} erfolgreich exportiert!", Brushes.LightGreen, true);
 
+                                        _newlyCreatedLevelPath = cl.FilePath.Replace(".eliteslvldraft", ".eliteslvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
                                         RefreshUI();
                                     }
                                     else
                                     {
-                                        AddToConsole($"\n> Quick Export gestartet für: {cl.Name}...",
-                                            Brushes.LightGray);
+                                        LogToMiniConsole($"> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray, false);
                                         var draft = LevelDesigner.LoadDraft(cl.FilePath);
 
                                         bool valid = await Task.Run(async () =>
@@ -785,18 +818,15 @@ public partial class MainWindow
                                             }
                                             catch (Exception ex)
                                             {
-                                                if (!cts.Token.IsCancellationRequested)
-                                                    await Dispatcher.UIThread.InvokeAsync(() =>
-                                                        AddToConsole($"\n❌ Export Fehler ({cl.Name}): {ex.Message}",
-                                                            Brushes.Red));
-                                                return false;
+                                                if (ex is TargetInvocationException tie && tie.InnerException != null) throw tie.InnerException;
+                                                throw;
                                             }
                                         }, cts.Token);
 
                                         if (!valid) throw new Exception("Validierung fehlgeschlagen.");
 
                                         // generate diagrams
-                                        AddToConsole("\n> Generiere Diagramme...", Brushes.LightGray);
+                                        LogToMiniConsole("> Generiere Diagramme...", Brushes.LightGray, true);
 
                                         if (draft.PlantUmlSources != null && draft.PlantUmlSources.Count > 0 &&
                                             !string.IsNullOrWhiteSpace(draft.PlantUmlSources[0]))
@@ -810,6 +840,7 @@ public partial class MainWindow
                                         }
 
                                         for (int i = 0; i < draft.MaterialDiagrams.Count; i++)
+                                        {
                                             if (!string.IsNullOrWhiteSpace(draft.MaterialDiagrams[i].PlantUmlSource))
                                             {
                                                 string prepared =
@@ -817,12 +848,14 @@ public partial class MainWindow
                                                 draft.MaterialDiagrams[i].PlantUmlSvgContent =
                                                     await PlantUmlHelper.GenerateSvgFromCodeAsync(prepared);
                                             }
+                                        }
 
                                         // export
                                         LevelDesigner.ExportLevel(cl.FilePath, draft);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        AddToConsole($"\n> {cl.Name} erfolgreich exportiert!", Brushes.LightGreen);
+                                        LogToMiniConsole($"✓ {cl.Name} erfolgreich exportiert!", Brushes.LightGreen, true);
 
+                                        _newlyCreatedLevelPath = cl.FilePath.Replace(".elitelvldraft", ".elitelvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
                                         RefreshUI();
                                     }
@@ -830,8 +863,11 @@ public partial class MainWindow
                                 catch (OperationCanceledException)
                                 {
                                 }
-                                catch (Exception)
+                                catch (Exception ex)
                                 {
+                                    string errorMsg = ex.Message;
+                                    LogToMiniConsole($"❌ Export Fehler ({cl.Name}): {errorMsg}", Brushes.Red, true, true, errorMsg);
+
                                     btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
                                     btnQuickExport.IsEnabled = true;
                                     btnQuickExport.Tag = "idle";
@@ -895,10 +931,20 @@ public partial class MainWindow
                     // show groups
                     foreach (var group in folderGroups)
                     {
-                        var groupContent = new StackPanel { Spacing = 5, Margin = new Thickness(0, 5, 0, 0) };
-                        foreach (var cl in group) groupContent.Children.Add(CreateLevelRow(cl));
+                        var groupContent = new StackPanel
+                        {
+                            Spacing = 5,
+                            Margin = new Thickness(0, 5, 0, 0)
+                        };
 
-                        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                        foreach (var cl in group)
+                            groupContent.Children.Add(CreateLevelRow(cl));
+
+                        var headerPanel = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Spacing = 10
+                        };
                         headerPanel.Children.Add(new TextBlock
                         {
                             Text = group.Key,
@@ -939,6 +985,8 @@ public partial class MainWindow
 
     private void LoadLevel(Level level)
     {
+        SaveCurrentProgress();
+
         if (level.Id > 0)
         {
             _isCustomLevelMode = false;
@@ -948,8 +996,6 @@ public partial class MainWindow
             _nextCustomLevelPath = null;
         }
 
-        SaveCurrentProgress();
-
         // reset error highlighting on every load
         AppSettings.IsErrorHighlightingEnabled = false;
         ClearDiagnostics();
@@ -957,6 +1003,8 @@ public partial class MainWindow
         currentLevel = level;
         _currentDiagramIndex = 0;
         UpdateNavigationButtons();
+
+        BtnCustomLevelReturn.IsVisible = _isCustomLevelMode && !_isDesignerMode;
 
         PnlDiagramSwitch.IsVisible = false;
         BtnDiagram1.IsVisible = false;
@@ -1379,8 +1427,10 @@ public partial class MainWindow
             {
                 await topLevel.Clipboard.SetTextAsync(fullErrorText);
                 btnCopyError.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyError.Content = LoadIcon("assets/icons/ic_success.svg", 14); // temporarily change icon to success
                 await Task.Delay(500);
                 btnCopyError.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyError.Content = LoadIcon("assets/icons/ic_copy.svg", 14);
             }
         };
 
@@ -1718,6 +1768,9 @@ public partial class MainWindow
 
     private void LoadCustomLevelFromFile(string path)
     {
+        string parentDirName = new DirectoryInfo(Path.GetDirectoryName(path)).Name;
+        string sectionName = parentDirName.Equals("levels", StringComparison.OrdinalIgnoreCase) ? "Einzelne Levels" : parentDirName;
+
         if (path.EndsWith(".eliteslvl", StringComparison.OrdinalIgnoreCase))
         {
             string json = File.ReadAllText(path);
@@ -1741,13 +1794,43 @@ public partial class MainWindow
                         ? vqProp.GetString()
                         : "",
                     SkipCode = "CUST",
-                    Section = "Eigene Levels",
+                    Section = sectionName,
                     Prerequisites = new List<string>(),
                     ExpectedSchema = new List<SqlExpectedColumn>(),
                     ExpectedResult = new List<string[]>(),
                     DiagramPaths = new List<string>(),
                     PlantUMLSources = new List<string>()
                 };
+
+                // parse relational model properties
+                if (root.TryGetProperty("IsRelationalModelReadOnly", out var rmroProp))
+                    loadedLevel.IsRelationalModelReadOnly = rmroProp.GetBoolean();
+
+                loadedLevel.InitialRelationalModel = new List<RTable>();
+                if (root.TryGetProperty("InitialRelationalModel", out var irmListElem))
+                {
+                    foreach (var tableElem in irmListElem.EnumerateArray())
+                    {
+                        var t = new RTable
+                        {
+                            Name = tableElem.GetProperty("Name").GetString(),
+                            Columns = new List<RColumn>()
+                        };
+                        if (tableElem.TryGetProperty("Columns", out var colsElem))
+                        {
+                            foreach (var colElem in colsElem.EnumerateArray())
+                            {
+                                t.Columns.Add(new RColumn
+                                {
+                                    Name = colElem.GetProperty("Name").GetString(),
+                                    IsPk = colElem.GetProperty("IsPk").GetBoolean(),
+                                    IsFk = colElem.GetProperty("IsFk").GetBoolean()
+                                });
+                            }
+                        }
+                        loadedLevel.InitialRelationalModel.Add(t);
+                    }
+                }
 
                 if (root.TryGetProperty("Prerequisites", out var prereqElem))
                     foreach (var p in prereqElem.EnumerateArray())
@@ -1826,7 +1909,7 @@ public partial class MainWindow
                 StarterCode = root.TryGetProperty("StarterCode", out var scProp) ? scProp.GetString() : "",
                 MaterialDocs = root.TryGetProperty("MaterialDocs", out var matProp) ? matProp.GetString() : "",
                 SkipCode = "CUST",
-                Section = "Eigene Levels",
+                Section = sectionName,
                 Prerequisites = new List<string>(),
                 AuxiliaryIds = new List<string>(),
                 DiagramPaths = new List<string>(),
@@ -1904,6 +1987,8 @@ public partial class MainWindow
 
     private void LoadSqlLevel(SqlLevel level)
     {
+        SaveCurrentProgress();
+
         // reset custom variables if its a standard level
         if (level.Id > 0)
         {
@@ -1919,8 +2004,6 @@ public partial class MainWindow
             SaveSystem.Save(playerData);
         }
 
-        SaveCurrentProgress();
-
         UpdateFocusedColumn(null, null);
 
         _consecutiveSqlFails = 0;
@@ -1928,6 +2011,9 @@ public partial class MainWindow
         currentSqlLevel = level;
         UpdateNavigationButtons();
 
+        BtnCustomLevelReturn.IsVisible = _isCustomLevelMode && !_isDesignerMode;
+
+        // properly load custom or standard sql editor text
         if (_isCustomLevelMode)
         {
             if (customPlayerData.UserSqlCode.ContainsKey(level.Title))
@@ -1955,7 +2041,6 @@ public partial class MainWindow
         SqlQueryEditor.TextArea.TextView.InvalidateVisual();
 
         PnlSqlOutput.Children.Clear();
-
         PnlTask.Children.Clear();
 
         if (_isCustomLevelMode)
@@ -1973,11 +2058,10 @@ public partial class MainWindow
             {
                 PnlTask.Children.Add(new SelectableTextBlock
                 {
-                    Text = $"S{level.Id}. {level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)}",
-                    FontSize = 20,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextNormal,
-                    Margin = new Thickness(0, 0, 0, 15)
+                    Text = $"von {_currentCustomAuthor}",
+                    FontSize = 14,
+                    Foreground = Brushes.Gray,
+                    Margin = new Thickness(0, 0, 0, 20)
                 });
             }
             else
@@ -2113,5 +2197,31 @@ public partial class MainWindow
             DiscordRpcManager.UpdatePresence($"SQL Level {level.Id}", "Querying greatness", "mysql_icon", "MySQL");
 
         UpdateCommunityUIAsync(level.Id.ToString(), true);
+    }
+
+    private void BtnCustomLevelReturn_Click(object sender, RoutedEventArgs e)
+    {
+        SaveCurrentProgress();
+
+        if (_isSqlMode)
+        {
+            // return to the highest unlocked unsolved sql level (or highest overall)
+            var unsolvedSqlLevels = sqlLevels.Where(l => playerData.UnlockedSqlLevelIds.Contains(l.Id) && !playerData.CompletedSqlLevelIds.Contains(l.Id)).ToList();
+            var startLevel = unsolvedSqlLevels.Any()
+                ? unsolvedSqlLevels.OrderByDescending(l => l.Id).First()
+                : sqlLevels.FirstOrDefault(l => l.Id == (playerData.UnlockedSqlLevelIds.Count > 0 ? playerData.UnlockedSqlLevelIds.Max() : 1)) ?? sqlLevels[0];
+
+            LoadSqlLevel(startLevel);
+        }
+        else
+        {
+            // return to the highest unlocked unsolved c# level (or highest overall)
+            var unsolvedLevels = levels.Where(l => playerData.UnlockedLevelIds.Contains(l.Id) && !playerData.CompletedLevelIds.Contains(l.Id)).ToList();
+            var startLevel = unsolvedLevels.Any()
+                ? unsolvedLevels.OrderByDescending(l => l.Id).First()
+                : levels.FirstOrDefault(l => l.Id == (playerData.UnlockedLevelIds.Count > 0 ? playerData.UnlockedLevelIds.Max() : 1)) ?? levels[0];
+
+            LoadLevel(startLevel);
+        }
     }
 }
