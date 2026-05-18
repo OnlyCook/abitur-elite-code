@@ -26,6 +26,8 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private Dictionary<string, IImage> _svgStringCache = new();
+
     private void RunSqlDesignerTest()
     {
         PnlSqlOutput.Children.Clear();
@@ -208,6 +210,8 @@ public partial class MainWindow
             _currentDraft.ValidationCode = TxtDesignValidation.Text ?? "";
         }
 
+        UpdateDesignerPreview();
+
         // trigger autosave
         _designerAutoSaveTimer.Stop();
         _designerAutoSaveTimer.Start();
@@ -215,6 +219,11 @@ public partial class MainWindow
 
     private void ToggleDesignerMode(bool enable, string draftPath = "")
     {
+        if (AppSettings.IsLayoutAutoSaveEnabled && !_isRestoringLayout)
+        {
+            SaveAppLayout();
+        }
+
         _isDesignerMode = enable;
         _activeDesignerSource = DesignerSource.None;
 
@@ -226,7 +235,7 @@ public partial class MainWindow
             if (enable)
             {
                 TabDesigner.IsVisible = true;
-                _tabDockManager?.EnsureTabInMainSystem(TabDesigner);
+                _tabDockManager?.EnsureTabInMainSystem(TabDesigner, false);
             }
             else
             {
@@ -266,6 +275,9 @@ public partial class MainWindow
         if (enable)
         {
             _isLoadingDesigner = true;
+
+            PnlDiagramSwitch.IsVisible = false;
+            PnlCommunityActions.IsVisible = false;
 
             // clear designated consoles + editors
             if (_isSqlMode)
@@ -371,6 +383,15 @@ public partial class MainWindow
             LoadDiagramContentToUI();
             RenderDesignerPrereqList();
 
+            // apply new layout specifically mapped out for the designer
+            if (!string.IsNullOrEmpty(playerData.Settings.DesignerSavedAppLayout))
+            {
+                LoadAppLayout();
+            }
+
+            if (TabDesigner?.Parent is TabControl tc)
+                tc.SelectedItem = TabDesigner;
+
             // update designer diagrams tabs and preview immediately on entry
             UpdateDesignerDiagramTabs();
             UpdateDesignerPreview();
@@ -379,18 +400,26 @@ public partial class MainWindow
         }
         else
         {
+            if (!string.IsNullOrEmpty(AppSettings.SavedAppLayout))
+            {
+                LoadAppLayout();
+            }
+
             if (_isSqlMode)
             {
                 AppSettings.IsSqlSyntaxHighlightingEnabled = _originalSyntaxSetting;
                 ApplySqlSyntaxHighlighting();
 
-                // find first visible tab across all modular tab controls (safe)
-                var firstTab = _tabDockManager?.GetAllTabControls()
-                    .SelectMany(tc => tc.Items.OfType<TabItem>())
-                    .FirstOrDefault(t => t.IsVisible);
+                if (string.IsNullOrEmpty(AppSettings.SavedAppLayout))
+                {
+                    // find first visible tab across all modular tab controls (safe)
+                    var firstTab = _tabDockManager?.GetAllTabControls()
+                        .SelectMany(tc => tc.Items.OfType<TabItem>())
+                        .FirstOrDefault(t => t.IsVisible);
 
-                if (firstTab?.Parent is TabControl parentTc)
-                    parentTc.SelectedItem = firstTab;
+                    if (firstTab?.Parent is TabControl parentTc)
+                        parentTc.SelectedItem = firstTab;
+                }
 
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
@@ -411,13 +440,16 @@ public partial class MainWindow
                 ClearDiagnostics();
                 _textMarkerService.Clear();
 
-                // also find the first visible tab across all modular tab controls (safe)
-                var firstTab = _tabDockManager?.GetAllTabControls()
-                    .SelectMany(tc => tc.Items.OfType<TabItem>())
-                    .FirstOrDefault(t => t.IsVisible);
+                if (string.IsNullOrEmpty(AppSettings.SavedAppLayout))
+                {
+                    // also find the first visible tab across all modular tab controls (safe)
+                    var firstTab = _tabDockManager?.GetAllTabControls()
+                        .SelectMany(tc => tc.Items.OfType<TabItem>())
+                        .FirstOrDefault(t => t.IsVisible);
 
-                if (firstTab?.Parent is TabControl parentTc)
-                    parentTc.SelectedItem = firstTab;
+                    if (firstTab?.Parent is TabControl parentTc)
+                        parentTc.SelectedItem = firstTab;
+                }
 
                 BtnSave.IsVisible = true;
                 BtnReset.IsVisible = true;
@@ -1145,18 +1177,17 @@ public partial class MainWindow
         }, RegexOptions.Multiline);
 
         // add theme attributes if missing
-        if (!source.Contains("skinparam backgroundcolor transparent"))
+        if (!source.Contains("skinparam backgroundcolor transparent", StringComparison.OrdinalIgnoreCase))
         {
             var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
             bool inserted = false;
             for (int i = 0; i < lines.Count; i++)
             {
                 string trimmed = lines[i].Trim();
-                if (trimmed.StartsWith("@startuml") || trimmed.StartsWith("@startchen") ||
-                    trimmed.StartsWith("@starter"))
+                if (trimmed.StartsWith("@start", StringComparison.OrdinalIgnoreCase))
                 {
                     lines.Insert(i + 1, "skinparam backgroundcolor transparent");
-                    if (trimmed.StartsWith("@startuml") && !source.Contains("skinparam classAttributeIconSize 0"))
+                    if (trimmed.StartsWith("@startuml", StringComparison.OrdinalIgnoreCase) && !source.Contains("skinparam classAttributeIconSize 0", StringComparison.OrdinalIgnoreCase))
                         lines.Insert(i + 2, "skinparam classAttributeIconSize 0");
                     inserted = true;
                     break;
@@ -1210,6 +1241,7 @@ public partial class MainWindow
             }
 
             ImgDiagram.Source = null;
+            TxtNoDiagram.IsVisible = true;
             return true;
         }
 
@@ -1227,6 +1259,7 @@ public partial class MainWindow
                 _currentSqlDraft.PlantUmlSource = rawCode;
                 _currentSqlDraft.PlantUmlSvgContent = svgContent;
                 ImgDiagram.Source = LoadSvgFromString(svgContent);
+                TxtNoDiagram.IsVisible = false;
             }
             else
             {
@@ -1239,6 +1272,7 @@ public partial class MainWindow
                     _currentDraft.PlantUmlSvgContents[0] = svgContent;
 
                     ImgDiagram.Source = LoadSvgFromString(svgContent);
+                    TxtNoDiagram.IsVisible = false;
                 }
                 else
                 {
@@ -1266,6 +1300,10 @@ public partial class MainWindow
     private IImage LoadSvgFromString(string svgContent)
     {
         if (string.IsNullOrEmpty(svgContent)) return null;
+
+        if (_svgStringCache.TryGetValue(svgContent, out var cachedImg))
+            return cachedImg;
+
         try
         {
             // clean svg header
@@ -1286,7 +1324,9 @@ public partial class MainWindow
             {
             }
 
-            return new SvgImage { Source = svgSource };
+            var img = new SvgImage { Source = svgSource };
+            _svgStringCache[svgContent] = img;
+            return img;
         }
         catch (Exception ex)
         {

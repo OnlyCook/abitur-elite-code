@@ -927,6 +927,7 @@ public partial class SettingsWindow : Window
             IsChecked = AppSettings.IsLayoutAutoSaveEnabled,
             Foreground = Brushes.White
         };
+        ToolTip.SetTip(chkAutoSaveLayout, "Speichert sowie lädt App-Layout Änderungen automatisch (der Level-Designer wird separat behandelt)");
 
         var btnResetLayout = new Button
         {

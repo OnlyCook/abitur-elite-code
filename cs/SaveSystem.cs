@@ -37,6 +37,7 @@ public class PlayerSettings
     [SettingKey("scale")] public double UiScale { get; set; } = 1.0;
     [SettingKey("autosavelayout")] public bool IsLayoutAutoSaveEnabled { get; set; } = false;
     [SettingKey("savedlayout")] public string SavedAppLayout { get; set; } = "";
+    [SettingKey("designersavedlayout")] public string DesignerSavedAppLayout { get; set; } = "";
 
     // --- Updates ---
     [SettingKey("autoupdate")] public bool AutoCheckForUpdates { get; set; } = true;

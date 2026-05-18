@@ -420,7 +420,7 @@ public partial class MainWindow
                 {
                     customStack.Children.Add(new TextBlock
                     {
-                        Text = "Keine eigenen Levels gefunden.\nErstelle eins mit '+' oder \nöffne den Ordner und füge Levels hinzu.",
+                        Text = $"Keine eigenen {(_isSqlMode ? "SQL" : "C#")} Levels gefunden.\nErstelle eins mit '+' oder \nöffne den Ordner und füge Levels hinzu.",
                         Foreground = Brushes.Gray,
                         TextAlignment = TextAlignment.Center,
                         Margin = new Thickness(0, 50, 0, 0)

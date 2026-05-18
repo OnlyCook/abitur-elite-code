@@ -56,8 +56,17 @@ public partial class MainWindow
             }
         }
 
-        AppSettings.SavedAppLayout = JsonSerializer.Serialize(state);
-        playerData.Settings.SavedAppLayout = AppSettings.SavedAppLayout;
+        // apply separate save depending on current mode
+        if (_isDesignerMode)
+        {
+            playerData.Settings.DesignerSavedAppLayout = JsonSerializer.Serialize(state);
+        }
+        else
+        {
+            AppSettings.SavedAppLayout = JsonSerializer.Serialize(state);
+            playerData.Settings.SavedAppLayout = AppSettings.SavedAppLayout;
+        }
+
         SaveSystem.Save(playerData);
     }
 
@@ -90,11 +99,14 @@ public partial class MainWindow
 
     private void LoadAppLayout()
     {
-        if (string.IsNullOrEmpty(AppSettings.SavedAppLayout)) return;
+        // load layout based on current mode
+        string layoutStr = _isDesignerMode ? playerData.Settings.DesignerSavedAppLayout : AppSettings.SavedAppLayout;
+        if (string.IsNullOrEmpty(layoutStr)) return;
+
         try
         {
             _isRestoringLayout = true;
-            var state = JsonSerializer.Deserialize<LayoutState>(AppSettings.SavedAppLayout);
+            var state = JsonSerializer.Deserialize<LayoutState>(layoutStr);
             if (state == null) return;
 
             var mainContentGrid = LeftPanelContainer.Parent as Grid;
@@ -154,6 +166,7 @@ public partial class MainWindow
             _isRestoringLayout = false;
         }
     }
+
 
     private Control BuildDockTree(DockNode node, List<TabItem> availableTabs, ref bool mainTabsUsed)
     {
@@ -279,7 +292,7 @@ public partial class MainWindow
             p.Children.Remove(MainTabs);
         }
 
-        var defaultOrder = new[] { "Aufgabe", "UML/Diagramme", "Materialien", "Level Designer", "TabDesigner", "Vim Hilfe", "TabVim" };
+        var defaultOrder = new[] { "Aufgabe", "UML/Diagramme", "Materialien", "TabDesigner", "TabVim" };
         foreach (var name in defaultOrder)
         {
             var tab = allTabs.FirstOrDefault(t => t.Header?.ToString() == name || t.Name == name);

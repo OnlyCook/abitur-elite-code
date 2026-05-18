@@ -552,7 +552,7 @@ public partial class MainWindow : Window
                 var tcs = _tabDockManager?.GetAllTabControls() ?? new List<TabControl> { MainTabs };
                 var umlTc = tcs.FirstOrDefault(tc => tc.Items.OfType<TabItem>().Any(t => t.Header?.ToString() == "UML/Diagramme"));
 
-                if (umlTc?.SelectedItem is TabItem ti && ti.Header?.ToString() == "UML/Diagramme" && !_isSqlMode && currentLevel?.DiagramPaths?.Count > 1)
+                if (umlTc?.SelectedItem is TabItem ti && ti.Header?.ToString() == "UML/Diagramme" && !_isSqlMode && !_isDesignerMode && currentLevel?.DiagramPaths?.Count > 1)
                 {
                     _currentDiagramIndex++;
                     if (_currentDiagramIndex >= currentLevel.DiagramPaths.Count) _currentDiagramIndex = 0;
@@ -1657,6 +1657,7 @@ public partial class MainWindow : Window
 
     private void BtnDiagramSwitch_Click(object sender, RoutedEventArgs e)
     {
+        if (_isDesignerMode) return;
         if (currentLevel == null || currentLevel.DiagramPaths == null) return;
         if (sender is Button btn && int.TryParse(btn.Tag?.ToString(), out int index))
             if (index >= 0 && index < currentLevel.DiagramPaths.Count)
@@ -1773,7 +1774,7 @@ public partial class MainWindow : Window
                 {
                     var border = new Border
                     {
-                        Background = SolidColorBrush.Parse("#1A1A1A"),
+                        Background = Brushes.Transparent,
                         CornerRadius = new CornerRadius(6),
                         Padding = new Thickness(10),
                         Margin = new Thickness(0, 0, 15, 15),
@@ -3081,12 +3082,14 @@ public partial class MainWindow : Window
             ResetAppLayout = () => {
                 AppSettings.SavedAppLayout = "";
                 playerData.Settings.SavedAppLayout = "";
+                playerData.Settings.DesignerSavedAppLayout = "";
                 SaveSystem.Save(playerData);
                 ResetLayoutState();
             },
             DeleteSavedLayout = () => {
                 AppSettings.SavedAppLayout = "";
                 playerData.Settings.SavedAppLayout = "";
+                playerData.Settings.DesignerSavedAppLayout = "";
                 SaveSystem.Save(playerData);
             }
         };

@@ -288,7 +288,7 @@ public partial class MainWindow
         if (IconToggleComments != null)
             IconToggleComments.Path = "/assets/icons/ic_comment.svg";
 
-        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || _discussionMappings == null)
+        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || _isDesignerMode || _discussionMappings == null)
         {
             // only hide the panel when community is genuinely unavailable
             PnlCommunityActions.IsVisible = false;
@@ -3374,7 +3374,8 @@ public partial class MainWindow
                 {
                     Content = LoadIcon("assets/icons/ic_comment_go.svg", 16),
                     Background = Brushes.Transparent,
-                    Cursor = new Cursor(StandardCursorType.Hand)
+                    Cursor = new Cursor(StandardCursorType.Hand),
+                    IsVisible = !_isDesignerMode
                 };
                 ToolTip.SetTip(btnGo, "Gehe zum betroffenen Kommentar (möglicherweise inakkurat)");
                 var btnDel = new Button
@@ -3387,7 +3388,7 @@ public partial class MainWindow
 
                 btnGo.Click += (s, e) =>
                 {
-                    if (_isCustomLevelMode) return; // locked in level designer
+                    if (_isCustomLevelMode || _isDesignerMode) return; // locked in level designer
 
                     _inboxFlyout?.Hide();
                     if (!string.IsNullOrEmpty(notif.TargetDiscussionId))
