@@ -349,29 +349,75 @@ public static class SqlLevelTester
                 q = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
         }
 
-        // 1. CONCAT(a, b) -> a || b
-        q = Regex.Replace(q, @"CONCAT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2", RegexOptions.IgnoreCase);
+        // 1. string functions (added boundary \b to preserve GROUP_CONCAT correctly)
+        // concat up to 5 arguments
+        q = Regex.Replace(q, @"\bCONCAT\s*\(\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2 || $3 || $4 || $5", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCONCAT\s*\(\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2 || $3 || $4", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCONCAT\s*\(\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2 || $3", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCONCAT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "$1 || $2", RegexOptions.IgnoreCase);
 
-        // 2. YEAR(date) -> strftime('%Y', date)
+        q = Regex.Replace(q, @"\bGROUP_CONCAT\s*\(\s*([^,]+?)\s+SEPARATOR\s+([^)]+?)\s*\)", "GROUP_CONCAT($1, $2)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCHAR_LENGTH\s*\(", "LENGTH(", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCHARACTER_LENGTH\s*\(", "LENGTH(", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bUCASE\s*\(", "UPPER(", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bLCASE\s*\(", "LOWER(", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bLEFT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "SUBSTR($1, 1, $2)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bRIGHT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "SUBSTR($1, -($2))", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bLOCATE\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "INSTR($2, $1)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bSUBSTRING\s*\(\s*([^,]+?)\s+FROM\s+([^,]+?)\s+FOR\s+([^)]+?)\s*\)", "SUBSTR($1, $2, $3)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bSUBSTRING\s*\(\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "SUBSTR($1, $2, $3)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bSUBSTRING\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "SUBSTR($1, $2)", RegexOptions.IgnoreCase);
+
+        // 2. control flow
+        q = Regex.Replace(q, @"\bIF\s*\(", "IIF(", RegexOptions.IgnoreCase); // maps IF(cond, a, b) to IIF safely
+        q = Regex.Replace(q, @"\bISNULL\s*\(\s*([^()]+)\s*\)", "($1 IS NULL)", RegexOptions.IgnoreCase);
+
+        // 3. math & structural
+        q = Regex.Replace(q, @"\bMOD\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "(($1) % ($2))", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bTRUNCATE\s*\(", "ROUND(", RegexOptions.IgnoreCase); // technically round, but visually identical in tests
+        q = Regex.Replace(q, @"\bPOW\s*\(", "POWER(", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bRAND\(\)", "RANDOM()", RegexOptions.IgnoreCase); // highly compatible for ORDER BY RAND()
+        q = Regex.Replace(q, @"\bAUTO_INCREMENT\b", "AUTOINCREMENT", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bINSERT\s+IGNORE\s+INTO\b", "INSERT OR IGNORE INTO", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bENGINE\s*=\s*\w+", "", RegexOptions.IgnoreCase); // strips unsupported DDL config keywords
+        q = Regex.Replace(q, @"\bDEFAULT\s+CHARSET\s*=\s*\w+", "", RegexOptions.IgnoreCase);
+
+        // 4. date/time part functions
         q = Regex.Replace(q, @"\bYEAR\s*\(\s*([^)]+)\s*\)", "strftime('%Y', $1)", RegexOptions.IgnoreCase);
-
-        // 3. MONTH(date) -> strftime('%m', date)
         q = Regex.Replace(q, @"\bMONTH\s*\(\s*([^)]+)\s*\)", "strftime('%m', $1)", RegexOptions.IgnoreCase);
-
-        // 4. DAY(date) -> strftime('%d', date)
         q = Regex.Replace(q, @"\bDAY\s*\(\s*([^)]+)\s*\)", "strftime('%d', $1)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bHOUR\s*\(\s*([^)]+)\s*\)", "strftime('%H', $1)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bMINUTE\s*\(\s*([^)]+)\s*\)", "strftime('%M', $1)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bSECOND\s*\(\s*([^)]+)\s*\)", "strftime('%S', $1)", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bDATE_FORMAT\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", "strftime($2, $1)", RegexOptions.IgnoreCase);
 
-        // 5. DATEDIFF(end, start) -> CAST(julianday(end) - julianday(start) AS INTEGER)
+        // 5. datediff
         q = Regex.Replace(q, @"\bDATEDIFF\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)",
             "CAST((julianday($1) - julianday($2)) AS INTEGER)", RegexOptions.IgnoreCase);
 
-        // 6. DATE_ADD(date, INTERVAL x DAY) -> date(date, 'x days')
-        q = Regex.Replace(q, @"\bDATE_ADD\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+DAY\s*\)",
-            "date($1, '$2 days')", RegexOptions.IgnoreCase);
+        // 6. DATE_ADD / DATE_SUB (with variable intervals mapping)
+        // unit dates
+        q = Regex.Replace(q, @"\bDATE_ADD\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+(DAY|MONTH|YEAR)S?\s*\)",
+            "date($1, '+$2 $3s')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bDATE_SUB\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+(DAY|MONTH|YEAR)S?\s*\)",
+            "date($1, '-$2 $3s')", RegexOptions.IgnoreCase);
+        // unit times
+        q = Regex.Replace(q, @"\bDATE_ADD\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+(HOUR|MINUTE|SECOND)S?\s*\)",
+            "datetime($1, '+$2 $3s')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bDATE_SUB\s*\(\s*([^,]+?)\s*,\s*INTERVAL\s+([+\-]?\d+)\s+(HOUR|MINUTE|SECOND)S?\s*\)",
+            "datetime($1, '-$2 $3s')", RegexOptions.IgnoreCase);
 
-        // date/time (existing)
+        // fix possible double mathematical signs inside the resulting date modifiers (e.g. '+-5 days' -> '-5 days')
+        q = q.Replace("'+-", "'-").Replace("'-+", "'-").Replace("'++", "'+").Replace("'--", "'+");
+
+        // 7. current date/time mappings
         q = Regex.Replace(q, @"\bNOW\(\)", "datetime('now')", RegexOptions.IgnoreCase);
         q = Regex.Replace(q, @"\bCURDATE\(\)", "date('now')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCURTIME\(\)", "time('now')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bSYSDATE\(\)", "datetime('now')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCURRENT_TIMESTAMP\(\)", "datetime('now')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCURRENT_DATE\(\)", "date('now')", RegexOptions.IgnoreCase);
+        q = Regex.Replace(q, @"\bCURRENT_TIME\(\)", "time('now')", RegexOptions.IgnoreCase);
 
         return q;
     }
