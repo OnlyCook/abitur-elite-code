@@ -165,7 +165,7 @@
 						<Button Grid.Column="2" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
 								Background="#2D2D30" Foreground="White"
 								CornerRadius="4" Padding="15,8"
-								VerticalAlignment="Center" Margin="0,0,10,0"
+								VerticalAlignment="Center" Margin="0,0,5,0"
 								Click="BtnLevelSelect_Click" />
 
 						<Button Grid.Column="3" Name="BtnCustomLevelReturn" IsVisible="false"
@@ -572,7 +572,7 @@
 											<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerExport_Click"
-													ToolTip.Tip="Level Exportieren (.elitelvl)">
+													ToolTip.Tip="Level Exportieren">
 												<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20" />
 											</Button>
 
@@ -722,7 +722,7 @@
 												<StackPanel Name="PnlDesignStarter" Spacing="5">
 													<Grid ColumnDefinitions="*, Auto">
 														<TextBlock Text="Starter Code" Foreground="Gray"
-																   VerticalAlignment="Center" />
+																   VerticalAlignment="Center" ToolTip.Tip="Der Code den der Nutzer sofort bekommt" />
 														<Button Grid.Column="1" Name="BtnEditStarter" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnEditStarter_Click"
@@ -740,8 +740,9 @@
 
 												<StackPanel Name="PnlDesignTesting" Spacing="5">
 													<Grid ColumnDefinitions="*, Auto">
-														<TextBlock Text="Musterlösung / Test-Code (Wird nicht exportiert)"
-																   Foreground="Gray" VerticalAlignment="Center" />
+														<TextBlock Text="Musterlösung / Test-Code"
+																   Foreground="Gray" VerticalAlignment="Center"
+																   ToolTip.Tip="Wird verwendet, um zu Prüfen ob das Level überhaupt lösbar ist. Dies wird nicht exportiert!" />
 														<Button Grid.Column="1" Name="BtnEditTesting" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnEditTesting_Click"
@@ -760,7 +761,8 @@
 												<StackPanel Name="PnlDesignValidation" Spacing="5">
 													<Grid ColumnDefinitions="*, Auto, Auto">
 														<TextBlock Text="Validierungs-Code (Roslyn Test Logik)"
-																   Foreground="Gray" VerticalAlignment="Center" />
+																   Foreground="Gray" VerticalAlignment="Center"
+																   ToolTip.Tip="Hier wird C#-Rosyln-Validierungscode eingefügt, welcher auf Systemebene prüft, ob ein anderer C#-Code spezifische Bedingungen erfüllt" />
 														<Button Grid.Column="1" Name="BtnResetValidation" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnResetValidation_Click"
@@ -786,7 +788,8 @@
 												<StackPanel Name="PnlDesignSqlSetup" Spacing="5" IsVisible="False">
 													<Grid ColumnDefinitions="*, Auto">
 														<TextBlock Text="Setup Script (CREATE TABLE / INSERT)"
-																   Foreground="Gray" VerticalAlignment="Center" />
+																   Foreground="Gray" VerticalAlignment="Center"
+																   ToolTip.Tip="Dies wird immer als erstes ausgeführt und ist für die Initailisierung deiner Datenbank gedacht"/>
 														<Button Grid.Column="1" Name="BtnEditSqlSetup" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnEditSqlSetup_Click"
@@ -804,7 +807,7 @@
 
 												<StackPanel Name="PnlDesignSqlMode" Spacing="5" IsVisible="False">
 													<TextBlock Text="Validierungs-Modus" Foreground="Gray"
-															   VerticalAlignment="Center" />
+															   VerticalAlignment="Center" ToolTip.Tip="Dies entscheidet, ob du die 'SELECT'-Anweisung angibst, die die zu überprüfene Tabelle erzeugt oder der Nutzer selbst" />
 													<ComboBox Name="CmbSqlValidationMode" Background="#1E1E1E"
 															  Foreground="White" SelectedIndex="0"
 															  HorizontalAlignment="Stretch">
@@ -815,7 +818,7 @@
 
 												<StackPanel Name="PnlDesignExpectedTable" Spacing="5" IsVisible="False">
 													<TextBlock Text="Erwartetes Ergebnis (Tabelle)" Foreground="Gray"
-															   VerticalAlignment="Center" />
+															   VerticalAlignment="Center" ToolTip.Tip="Dies ist die Tabelle, die durch die entgültige 'SELECT'-Anweisung enstehen soll. Tipp: Nutze ' für strenge erwartete Spaltennamen" />
 													<Border Background="#1E1E1E" BorderBrush="#333" BorderThickness="1"
 															CornerRadius="4" Padding="5">
 														<ScrollViewer HorizontalScrollBarVisibility="Auto"
@@ -828,7 +831,7 @@
 												<StackPanel Name="PnlDesignSqlSample" Spacing="5" IsVisible="False">
 													<Grid ColumnDefinitions="*, Auto">
 														<TextBlock Text="Musterlösung (Lösung des Levels zur Validierung)"
-																   Foreground="Gray" VerticalAlignment="Center" />
+																   Foreground="Gray" VerticalAlignment="Center" ToolTip.Tip="Wir nutzen diese Anweisung(en), um zu überprüfen ob das Level überhaupt lösbar ist. Dies wird nicht exportiert!" />
 														<Button Grid.Column="1" Name="BtnEditSqlSample" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnEditSqlSample_Click"
@@ -847,7 +850,7 @@
 												<StackPanel Name="PnlDesignSqlVerify" Spacing="5" IsVisible="False">
 													<Grid ColumnDefinitions="*, Auto">
 														<TextBlock Text="Verifizierungs-Abfrage (Nur für DML nötig)"
-																   Foreground="Gray" VerticalAlignment="Center" />
+																   Foreground="Gray" VerticalAlignment="Center" ToolTip.Tip="Bei DML-Level müssen wir selbst die erwartete Tabelle erzeugen, nur ist dies statisch, d.h. der Nutzer muss die Tabellen selbst abändern, um die erwartete Tabelle hierdurch anzeigen zu können" />
 														<Button Grid.Column="1" Name="BtnEditSqlVerify" Width="30"
 																Height="30"
 																Background="Transparent" Click="BtnEditSqlVerify_Click"

@@ -3892,11 +3892,13 @@ public partial class MainWindow : Window
                 if (colIndex < _currentSqlDraft.ExpectedSchema.Count)
                 {
                     string raw = txtName.Text ?? "";
+                    int oldCaret = txtName.CaretIndex;
                     int quoteCount = raw.Count(ch => ch == '\'' || ch == '"');
 
                     // only allow valid mysql characters (letters, digits, underscores)
                     string filtered = new string(raw.Where(ch => char.IsLetterOrDigit(ch) || ch == '_').ToArray());
-                    bool strict = _currentSqlDraft.ExpectedSchema[colIndex].StrictName;
+                    bool wasStrict = _currentSqlDraft.ExpectedSchema[colIndex].StrictName;
+                    bool strict = wasStrict;
 
                     // determine strictness based on the current quote state compared to the previous state
                     if (quoteCount > 0)
@@ -3914,8 +3916,44 @@ public partial class MainWindow : Window
 
                     if (txtName.Text != newText)
                     {
+                        // calculate smart caret offset
+                        int newCaret = oldCaret;
+
+                        if (wasStrict && !strict)
+                        {
+                            if (oldCaret > 0) newCaret--;
+                        }
+                        else if (!wasStrict && strict)
+                        {
+                            if (oldCaret == 1) newCaret = 2; // typed at the start
+                            else newCaret = newText.Length - 1; // typed at the end or middle
+                        }
+                        else if (strict && wasStrict)
+                        {
+                            // still strict, but typed something at the edges
+                            if (oldCaret == 1 && filtered.Length > 0 && raw.StartsWith(filtered.Substring(0, 1)))
+                            {
+                                newCaret = 2;
+                            }
+                            else if (oldCaret == raw.Length && filtered.Length > 0 && raw.EndsWith(filtered.Substring(filtered.Length - 1, 1)))
+                            {
+                                newCaret = newText.Length - 1;
+                            }
+                        }
+
+                        // compensate for invalid character deletions
+                        if (strict == wasStrict)
+                        {
+                            int invalidCharsBeforeCaret = raw.Substring(0, oldCaret).Count(c => !char.IsLetterOrDigit(c) && c != '_' && c != '\'' && c != '"');
+                            newCaret -= invalidCharsBeforeCaret;
+                        }
+
+                        // clamp values
+                        if (newCaret < 0) newCaret = 0;
+                        if (newCaret > newText.Length) newCaret = newText.Length;
+
                         txtName.Text = newText;
-                        txtName.CaretIndex = txtName.Text.Length;
+                        txtName.CaretIndex = newCaret;
                     }
 
                     _currentSqlDraft.ExpectedSchema[colIndex].Name = filtered;

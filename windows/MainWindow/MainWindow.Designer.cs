@@ -235,7 +235,7 @@ public partial class MainWindow
             if (enable)
             {
                 TabDesigner.IsVisible = true;
-                _tabDockManager?.EnsureTabInMainSystem(TabDesigner, false);
+                _tabDockManager?.EnsureTabInMainSystem(TabDesigner, false, "TabVim");
             }
             else
             {
@@ -393,7 +393,10 @@ public partial class MainWindow
             }
 
             if (TabDesigner?.Parent is TabControl tc)
+            {
                 tc.SelectedItem = TabDesigner;
+                TabDesigner.IsSelected = true; // explicitly force highlight state
+            }
 
             // update designer diagrams tabs and preview immediately on entry
             UpdateDesignerDiagramTabs();

@@ -747,7 +747,7 @@ public class TabDockManager
         return GetTabControls(_container).FirstOrDefault() ?? _window.FindControl<TabControl>("MainTabs");
     }
 
-    public void EnsureTabInMainSystem(TabItem tab, bool select = true)
+    public void EnsureTabInMainSystem(TabItem tab, bool select = true, string insertBeforeName = null)
     {
         var currentTc = tab.Parent as TabControl;
 
@@ -755,7 +755,25 @@ public class TabDockManager
         if (currentTc == null)
         {
             var mainTc = GetMainTabControl();
-            mainTc.Items.Add(tab);
+
+            if (!string.IsNullOrEmpty(insertBeforeName))
+            {
+                var target = mainTc.Items.OfType<TabItem>().FirstOrDefault(t => t.Name == insertBeforeName);
+                if (target != null)
+                {
+                    int idx = mainTc.Items.IndexOf(target);
+                    mainTc.Items.Insert(idx, tab);
+                }
+                else
+                {
+                    mainTc.Items.Add(tab);
+                }
+            }
+            else
+            {
+                mainTc.Items.Add(tab);
+            }
+
             if (select) mainTc.SelectedItem = tab;
         }
         else

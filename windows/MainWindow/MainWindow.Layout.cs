@@ -200,8 +200,20 @@ public partial class MainWindow
                     tc.Items.Add(tab);
                 }
             }
+
             var selected = tc.Items.OfType<TabItem>().FirstOrDefault(t => (t.Name ?? t.Header?.ToString()) == node.SelectedTab);
-            if (selected != null) tc.SelectedItem = selected;
+            if (selected != null)
+            {
+                tc.SelectedItem = selected;
+                selected.IsSelected = true;
+            }
+            else if (tc.Items.OfType<TabItem>().Any())
+            {
+                var first = tc.Items.OfType<TabItem>().First();
+                tc.SelectedItem = first;
+                first.IsSelected = true;
+            }
+
             return tc;
         }
 
