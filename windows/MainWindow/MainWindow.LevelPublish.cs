@@ -7,6 +7,9 @@ using Avalonia.Media;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -15,16 +18,18 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private static DateTime _lastLevelPublishTime = DateTime.MinValue;
+
     private async void BtnDesignerPublish_Click(object sender, RoutedEventArgs e)
     {
         if (_isSqlMode && _verifiedSqlDraftState == null) return;
         if (!_isSqlMode && _verifiedDraftState == null) return;
 
-        // placeholder logic to determine if the level is already published
-        bool isEditMode = false;
-        int currentVersion = 1; // placeholder: fetch how many times it was edited
+        string currentDiscussionId = _isSqlMode ? _currentSqlDraft.DiscussionId : _currentDraft.DiscussionId;
+        bool isEditMode = !string.IsNullOrEmpty(currentDiscussionId);
+        int currentVersion = isEditMode ? (_isSqlMode ? _currentSqlDraft.PublishVersion : _currentDraft.PublishVersion) : 0;
 
-        await OpenPublishDialog(isEditMode, currentVersion);
+        await OpenPublishDialog(isEditMode, currentVersion, currentDiscussionId);
     }
 
     private bool ValidateLevelSecurity(out string errorFeedback)
@@ -91,7 +96,7 @@ public partial class MainWindow
         return true;
     }
 
-    private async Task OpenPublishDialog(bool isEditMode = false, int editVersion = 1)
+    private async Task OpenPublishDialog(bool isEditMode = false, int editVersion = 1, string currentDiscussionId = null)
     {
         bool isDirty = false;
         bool isPublishing = false;
@@ -148,9 +153,11 @@ public partial class MainWindow
             Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center
         });
+
+        string defaultTitle = _isSqlMode ? _currentSqlDraft.Name : _currentDraft.Name;
         var txtTitle = new TextBox
         {
-            Text = _isSqlMode ? _currentSqlDraft.Name : _currentDraft.Name,
+            Text = defaultTitle,
             Background = SolidColorBrush.Parse("#1A1A1A"),
             Foreground = Brushes.White
         };
@@ -233,6 +240,16 @@ public partial class MainWindow
             Foreground = Brushes.Gray
         };
         Grid.SetColumn(txtTags, 0);
+
+        // prefill edit mode data
+        if (isEditMode)
+        {
+            string savedDiff = _isSqlMode ? _currentSqlDraft.PublishDifficulty : _currentDraft.PublishDifficulty;
+            if (!string.IsNullOrEmpty(savedDiff)) cmbDiff.SelectedItem = savedDiff;
+
+            string savedTags = _isSqlMode ? _currentSqlDraft.PublishTags : _currentDraft.PublishTags;
+            if (!string.IsNullOrEmpty(savedTags)) txtTags.Text = savedTags;
+        }
 
         var btnTags = new Button
         {
@@ -444,15 +461,168 @@ public partial class MainWindow
             };
             btnDelete.Click += async (_, __) =>
             {
+                // show confirmation dialog before proceeding with deletion
+                bool isConfirmed = false;
+                var confirmDialog = new Window
+                {
+                    Title = "Level endgültig löschen",
+                    Width = 400,
+                    Height = 220,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    SystemDecorations = SystemDecorations.BorderOnly,
+                    Background = SolidColorBrush.Parse("#252526"),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var dGrid = new Grid
+                {
+                    RowDefinitions = new RowDefinitions("*, Auto, Auto"),
+                    Margin = new Thickness(20)
+                };
+
+                dGrid.Children.Add(new TextBlock
+                {
+                    Text = "Möchtest du dieses Level wirklich online löschen? Diese Aktion kann nicht rückgängig gemacht werden.\n\nBitte tippe \"loeschen\" ein, um fortzufahren.",
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Top
+                });
+
+                var txtConfirm = new TextBox
+                {
+                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 15, 0, 15)
+                };
+                Grid.SetRow(txtConfirm, 1);
+                dGrid.Children.Add(txtConfirm);
+
+                var dBtnPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 10
+                };
+                Grid.SetRow(dBtnPanel, 2);
+
+                var btnCancelDel = new Button
+                {
+                    Content = "Abbrechen",
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Foreground = Brushes.White,
+                    CornerRadius = new CornerRadius(4)
+                };
+                var btnConfirmDel = new Button
+                {
+                    Content = "Endgültig Löschen",
+                    Background = SolidColorBrush.Parse("#B43232"),
+                    Foreground = Brushes.White,
+                    CornerRadius = new CornerRadius(4),
+                    IsEnabled = false
+                };
+
+                txtConfirm.TextChanged += (s, e) => btnConfirmDel.IsEnabled = txtConfirm.Text == "loeschen";
+
+                btnCancelDel.Click += (s, e) => confirmDialog.Close();
+                btnConfirmDel.Click += (s, e) =>
+                {
+                    isConfirmed = true;
+                    confirmDialog.Close();
+                };
+
+                dBtnPanel.Children.Add(btnCancelDel);
+                dBtnPanel.Children.Add(btnConfirmDel);
+                dGrid.Children.Add(dBtnPanel);
+                confirmDialog.Content = dGrid;
+
+                await confirmDialog.ShowDialog(dialog);
+
+                if (!isConfirmed) return;
+
+                // global cooldown check for edits/deletes
+                double secondsSinceLast = (DateTime.Now - _lastLevelPublishTime).TotalSeconds;
+                if (secondsSinceLast < 60)
+                {
+                    txtStatus.Text = $"Bitte warte {(int)(60 - secondsSinceLast)} Sekunden vor der nächsten Aktion.";
+                    txtStatus.Foreground = Brushes.Orange;
+                    pnlProgress.IsVisible = true;
+                    dialog.Height = 515;
+                    return;
+                }
+
                 txtStatus.Text = "Level wird gelöscht...";
+                txtStatus.Foreground = Brushes.LightGray;
                 pnlProgress.IsVisible = true;
                 btnDelete.IsEnabled = false;
+                dialog.Height = 515;
 
-                // placeholder delete logic
-                await Task.Delay(1000);
+                try
+                {
+                    string endpoint = $"{RenderEndpoint(1).TrimEnd('/')}/level?discussionId={currentDiscussionId}";
+                    using var requestMessage = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
 
-                forceClose = true;
-                dialog.Close();
+                    var resp = await _httpClient.SendAsync(requestMessage);
+                    string resBody = await resp.Content.ReadAsStringAsync();
+
+                    if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && (resBody == "BANNED" || resBody == "PERMA_BANNED"))
+                    {
+                        forceClose = true;
+                        dialog.Close();
+                        if (resBody == "PERMA_BANNED") ShowPermaBanDialog(); else ShowBanDialog();
+                        return;
+                    }
+
+                    if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+                    {
+                        txtStatus.Text = "Zu viele Anfragen. Bitte warte eine Minute.";
+                        txtStatus.Foreground = Brushes.Orange;
+                        progressBar.IsIndeterminate = false;
+                        btnDelete.IsEnabled = true;
+                        return;
+                    }
+
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        _lastLevelPublishTime = DateTime.Now;
+
+                        txtStatus.Text = "Level erfolgreich gelöscht!";
+                        txtStatus.Foreground = Brushes.LightGreen;
+                        progressBar.IsIndeterminate = false;
+                        progressBar.Value = 100;
+                        progressBar.Foreground = Brushes.LightGreen;
+
+                        if (_isSqlMode)
+                        {
+                            _currentSqlDraft.DiscussionId = null;
+                            _currentSqlDraft.PublishVersion = 0;
+                        }
+                        else
+                        {
+                            _currentDraft.DiscussionId = null;
+                            _currentDraft.PublishVersion = 0;
+                        }
+                        await SaveDesignerDraft();
+
+                        await Task.Delay(1500);
+                        forceClose = true;
+                        dialog.Close();
+                    }
+                    else
+                    {
+                        txtStatus.Text = $"Fehler beim Löschen: {resBody}";
+                        txtStatus.Foreground = Brushes.Red;
+                        progressBar.IsIndeterminate = false;
+                        btnDelete.IsEnabled = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    txtStatus.Text = $"Netzwerkfehler: {ex.Message}";
+                    txtStatus.Foreground = Brushes.Red;
+                    progressBar.IsIndeterminate = false;
+                    btnDelete.IsEnabled = true;
+                }
             };
             Grid.SetColumn(btnDelete, 0);
             actionButtonsGrid.Children.Add(btnDelete);
@@ -569,6 +739,17 @@ public partial class MainWindow
                 return;
             }
 
+            // global 60s publish cooldown check
+            double secondsSinceLast = (DateTime.Now - _lastLevelPublishTime).TotalSeconds;
+            if (secondsSinceLast < 60)
+            {
+                txtStatus.Text = $"Bitte warte {(int)(60 - secondsSinceLast)} Sekunden vor der nächsten Veröffentlichung.";
+                txtStatus.Foreground = Brushes.Orange;
+                pnlProgress.IsVisible = true;
+                dialog.Height = 515;
+                return;
+            }
+
             isPublishing = true;
             btnPublish.IsEnabled = false;
             btnCancel.IsEnabled = false;
@@ -591,6 +772,25 @@ public partial class MainWindow
                 btnCancel.IsEnabled = true;
                 isPublishing = false;
                 return;
+            }
+
+            txtStatus.Text = "Generiere finale Diagramme...";
+            await Task.Delay(200);
+
+            try
+            {
+                await GenerateDiagramByIndex(0);
+                if (!_isSqlMode)
+                {
+                    for (int i = 0; i < _currentDraft.MaterialDiagrams.Count; i++)
+                    {
+                        await GenerateDiagramByIndex(i + 1);
+                    }
+                }
+            }
+            catch
+            {
+                // diagrams could not be generated (network/timeout)
             }
 
             txtStatus.Text = "Generiere finale Exportdaten...";
@@ -668,18 +868,109 @@ public partial class MainWindow
 
             txtStatus.Text = "Sende an Community-Server (Proxy)...";
 
-            // placeholder for actual proxy pushing logic 
-            await Task.Delay(2000);
+            int pubVersion = isEditMode ? editVersion + 1 : 1;
+            string difficulty = cmbDiff.SelectedItem?.ToString() ?? "Einfach";
+            string selectedTags = txtTags.Text ?? "";
 
-            txtStatus.Text = isEditMode ? "Erfolgreich aktualisiert!" : "Erfolgreich veröffentlicht!";
-            txtStatus.Foreground = Brushes.LightGreen;
-            progressBar.IsIndeterminate = false;
-            progressBar.Value = 100;
-            progressBar.Foreground = Brushes.LightGreen;
+            string fullTitle = $"[v{pubVersion}] {txtTitle.Text} - {difficulty}";
+            if (!string.IsNullOrWhiteSpace(selectedTags))
+            {
+                fullTitle += $" | {selectedTags}";
+            }
 
-            await Task.Delay(1500);
-            forceClose = true;
-            dialog.Close();
+            string fullBody = $"<!-- aec-author: {AppSettings.GithubUsername} -->\n{encryptedData}";
+
+            var proxyPayload = new
+            {
+                title = fullTitle,
+                body = fullBody,
+                isSql = _isSqlMode,
+                discussionId = isEditMode ? currentDiscussionId : null
+            };
+
+            try
+            {
+                string endpoint = $"{RenderEndpoint(1).TrimEnd('/')}/level";
+                var content = new StringContent(JsonSerializer.Serialize(proxyPayload), Encoding.UTF8, "application/json");
+
+                using var requestMessage = new HttpRequestMessage(isEditMode ? HttpMethod.Put : HttpMethod.Post, endpoint);
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+
+                var resp = await _httpClient.SendAsync(requestMessage);
+                string resBody = await resp.Content.ReadAsStringAsync();
+
+                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && (resBody == "BANNED" || resBody == "PERMA_BANNED"))
+                {
+                    forceClose = true;
+                    dialog.Close();
+                    if (resBody == "PERMA_BANNED") ShowPermaBanDialog(); else ShowBanDialog();
+                    return;
+                }
+
+                if (resp.StatusCode == (System.Net.HttpStatusCode)429)
+                {
+                    txtStatus.Text = "Zu viele Anfragen. Bitte warte eine Minute.";
+                    txtStatus.Foreground = Brushes.Orange;
+                    progressBar.IsIndeterminate = false;
+                    btnCancel.IsEnabled = true;
+                    isPublishing = false;
+                    return;
+                }
+
+                if (resp.IsSuccessStatusCode)
+                {
+                    using var doc = JsonDocument.Parse(resBody);
+                    var node = isEditMode ? "updateDiscussion" : "createDiscussion";
+                    var newDiscussionId = doc.RootElement.GetProperty("data").GetProperty(node).GetProperty("discussion").GetProperty("id").GetString();
+
+                    _lastLevelPublishTime = DateTime.Now;
+
+                    // sync to draft
+                    if (_isSqlMode)
+                    {
+                        _currentSqlDraft.DiscussionId = newDiscussionId;
+                        _currentSqlDraft.PublishVersion = pubVersion;
+                        _currentSqlDraft.PublishDifficulty = difficulty;
+                        _currentSqlDraft.PublishTags = selectedTags;
+                    }
+                    else
+                    {
+                        _currentDraft.DiscussionId = newDiscussionId;
+                        _currentDraft.PublishVersion = pubVersion;
+                        _currentDraft.PublishDifficulty = difficulty;
+                        _currentDraft.PublishTags = selectedTags;
+                    }
+
+                    await SaveDesignerDraft();
+
+                    txtStatus.Text = isEditMode ? "Erfolgreich aktualisiert!" : "Erfolgreich veröffentlicht!";
+                    txtStatus.Foreground = Brushes.LightGreen;
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Value = 100;
+                    progressBar.Foreground = Brushes.LightGreen;
+
+                    await Task.Delay(1500);
+                    forceClose = true;
+                    dialog.Close();
+                }
+                else
+                {
+                    txtStatus.Text = $"Fehler vom Server: {resBody}";
+                    txtStatus.Foreground = Brushes.Red;
+                    progressBar.IsIndeterminate = false;
+                    btnCancel.IsEnabled = true;
+                    isPublishing = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                txtStatus.Text = $"Netzwerkfehler: {ex.Message}";
+                txtStatus.Foreground = Brushes.Red;
+                progressBar.IsIndeterminate = false;
+                btnCancel.IsEnabled = true;
+                isPublishing = false;
+            }
         };
 
         btnPanel.Children.Add(btnCancel);
@@ -694,12 +985,11 @@ public partial class MainWindow
 
     private string CompressLevelData(string jsonText)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonText);
-        using var msi = new System.IO.MemoryStream(bytes);
+        var bytes = Encoding.UTF8.GetBytes(jsonText);
         using var mso = new System.IO.MemoryStream();
-        using (var gs = new System.IO.Compression.GZipStream(mso, System.IO.Compression.CompressionMode.Compress))
+        using (var gs = new System.IO.Compression.GZipStream(mso, System.IO.Compression.CompressionMode.Compress, true))
         {
-            msi.CopyTo(gs);
+            gs.Write(bytes, 0, bytes.Length);
         }
         return Convert.ToBase64String(mso.ToArray());
     }

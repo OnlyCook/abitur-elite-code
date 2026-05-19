@@ -33,6 +33,11 @@ public class LevelDraft
     public List<DiagramData> MaterialDiagrams { get; set; } = new();
     public bool QuickGenerate { get; set; }
 
+    public string DiscussionId { get; set; }
+    public int PublishVersion { get; set; }
+    public string PublishDifficulty { get; set; }
+    public string PublishTags { get; set; }
+
     public class DiagramData
     {
         public string Name { get; set; } = "Material Diagramm";

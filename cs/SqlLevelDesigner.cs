@@ -36,6 +36,11 @@ public class SqlLevelDraft
     public string PlantUmlSvgContent { get; set; } = "";
 
     public bool QuickGenerate { get; set; }
+
+    public string DiscussionId { get; set; }
+    public int PublishVersion { get; set; }
+    public string PublishDifficulty { get; set; }
+    public string PublishTags { get; set; }
 }
 
 public static class SqlLevelDesigner
