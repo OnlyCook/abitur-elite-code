@@ -919,6 +919,14 @@ public partial class MainWindow
                     return;
                 }
 
+                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "LIMIT_REACHED")
+                {
+                    forceClose = true;
+                    dialog.Close();
+                    await ShowLimitIncreaseDialog();
+                    return;
+                }
+
                 if (resp.StatusCode == (System.Net.HttpStatusCode)429)
                 {
                     txtStatus.Text = "Zu viele Anfragen. Bitte warte eine Minute.";
@@ -1003,5 +1011,125 @@ public partial class MainWindow
             gs.Write(bytes, 0, bytes.Length);
         }
         return Convert.ToBase64String(mso.ToArray());
+    }
+
+    private async Task ShowLimitIncreaseDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "Upload-Limit erreicht",
+            Width = 400,
+            Height = 280,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+
+        var stack = new StackPanel
+        {
+            Spacing = 15,
+            Margin = new Thickness(20),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Upload-Limit erreicht",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = SolidColorBrush.Parse("#FF5555")
+        });
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Du hast das Limit von 5 Leveln erreicht. Möchtest du eine Erhöhung auf 50 Level beantragen? Bitte nenne einen kurzen Grund.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brushes.LightGray
+        });
+
+        var txtMessage = new TextBox
+        {
+            Watermark = "Deine Begründung...",
+            AcceptsReturn = true,
+            MaxHeight = 80,
+            Height = 80,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Brushes.White,
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            CornerRadius = new CornerRadius(4)
+        };
+        stack.Children.Add(txtMessage);
+
+        var txtError = new TextBlock
+        {
+            Foreground = SolidColorBrush.Parse("#FF5555"),
+            FontWeight = FontWeight.SemiBold,
+            IsVisible = false,
+            TextWrapping = TextWrapping.Wrap
+        };
+        stack.Children.Add(txtError);
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C")
+        };
+        var btnSend = new Button
+        {
+            Content = "Beantragen",
+            Background = SolidColorBrush.Parse("#007ACC")
+        };
+
+        btnCancel.Click += (s, e) => dialog.Close();
+        btnSend.Click += async (s, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(txtMessage.Text)) return;
+
+            if (txtMessage.Text.Length > 5000)
+            {
+                dialog.Height = 310;
+
+                txtError.Text = "Die Nachricht darf maximal 5000 Zeichen lang sein.";
+                txtError.IsVisible = true;
+                return;
+            }
+
+            txtError.IsVisible = false;
+            btnSend.IsEnabled = false;
+            btnSend.Content = "Wird gesendet...";
+
+            var payload = new
+            {
+                type = "Limit Increase Request",
+                user = AppSettings.GithubUsername,
+                message = txtMessage.Text
+            };
+
+            try
+            {
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(0));
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                await _httpClient.SendAsync(requestMessage);
+            }
+            catch { }
+
+            dialog.Close();
+        };
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnSend);
+        stack.Children.Add(btnPanel);
+        dialog.Content = stack;
+
+        await dialog.ShowDialog(this);
     }
 }

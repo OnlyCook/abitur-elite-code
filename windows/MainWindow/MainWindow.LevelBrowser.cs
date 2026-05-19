@@ -41,6 +41,7 @@ public partial class MainWindow
         public int Downvotes { get; set; }
         public DateTime CreatedAt { get; set; }
         public double Score { get; set; }
+        public double Rating { get; set; }
     }
 
     private async void BtnRefreshCommunityLevels_Click(object sender, RoutedEventArgs e)
@@ -139,6 +140,7 @@ public partial class MainWindow
                                 pageInfo { hasNextPage endCursor }
                                 nodes {
                                     id number title createdAt
+                                    author { login }
                                     upvotes: reactions(content: THUMBS_UP) { totalCount }
                                     downvotes: reactions(content: THUMBS_DOWN) { totalCount }
                                 }
@@ -179,6 +181,9 @@ public partial class MainWindow
 
                 foreach (var node in discussionsProp.GetProperty("nodes").EnumerateArray())
                 {
+                    if (node.GetProperty("author").GetProperty("login").GetString() != "aec-community-bot")
+                        continue;
+
                     string titleRaw = node.GetProperty("title").GetString() ?? "Unbekannt";
 
                     // parse title: "[v1] Name by Username - Schwierigkeit | Tag1, Tag2, Tag3"
@@ -233,6 +238,7 @@ public partial class MainWindow
                 double ageHours = (DateTime.Now - m.CreatedAt.ToLocalTime()).TotalHours;
                 double timeDecay = Math.Pow(Math.Max(ageHours, 0) + 2.0, 1.2);
 
+                m.Rating = rating;
                 m.Score = (m.Upvotes * rating) / timeDecay;
             }
         }
@@ -275,6 +281,7 @@ public partial class MainWindow
 
         var localCustomLevels = GetCustomLevels(); // to check if downloaded
         var completedList = _isSqlMode ? customPlayerData.CompletedCustomSqlLevels : customPlayerData.CompletedCustomLevels;
+        List<string> likedList = null; //_isSqlMode ? customPlayerData.LikedCustomSqlLevels : customPlayerData.LikedCustomLevels; // placeholder
 
         foreach (var m in sortedList.Take(_communityVisibleCount))
         {
@@ -308,16 +315,25 @@ public partial class MainWindow
             };
             subText.Children.Add(new TextBlock
             {
-                Text = "von " + m.Author,
+                Text = "von",
                 FontSize = 11,
                 Foreground = Brushes.Gray
             });
+
+            bool isOwnLevel = string.Equals(m.Author, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
+            subText.Children.Add(new TextBlock
+            {
+                Text = m.Author,
+                FontSize = 11,
+                Foreground = isOwnLevel ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray
+            });
+
             if (m.Tags.Any())
                 subText.Children.Add(new TextBlock
                 {
-                    Text = " • " + string.Join(", ", m.Tags),
+                    Text = "• " + string.Join(", ", m.Tags),
                     FontSize = 11,
-                    Foreground = SolidColorBrush.Parse("#6495ED")
+                    Foreground = SolidColorBrush.Parse("#32A852")
                 });
             textStack.Children.Add(subText);
 
@@ -363,6 +379,7 @@ public partial class MainWindow
                 IsHitTestVisible = false
             };
             if (sortMode == "Neuste" || sortMode == "Älteste")
+            {
                 metricStack.Children.Add(new TextBlock
                 {
                     Text = m.CreatedAt.ToString("dd.MM.yyyy"),
@@ -370,13 +387,18 @@ public partial class MainWindow
                     VerticalAlignment = VerticalAlignment.Center,
                     FontSize = 12
                 });
+            }
             else
             {
-                metricStack.Children.Add(LoadIcon("assets/icons/ic_upvote_filled.svg", 14));
+                bool isLiked = likedList != null && likedList.Contains(m.Title);
+                string likeIcon = sortMode == "Beste" ? "assets/icons/ic_rating.svg" : isLiked ? "assets/icons/ic_like_filled.svg" : "assets/icons/ic_like.svg";
+                metricStack.Children.Add(LoadIcon(likeIcon, 14));
+
+                string metricText = sortMode == "Beste" ? (m.Rating * 100).ToString("F0") + "%" : m.Upvotes.ToString();
                 metricStack.Children.Add(new TextBlock
                 {
-                    Text = m.Upvotes.ToString(),
-                    Foreground = SolidColorBrush.Parse("#6495ED"),
+                    Text = metricText,
+                    Foreground = Brushes.White,
                     VerticalAlignment = VerticalAlignment.Center,
                     FontSize = 12
                 });
