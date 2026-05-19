@@ -1,6 +1,9 @@
 ﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -540,7 +543,7 @@ public partial class MainWindow
             isCommunityMode = !isCommunityMode;
 
             iconToggleCommunity.Path = isCommunityMode ? "/assets/icons/ic_return.svg" : "/assets/icons/ic_publish.svg";
-            btnToggleCommunity.Background = SolidColorBrush.Parse(isCommunityMode ? "#3C3C3C" : "#7a30b0");
+            btnToggleCommunity.Background = SolidColorBrush.Parse(isCommunityMode ? "#3C3C3C" : "#1d8080");
             ToolTip.SetTip(btnToggleCommunity, isCommunityMode ? "Zurück zu eigenen Levels" : "Öffne Community Browser");
 
             RefreshUI();
@@ -686,7 +689,8 @@ public partial class MainWindow
                     BorderBrush = SolidColorBrush.Parse("#333"),
                     CornerRadius = new CornerRadius(4),
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 10, 0)
+                    Margin = new Thickness(0, 0, 5, 0),
+                    Height = 34
                 };
                 cmbSort.Items.Add(new ComboBoxItem { Content = "Beste" });
                 cmbSort.Items.Add(new ComboBoxItem { Content = "Top" });
@@ -704,13 +708,16 @@ public partial class MainWindow
 
                 var btnFilter = new Button
                 {
-                    Content = LoadIcon("assets/icons/ic_filter.svg", 18),
                     Background = SolidColorBrush.Parse("#3C3C3C"),
-                    Padding = new Thickness(8),
+                    Width = 34,
+                    Height = 34,
+                    Padding = new Thickness(0),
                     CornerRadius = new CornerRadius(4),
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
                 };
-                ToolTip.SetTip(btnFilter, "Filter");
+                UpdateFilterButtonIcon(btnFilter);
 
                 var filterFlyout = new Flyout();
                 var filterStack = new StackPanel
@@ -725,24 +732,22 @@ public partial class MainWindow
                     FontWeight = FontWeight.Bold,
                     Foreground = Brushes.White
                 });
-                var diffPanel = new WrapPanel
-                {
-                    Orientation = Orientation.Horizontal
-                };
+                var diffPanel = new WrapPanel { Orientation = Orientation.Horizontal };
                 foreach (var diff in new[] { "Einfach", "Mittel", "Schwer", "Abitur" })
                 {
-                    var cb = new CheckBox
-                    {
-                        Content = diff,
-                        Margin = new Thickness(0, 0, 10, 5),
-                        IsChecked = _communitySelectedDifficulties.Contains(diff)
-                    };
-                    cb.IsCheckedChanged += (s, ev) =>
-                    {
-                        if (cb.IsChecked == true) _communitySelectedDifficulties.Add(diff);
-                        else _communitySelectedDifficulties.Remove(diff);
-                        RenderCommunityBrowser(win, txtSearch?.Text);
-                    };
+                    var cb = MakeFilterCheckBox(
+                        diff,
+                        isWhitelisted: _communitySelectedDifficulties.Contains(diff),
+                        isBlacklisted: _communityBlacklistDifficulties.Contains(diff),
+                        onChanged: state =>
+                        {
+                            _communitySelectedDifficulties.Remove(diff);
+                            _communityBlacklistDifficulties.Remove(diff);
+                            if (state == true) _communitySelectedDifficulties.Add(diff);
+                            if (state == null) _communityBlacklistDifficulties.Add(diff);
+                            UpdateFilterButtonIcon(btnFilter);
+                            RenderCommunityBrowser(win);
+                        });
                     diffPanel.Children.Add(cb);
                 }
                 filterStack.Children.Add(diffPanel);
@@ -754,26 +759,24 @@ public partial class MainWindow
                     Foreground = Brushes.White,
                     Margin = new Thickness(0, 10, 0, 0)
                 });
-                var tagPanel = new WrapPanel
-                {
-                    Orientation = Orientation.Horizontal
-                };
+                var tagPanel = new WrapPanel { Orientation = Orientation.Horizontal };
 
                 string[] currentTags = _isSqlMode ? SqlTags : CSharpTags;
                 foreach (var t in currentTags)
                 {
-                    var cb = new CheckBox
-                    {
-                        Content = t,
-                        Margin = new Thickness(0, 0, 10, 5),
-                        IsChecked = _communitySelectedTags.Contains(t)
-                    };
-                    cb.IsCheckedChanged += (s, ev) =>
-                    {
-                        if (cb.IsChecked == true) _communitySelectedTags.Add(t);
-                        else _communitySelectedTags.Remove(t);
-                        RenderCommunityBrowser(win, txtSearch?.Text);
-                    };
+                    var cb = MakeFilterCheckBox(
+                        t,
+                        isWhitelisted: _communitySelectedTags.Contains(t),
+                        isBlacklisted: _communityBlacklistTags.Contains(t),
+                        onChanged: state =>
+                        {
+                            _communitySelectedTags.Remove(t);
+                            _communityBlacklistTags.Remove(t);
+                            if (state == true) _communitySelectedTags.Add(t);
+                            if (state == null) _communityBlacklistTags.Add(t);
+                            UpdateFilterButtonIcon(btnFilter);
+                            RenderCommunityBrowser(win, txtSearch?.Text);
+                        });
                     tagPanel.Children.Add(cb);
                 }
                 filterStack.Children.Add(tagPanel);
@@ -788,6 +791,7 @@ public partial class MainWindow
                 {
                     Watermark = "Level/Autor suchen...",
                     MinWidth = 150,
+                    Height = 34,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Center,
                     Background = SolidColorBrush.Parse("#141414"),
@@ -1887,6 +1891,173 @@ public partial class MainWindow
         Dispatcher.UIThread.Post(() => CodeEditor.Focus());
 
         UpdateCommunityUIAsync(level.Id.ToString(), false);
+    }
+
+    private CheckBox MakeFilterCheckBox(string label, bool isWhitelisted, bool isBlacklisted, Action<bool?> onChanged)
+    {
+        var cb = new CheckBox
+        {
+            Content = label,
+            Margin = new Thickness(0, 0, 10, 5),
+            IsThreeState = true,
+            IsChecked = isWhitelisted ? true : isBlacklisted ? null : false
+        };
+
+        cb.Template = BuildTriStateCheckBoxTemplate();
+
+        cb.IsCheckedChanged += (s, ev) => onChanged(cb.IsChecked);
+        return cb;
+    }
+
+    private static IControlTemplate BuildTriStateCheckBoxTemplate()
+    {
+        return new FuncControlTemplate<CheckBox>((checkBox, scope) =>
+        {
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("22, Auto"),
+                VerticalAlignment = VerticalAlignment.Center,
+                // stretch the entire row as the clickable area
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(4, 2, 8, 2),
+                Cursor = Cursor.Parse("Hand")
+            };
+
+            var hitArea = new Border
+            {
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            Grid.SetColumnSpan(hitArea, 2);
+            grid.Children.Add(hitArea);
+
+            var iconCanvas = new Canvas
+            {
+                Width = 18,
+                Height = 18,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                IsHitTestVisible = false
+            };
+            Grid.SetColumn(iconCanvas, 0);
+
+            var border = new Border
+            {
+                Width = 18,
+                Height = 18,
+                CornerRadius = new CornerRadius(3),
+                BorderThickness = new Thickness(2),
+                BorderBrush = SolidColorBrush.Parse("#888"),
+                Background = Brushes.Transparent
+            };
+
+            var hoverBorder = new Border
+            {
+                Width = 18,
+                Height = 18,
+                CornerRadius = new CornerRadius(3),
+                BorderThickness = new Thickness(2),
+                BorderBrush = Brushes.Transparent,
+                Background = SolidColorBrush.Parse("#22FFFFFF"),
+                IsVisible = false,
+                IsHitTestVisible = false
+            };
+
+            var checkPath = new Avalonia.Controls.Shapes.Path
+            {
+                Data = Geometry.Parse("M 3,9 L 7,13 L 15,4"),
+                Stroke = Brushes.White,
+                StrokeThickness = 2,
+                StrokeLineCap = PenLineCap.Round,
+                IsVisible = false,
+                IsHitTestVisible = false
+            };
+
+            var crossPath = new Avalonia.Controls.Shapes.Path
+            {
+                Data = Geometry.Parse("M 4,4 L 14,14 M 14,4 L 4,14"),
+                Stroke = SolidColorBrush.Parse("#E05555"),
+                StrokeThickness = 2,
+                StrokeLineCap = PenLineCap.Round,
+                IsVisible = false,
+                IsHitTestVisible = false
+            };
+
+            iconCanvas.Children.Add(border);
+            iconCanvas.Children.Add(hoverBorder);
+            iconCanvas.Children.Add(checkPath);
+            iconCanvas.Children.Add(crossPath);
+            grid.Children.Add(iconCanvas);
+
+            var contentPresenter = new ContentPresenter
+            {
+                [!ContentPresenter.ContentProperty] = checkBox[!CheckBox.ContentProperty],
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0),
+                IsHitTestVisible = false
+            };
+            Grid.SetColumn(contentPresenter, 1);
+            grid.Children.Add(contentPresenter);
+
+            void UpdateVisuals()
+            {
+                switch (checkBox.IsChecked)
+                {
+                    case true:
+                        border.Background = SolidColorBrush.Parse("#6495ED");
+                        border.BorderBrush = SolidColorBrush.Parse("#6495ED");
+                        checkPath.IsVisible = true;
+                        crossPath.IsVisible = false;
+                        break;
+                    case null:
+                        border.Background = SolidColorBrush.Parse("#3C1A1A");
+                        border.BorderBrush = SolidColorBrush.Parse("#E05555");
+                        checkPath.IsVisible = false;
+                        crossPath.IsVisible = true;
+                        break;
+                    default:
+                        border.Background = Brushes.Transparent;
+                        border.BorderBrush = SolidColorBrush.Parse("#888");
+                        checkPath.IsVisible = false;
+                        crossPath.IsVisible = false;
+                        break;
+                }
+            }
+
+            grid.PointerEntered += (_, _) =>
+            {
+                hoverBorder.IsVisible = true;
+                border.BorderBrush = checkBox.IsChecked switch
+                {
+                    true => SolidColorBrush.Parse("#88B4F0"),
+                    null => SolidColorBrush.Parse("#F07070"),
+                    _ => SolidColorBrush.Parse("#BBBBBB")
+                };
+            };
+
+            grid.PointerExited += (_, _) =>
+            {
+                hoverBorder.IsVisible = false;
+                // restore correct border color for current state
+                UpdateVisuals();
+            };
+
+            checkBox.IsCheckedChanged += (_, _) => UpdateVisuals();
+            checkBox.Loaded += (_, _) => UpdateVisuals();
+
+            return grid;
+        });
+    }
+
+    private void UpdateFilterButtonIcon(Button btnFilter)
+    {
+        bool hasFilter = _communitySelectedDifficulties.Any()
+                      || _communityBlacklistDifficulties.Any()
+                      || _communitySelectedTags.Any()
+                      || _communityBlacklistTags.Any();
+
+        btnFilter.Content = LoadIcon(hasFilter ? "assets/icons/ic_filter_filled.svg" : "assets/icons/ic_filter.svg", 18);
     }
 
     private void OpenLevelsFolder()

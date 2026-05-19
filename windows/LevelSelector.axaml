@@ -32,14 +32,18 @@
 
 			<!-- filters / sorting for community browser -->
 			<Grid Name="CommunityToolsGrid" Grid.Row="1" ColumnDefinitions="*, Auto, Auto" Margin="0,0,0,10" IsVisible="False">
-				<ComboBox Name="CmbCommunitySort" Grid.Column="1" Width="100" Margin="0,0,10,0" Background="#141414" Foreground="White" BorderBrush="#333" SelectedIndex="0">
+				<ComboBox Name="CmbCommunitySort" Grid.Column="1" Width="110" Height="34" Margin="0,0,8,0"
+						  VerticalAlignment="Center" Background="#141414" Foreground="White" BorderBrush="#333" SelectedIndex="0">
 					<ComboBoxItem Content="Beste" />
 					<ComboBoxItem Content="Top" />
 					<ComboBoxItem Content="Neuste" />
 					<ComboBoxItem Content="Älteste" />
 				</ComboBox>
 
-				<Button Name="BtnCommunityFilter" Grid.Column="2" Background="#141414" BorderBrush="#333" BorderThickness="1" Padding="8" CornerRadius="4" Cursor="Hand">
+				<Button Name="BtnCommunityFilter" Grid.Column="2" Width="34" Height="34"
+						Background="#141414" BorderBrush="#333" BorderThickness="1" Padding="0" CornerRadius="4"
+						Cursor="Hand" VerticalAlignment="Center"
+						HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
 					<svg:Svg Path="/assets/icons/ic_filter.svg" Width="16" Height="16" />
 				</Button>
 			</Grid>
@@ -83,8 +87,8 @@
 					</StackPanel>
 				</Button>
 
-				<Button Name="BtnToggleCommunity" Grid.Column="1" HorizontalAlignment="Left" Padding="15,10" CornerRadius="4" Background="#7a30b0" Margin="0,0,10,0" IsVisible="False" ToolTip.Tip="Öffne Community Browser">
-					<svg:Svg Name="IconToggleCommunity" Path="/assets/icons/ic_publish.svg" Width="18" Height="18" />
+				<Button Name="BtnToggleCommunity" Grid.Column="1" HorizontalAlignment="Left" Padding="14,9" CornerRadius="4" Background="#1d8080" Margin="0,0,10,0" IsVisible="False" ToolTip.Tip="Öffne Community Browser">
+					<svg:Svg Name="IconToggleCommunity" Path="/assets/icons/ic_publish.svg" Width="20" Height="20" />
 				</Button>
 
 				<Button Name="BtnClose" Grid.Column="3" Content="Schließen" HorizontalContentAlignment="Center" Padding="15,10" CornerRadius="4" Background="#3C3C3C" Foreground="White" />

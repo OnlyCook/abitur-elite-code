@@ -107,7 +107,7 @@ public partial class MainWindow
 
         var dialog = new Window
         {
-            Title = isEditMode ? "Veröffentlichtes Level Bearbeiten" : "Level Veröffentlichen",
+            Title = isEditMode ? "Level Bearbeiten" : "Level Veröffentlichen",
             Width = 550,
             Height = 450,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -131,12 +131,12 @@ public partial class MainWindow
             Text = isEditMode ? "Veröffentlichtes Level Bearbeiten" : "Level Veröffentlichen",
             FontSize = 22,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#7a30b0")
+            Foreground = SolidColorBrush.Parse("#1c9c9c")
         });
         contentStack.Children.Add(new TextBlock
         {
             Text = isEditMode
-                ? $"Teile dein Level mit der Community. Du teilst aktuell Version v{editVersion + 1}. Es wird auf Sicherheit und Größe geprüft."
+                ? $"Teile dein bearbeitetes Level mit der Community. Du teilst aktuell Version v{editVersion + 1}. Es wird stets auf Sicherheit und Größe geprüft."
                 : "Teile dein Level mit der Community. Es wird vor der Veröffentlichung auf Sicherheit und Größe geprüft.",
             Foreground = Brushes.Gray,
             TextWrapping = TextWrapping.Wrap
@@ -347,7 +347,7 @@ public partial class MainWindow
             {
                 Content = "Übernehmen",
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Background = SolidColorBrush.Parse("#7a30b0"),
+                Background = SolidColorBrush.Parse("#1d8080"),
                 Foreground = Brushes.White,
                 Margin = new Thickness(0, 15, 0, 0),
                 CornerRadius = new CornerRadius(4)
@@ -387,7 +387,7 @@ public partial class MainWindow
         var lnkCommunity = new TextBlock
         {
             Text = "Community-Richtlinien",
-            Foreground = SolidColorBrush.Parse("#7a30b0"),
+            Foreground = SolidColorBrush.Parse("#6495ED"),
             TextDecorations = TextDecorations.Underline,
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
             Margin = new Thickness(0, 0, 4, 0)
@@ -467,9 +467,9 @@ public partial class MainWindow
                 bool isConfirmed = false;
                 var confirmDialog = new Window
                 {
-                    Title = "Level endgültig löschen",
+                    Title = "Level löschen",
                     Width = 400,
-                    Height = 220,
+                    Height = 205,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     SystemDecorations = SystemDecorations.BorderOnly,
                     Background = SolidColorBrush.Parse("#252526"),
@@ -648,7 +648,7 @@ public partial class MainWindow
         var btnPublish = new Button
         {
             Content = isEditMode ? "Aktualisieren" : "Veröffentlichen",
-            Background = SolidColorBrush.Parse("#7a30b0"),
+            Background = SolidColorBrush.Parse("#1d8080"),
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             IsEnabled = false

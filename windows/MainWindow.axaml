@@ -577,17 +577,16 @@
 												<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20" />
 											</Button>
 
-											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#7a30b0"
+											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#1d8080"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerPublish_Click" IsEnabled="False"
-													ToolTip.Tip="Level Veröffentlichen">
+													ToolTip.Tip="Level Veröffentlichen" Margin="0,0,10,0">
 												<svg:Svg Path="/assets/icons/ic_publish.svg" Width="20" Height="20" />
 											</Button>
 
 											<Button Grid.Column="2" Name="BtnDesignerSave" Background="#464646" Width="40"
 													Height="40" CornerRadius="5"
-													Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern"
-													Margin="10,0,0,0">
+													Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern">
 												<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20" />
 											</Button>
 

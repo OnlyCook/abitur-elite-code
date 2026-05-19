@@ -21,13 +21,20 @@ public partial class MainWindow
 {
     private string _currentCustomDiscussionNodeId = null;
     private int _currentCustomDiscussionNumber = -1;
-    private List<CommunityLevelMeta> _communityMetadataCache = new();
+    private List<CommunityLevelMeta> _communityMetadataCacheCs = new();
+    private List<CommunityLevelMeta> _communityMetadataCacheSql = new();
     private HashSet<string> _communitySelectedDifficulties = new();
+    private HashSet<string> _communityBlacklistDifficulties = new();
     private HashSet<string> _communitySelectedTags = new();
+    private HashSet<string> _communityBlacklistTags = new();
+    private static DateTime _lastCommunityFetchTimeCs = DateTime.MinValue;
+    private static DateTime _lastCommunityFetchTimeSql = DateTime.MinValue;
+
     private int _communityVisibleCount = 20;
     private string _communitySortMode = "Beste";
 
-    private static DateTime _lastCommunityFetchTime = DateTime.MinValue;
+    private List<CommunityLevelMeta> _communityMetadataCache => _isSqlMode ? _communityMetadataCacheSql : _communityMetadataCacheCs;
+    private ref DateTime _lastCommunityFetchTime => ref (_isSqlMode ? ref _lastCommunityFetchTimeSql : ref _lastCommunityFetchTimeCs);
 
     private class CommunityLevelMeta
     {
@@ -65,7 +72,8 @@ public partial class MainWindow
 
         var loadingPanel = win.FindControl<StackPanel>("CommunityLoadingPanel");
         loadingPanel.IsVisible = true;
-        _communityMetadataCache.Clear();
+        if (_isSqlMode) _communityMetadataCacheSql.Clear();
+        else _communityMetadataCacheCs.Clear();
 
         string categoryId = _isSqlMode ? "DIC_kwDOSZnz_M4C9Il3" : "DIC_kwDOSZnz_M4C9Il2";
 
@@ -267,9 +275,13 @@ public partial class MainWindow
 
         if (_communitySelectedDifficulties.Any())
             filtered = filtered.Where(m => _communitySelectedDifficulties.Contains(m.Difficulty));
+        if (_communityBlacklistDifficulties.Any())
+            filtered = filtered.Where(m => !_communityBlacklistDifficulties.Contains(m.Difficulty));
 
         if (_communitySelectedTags.Any())
             filtered = filtered.Where(m => _communitySelectedTags.All(t => m.Tags.Contains(t)));
+        if (_communityBlacklistTags.Any())
+            filtered = filtered.Where(m => !_communityBlacklistTags.Any(t => m.Tags.Contains(t)));
 
         if (sortMode == "Beste") filtered = filtered.OrderByDescending(m => m.Score);
         else if (sortMode == "Top") filtered = filtered.OrderByDescending(m => m.Upvotes).ThenByDescending(m => m.CreatedAt);
