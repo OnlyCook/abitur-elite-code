@@ -20,7 +20,11 @@ public partial class MainWindow
         if (_isSqlMode && _verifiedSqlDraftState == null) return;
         if (!_isSqlMode && _verifiedDraftState == null) return;
 
-        await OpenPublishDialog();
+        // placeholder logic to determine if the level is already published
+        bool isEditMode = false;
+        int currentVersion = 1; // placeholder: fetch how many times it was edited
+
+        await OpenPublishDialog(isEditMode, currentVersion);
     }
 
     private bool ValidateLevelSecurity(out string errorFeedback)
@@ -87,7 +91,7 @@ public partial class MainWindow
         return true;
     }
 
-    private async Task OpenPublishDialog()
+    private async Task OpenPublishDialog(bool isEditMode = false, int editVersion = 1)
     {
         bool isDirty = false;
         bool isPublishing = false;
@@ -95,7 +99,7 @@ public partial class MainWindow
 
         var dialog = new Window
         {
-            Title = "Level Veröffentlichen",
+            Title = isEditMode ? "Veröffentlichtes Level Bearbeiten" : "Level Veröffentlichen",
             Width = 550,
             Height = 450,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -116,14 +120,16 @@ public partial class MainWindow
 
         contentStack.Children.Add(new TextBlock
         {
-            Text = "Level Veröffentlichen",
+            Text = isEditMode ? "Veröffentlichtes Level Bearbeiten" : "Level Veröffentlichen",
             FontSize = 22,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#8A2BE2")
+            Foreground = SolidColorBrush.Parse("#7a30b0")
         });
         contentStack.Children.Add(new TextBlock
         {
-            Text = "Teile dein Level mit der Community. Es wird vor der Veröffentlichung auf Sicherheit und Größe geprüft.",
+            Text = isEditMode
+                ? $"Teile dein Level mit der Community. Du teilst aktuell Version v{editVersion + 1}. Es wird auf Sicherheit und Größe geprüft."
+                : "Teile dein Level mit der Community. Es wird vor der Veröffentlichung auf Sicherheit und Größe geprüft.",
             Foreground = Brushes.Gray,
             TextWrapping = TextWrapping.Wrap
         });
@@ -201,7 +207,7 @@ public partial class MainWindow
         formGrid.Children.Add(lblDiff);
         formGrid.Children.Add(cmbDiff);
 
-        // tags (placeholder for now)
+        // tags system
         var lblTags = new TextBlock
         {
             Text = "Tags (max 3):",
@@ -210,25 +216,186 @@ public partial class MainWindow
             Margin = new Thickness(0, 15, 0, 0)
         };
         Grid.SetRow(lblTags, 3);
-        var txtTags = new TextBox
+
+        var tagsPanel = new Grid
         {
-            Watermark = "z.B. arrays, for-loops, datatypes...",
-            Background = SolidColorBrush.Parse("#1A1A1A"),
-            Foreground = Brushes.White,
+            ColumnDefinitions = new ColumnDefinitions("*, Auto"),
             Margin = new Thickness(0, 15, 0, 0)
         };
-        txtTags.TextChanged += (s, e) => isDirty = true;
-        Grid.SetColumn(txtTags, 1);
-        Grid.SetRow(txtTags, 3);
+        Grid.SetColumn(tagsPanel, 1);
+        Grid.SetRow(tagsPanel, 3);
+
+        var txtTags = new TextBox
+        {
+            Watermark = "Keine Tags ausgewählt",
+            IsReadOnly = true,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Brushes.Gray
+        };
+        Grid.SetColumn(txtTags, 0);
+
+        var btnTags = new Button
+        {
+            Content = "Tags wählen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4),
+            Margin = new Thickness(10, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(btnTags, 1);
+
+        tagsPanel.Children.Add(txtTags);
+        tagsPanel.Children.Add(btnTags);
+
+        btnTags.Click += async (s, e) =>
+        {
+            var tagDialog = new Window
+            {
+                Title = "Tags auswählen",
+                Width = 350,
+                Height = 450,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly,
+                Background = SolidColorBrush.Parse("#252526"),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var dGrid = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto, *, Auto"),
+                Margin = new Thickness(20)
+            };
+
+            dGrid.Children.Add(new TextBlock
+            {
+                Text = "Wähle bis zu 3 Tags:",
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(0, 0, 0, 15)
+            });
+
+            var scroll = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+            };
+            Grid.SetRow(scroll, 1);
+
+            var stack = new StackPanel { Spacing = 10 };
+
+            // setup context-aware tags
+            string[] tags = _isSqlMode
+                ? new[] { "SELECT", "JOIN", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "Subqueries", "DDL", "DML", "Functions", "Views", "Triggers", "Index", "Constraints", "Transactions" }
+                : new[] { "Arrays", "Loops", "If-Else", "Methods", "Classes", "Recursion", "Strings", "Math", "Algorithms", "Data Structures", "LINQ", "Regex", "File I/O", "Exceptions", "Collections" };
+
+            var currentSelected = txtTags.Text?.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).ToList() ?? new List<string>();
+            var checkBoxes = new List<CheckBox>();
+
+            foreach (var t in tags)
+            {
+                var cb = new CheckBox { Content = t, Foreground = Brushes.White, IsChecked = currentSelected.Contains(t) };
+                checkBoxes.Add(cb);
+                stack.Children.Add(cb);
+
+                cb.IsCheckedChanged += (cs, ce) =>
+                {
+                    int count = checkBoxes.Count(c => c.IsChecked == true);
+                    if (count > 3 && cb.IsChecked == true)
+                    {
+                        cb.IsChecked = false; // revert
+                    }
+                    else
+                    {
+                        // lock out remaining unchecked boxes if limit reached
+                        foreach (var other in checkBoxes)
+                        {
+                            if (other.IsChecked != true)
+                                other.IsEnabled = count < 3;
+                        }
+                    }
+                };
+            }
+
+            // apply initial state limit locks immediately
+            int initCount = checkBoxes.Count(c => c.IsChecked == true);
+            foreach (var cb in checkBoxes) if (cb.IsChecked != true) cb.IsEnabled = initCount < 3;
+
+            scroll.Content = stack;
+            dGrid.Children.Add(scroll);
+
+            var btnOk = new Button
+            {
+                Content = "Übernehmen",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Background = SolidColorBrush.Parse("#7a30b0"),
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 15, 0, 0),
+                CornerRadius = new CornerRadius(4)
+            };
+            Grid.SetRow(btnOk, 2);
+
+            btnOk.Click += (_, __) =>
+            {
+                var selected = checkBoxes.Where(c => c.IsChecked == true).Select(c => c.Content.ToString());
+                txtTags.Text = string.Join(", ", selected);
+                isDirty = true;
+                tagDialog.Close();
+            };
+            dGrid.Children.Add(btnOk);
+
+            tagDialog.Content = dGrid;
+            await tagDialog.ShowDialog(dialog);
+        };
+
         formGrid.Children.Add(lblTags);
-        formGrid.Children.Add(txtTags);
+        formGrid.Children.Add(tagsPanel);
+
+        // clickable community guidelines inside checkbox
+        var chkLegalContent = new WrapPanel { Orientation = Orientation.Horizontal };
+
+        string legalTextStr = "Ich bestätige, dass dieses Level keine Schadsoftware enthält und stimme den";
+        foreach (var word in legalTextStr.Split(' '))
+        {
+            chkLegalContent.Children.Add(new TextBlock
+            {
+                Text = word + " ",
+                Foreground = Brushes.White,
+                TextWrapping = TextWrapping.NoWrap
+            });
+        }
+
+        var lnkCommunity = new TextBlock
+        {
+            Text = "Community-Richtlinien",
+            Foreground = SolidColorBrush.Parse("#7a30b0"),
+            TextDecorations = TextDecorations.Underline,
+            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+            Margin = new Thickness(0, 0, 4, 0)
+        };
+        lnkCommunity.PointerPressed += (s, e) =>
+        {
+            e.Handled = true; // prevents checkbox state toggle
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://docs.github.com/en/site-policy/github-terms/github-community-guidelines",
+                UseShellExecute = true
+            });
+        };
+
+        chkLegalContent.Children.Add(lnkCommunity);
+        chkLegalContent.Children.Add(new TextBlock
+        {
+            Text = "zu.",
+            Foreground = Brushes.White,
+            TextWrapping = TextWrapping.NoWrap
+        });
 
         contentStack.Children.Add(formGrid);
 
         var chkLegal = new CheckBox
         {
-            Content = "Ich bestätige, dass dieses Level keine Schadsoftware enthält und stimme den Community-Richtlinien zu.",
-            Foreground = Brushes.White,
+            Content = chkLegalContent,
             Margin = new Thickness(0, 15, 0, 0)
         };
 
@@ -258,15 +425,46 @@ public partial class MainWindow
         contentStack.Children.Add(pnlProgress);
         rootGrid.Children.Add(contentStack);
 
-        // action buttons
+        // action buttons grid
+        var actionButtonsGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto, *"),
+            Margin = new Thickness(20, 15, 20, 20)
+        };
+        Grid.SetRow(actionButtonsGrid, 1);
+
+        if (isEditMode)
+        {
+            var btnDelete = new Button
+            {
+                Content = "Level löschen",
+                Background = SolidColorBrush.Parse("#B43232"),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(4)
+            };
+            btnDelete.Click += async (_, __) =>
+            {
+                txtStatus.Text = "Level wird gelöscht...";
+                pnlProgress.IsVisible = true;
+                btnDelete.IsEnabled = false;
+
+                // placeholder delete logic
+                await Task.Delay(1000);
+
+                forceClose = true;
+                dialog.Close();
+            };
+            Grid.SetColumn(btnDelete, 0);
+            actionButtonsGrid.Children.Add(btnDelete);
+        }
+
         var btnPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 10,
-            Margin = new Thickness(20, 15, 20, 20)
+            Spacing = 10
         };
-        Grid.SetRow(btnPanel, 1);
+        Grid.SetColumn(btnPanel, 1);
 
         var btnCancel = new Button
         {
@@ -277,8 +475,8 @@ public partial class MainWindow
         };
         var btnPublish = new Button
         {
-            Content = "Veröffentlichen",
-            Background = SolidColorBrush.Parse("#8A2BE2"),
+            Content = isEditMode ? "Aktualisieren" : "Veröffentlichen",
+            Background = SolidColorBrush.Parse("#7a30b0"),
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             IsEnabled = false
@@ -402,6 +600,8 @@ public partial class MainWindow
             string encryptedData = "";
             try
             {
+                string rawJson = "";
+
                 if (_isSqlMode)
                 {
                     var exportData = new
@@ -420,7 +620,7 @@ public partial class MainWindow
                         _currentSqlDraft.IsRelationalModelReadOnly,
                         InitialRelationalModel = _currentSqlDraft.IsRelationalModelReadOnly ? _currentSqlDraft.InitialRelationalModel : new List<RTable>()
                     };
-                    encryptedData = LevelEncryption.Encrypt(JsonSerializer.Serialize(exportData));
+                    rawJson = JsonSerializer.Serialize(exportData);
                 }
                 else
                 {
@@ -437,8 +637,12 @@ public partial class MainWindow
                         _currentDraft.PlantUmlSources,
                         MaterialDiagramSvgs = _currentDraft.MaterialDiagrams.Select(d => d.PlantUmlSvgContent).ToList()
                     };
-                    encryptedData = LevelEncryption.Encrypt(JsonSerializer.Serialize(exportData));
+                    rawJson = JsonSerializer.Serialize(exportData);
                 }
+
+                // compress data before encrypting
+                string compressedData = CompressLevelData(rawJson);
+                encryptedData = LevelEncryption.Encrypt(compressedData);
             }
             catch (Exception ex)
             {
@@ -450,9 +654,9 @@ public partial class MainWindow
                 return;
             }
 
-            if (encryptedData.Length > 30000)
+            if (encryptedData.Length > 50000)
             {
-                txtStatus.Text = $"Level-Datei ist zu groß ({encryptedData.Length} / 30.000 Zeichen). Bitte kürze Beschreibungen oder Code.";
+                txtStatus.Text = $"Level-Datei ist zu groß ({encryptedData.Length} / 50.000 Zeichen). Bitte kürze Beschreibungen, Code oder Diagramme.";
                 txtStatus.Foreground = Brushes.Orange;
                 progressBar.IsIndeterminate = false;
                 progressBar.Value = 100;
@@ -467,7 +671,7 @@ public partial class MainWindow
             // placeholder for actual proxy pushing logic 
             await Task.Delay(2000);
 
-            txtStatus.Text = "Erfolgreich veröffentlicht!";
+            txtStatus.Text = isEditMode ? "Erfolgreich aktualisiert!" : "Erfolgreich veröffentlicht!";
             txtStatus.Foreground = Brushes.LightGreen;
             progressBar.IsIndeterminate = false;
             progressBar.Value = 100;
@@ -480,9 +684,23 @@ public partial class MainWindow
 
         btnPanel.Children.Add(btnCancel);
         btnPanel.Children.Add(btnPublish);
-        rootGrid.Children.Add(btnPanel);
+        actionButtonsGrid.Children.Add(btnPanel);
+        rootGrid.Children.Add(actionButtonsGrid);
+
         dialog.Content = rootGrid;
 
         await dialog.ShowDialog(this);
+    }
+
+    private string CompressLevelData(string jsonText)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonText);
+        using var msi = new System.IO.MemoryStream(bytes);
+        using var mso = new System.IO.MemoryStream();
+        using (var gs = new System.IO.Compression.GZipStream(mso, System.IO.Compression.CompressionMode.Compress))
+        {
+            msi.CopyTo(gs);
+        }
+        return Convert.ToBase64String(mso.ToArray());
     }
 }

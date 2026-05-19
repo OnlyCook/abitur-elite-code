@@ -375,7 +375,7 @@
 													</Border>
 
 													<StackPanel Name="PnlCommentsList" Spacing="15" />
-													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
+													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden. Sei der Erste! " Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar." Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLoading" Text="Lädt..." Foreground="Gray" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<Button Name="BtnLoadMoreComments" Content="Weitere Kommentare laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
@@ -572,12 +572,12 @@
 
 											<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852"
 													Width="40" Height="40" CornerRadius="5"
-													Click="BtnDesignerExport_Click"
+													Click="BtnDesignerExport_Click" IsEnabled="False"
 													ToolTip.Tip="Level Exportieren" Margin="0,0,10,0">
 												<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20" />
 											</Button>
 
-											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#8A2BE2"
+											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#7a30b0"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerPublish_Click" IsEnabled="False"
 													ToolTip.Tip="Level Veröffentlichen">

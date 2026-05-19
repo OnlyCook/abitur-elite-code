@@ -27,6 +27,492 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private void UpdateNavigationButtonTooltips()
+    {
+        ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
+        if (_isSqlMode)
+        {
+            bool allSolved = sqlLevels != null && sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+            int totalCount = sqlLevels?.Count ?? SqlCurriculum.GetLevelCount();
+
+            if (currentSqlLevel != null && currentSqlLevel.Id == totalCount)
+            {
+                if (allSolved)
+                    ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+                else
+                    ToolTip.SetTip(BtnNextLevel, "Fehlende Level abschließen");
+            }
+            else
+            {
+                ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+            }
+        }
+        else
+        {
+            bool allSolved = levels != null && levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+            int totalCount = levels?.Count ?? Curriculum.GetLevelCount();
+
+            if (currentLevel != null && currentLevel.Id == totalCount)
+            {
+                if (allSolved)
+                    ToolTip.SetTip(BtnNextLevel, "Kurs abschließen (Alt + Enter)");
+                else
+                    ToolTip.SetTip(BtnNextLevel, "Fehlende Level abschließen");
+            }
+            else
+            {
+                ToolTip.SetTip(BtnNextLevel, "Nächstes Level (Alt + Enter)");
+            }
+        }
+    }
+
+    private void UpdateNavigationButtons()
+    {
+        if (_isDesignerMode)
+        {
+            BtnPrevLevel.IsVisible = false;
+            BtnNextLevel.IsVisible = false;
+            return;
+        }
+
+        if (_isCustomLevelMode)
+        {
+            BtnPrevLevel.IsVisible = true;
+            BtnNextLevel.IsVisible = true;
+
+            // get relevant custom levels for current mode, excluding drafts
+            var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
+            string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+            var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
+
+            if (currentInfo != null)
+            {
+                // group by section and order alphabetically
+                var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name)
+                    .ToList();
+                int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
+
+                bool isFirst1 = idx <= 0;
+                bool isLast1 = idx >= sectionLevels.Count - 1;
+
+                BtnPrevLevel.IsEnabled = !isFirst1;
+                BtnPrevLevel.Opacity = isFirst1 ? 0.5 : 1.0;
+
+                if (isLast1)
+                {
+                    BtnNextLevel.Content = "✓";
+                    BtnNextLevel.IsEnabled = true;
+                    _nextCustomLevelPath = "SECTION_COMPLETE";
+                }
+                else
+                {
+                    BtnNextLevel.Content = "→";
+                    BtnNextLevel.IsEnabled = true;
+                    _nextCustomLevelPath = sectionLevels[idx + 1].FilePath;
+                }
+            }
+
+            return;
+        }
+
+        BtnPrevLevel.IsVisible = true;
+        BtnNextLevel.IsVisible = true;
+
+        bool isFirst = false;
+        bool isLast = false;
+        bool nextIsUnlocked = false;
+        bool isCurrentCompleted = false;
+
+        if (_isCustomLevelMode)
+        {
+            BtnPrevLevel.IsEnabled = false;
+            BtnNextLevel.Content = "→";
+            return;
+        }
+
+        if (_isSqlMode && currentSqlLevel != null)
+        {
+            int idx = sqlLevels.IndexOf(currentSqlLevel);
+            isFirst = idx <= 0;
+            isLast = idx >= sqlLevels.Count - 1;
+            isCurrentCompleted = playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id);
+
+            // check if next level exists and is unlocked
+            if (!isLast)
+            {
+                var next = sqlLevels[idx + 1];
+                nextIsUnlocked = playerData.UnlockedSqlLevelIds.Contains(next.Id);
+            }
+        }
+        else if (currentLevel != null)
+        {
+            int idx = levels.IndexOf(currentLevel);
+            isFirst = idx <= 0;
+            isLast = idx >= levels.Count - 1;
+            isCurrentCompleted = playerData.CompletedLevelIds.Contains(currentLevel.Id);
+
+            if (!isLast)
+            {
+                var next = levels[idx + 1];
+                nextIsUnlocked = playerData.UnlockedLevelIds.Contains(next.Id);
+            }
+        }
+
+        BtnPrevLevel.IsEnabled = !isFirst;
+        BtnPrevLevel.Opacity = isFirst ? 0.5 : 1.0;
+
+        if (isLast)
+        {
+            BtnNextLevel.Content = "✓";
+            BtnNextLevel.IsEnabled = isCurrentCompleted;
+        }
+        else
+        {
+            BtnNextLevel.Content = "→";
+            BtnNextLevel.IsEnabled = nextIsUnlocked;
+        }
+
+        UpdateNavigationButtonTooltips();
+    }
+
+    private void BtnPrevLevel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isCustomLevelMode)
+        {
+            var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
+            string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+            var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
+
+            if (currentInfo != null)
+            {
+                var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name)
+                    .ToList();
+                int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
+                if (idx > 0)
+                {
+                    LoadCustomLevelFromFile(sectionLevels[idx - 1].FilePath);
+                    if (_isSqlMode) SqlQueryEditor.Focus();
+                    else CodeEditor.Focus();
+                }
+            }
+
+            return;
+        }
+
+        if (_isSqlMode && currentSqlLevel != null)
+        {
+            int idx = sqlLevels.IndexOf(currentSqlLevel);
+            if (idx > 0) LoadSqlLevel(sqlLevels[idx - 1]);
+        }
+        else if (currentLevel != null)
+        {
+            int idx = levels.IndexOf(currentLevel);
+            if (idx > 0) LoadLevel(levels[idx - 1]);
+        }
+    }
+
+    private void BtnNextLevel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isSqlMode)
+        {
+            if (currentSqlLevel != null && currentSqlLevel.Id == (sqlLevels?.Count ?? SqlCurriculum.GetLevelCount()))
+            {
+                // restrict course completion if not all levels are solved
+                bool allSolved = sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+                if (!allSolved)
+                {
+                    AddSqlOutput("System", "> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
+                    return;
+                }
+            }
+        }
+        else
+        {
+            if (currentLevel != null && currentLevel.Id == (levels?.Count ?? Curriculum.GetLevelCount()))
+            {
+                // restrict course completion if not all levels are solved
+                bool allSolved = levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+                if (!allSolved)
+                {
+                    AddToConsole("\n> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
+                    return;
+                }
+            }
+        }
+
+        if (BtnNextLevel.Content?.ToString() == "✓" ||
+            BtnNextLevel.Content?.ToString()?.Contains("ABSCHLIESSEN") == true)
+        {
+            if (_isCustomLevelMode && _nextCustomLevelPath == "SECTION_COMPLETE")
+                ShowCustomSectionCompletedDialog();
+            else if (_isSqlMode)
+                ShowSqlCourseCompletedDialog();
+            else
+                ShowCourseCompletedDialog();
+            return;
+        }
+
+        if (_isCustomLevelMode && !string.IsNullOrEmpty(_nextCustomLevelPath))
+        {
+            try
+            {
+                LoadCustomLevelFromFile(_nextCustomLevelPath);
+                if (_isSqlMode) SqlQueryEditor.Focus();
+                else CodeEditor.Focus();
+            }
+            catch (Exception ex)
+            {
+                if (_isSqlMode)
+                    AddSqlOutput("Error", $"> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
+                else AddToConsole($"\n> Fehler beim Laden des nächsten Levels: {ex.Message}", Brushes.Red);
+                BtnNextLevel.IsVisible = false;
+            }
+
+            return;
+        }
+
+        if (_isSqlMode)
+        {
+            var nextSqlLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
+            if (nextSqlLvl != null)
+                LoadSqlLevel(nextSqlLvl);
+            SqlQueryEditor.Focus();
+            return;
+        }
+
+        var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
+        if (nextLvl != null)
+            LoadLevel(nextLvl);
+        CodeEditor.Focus();
+    }
+
+    private async void ShowCourseCompletedDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "C# Kurs Abgeschlossen",
+            Width = 500,
+            Height = 420,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#202124"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        var rootBorder = new Border
+        {
+            BorderBrush = Brushes.Transparent,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(20)
+        };
+        var rootGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto") };
+        var contentStack = new StackPanel
+        {
+            Spacing = 15,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text = "🎉 Herzlichen Glückwunsch! 🎉",
+                FontSize = 22,
+                FontWeight = FontWeight.Bold,
+                Foreground = SolidColorBrush.Parse("#6495ED"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            }
+        );
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "Du hast alle C#-Levels erfolgreich abgeschlossen!\n\nDu bist nun bereit für den Programmier-Teil der Abiturprüfung in Praktischer Informatik.\nViel Erfolg!\n\nGehe aber lieber noch ein paar offizielle Abiturvorschläge ganz durch.",
+                FontSize = 16,
+                Foreground = Brushes.White,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 24
+            }
+        );
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "Rechtlicher Hinweis: Diese Software dient ausschließlich Übungszwecken. Der Entwickler übernimmt keine Gewähr für die Vollständigkeit der Inhalte oder den tatsächlichen Erfolg in der Abiturprüfung.",
+                FontSize = 11,
+                Foreground = Brushes.Gray,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(10, 20, 10, 0),
+                FontStyle = FontStyle.Italic
+            }
+        );
+        rootGrid.Children.Add(contentStack);
+        var btnClose = new Button
+        {
+            Content = "Schließen",
+            Background = SolidColorBrush.Parse("#6495ED"),
+            Foreground = Brushes.Black,
+            FontWeight = FontWeight.Bold,
+            FontSize = 14,
+            Padding = new Thickness(30, 10),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            CornerRadius = new CornerRadius(4),
+            Margin = new Thickness(0, 20, 0, 0)
+        };
+        btnClose.Click += (_, __) => dialog.Close();
+
+        Grid.SetRow(btnClose, 1);
+        rootGrid.Children.Add(btnClose);
+
+        rootBorder.Child = rootGrid;
+        dialog.Content = rootBorder;
+
+        await dialog.ShowDialog(this);
+    }
+
+    private async void ShowSqlCourseCompletedDialog()
+    {
+        var dialog = new Window
+        {
+            Title = "SQL Kurs Abgeschlossen",
+            Width = 500,
+            Height = 410,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#202124"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        var rootBorder = new Border
+        {
+            BorderBrush = Brushes.Transparent,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(20)
+        };
+        var rootGrid = new Grid { RowDefinitions = new RowDefinitions("*, Auto") };
+        var contentStack = new StackPanel
+        {
+            Spacing = 15,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text = "🎉 Herzlichen Glückwunsch! 🎉",
+                FontSize = 22,
+                FontWeight = FontWeight.Bold,
+                Foreground = SolidColorBrush.Parse("#FFD700"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            }
+        );
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "Du hast alle SQL-Levels erfolgreich abgeschlossen!\n\nDatenbank-Abfragen sind ein essenzieller Teil der Prüfung. Du bist nun bestens vorbereitet.\nViel Erfolg!\n\nGehe aber lieber noch ein paar offizielle Abiturvorschläge ganz durch.",
+                FontSize = 16,
+                Foreground = Brushes.White,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 24
+            }
+        );
+        contentStack.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "Rechtlicher Hinweis: Diese Software dient ausschließlich Übungszwecken. Der Entwickler übernimmt keine Gewähr für die Vollständigkeit der Inhalte oder den tatsächlichen Erfolg in der Abiturprüfung.",
+                FontSize = 11,
+                Foreground = Brushes.Gray,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(10, 20, 10, 0),
+                FontStyle = FontStyle.Italic
+            }
+        );
+        rootGrid.Children.Add(contentStack);
+
+        var btnClose = new Button
+        {
+            Content = "Schließen",
+            Background = SolidColorBrush.Parse("#FFD700"),
+            Foreground = Brushes.Black,
+            FontWeight = FontWeight.Bold,
+            FontSize = 14,
+            Padding = new Thickness(30, 10),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            CornerRadius = new CornerRadius(4),
+            Margin = new Thickness(0, 20, 0, 0)
+        };
+        btnClose.Click += (_, __) => dialog.Close();
+
+        Grid.SetRow(btnClose, 1);
+        rootGrid.Children.Add(btnClose);
+
+        rootBorder.Child = rootGrid;
+        dialog.Content = rootBorder;
+
+        await dialog.ShowDialog(this);
+    }
+
+    private async void ShowCustomSectionCompletedDialog()
+    {
+        string section = _isSqlMode ? currentSqlLevel?.Section : currentLevel?.Section;
+        bool isSingleLevel = section == "Einzelne Levels";
+
+        var dialog = new Window
+        {
+            Title = isSingleLevel ? "Level Abgeschlossen" : "Sektion Abgeschlossen",
+            Width = 400,
+            Height = 250,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#202124"),
+            CornerRadius = new CornerRadius(8)
+        };
+        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+
+        var rootStack = new StackPanel
+        { Spacing = 20, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
+
+        rootStack.Children.Add(new TextBlock
+        {
+            Text = "🎉 Gut gemacht!",
+            FontSize = 22,
+            FontWeight = FontWeight.Bold,
+            Foreground = BrushTextTitle,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        rootStack.Children.Add(new TextBlock
+        {
+            // adapt text based on level type
+            Text = isSingleLevel ? "Du hast dieses eigene Level erfolgreich abgeschlossen." : "Du hast alle Levels in diesem Ordner abgeschlossen.",
+            FontSize = 15,
+            Foreground = Brushes.White,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        var btnClose = new Button
+        {
+            Content = "Schließen",
+            Background = BrushTextTitle,
+            Foreground = Brushes.White,
+            Padding = new Thickness(20, 8),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            CornerRadius = new CornerRadius(4)
+        };
+        btnClose.Click += (_, __) => dialog.Close();
+
+        rootStack.Children.Add(btnClose);
+        dialog.Content = new Border { Child = rootStack };
+
+        await dialog.ShowDialog(this);
+    }
+
     private void BtnLevelSelect_Click(object sender, RoutedEventArgs e)
     {
         if (_isSqlMode && sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
