@@ -280,6 +280,9 @@
 																<ComboBoxItem Content="Neuste" />
 																<ComboBoxItem Content="Älteste" />
 															</ComboBox>
+															<Button Name="BtnCommunityDiscussionMenu" Background="Transparent" Padding="5" Cursor="Hand" IsVisible="False">
+																<svg:Svg Path="/assets/icons/ic_menu.svg" Width="20" Height="20" VerticalAlignment="Center" />
+															</Button>
 														</StackPanel>
 													</Grid>
 

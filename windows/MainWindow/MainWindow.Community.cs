@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using HarfBuzzSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -288,7 +289,7 @@ public partial class MainWindow
         if (IconToggleComments != null)
             IconToggleComments.Path = "/assets/icons/ic_comment.svg";
 
-        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isCustomLevelMode || _isDesignerMode || _discussionMappings == null)
+        if (!AppSettings.IsCommunityFeaturesEnabled || string.IsNullOrEmpty(AppSettings.GithubToken) || _isDesignerMode)
         {
             // only hide the panel when community is genuinely unavailable
             PnlCommunityActions.IsVisible = false;
@@ -300,16 +301,30 @@ public partial class MainWindow
         if (_isCustomLevelMode)
         {
             if (_currentCustomDiscussionNumber > 0)
+            {
                 discussionNum = _currentCustomDiscussionNumber;
+            }
             else
+            {
+                PnlCommunityActions.IsVisible = false;
                 return;
+            }
         }
         else
         {
+            if (_discussionMappings == null)
+            {
+                PnlCommunityActions.IsVisible = false;
+                return;
+            }
+
             // standard levels
             string modeKey = isSql ? "SQL" : "C#";
             if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
+            {
+                PnlCommunityActions.IsVisible = false;
                 return;
+            }
             discussionNum = _discussionMappings[modeKey][levelId];
         }
 
@@ -632,12 +647,143 @@ public partial class MainWindow
         if (IconDislike != null)
             IconDislike.Path = cache.ViewerHasDisliked ? "/assets/icons/ic_dislike_filled.svg" : "/assets/icons/ic_dislike.svg";
 
-        // re-enable buttons in case they were disabled by previously being offline
-        BtnLike.IsEnabled = true;
-        BtnDislike.IsEnabled = true;
-        BtnToggleComments.IsEnabled = true;
+        if (_isCustomLevelMode && !string.IsNullOrEmpty(cache.DiscussionNodeId))
+        {
+            SetUpCustomCommunityLevelUi(cache);
+        }
+        else
+        {
+            if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.IsVisible = false;
+        }
 
         PnlCommunityActions.IsVisible = true;
+    }
+
+    private void SetUpCustomCommunityLevelUi(DiscussionCache cache)
+    {
+        if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.IsVisible = true;
+
+        var flyout = new Flyout();
+        var flyoutStack = new StackPanel
+        {
+            Spacing = 5,
+            Margin = new Thickness(-5)
+        };
+
+        // draw from the loaded custom level fields
+        string levelAuthor = _currentCustomAuthor;
+        string levelName = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+        bool isAuthor = string.Equals(levelAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
+
+        if (isAuthor)
+        {
+            bool isSubscribed = _communityCache.Subscriptions.ContainsKey(cache.DiscussionNodeId);
+            var btnSubscribe = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon(isSubscribed ? "assets/icons/ic_unsubscribe.svg" : "assets/icons/ic_subscribe.svg", 16),
+                        new TextBlock
+                        {
+                            Text = isSubscribed ? "Deabonnieren" : "Abonnieren",
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4)
+            };
+
+            btnSubscribe.Click += (s, e) =>
+            {
+                if (isSubscribed)
+                {
+                    _communityCache.Subscriptions.Remove(cache.DiscussionNodeId);
+                    SaveSystem.SaveCommunityCache(_communityCache);
+                }
+                else
+                {
+                    AddOrUpdateSubscription(cache.DiscussionNodeId, cache.TotalComments);
+                }
+
+                if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.Flyout?.Hide();
+                ApplyCommunityUiData(cache); // lazy refresh visually
+            };
+
+            var btnDelete = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon("assets/icons/ic_delete.svg", 16),
+                        new TextBlock
+                        {
+                            Text = "Löschen",
+                            Foreground = Brushes.Red,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4)
+            };
+            btnDelete.Click += async (s, e) =>
+            {
+                if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.Flyout?.Hide();
+                await ShowLevelDeletionDialogAsync(cache.DiscussionNodeId, levelName);
+            };
+
+            flyoutStack.Children.Add(btnSubscribe);
+            flyoutStack.Children.Add(btnDelete);
+        }
+        else
+        {
+            var btnReport = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        LoadIcon("assets/icons/ic_report.svg", 16),
+                        new TextBlock
+                        {
+                            Text = "Melden",
+                            Foreground = Brushes.Red,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    }
+                },
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(10, 8),
+                CornerRadius = new CornerRadius(4)
+            };
+            btnReport.Click += (s, e) =>
+            {
+                if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.Flyout?.Hide();
+                ShowLevelReportDialog(levelName, levelAuthor, cache.DiscussionNodeId);
+            };
+            flyoutStack.Children.Add(btnReport);
+        }
+
+        flyout.Content = flyoutStack;
+        if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.Flyout = flyout;
     }
 
     private static string RenderEndpoint(int type) => _ResolveFragment(type == 0
@@ -2883,6 +3029,13 @@ public partial class MainWindow
                                         nodes { id author { login } body }
                                     }
                                 }
+                                ... on Discussion {
+                                    id
+                                    comments(last: 15) {
+                                        totalCount
+                                        nodes { id author { login } body }
+                                    }
+                                }
                             }
                         }",
                         variables = new { ids = ids }
@@ -2905,7 +3058,7 @@ public partial class MainWindow
                             {
                                 if (node.ValueKind == JsonValueKind.Null)
                                 {
-                                    // comment was deleted remotely -> remove it
+                                    // comment or discussion was deleted remotely -> remove it
                                     string deletedId = ids[nodeIndex];
                                     if (_communityCache.Subscriptions.Remove(deletedId))
                                     {
@@ -2915,90 +3068,134 @@ public partial class MainWindow
                                     continue;
                                 }
 
-                                string commentId = node.GetProperty("id").GetString();
-                                string discId = node.GetProperty("discussion").GetProperty("id").GetString();
-                                string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
-                                string parentBody = node.GetProperty("body").GetString();
-
-                                // intercept bot messages to get real parent author
-                                if (parentAuthor == "aec-community-bot")
+                                if (node.TryGetProperty("discussion", out var discProp))
                                 {
-                                    var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                    if (match.Success)
+                                    string commentId = node.GetProperty("id").GetString();
+                                    string discId = discProp.GetProperty("id").GetString();
+                                    string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                                    string parentBody = node.GetProperty("body").GetString();
+
+                                    // intercept bot messages to get real parent author
+                                    if (parentAuthor == "aec-community-bot")
                                     {
-                                        parentAuthor = match.Groups[1].Value;
-                                        parentBody = match.Groups[2].Value; // extract body to clean the html tag
-                                    }
-                                }
-
-                                var repliesData = node.GetProperty("replies");
-                                int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
-
-                                if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
-                                {
-                                    if (newTotalCount > lastKnownCount)
-                                    {
-                                        int diff = newTotalCount - lastKnownCount;
-                                        var replyNodes = repliesData.GetProperty("nodes").EnumerateArray().ToList();
-
-                                        // only evaluate the newly added replies
-                                        var newReplies = replyNodes.Skip(Math.Max(0, replyNodes.Count - diff)).ToList();
-
-                                        foreach (var replyNode in newReplies)
+                                        var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                        if (match.Success)
                                         {
-                                            string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
-                                            string replyBody = replyNode.GetProperty("body").GetString();
+                                            parentAuthor = match.Groups[1].Value;
+                                            parentBody = match.Groups[2].Value; // extract body to clean the html tag
+                                        }
+                                    }
 
-                                            // intercept bot messages for the reply author too (fixed regex)
-                                            if (replyAuthor == "aec-community-bot")
+                                    var repliesData = node.GetProperty("replies");
+                                    int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
+
+                                    if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                                    {
+                                        if (newTotalCount > lastKnownCount)
+                                        {
+                                            int diff = newTotalCount - lastKnownCount;
+                                            var replyNodes = repliesData.GetProperty("nodes").EnumerateArray().ToList();
+
+                                            // only evaluate the newly added replies
+                                            var newReplies = replyNodes.Skip(Math.Max(0, replyNodes.Count - diff)).ToList();
+
+                                            foreach (var replyNode in newReplies)
                                             {
-                                                var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                                if (match.Success)
+                                                string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
+                                                string replyBody = replyNode.GetProperty("body").GetString();
+
+                                                // intercept bot messages for the reply author too
+                                                if (replyAuthor == "aec-community-bot")
                                                 {
-                                                    replyAuthor = match.Groups[1].Value;
-                                                    replyBody = match.Groups[2].Value; // extract body to clean the html tag
+                                                    var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                    if (match.Success)
+                                                    {
+                                                        replyAuthor = match.Groups[1].Value;
+                                                        replyBody = match.Groups[2].Value; // extract body to clean the html tag
+                                                    }
+                                                }
+
+                                                // use case-insensitive check
+                                                if (string.Equals(replyAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
+
+                                                // check for our injected zero-width space mention or a normal text mention fallback
+                                                bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
+                                                bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
+                                                                   replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
+
+                                                if (!isAuthor && isMentioned)
+                                                {
+                                                    _communityCache.Notifications.Add(new AppNotification
+                                                    {
+                                                        Message = $"{replyAuthor} hat dich in einer Antwort erwähnt.",
+                                                        Date = DateTime.Now,
+                                                        IsRead = false,
+                                                        TargetDiscussionId = discId,
+                                                        TargetCommentId = commentId,
+                                                        TargetReplyId = replyNode.GetProperty("id").GetString()
+                                                    });
+                                                    hasNewNotifications = true;
+                                                }
+                                                else if (isAuthor)
+                                                {
+                                                    _communityCache.Notifications.Add(new AppNotification
+                                                    {
+                                                        Message = $"{replyAuthor} hat auf deinen Kommentar geantwortet.",
+                                                        Date = DateTime.Now,
+                                                        IsRead = false,
+                                                        TargetDiscussionId = discId,
+                                                        TargetCommentId = commentId,
+                                                        TargetReplyId = replyNode.GetProperty("id").GetString()
+                                                    });
+                                                    hasNewNotifications = true;
                                                 }
                                             }
-
-                                            // use case-insensitive check
-                                            if (string.Equals(replyAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
-
-                                            // check for our injected zero-width space mention or a normal text mention fallback (now case-insensitive)
-                                            bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
-                                            bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
-                                                               replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
-
-                                            if (!isAuthor && isMentioned)
-                                            {
-                                                _communityCache.Notifications.Add(new AppNotification
-                                                {
-                                                    Message = $"{replyAuthor} hat dich in einer Antwort erwähnt.",
-                                                    Date = DateTime.Now,
-                                                    IsRead = false,
-                                                    TargetDiscussionId = discId, // directly assigned from graphql
-                                                    TargetCommentId = commentId,
-                                                    TargetReplyId = replyNode.GetProperty("id").GetString()
-                                                });
-                                                hasNewNotifications = true;
-                                            }
-                                            else if (isAuthor)
-                                            {
-                                                _communityCache.Notifications.Add(new AppNotification
-                                                {
-                                                    Message = $"{replyAuthor} hat auf deinen Kommentar geantwortet.",
-                                                    Date = DateTime.Now,
-                                                    IsRead = false,
-                                                    TargetDiscussionId = discId, // directly assigned from graphql
-                                                    TargetCommentId = commentId,
-                                                    TargetReplyId = replyNode.GetProperty("id").GetString()
-                                                });
-                                                hasNewNotifications = true;
-                                            }
+                                            _communityCache.Subscriptions[commentId] = newTotalCount;
                                         }
-                                        _communityCache.Subscriptions[commentId] = newTotalCount;
                                     }
                                 }
+                                else if (node.TryGetProperty("comments", out var commentsData))
+                                {
+                                    string discId = node.GetProperty("id").GetString();
+                                    int newTotalCount = commentsData.GetProperty("totalCount").GetInt32();
 
+                                    if (_communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
+                                    {
+                                        if (newTotalCount > lastKnownCount)
+                                        {
+                                            int diff = newTotalCount - lastKnownCount;
+                                            var commentNodes = commentsData.GetProperty("nodes").EnumerateArray().ToList();
+                                            var newComments = commentNodes.Skip(Math.Max(0, commentNodes.Count - diff)).ToList();
+
+                                            foreach (var cNode in newComments)
+                                            {
+                                                string cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
+                                                string cBody = cNode.GetProperty("body").GetString();
+
+                                                // intercept bot messages
+                                                if (cAuthor == "aec-community-bot")
+                                                {
+                                                    var match = System.Text.RegularExpressions.Regex.Match(cBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                    if (match.Success) cAuthor = match.Groups[1].Value;
+                                                }
+
+                                                if (string.Equals(cAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
+
+                                                _communityCache.Notifications.Add(new AppNotification
+                                                {
+                                                    Message = $"{cAuthor} hat dein Level kommentiert.",
+                                                    Date = DateTime.Now,
+                                                    IsRead = false,
+                                                    TargetDiscussionId = discId,
+                                                    TargetCommentId = cNode.GetProperty("id").GetString(),
+                                                    TargetReplyId = null
+                                                });
+                                                hasNewNotifications = true;
+                                            }
+                                            _communityCache.Subscriptions[discId] = newTotalCount;
+                                        }
+                                    }
+                                }
                                 nodeIndex++;
                             }
                         }
@@ -3412,9 +3609,8 @@ public partial class MainWindow
 
                 btnGo.Click += (s, e) =>
                 {
-                    if (_isCustomLevelMode || _isDesignerMode) return; // locked in level designer
+                    if (_isDesignerMode) return; // locked in level designer
 
-                    _inboxFlyout?.Hide();
                     if (!string.IsNullOrEmpty(notif.TargetDiscussionId))
                     {
                         string targetLevelId = null;
@@ -3444,30 +3640,75 @@ public partial class MainWindow
 
                         if (targetLevelId != null)
                         {
-                            _targetHighlightCommentId = notif.TargetCommentId;
-                            _targetHighlightReplyId = notif.TargetReplyId;
+                            bool isCustomLevel = int.TryParse(targetLevelId, out int parsedId) && parsedId < 0;
 
-                            _isSqlMode = isTargetSql;
-
-                            if (isTargetSql)
+                            if (isCustomLevel)
                             {
-                                if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
-                                var lvl = sqlLevels.FirstOrDefault(l => l.Id.ToString() == targetLevelId);
-                                if (lvl != null) LoadSqlLevel(lvl);
+                                var customLevels = GetCustomLevels();
+                                var targetLvl = customLevels.FirstOrDefault(cl =>
+                                {
+                                    int id = cl.FilePath.GetHashCode();
+                                    if (id > 0) id *= -1;
+                                    return id.ToString() == targetLevelId;
+                                });
+
+                                if (targetLvl != null)
+                                {
+                                    _inboxFlyout?.Hide();
+
+                                    _targetHighlightCommentId = notif.TargetCommentId;
+                                    _targetHighlightReplyId = notif.TargetReplyId;
+                                    _isSqlMode = isTargetSql;
+
+                                    LoadCustomLevelFromFile(targetLvl.FilePath);
+
+                                    UpdateCommunityUIAsync(targetLevelId, isTargetSql);
+                                    PnlCommentsSection.IsVisible = true;
+                                    RenderCachedComments();
+
+                                    _targetHighlightCommentId = null;
+                                    _targetHighlightReplyId = null;
+                                }
+                                else
+                                {
+                                    // show error temporarily if deleted or not found locally
+                                    btnGo.Content = LoadIcon("assets/icons/ic_error.svg", 16);
+                                    Task.Run(async () =>
+                                    {
+                                        await Task.Delay(500);
+                                        await Dispatcher.UIThread.InvokeAsync(() => btnGo.Content = LoadIcon("assets/icons/ic_comment_go.svg", 16));
+                                    });
+                                }
                             }
                             else
                             {
-                                if (levels == null) levels = Curriculum.GetLevels();
-                                var lvl = levels.FirstOrDefault(l => l.Id.ToString() == targetLevelId);
-                                if (lvl != null) LoadLevel(lvl);
+                                _inboxFlyout?.Hide();
+
+                                _targetHighlightCommentId = notif.TargetCommentId;
+                                _targetHighlightReplyId = notif.TargetReplyId;
+
+                                _isSqlMode = isTargetSql;
+
+                                if (isTargetSql)
+                                {
+                                    if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
+                                    var lvl = sqlLevels.FirstOrDefault(l => l.Id.ToString() == targetLevelId);
+                                    if (lvl != null) LoadSqlLevel(lvl);
+                                }
+                                else
+                                {
+                                    if (levels == null) levels = Curriculum.GetLevels();
+                                    var lvl = levels.FirstOrDefault(l => l.Id.ToString() == targetLevelId);
+                                    if (lvl != null) LoadLevel(lvl);
+                                }
+
+                                UpdateCommunityUIAsync(targetLevelId, isTargetSql);
+                                PnlCommentsSection.IsVisible = true;
+                                RenderCachedComments();
+
+                                _targetHighlightCommentId = null;
+                                _targetHighlightReplyId = null;
                             }
-
-                            UpdateCommunityUIAsync(targetLevelId, isTargetSql);
-                            PnlCommentsSection.IsVisible = true;
-                            RenderCachedComments();
-
-                            _targetHighlightCommentId = null;
-                            _targetHighlightReplyId = null;
                         }
                     }
                 };
@@ -4015,5 +4256,256 @@ public partial class MainWindow
         }
         _communityCache.Subscriptions[commentId] = count;
         SaveSystem.SaveCommunityCache(_communityCache);
+    }
+
+    private async Task ShowLevelDeletionDialogAsync(string discussionId, string levelName)
+    {
+        bool isConfirmed = false;
+        var confirmDialog = new Window
+        {
+            Title = "Level löschen",
+            Width = 400,
+            Height = 205,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+
+        var dGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("*, Auto, Auto"),
+            Margin = new Thickness(20)
+        };
+        dGrid.Children.Add(new TextBlock
+        {
+            Text = $"Möchtest du dieses Level wirklich online löschen? Diese Aktion kann nicht rückgängig gemacht werden.\n\nBitte tippe \"loeschen\" ein, um fortzufahren.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Top
+        });
+
+        var txtConfirm = new TextBox
+        {
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 15, 0, 15)
+        };
+        Grid.SetRow(txtConfirm, 1);
+        dGrid.Children.Add(txtConfirm);
+
+        var dBtnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 10
+        };
+        Grid.SetRow(dBtnPanel, 2);
+
+        var btnCancelDel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnConfirmDel = new Button
+        {
+            Content = "Endgültig Löschen",
+            Background = SolidColorBrush.Parse("#B43232"),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4),
+            IsEnabled = false
+        };
+
+        txtConfirm.TextChanged += (s, e) => btnConfirmDel.IsEnabled = txtConfirm.Text == "loeschen";
+
+        btnCancelDel.Click += (s, e) => confirmDialog.Close();
+        btnConfirmDel.Click += (s, e) =>
+        {
+            isConfirmed = true;
+            confirmDialog.Close();
+        };
+
+        dBtnPanel.Children.Add(btnCancelDel);
+        dBtnPanel.Children.Add(btnConfirmDel);
+        dGrid.Children.Add(dBtnPanel);
+        confirmDialog.Content = dGrid;
+
+        await confirmDialog.ShowDialog(this);
+        if (!isConfirmed) return;
+
+        double secondsSinceLast = (DateTime.Now - _lastLevelPublishTime).TotalSeconds;
+        if (secondsSinceLast < 60)
+        {
+            if (_isSqlMode) AddSqlOutput("System", $"> Bitte warte {(int)(60 - secondsSinceLast)} Sekunden vor der nächsten Aktion.", Brushes.Orange);
+            else AddToConsole($"\n> Bitte warte {(int)(60 - secondsSinceLast)} Sekunden vor der nächsten Aktion.", Brushes.Orange);
+            return;
+        }
+
+        try
+        {
+            string endpoint = $"{RenderEndpoint(1).TrimEnd('/')}/level?discussionId={discussionId}";
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+
+            var resp = await _httpClient.SendAsync(requestMessage);
+            string resBody = await resp.Content.ReadAsStringAsync();
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && (resBody == "BANNED" || resBody == "PERMA_BANNED"))
+            {
+                if (resBody == "PERMA_BANNED") ShowPermaBanDialog(); else ShowBanDialog();
+                return;
+            }
+
+            if (resp.IsSuccessStatusCode)
+            {
+                _lastLevelPublishTime = DateTime.Now;
+                if (_isSqlMode) AddSqlOutput("System", "> Level erfolgreich online gelöscht!", Brushes.LightGreen);
+                else AddToConsole("\n> Level erfolgreich online gelöscht!", Brushes.LightGreen);
+
+                BtnCommunityDiscussionMenu.IsVisible = false;
+                PnlCommunityActions.IsVisible = false;
+            }
+            else
+            {
+                if (_isSqlMode) AddSqlOutput("Error", $"> Fehler beim Löschen: {resBody}", Brushes.Red);
+                else AddToConsole($"\n> Fehler beim Löschen: {resBody}", Brushes.Red);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_isSqlMode) AddSqlOutput("Error", $"> Netzwerkfehler: {ex.Message}", Brushes.Red);
+            else AddToConsole($"\n> Netzwerkfehler: {ex.Message}", Brushes.Red);
+        }
+    }
+
+    private async void ShowLevelReportDialog(string levelName, string author, string discussionId)
+    {
+        var dialog = new Window
+        {
+            Title = "Level Melden",
+            Width = 400,
+            Height = 270,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SystemDecorations = SystemDecorations.BorderOnly,
+            Background = SolidColorBrush.Parse("#252526"),
+            CornerRadius = new CornerRadius(8)
+        };
+
+        dialog.KeyDown += (s, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+       };
+
+        var stack = new StackPanel
+        {
+            Spacing = 15,
+            Margin = new Thickness(20),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = $"Level '{levelName}'\nvon {author} melden",
+            FontSize = 16,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.Red
+        });
+        stack.Children.Add(new TextBlock
+        {
+            Text = "Möchtest du dieses Level wirklich melden? Ein Missbrauch dieser Funktion kann zum Ausschluss führen.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = Brushes.LightGray
+        });
+
+        var txtReason = new TextBox
+        {
+            Watermark = "Grund (optional)...",
+            AcceptsReturn = true,
+            MaxHeight = 60,
+            Height = 60,
+            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Brushes.White,
+            BorderBrush = SolidColorBrush.Parse("#333"),
+            CornerRadius = new CornerRadius(4)
+        };
+        stack.Children.Add(txtReason);
+
+        var txtError = new TextBlock
+        {
+            Foreground = SolidColorBrush.Parse("#FF5555"),
+            FontWeight = FontWeight.SemiBold,
+            IsVisible = false,
+            TextWrapping = TextWrapping.Wrap
+        };
+        stack.Children.Add(txtError);
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        var btnCancel = new Button
+        {
+            Content = "Abbrechen",
+            Background = SolidColorBrush.Parse("#3C3C3C")
+        };
+
+        double secondsSinceLast = (DateTime.Now - DateTime.FromOADate(playerData.Settings.LastFormspreeTime)).TotalSeconds;
+        var btnReport = new Button
+        {
+            Content = secondsSinceLast < 30 ? $"Warte {(int)(30 - secondsSinceLast)}s" : "Melden",
+            Background = SolidColorBrush.Parse("#B43232"),
+            IsEnabled = secondsSinceLast >= 30
+        };
+
+        btnCancel.Click += (s, e) => dialog.Close();
+        btnReport.Click += async (s, e) =>
+        {
+            if (txtReason.Text?.Length > 5000)
+            {
+                dialog.Height = 300;
+                txtError.Text = "Der Grund darf maximal 5000 Zeichen lang sein.";
+                txtError.IsVisible = true;
+                return;
+            }
+
+            txtError.IsVisible = false;
+            btnReport.IsEnabled = false;
+            btnReport.Content = "Wird gesendet...";
+
+            playerData.Settings.LastFormspreeTime = DateTime.Now.ToOADate();
+            SaveSystem.Save(playerData);
+
+            var payload = new
+            {
+                type = "Level Report",
+                reporter = AppSettings.GithubUsername,
+                reportedUser = author,
+                discussionId = discussionId,
+                levelName = levelName,
+                reason = txtReason.Text
+            };
+
+            try
+            {
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, RenderEndpoint(0));
+                requestMessage.Content = content;
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                await _httpClient.SendAsync(requestMessage);
+            }
+            catch { }
+
+            dialog.Close();
+        };
+
+        btnPanel.Children.Add(btnCancel);
+        btnPanel.Children.Add(btnReport);
+        stack.Children.Add(btnPanel);
+        dialog.Content = stack;
+        await dialog.ShowDialog(this);
     }
 }

@@ -548,9 +548,17 @@ public partial class MainWindow
 
             RefreshUI();
 
-            if (isCommunityMode && _communityMetadataCache.Count == 0)
+            if (isCommunityMode)
             {
-                await FetchCommunityMetadataAsync(win);
+                // evaluate specific static variables to determine cooldown state properly
+                DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
+                bool isCooldownOver = (DateTime.Now - lastFetch).TotalSeconds >= 60;
+
+                // refresh if cache is empty or cooldown has expired
+                if (_communityMetadataCache.Count == 0 || isCooldownOver)
+                {
+                    await FetchCommunityMetadataAsync(win);
+                }
             }
         };
 
@@ -1707,6 +1715,8 @@ public partial class MainWindow
             _currentCustomAuthor = "";
             _currentCustomSvgs = null;
             _nextCustomLevelPath = null;
+            _currentCustomDiscussionNodeId = null;
+            _currentCustomDiscussionNumber = -1;
         }
 
         // reset error highlighting on every load
@@ -2766,9 +2776,21 @@ public partial class MainWindow
                     _currentCustomDiscussionNodeId = null;
 
                 if (root.TryGetProperty("DiscussionNumber", out var dNum))
+                {
                     _currentCustomDiscussionNumber = dNum.GetInt32();
+                    // inject into mappings so ui can resolve the discussion
+                    if (_discussionMappings != null)
+                    {
+                        if (!_discussionMappings.ContainsKey("sql")) _discussionMappings["sql"] = new Dictionary<string, int>();
+                        if (!_discussionMappings.ContainsKey("SQL")) _discussionMappings["SQL"] = new Dictionary<string, int>();
+                        _discussionMappings["sql"][customId.ToString()] = _currentCustomDiscussionNumber;
+                        _discussionMappings["SQL"][customId.ToString()] = _currentCustomDiscussionNumber;
+                    }
+                }
                 else
+                {
                     _currentCustomDiscussionNumber = -1;
+                }
 
                 _isCustomLevelMode = true;
                 _nextCustomLevelPath = null;
@@ -2867,6 +2889,31 @@ public partial class MainWindow
 
             _currentCustomValidationCode =
                 root.TryGetProperty("ValidationCode", out var valProp) ? valProp.GetString() : "";
+
+            if (root.TryGetProperty("DiscussionNodeId", out var dNodeIdCsharp))
+                _currentCustomDiscussionNodeId = dNodeIdCsharp.GetString();
+            else
+                _currentCustomDiscussionNodeId = null;
+
+            if (root.TryGetProperty("DiscussionNumber", out var dNumCsharp))
+            {
+                _currentCustomDiscussionNumber = dNumCsharp.GetInt32();
+                // inject into mappings so ui can resolve the discussion
+                if (_discussionMappings != null)
+                {
+                    if (!_discussionMappings.ContainsKey("csharp")) _discussionMappings["csharp"] = new Dictionary<string, int>();
+                    if (!_discussionMappings.ContainsKey("C#")) _discussionMappings["C#"] = new Dictionary<string, int>();
+                    if (!_discussionMappings.ContainsKey("cs")) _discussionMappings["cs"] = new Dictionary<string, int>();
+                    _discussionMappings["csharp"][customId.ToString()] = _currentCustomDiscussionNumber;
+                    _discussionMappings["C#"][customId.ToString()] = _currentCustomDiscussionNumber;
+                    _discussionMappings["cs"][customId.ToString()] = _currentCustomDiscussionNumber;
+                }
+            }
+            else
+            {
+                _currentCustomDiscussionNumber = -1;
+            }
+
             _isCustomLevelMode = true;
             _nextCustomLevelPath = null;
 
@@ -2885,6 +2932,8 @@ public partial class MainWindow
             _isCustomLevelMode = false;
             _currentCustomAuthor = "";
             _nextCustomLevelPath = null;
+            _currentCustomDiscussionNodeId = null;
+            _currentCustomDiscussionNumber = -1;
         }
 
         // check if leaving level 4 unresolved (completes the mission to not annoy user)

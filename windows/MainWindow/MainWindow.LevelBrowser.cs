@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,8 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private static bool _isDownloadingCommunityLevel = false;
+
     private string _currentCustomDiscussionNodeId = null;
     private int _currentCustomDiscussionNumber = -1;
     private List<CommunityLevelMeta> _communityMetadataCacheCs = new();
@@ -46,6 +49,7 @@ public partial class MainWindow
         public List<string> Tags { get; set; }
         public int Upvotes { get; set; }
         public int Downvotes { get; set; }
+        public bool ViewerHasLiked { get; set; }
         public DateTime CreatedAt { get; set; }
         public double Score { get; set; }
         public double Rating { get; set; }
@@ -55,7 +59,7 @@ public partial class MainWindow
     {
         if (UpdateManager.IsOutdated) return;
 
-        if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 30)
+        if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 60)
         {
             return;
         }
@@ -67,7 +71,7 @@ public partial class MainWindow
     {
         if (UpdateManager.IsOutdated) return;
 
-        if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 30) return;
+        if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 60) return;
         _lastCommunityFetchTime = DateTime.Now;
 
         var loadingPanel = win.FindControl<StackPanel>("CommunityLoadingPanel");
@@ -149,8 +153,8 @@ public partial class MainWindow
                                 nodes {
                                     id number title createdAt
                                     author { login }
-                                    upvotes: reactions(content: THUMBS_UP) { totalCount }
-                                    downvotes: reactions(content: THUMBS_DOWN) { totalCount }
+                                    upvotes: reactions(content: THUMBS_UP) { totalCount viewerHasReacted }
+                                    downvotes: reactions(content: THUMBS_DOWN) { totalCount viewerHasReacted }
                                 }
                             }
                         }
@@ -220,6 +224,7 @@ public partial class MainWindow
                         Tags = tags,
                         Upvotes = node.GetProperty("upvotes").GetProperty("totalCount").GetInt32(),
                         Downvotes = node.GetProperty("downvotes").GetProperty("totalCount").GetInt32(),
+                        ViewerHasLiked = node.GetProperty("upvotes").GetProperty("viewerHasReacted").GetBoolean(),
                         CreatedAt = node.GetProperty("createdAt").GetDateTime()
                     });
                 }
@@ -240,9 +245,11 @@ public partial class MainWindow
 
             foreach (var m in _communityMetadataCache)
             {
-                // "Beste" algorithm
-                double c = 5.0; // confidence factor
-                double rating = (m.Upvotes + c * globalAvg) / (m.Upvotes + m.Downvotes + c);
+                // steamdb rating scaled for smaller userbase (reaches high confidence ~50 votes)
+                double totalVotes = m.Upvotes + m.Downvotes;
+                double average = totalVotes > 0 ? (double)m.Upvotes / totalVotes : 0.5;
+                double rating = average - (average - 0.5) * Math.Pow(2, -(totalVotes / 10.0));
+
                 double ageHours = (DateTime.Now - m.CreatedAt.ToLocalTime()).TotalHours;
                 double timeDecay = Math.Pow(Math.Max(ageHours, 0) + 2.0, 1.2);
 
@@ -337,7 +344,8 @@ public partial class MainWindow
             {
                 Text = m.Author,
                 FontSize = 11,
-                Foreground = isOwnLevel ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray
+                Foreground = isOwnLevel ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+                Margin = new Thickness(-2, 0)
             });
 
             if (m.Tags.Any())
@@ -378,7 +386,78 @@ public partial class MainWindow
                 Cursor = Cursor.Parse("Hand")
             };
 
-            btnMain.Click += async (s, e) => await DownloadAndLoadCommunityLevelAsync(m, win);
+            btnMain.Click += async (s, e) =>
+            {
+                if (isDownloaded)
+                {
+                    // open the level and close the browser if its already downloaded
+                    var localLvl = localCustomLevels.FirstOrDefault(cl => cl.Name == m.Title && cl.Author == m.Author);
+                    if (localLvl != null)
+                    {
+                        LoadCustomLevelFromFile(localLvl.FilePath);
+                        win.Close();
+                    }
+                }
+                else
+                {
+                    if (_isDownloadingCommunityLevel) return;
+                    _isDownloadingCommunityLevel = true;
+
+                    var cts = new System.Threading.CancellationTokenSource();
+                    var animTask = Task.Run(async () =>
+                    {
+                        int dotState = 0;
+                        string[] frames = { "assets/icons/ic_dot_left.svg", "assets/icons/ic_dot_middle.svg", "assets/icons/ic_dot_right.svg" };
+                        while (!cts.Token.IsCancellationRequested)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                var newIcon = LoadIcon(frames[dotState], 16);
+                                newIcon.Margin = new Thickness(0, 0, 10, 0);
+                                newIcon.VerticalAlignment = VerticalAlignment.Center;
+                                btnContent.Children[0] = newIcon;
+                            });
+                            dotState = (dotState + 1) % 3;
+                            try { await Task.Delay(400, cts.Token); } catch { }
+                        }
+                    }, cts.Token);
+
+                    bool success = await DownloadAndLoadCommunityLevelAsync(m, win);
+
+                    cts.Cancel();
+
+                    // show error icon briefly if download failed
+                    if (!success)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            var errorIcon = LoadIcon("assets/icons/ic_error.svg", 16);
+                            errorIcon.Margin = new Thickness(0, 0, 10, 0);
+                            errorIcon.VerticalAlignment = VerticalAlignment.Center;
+                            btnContent.Children[0] = errorIcon;
+                        });
+
+                        await Task.Delay(500);
+                    }
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        var finalIconPath = success ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_download.svg";
+                        var finalIcon = LoadIcon(finalIconPath, 16);
+                        finalIcon.Margin = new Thickness(0, 0, 10, 0);
+                        finalIcon.VerticalAlignment = VerticalAlignment.Center;
+                        btnContent.Children[0] = finalIcon;
+
+                        if (success)
+                        {
+                            isDownloaded = true;
+                            localCustomLevels = GetCustomLevels(); // refresh local levels list silently
+                        }
+                    });
+
+                    _isDownloadingCommunityLevel = false;
+                }
+            };
             Grid.SetColumnSpan(btnMain, 3);
             rowGrid.Children.Add(btnMain);
 
@@ -402,7 +481,7 @@ public partial class MainWindow
             }
             else
             {
-                bool isLiked = likedList != null && likedList.Contains(m.Title);
+                bool isLiked = m.ViewerHasLiked;
                 string likeIcon = sortMode == "Beste" ? "assets/icons/ic_rating.svg" : isLiked ? "assets/icons/ic_like_filled.svg" : "assets/icons/ic_like.svg";
                 metricStack.Children.Add(LoadIcon(likeIcon, 14));
 
@@ -450,12 +529,8 @@ public partial class MainWindow
         commScroll.Content = stack;
     }
 
-    private async Task DownloadAndLoadCommunityLevelAsync(CommunityLevelMeta meta, Window win)
+    private async Task<bool> DownloadAndLoadCommunityLevelAsync(CommunityLevelMeta meta, Window win)
     {
-        var loadingPanel = win.FindControl<StackPanel>("CommunityLoadingPanel");
-        loadingPanel.IsVisible = true;
-        win.FindControl<ScrollViewer>("CommunityScroll").IsVisible = false;
-
         try
         {
             // fetch full discussion body from graphql lazily
@@ -481,12 +556,22 @@ public partial class MainWindow
             string encryptedData = fullBody.Trim();
             if (string.IsNullOrEmpty(encryptedData)) throw new Exception("Ungültiges Level Format");
 
-            // decrypt -> inject discussion id -> re-encrypt (prevents students from modifying json directly to bypass restrictions)
-            string rawJson = LevelEncryption.Decrypt(encryptedData);
+            string rawJson;
+            try
+            {
+                // decrypt -> decompress
+                string compressedData = LevelEncryption.Decrypt(encryptedData);
+                rawJson = DecompressLevelData(compressedData);
+            }
+            catch
+            {
+                // fallback to uncompressed payload (if level was published using an older uncompressed format)
+                rawJson = LevelEncryption.Decrypt(encryptedData);
+            }
 
-            var jsonDoc = JsonDocument.Parse(rawJson);
             var mutableDict = JsonSerializer.Deserialize<Dictionary<string, object>>(rawJson);
 
+            // inject discussion id -> re-encrypt (prevents students from modifying json directly to bypass restrictions)
             mutableDict["DiscussionNodeId"] = meta.NodeId;
             mutableDict["DiscussionNumber"] = meta.Number;
 
@@ -500,15 +585,24 @@ public partial class MainWindow
 
             File.WriteAllText(path, reEncrypted);
 
-            // load the newly saved file
-            LoadCustomLevelFromFile(path);
-            win.Close();
+            return true;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error downloading level: {ex.Message}");
-            loadingPanel.IsVisible = false;
-            win.FindControl<ScrollViewer>("CommunityScroll").IsVisible = true;
+            return false;
         }
+    }
+
+    private string DecompressLevelData(string compressedBase64)
+    {
+        byte[] bytes = Convert.FromBase64String(compressedBase64);
+        using var msi = new MemoryStream(bytes);
+        using var mso = new MemoryStream();
+        using (var gs = new System.IO.Compression.GZipStream(msi, System.IO.Compression.CompressionMode.Decompress))
+        {
+            gs.CopyTo(mso);
+        }
+        return System.Text.Encoding.UTF8.GetString(mso.ToArray());
     }
 }
