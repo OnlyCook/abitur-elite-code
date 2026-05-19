@@ -189,12 +189,6 @@ public partial class MainWindow
             _currentSqlDraft.VerificationQuery = TxtDesignSqlVerify.Text ?? "";
             _currentSqlDraft.SampleSolution = TxtDesignSqlSample.Text ?? "";
 
-            BtnDesignerExport.IsEnabled = false;
-            if (BtnDesignerPublish != null && _isSqlMode) BtnDesignerPublish.IsEnabled = false;
-            else if (BtnDesignerPublish != null && !_isSqlMode) BtnDesignerPublish.IsEnabled = false;
-            TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
-            _verifiedSqlDraftState = null;
-
             if (_isDesignerMode && AppSettings.IsSqlAutocompleteEnabled)
             {
                 string combinedText =
@@ -213,6 +207,16 @@ public partial class MainWindow
             _currentDraft.TestCode = TxtDesignTesting.Text ?? "";
             _currentDraft.ValidationCode = TxtDesignValidation.Text ?? "";
         }
+
+        // invalidate export state for both modes immediately upon any change
+        BtnDesignerExport.IsEnabled = false;
+        if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
+        TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
+
+        if (_isSqlMode)
+            _verifiedSqlDraftState = null;
+        else
+            _verifiedDraftState = null;
 
         UpdateDesignerPreview();
 
@@ -1017,14 +1021,18 @@ public partial class MainWindow
             "> Editor: Verifizierungs-Abfrage geladen (Ausführen deaktiviert).");
     }
 
-    private void InvalidateSqlExport()
+    private void InvalidateDesignerExport()
     {
         _designerAutoSaveTimer.Stop();
         _designerAutoSaveTimer.Start();
         BtnDesignerExport.IsEnabled = false;
         if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
         TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
-        _verifiedSqlDraftState = null;
+
+        if (_isSqlMode)
+            _verifiedSqlDraftState = null;
+        else
+            _verifiedDraftState = null;
     }
 
     private void BtnEditSqlSample_Click(object sender, RoutedEventArgs e)

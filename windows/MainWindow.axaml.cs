@@ -3473,7 +3473,7 @@ public partial class MainWindow : Window
                     _currentSqlDraft.ExpectedSchema[colIndex].Name = filtered;
                     _currentSqlDraft.ExpectedSchema[colIndex].StrictName = strict;
 
-                    InvalidateSqlExport();
+                    InvalidateDesignerExport();
                     if (colIndex == cols - 1 && !string.IsNullOrWhiteSpace(filtered)) RenderExpectedTable(-1, colIndex);
                 }
             };
@@ -3499,7 +3499,7 @@ public partial class MainWindow : Window
                 if (colIndex < _currentSqlDraft.ExpectedSchema.Count)
                 {
                     _currentSqlDraft.ExpectedSchema[colIndex].Type = cmbType.SelectedItem as string;
-                    InvalidateSqlExport();
+                    InvalidateDesignerExport();
                 }
             };
 
@@ -3556,7 +3556,7 @@ public partial class MainWindow : Window
                         if (_currentSqlDraft.ExpectedResult[rowIndex].Length > colIndex)
                             _currentSqlDraft.ExpectedResult[rowIndex][colIndex] = txtCell.Text;
 
-                        InvalidateSqlExport();
+                        InvalidateDesignerExport();
 
                         if (colIndex == cols - 1 && !string.IsNullOrWhiteSpace(txtCell.Text) &&
                             colIndex < _currentSqlDraft.ExpectedSchema.Count &&
