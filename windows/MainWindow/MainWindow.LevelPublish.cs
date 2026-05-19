@@ -18,6 +18,9 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    public static readonly string[] CSharpTags = { "Arrays", "Loops", "If-Else", "Methods", "Classes", "Recursion", "Strings", "Math", "Algorithms", "Data Structures", "LINQ", "Regex", "File I/O", "Exceptions", "Collections" };
+    public static readonly string[] SqlTags = { "SELECT", "JOIN", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "Subqueries", "DDL", "DML", "Functions", "Views", "Triggers", "Index", "Constraints", "Transactions" };
+
     private static DateTime _lastLevelPublishTime = DateTime.MinValue;
 
     private async void BtnDesignerPublish_Click(object sender, RoutedEventArgs e)
@@ -158,6 +161,7 @@ public partial class MainWindow
         var txtTitle = new TextBox
         {
             Text = defaultTitle,
+            MaxLength = 100,
             Background = SolidColorBrush.Parse("#1A1A1A"),
             Foreground = Brushes.White
         };
@@ -302,9 +306,7 @@ public partial class MainWindow
             var stack = new StackPanel { Spacing = 10 };
 
             // setup context-aware tags
-            string[] tags = _isSqlMode
-                ? new[] { "SELECT", "JOIN", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "Subqueries", "DDL", "DML", "Functions", "Views", "Triggers", "Index", "Constraints", "Transactions" }
-                : new[] { "Arrays", "Loops", "If-Else", "Methods", "Classes", "Recursion", "Strings", "Math", "Algorithms", "Data Structures", "LINQ", "Regex", "File I/O", "Exceptions", "Collections" };
+            string[] tags = _isSqlMode ? SqlTags : CSharpTags;
 
             var currentSelected = txtTags.Text?.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).ToList() ?? new List<string>();
             var checkBoxes = new List<CheckBox>();
@@ -730,6 +732,15 @@ public partial class MainWindow
                 return;
             }
 
+            if (txtTitle.Text.Length > 100)
+            {
+                txtStatus.Text = "Level Name darf maximal 100 Zeichen lang sein!";
+                txtStatus.Foreground = Brushes.Orange;
+                pnlProgress.IsVisible = true;
+                dialog.Height = 515;
+                return;
+            }
+
             if (cmbDiff.SelectedIndex == -1)
             {
                 txtStatus.Text = "Bitte wähle eine Schwierigkeit aus!";
@@ -872,13 +883,13 @@ public partial class MainWindow
             string difficulty = cmbDiff.SelectedItem?.ToString() ?? "Einfach";
             string selectedTags = txtTags.Text ?? "";
 
-            string fullTitle = $"[v{pubVersion}] {txtTitle.Text} - {difficulty}";
+            string fullTitle = $"[v{pubVersion}] {txtTitle.Text} by {AppSettings.GithubUsername} - {difficulty}";
             if (!string.IsNullOrWhiteSpace(selectedTags))
             {
                 fullTitle += $" | {selectedTags}";
             }
 
-            string fullBody = $"<!-- aec-author: {AppSettings.GithubUsername} -->\n{encryptedData}";
+            string fullBody = encryptedData;
 
             var proxyPayload = new
             {

@@ -259,7 +259,7 @@ public partial class MainWindow
 
         if (BtnDesignerPublish != null)
         {
-            BtnDesignerPublish.IsVisible = enable && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken);
+            BtnDesignerPublish.IsVisible = enable && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken) && !UpdateManager.IsOutdated;
         }
 
         BtnExitDesigner.IsVisible = enable;

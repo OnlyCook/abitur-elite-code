@@ -520,16 +520,91 @@ public partial class MainWindow
 
         var win = new LevelSelector();
         bool isCustomMode = false;
+        bool isCommunityMode = false;
+
+        var btnToggleCommunity = win.FindControl<Button>("BtnToggleCommunity");
+        var iconToggleCommunity = win.FindControl<Avalonia.Svg.Skia.Svg>("IconToggleCommunity");
 
         // bind static footer buttons
         win.BtnClose.Click += (_, __) => win.Close();
+
         win.BtnToggleMode.Click += (_, __) =>
         {
+            if (isCommunityMode) isCommunityMode = false;
             isCustomMode = !isCustomMode;
             RefreshUI();
         };
 
+        btnToggleCommunity.Click += async (_, __) =>
+        {
+            isCommunityMode = !isCommunityMode;
+
+            iconToggleCommunity.Path = isCommunityMode ? "/assets/icons/ic_return.svg" : "/assets/icons/ic_publish.svg";
+            btnToggleCommunity.Background = SolidColorBrush.Parse(isCommunityMode ? "#3C3C3C" : "#7a30b0");
+            ToolTip.SetTip(btnToggleCommunity, isCommunityMode ? "Zurück zu eigenen Levels" : "Öffne Community Browser");
+
+            RefreshUI();
+
+            if (isCommunityMode && _communityMetadataCache.Count == 0)
+            {
+                await FetchCommunityMetadataAsync(win);
+            }
+        };
+
         string currentMiniConsoleError = null;
+
+        win.BtnMiniConsoleClose.Click += (_, __) => win.MiniConsolePanel.IsVisible = false;
+
+        // filter flyout
+        var filterFlyout = new Flyout();
+        var filterStack = new StackPanel
+        {
+            Spacing = 10,
+            Width = 250
+        };
+        filterStack.Children.Add(new TextBlock
+        {
+            Text = "Schwierigkeit",
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White
+        });
+        var diffPanel = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal
+        };
+        foreach (var diff in new[] { "Einfach", "Mittel", "Schwer", "Abitur" })
+        {
+            var cb = new CheckBox
+            {
+                Content = diff,
+                Margin = new Thickness(0, 0, 10, 5)
+            };
+            cb.IsCheckedChanged += (s, ev) =>
+            {
+                if (cb.IsChecked == true) _communitySelectedDifficulties.Add(diff);
+                else _communitySelectedDifficulties.Remove(diff);
+                RenderCommunityBrowser(win);
+            };
+            diffPanel.Children.Add(cb);
+        }
+        filterStack.Children.Add(diffPanel);
+
+        filterStack.Children.Add(new TextBlock
+        {
+            Text = "Tags",
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 10, 0, 0)
+        });
+        var tagPanel = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal
+        };
+        filterStack.Children.Add(tagPanel);
+        filterFlyout.Content = filterStack;
+        win.FindControl<Button>("BtnCommunityFilter").Flyout = filterFlyout;
+
+        win.FindControl<ComboBox>("CmbCommunitySort").SelectionChanged += (s, ev) => RenderCommunityBrowser(win);
 
         win.BtnMiniConsoleClose.Click += (_, __) => win.MiniConsolePanel.IsVisible = false;
         win.BtnMiniConsoleCopy.Click += async (_, __) =>
@@ -574,11 +649,159 @@ public partial class MainWindow
         void RefreshUI()
         {
             win.SearchContainer.Child = null;
-            win.HeaderRightPanel.Children.Clear();
             win.ContentScroll.Content = null;
+            win.ContentScroll.IsVisible = !isCommunityMode;
 
-            win.IconToggleMode.Path = isCustomMode ? "/assets/icons/ic_folder.svg" : "/assets/icons/ic_folder_custom.svg";
-            win.TxtToggleMode.Text = isCustomMode ? "Standard Levels" : "Eigene Levels";
+            var toolsGrid = win.FindControl<Grid>("CommunityToolsGrid");
+            var commScroll = win.FindControl<ScrollViewer>("CommunityScroll");
+            if (toolsGrid != null) toolsGrid.IsVisible = false; // hiding original tools row
+            commScroll.IsVisible = isCommunityMode;
+
+            win.HeaderRightPanel.Children.Clear();
+
+            if (isCommunityMode)
+            {
+                win.BtnToggleMode.IsVisible = false;
+            }
+            else
+            {
+                win.BtnToggleMode.IsVisible = true;
+                win.IconToggleMode.Path = isCustomMode ? "/assets/icons/ic_folder.svg" : "/assets/icons/ic_folder_custom.svg";
+                win.TxtToggleMode.Text = isCustomMode ? "Standard Levels" : "Eigene Levels";
+            }
+
+            btnToggleCommunity.IsVisible = !UpdateManager.IsOutdated && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken) && isCustomMode;
+
+            if (isCommunityMode)
+            {
+                win.TxtTitle.Text = "Browser";
+                win.CountBadge.IsVisible = false;
+
+                TextBox txtSearch = null;
+
+                var cmbSort = new ComboBox
+                {
+                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    Foreground = Brushes.White,
+                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    CornerRadius = new CornerRadius(4),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0)
+                };
+                cmbSort.Items.Add(new ComboBoxItem { Content = "Beste" });
+                cmbSort.Items.Add(new ComboBoxItem { Content = "Top" });
+                cmbSort.Items.Add(new ComboBoxItem { Content = "Neuste" });
+                cmbSort.Items.Add(new ComboBoxItem { Content = "Älteste" });
+
+                var selectedItem = cmbSort.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Content.ToString() == _communitySortMode);
+                cmbSort.SelectedItem = selectedItem ?? cmbSort.Items.ElementAt(0);
+
+                cmbSort.SelectionChanged += (s, ev) =>
+                {
+                    _communitySortMode = (cmbSort.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Beste";
+                    RenderCommunityBrowser(win, txtSearch?.Text);
+                };
+
+                var btnFilter = new Button
+                {
+                    Content = LoadIcon("assets/icons/ic_filter.svg", 18),
+                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Padding = new Thickness(8),
+                    CornerRadius = new CornerRadius(4),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ToolTip.SetTip(btnFilter, "Filter");
+
+                var filterFlyout = new Flyout();
+                var filterStack = new StackPanel
+                {
+                    Spacing = 10,
+                    Width = 250
+                };
+
+                filterStack.Children.Add(new TextBlock
+                {
+                    Text = "Schwierigkeit",
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.White
+                });
+                var diffPanel = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+                foreach (var diff in new[] { "Einfach", "Mittel", "Schwer", "Abitur" })
+                {
+                    var cb = new CheckBox
+                    {
+                        Content = diff,
+                        Margin = new Thickness(0, 0, 10, 5),
+                        IsChecked = _communitySelectedDifficulties.Contains(diff)
+                    };
+                    cb.IsCheckedChanged += (s, ev) =>
+                    {
+                        if (cb.IsChecked == true) _communitySelectedDifficulties.Add(diff);
+                        else _communitySelectedDifficulties.Remove(diff);
+                        RenderCommunityBrowser(win, txtSearch?.Text);
+                    };
+                    diffPanel.Children.Add(cb);
+                }
+                filterStack.Children.Add(diffPanel);
+
+                filterStack.Children.Add(new TextBlock
+                {
+                    Text = "Tags",
+                    FontWeight = FontWeight.Bold,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 10, 0, 0)
+                });
+                var tagPanel = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+
+                string[] currentTags = _isSqlMode ? SqlTags : CSharpTags;
+                foreach (var t in currentTags)
+                {
+                    var cb = new CheckBox
+                    {
+                        Content = t,
+                        Margin = new Thickness(0, 0, 10, 5),
+                        IsChecked = _communitySelectedTags.Contains(t)
+                    };
+                    cb.IsCheckedChanged += (s, ev) =>
+                    {
+                        if (cb.IsChecked == true) _communitySelectedTags.Add(t);
+                        else _communitySelectedTags.Remove(t);
+                        RenderCommunityBrowser(win, txtSearch?.Text);
+                    };
+                    tagPanel.Children.Add(cb);
+                }
+                filterStack.Children.Add(tagPanel);
+
+                filterFlyout.Content = filterStack;
+                btnFilter.Flyout = filterFlyout;
+
+                win.HeaderRightPanel.Children.Add(cmbSort);
+                win.HeaderRightPanel.Children.Add(btnFilter);
+
+                txtSearch = new TextBox
+                {
+                    Watermark = "Level/Autor suchen...",
+                    MinWidth = 150,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Background = SolidColorBrush.Parse("#141414"),
+                    Foreground = Brushes.White,
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    CornerRadius = new CornerRadius(4)
+                };
+                txtSearch.TextChanged += (s, e) => RenderCommunityBrowser(win, txtSearch.Text);
+                win.SearchContainer.Child = txtSearch;
+
+                RenderCommunityBrowser(win, txtSearch.Text);
+                return;
+            }
 
             if (!isCustomMode)
             {
@@ -861,7 +1084,7 @@ public partial class MainWindow
             }
             else
             {
-                // custom levels (for now only c#)
+                // custom levels
                 win.TxtTitle.Text = "Eigene Levels";
                 win.CountBadge.IsVisible = false;
 
@@ -1167,34 +1390,34 @@ public partial class MainWindow
                                                             $"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
 
                                                     for (int r = 0; r < cleanedResult.Count; r++)
-                                                    for (int c = 0; c < validCols; c++)
-                                                    {
-                                                        string expectedVal = cleanedResult[r][c] ?? "";
-                                                        if (expectedVal == "") expectedVal = "NULL";
-
-                                                        string actualVal = actualDt.Rows[r][c]?.ToString()
-                                                            ?.Replace(",", ".") ?? "";
-                                                        if (actualDt.Rows[r][c] == DBNull.Value ||
-                                                            string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
-
-                                                        if (double.TryParse(expectedVal, NumberStyles.Any,
-                                                                CultureInfo.InvariantCulture,
-                                                                out double expNum) &&
-                                                            double.TryParse(actualVal, NumberStyles.Any,
-                                                                CultureInfo.InvariantCulture,
-                                                                out double actNum))
+                                                        for (int c = 0; c < validCols; c++)
                                                         {
-                                                            if (Math.Abs(expNum - actNum) > 0.0001)
+                                                            string expectedVal = cleanedResult[r][c] ?? "";
+                                                            if (expectedVal == "") expectedVal = "NULL";
+
+                                                            string actualVal = actualDt.Rows[r][c]?.ToString()
+                                                                ?.Replace(",", ".") ?? "";
+                                                            if (actualDt.Rows[r][c] == DBNull.Value ||
+                                                                string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
+
+                                                            if (double.TryParse(expectedVal, NumberStyles.Any,
+                                                                    CultureInfo.InvariantCulture,
+                                                                    out double expNum) &&
+                                                                double.TryParse(actualVal, NumberStyles.Any,
+                                                                    CultureInfo.InvariantCulture,
+                                                                    out double actNum))
+                                                            {
+                                                                if (Math.Abs(expNum - actNum) > 0.0001)
+                                                                    throw new Exception(
+                                                                        $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                            }
+                                                            else if (!expectedVal.Equals(actualVal,
+                                                                            StringComparison.OrdinalIgnoreCase))
+                                                            {
                                                                 throw new Exception(
                                                                     $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                            }
                                                         }
-                                                        else if (!expectedVal.Equals(actualVal,
-                                                                        StringComparison.OrdinalIgnoreCase))
-                                                        {
-                                                            throw new Exception(
-                                                                $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
-                                                        }
-                                                    }
 
                                                     return (true, cleanedSchema, cleanedResult);
                                                 }
@@ -2365,6 +2588,16 @@ public partial class MainWindow
                 if (root.TryGetProperty("PlantUMLSources", out var srcListElem))
                     foreach (var s in srcListElem.EnumerateArray())
                         loadedLevel.PlantUMLSources.Add(s.GetString());
+
+                if (root.TryGetProperty("DiscussionNodeId", out var dNodeId))
+                    _currentCustomDiscussionNodeId = dNodeId.GetString();
+                else
+                    _currentCustomDiscussionNodeId = null;
+
+                if (root.TryGetProperty("DiscussionNumber", out var dNum))
+                    _currentCustomDiscussionNumber = dNum.GetInt32();
+                else
+                    _currentCustomDiscussionNumber = -1;
 
                 _isCustomLevelMode = true;
                 _nextCustomLevelPath = null;

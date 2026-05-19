@@ -295,11 +295,23 @@ public partial class MainWindow
             return;
         }
 
-        string modeKey = isSql ? "SQL" : "C#";
-        if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
-            return; // no discussion mapped
+        int discussionNum = -1;
 
-        int discussionNum = _discussionMappings[modeKey][levelId];
+        if (_isCustomLevelMode)
+        {
+            if (_currentCustomDiscussionNumber > 0)
+                discussionNum = _currentCustomDiscussionNumber;
+            else
+                return;
+        }
+        else
+        {
+            // standard levels
+            string modeKey = isSql ? "SQL" : "C#";
+            if (!_discussionMappings.ContainsKey(modeKey) || !_discussionMappings[modeKey].ContainsKey(levelId))
+                return;
+            discussionNum = _discussionMappings[modeKey][levelId];
+        }
 
         if (_currentActiveDiscussionId != discussionNum)
         {
