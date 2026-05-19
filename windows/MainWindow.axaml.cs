@@ -2251,6 +2251,12 @@ public partial class MainWindow : Window
         BtnRun.Background = SolidColorBrush.Parse("#B43232");
         ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
+        // monitor resource usage for custom levels (anti-virus)
+        if (_isCustomLevelMode)
+        {
+            _ = MonitorResourcesAsync(_compilationCts, false);
+        }
+
         TxtConsole.Inlines?.Clear();
 
         string loadingText = !_hasRunOnce ? "Compiler wird gestartet..." : "Kompiliere...";
@@ -2960,6 +2966,12 @@ public partial class MainWindow : Window
         BtnRun.Width = 135;
         BtnRun.Background = SolidColorBrush.Parse("#B43232");
         ToolTip.SetTip(BtnRun, "Ausführung stoppen");
+
+        // monitor resource usage for custom levels (anti-virus)
+        if (_isCustomLevelMode)
+        {
+            _ = MonitorResourcesAsync(_compilationCts, true);
+        }
 
         if (!_hasRunOnce)
         {
@@ -3742,6 +3754,67 @@ public partial class MainWindow : Window
         SaveSystem.Save(playerData);
         _spoilerDelayMet = false;
         HideSpoilerHint();
+    }
+
+    private async Task MonitorResourcesAsync(CancellationTokenSource cts, bool isSql)
+    {
+        try
+        {
+            var process = Process.GetCurrentProcess();
+            var lastCpuTime = process.TotalProcessorTime;
+            var lastCheckTime = DateTime.UtcNow;
+            int violationCount = 0;
+
+            // 1 gb memory limit and 85% global cpu limit
+            long memoryLimit = 1024L * 1024L * 1024L;
+            double cpuLimit = 0.85;
+
+            while (!cts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(500, cts.Token);
+
+                process.Refresh();
+
+                var currentTime = DateTime.UtcNow;
+                var currentCpuTime = process.TotalProcessorTime;
+
+                double cpuUsage = (currentCpuTime - lastCpuTime).TotalMilliseconds /
+                                  (currentTime - lastCheckTime).TotalMilliseconds /
+                                  Environment.ProcessorCount;
+
+                long currentMemory = process.PrivateMemorySize64;
+
+                if (currentMemory > memoryLimit || cpuUsage > cpuLimit)
+                {
+                    violationCount++;
+                    // 3 seconds of continuous violation to avoid false positives during compilation
+                    if (violationCount >= 6)
+                    {
+                        cts.Cancel();
+                        string msg = "> Ausführung abgebrochen: Ungewöhnlich hohe Systemauslastung (Memory/CPU) durch dieses Custom Level erkannt. Möglicherweise unsicherer Code.";
+
+                        if (isSql)
+                        {
+                            Dispatcher.UIThread.Post(() => AddSqlOutput("Error", msg, Brushes.Red));
+                        }
+                        else
+                        {
+                            AddToConsole($"\n{msg}", Brushes.Red);
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    violationCount = 0;
+                }
+
+                lastCpuTime = currentCpuTime;
+                lastCheckTime = currentTime;
+            }
+        }
+        catch (TaskCanceledException) { }
+        catch (Exception) { }
     }
 }
 
