@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Data.Sqlite;
+using System.Threading;
 
 namespace AbiturEliteCode.cs;
 
@@ -17,7 +18,7 @@ public class SqlTestResult
 
 public static class SqlLevelTester
 {
-    public static SqlTestResult Run(SqlLevel level, string userQuery)
+    public static SqlTestResult Run(SqlLevel level, string userQuery, CancellationToken token = default)
     {
         try
         {
@@ -25,201 +26,223 @@ public static class SqlLevelTester
             {
                 connection.Open();
 
+                using (var limitCmd = connection.CreateCommand())
+                {
+                    limitCmd.CommandText = "PRAGMA hard_heap_limit = 250000000;"; // 250 MB
+                    limitCmd.ExecuteNonQuery();
+                }
+
                 // execute level setup script
                 using (var setupCmd = connection.CreateCommand())
                 {
                     setupCmd.CommandText = level.SetupScript;
-                    setupCmd.ExecuteNonQuery();
+                    using (token.Register(() => {
+                        try { setupCmd.Cancel(); } catch { }
+                        try { connection.Close(); } catch { }
+                        try { connection.Dispose(); } catch { }
+                    }))
+                    {
+                        setupCmd.ExecuteNonQuery();
+                    }
                 }
 
                 // pass the connection to converter
-                string processedQuery = ConvertMysqlToSqlite(connection, userQuery);
+                string processedQuery = ConvertMysqlToSqlite(connection, userQuery, token);
 
-                // custom level rules
-                if (level.Id == 29)
+            // custom level rules
+            if (level.Id == 29)
+            {
+                // check if the outer query uses a join (everything before the where clause)
+                string outerQueryBeforeWhere = Regex.Split(processedQuery, @"\bWHERE\b", RegexOptions.IgnoreCase)[0];
+                if (outerQueryBeforeWhere.IndexOf("JOIN", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    Regex.IsMatch(outerQueryBeforeWhere, @"FROM\s+[a-zA-Z0-9_]+\s*,", RegexOptions.IgnoreCase))
                 {
-                    // check if the outer query uses a join (everything before the where clause)
-                    string outerQueryBeforeWhere = Regex.Split(processedQuery, @"\bWHERE\b", RegexOptions.IgnoreCase)[0];
-                    if (outerQueryBeforeWhere.IndexOf("JOIN", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        Regex.IsMatch(outerQueryBeforeWhere, @"FROM\s+[a-zA-Z0-9_]+\s*,", RegexOptions.IgnoreCase))
+                    return new SqlTestResult
                     {
-                        return new SqlTestResult
-                        {
-                            Success = false,
-                            Feedback = "❌ Umgehung erkannt: Bitte nutze keinen JOIN im äußeren SELECT (nutze eine Unterabfrage mit IN).",
-                            ResultTable = null
-                        };
-                    }
+                        Success = false,
+                        Feedback = "❌ Umgehung erkannt: Bitte nutze keinen JOIN im äußeren SELECT (nutze eine Unterabfrage mit IN).",
+                        ResultTable = null
+                    };
                 }
-                else if (level.Id == 35)
+            }
+            else if (level.Id == 35)
+            {
+                // check if the target bid was hardcoded by the user
+                string targetBid = level.AuxiliaryIds.FirstOrDefault();
+                if (!string.IsNullOrEmpty(targetBid) && Regex.IsMatch(userQuery, $@"\b{targetBid}\b"))
                 {
-                    // check if the target bid was hardcoded by the user
-                    string targetBid = level.AuxiliaryIds.FirstOrDefault();
-                    if (!string.IsNullOrEmpty(targetBid) && Regex.IsMatch(userQuery, $@"\b{targetBid}\b"))
+                    return new SqlTestResult
                     {
-                        return new SqlTestResult
-                        {
-                            Success = false,
-                            Feedback = "❌ Umgehung erkannt: Bitte ermittle die Ziel-ID dynamisch über eine Unterabfrage, anstatt sie direkt zu übergeben.",
-                            ResultTable = null
-                        };
-                    }
+                        Success = false,
+                        Feedback = "❌ Umgehung erkannt: Bitte ermittle die Ziel-ID dynamisch über eine Unterabfrage, anstatt sie direkt zu übergeben.",
+                        ResultTable = null
+                    };
                 }
+            }
 
-                DataTable userResultTable = null;
-                bool isSelect = processedQuery.Trim().ToUpper().StartsWith("SELECT");
-                int rowsAffected = 0;
+            DataTable userResultTable = null;
+            string upperQueryCheck = processedQuery.Trim().ToUpper();
+            // detect WITH (cte) as read queries alongside standard SELECT
+            bool isSelect = upperQueryCheck.StartsWith("SELECT") || upperQueryCheck.StartsWith("WITH");
+            int rowsAffected = 0;
 
-                if (isSelect)
-                {
-                    // SELECT
-                    userResultTable = ExecuteDbQuery(connection, processedQuery);
-                }
-                else
-                {
-                    // fix dml spoofing edge cases
-                    string upperQuery = processedQuery.Trim().ToUpper();
-                    string levelTitle = level.Title ?? "";
-                    bool taskIsInsert = levelTitle.Contains("INSERT") || levelTitle.Contains("Einfügen");
-                    bool taskIsUpdate = levelTitle.Contains("UPDATE") || levelTitle.Contains("Ändern");
-                    bool taskIsDelete = levelTitle.Contains("DELETE") || levelTitle.Contains("Löschen") ||
-                                        levelTitle.Contains("Stornierung");
+            if (isSelect)
+            {
+                // SELECT
+                userResultTable = ExecuteDbQuery(connection, processedQuery, token);
+            }
+            else
+            {
+                // fix dml spoofing edge cases
+                string upperQuery = processedQuery.Trim().ToUpper();
+                string levelTitle = level.Title ?? "";
+                bool taskIsInsert = levelTitle.Contains("INSERT") || levelTitle.Contains("Einfügen");
+                bool taskIsUpdate = levelTitle.Contains("UPDATE") || levelTitle.Contains("Ändern");
+                bool taskIsDelete = levelTitle.Contains("DELETE") || levelTitle.Contains("Löschen") ||
+                                    levelTitle.Contains("Stornierung");
 
-                    if (taskIsUpdate && (upperQuery.Contains("DELETE") || upperQuery.Contains("INSERT")))
-                        return new SqlTestResult
-                        {
-                            Success = false,
-                            Feedback = "❌ Umgehung erkannt: Bitte nutze UPDATE, um die Daten zu ändern.",
-                            ResultTable = null
-                        };
-                    if (taskIsInsert && (upperQuery.Contains("UPDATE") || upperQuery.Contains("DELETE")))
-                        return new SqlTestResult
-                        {
-                            Success = false,
-                            Feedback = "❌ Umgehung erkannt: Bitte nutze INSERT, um die Daten hinzuzufügen.",
-                            ResultTable = null
-                        };
-                    if (taskIsDelete && (upperQuery.Contains("INSERT") || upperQuery.Contains("UPDATE")))
-                        return new SqlTestResult
-                        {
-                            Success = false,
-                            Feedback = "❌ Umgehung erkannt: Bitte nutze DELETE, um die Daten zu löschen.",
-                            ResultTable = null
-                        };
+                if (taskIsUpdate && (upperQuery.Contains("DELETE") || upperQuery.Contains("INSERT")))
+                    return new SqlTestResult
+                    {
+                        Success = false,
+                        Feedback = "❌ Umgehung erkannt: Bitte nutze UPDATE, um die Daten zu ändern.",
+                        ResultTable = null
+                    };
+                if (taskIsInsert && (upperQuery.Contains("UPDATE") || upperQuery.Contains("DELETE")))
+                    return new SqlTestResult
+                    {
+                        Success = false,
+                        Feedback = "❌ Umgehung erkannt: Bitte nutze INSERT, um die Daten hinzuzufügen.",
+                        ResultTable = null
+                    };
+                if (taskIsDelete && (upperQuery.Contains("INSERT") || upperQuery.Contains("UPDATE")))
+                    return new SqlTestResult
+                    {
+                        Success = false,
+                        Feedback = "❌ Umgehung erkannt: Bitte nutze DELETE, um die Daten zu löschen.",
+                        ResultTable = null
+                    };
 
                     // UPDATE/INSERT/DELETE
                     using (var cmd = connection.CreateCommand())
                     {
                         cmd.CommandText = processedQuery;
-                        rowsAffected = cmd.ExecuteNonQuery();
-                    }
-                }
-
-                // validation logic
-                List<string[]> actualRows = new List<string[]>();
-
-                string ObjectToInvariantString(object x) // localization fix (de: ',' | us: '.')
-                {
-                    if (x == null || x == DBNull.Value) return "NULL";
-                    if (x is IFormattable formattable) return formattable.ToString(null, CultureInfo.InvariantCulture);
-                    return x.ToString();
-                }
-
-                // 1: user did a select -> validate the result directly
-                if (userResultTable != null)
-                {
-                    foreach (DataRow row in userResultTable.Rows)
-                    {
-                        string[] rowData = row.ItemArray
-                            .Select(ObjectToInvariantString)
-                            .ToArray();
-                        actualRows.Add(rowData);
-                    }
-                }
-                // 2: user did update/insert -> run verification query
-                else if (!string.IsNullOrEmpty(level.VerificationQuery))
-                {
-                    var verifyDt = ExecuteDbQuery(connection, level.VerificationQuery);
-                    foreach (DataRow row in verifyDt.Rows)
-                    {
-                        string[] rowData = row.ItemArray.Select(ObjectToInvariantString).ToArray();
-                        actualRows.Add(rowData);
-                    }
-
-                    userResultTable = verifyDt;
-                }
-
-                bool correct = true;
-                string errorFeedback = "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
-
-                // column name verification
-                if (isSelect && userResultTable != null)
-                {
-                    var expectedSchema = level.ExpectedSchema;
-
-                    // determine which source to use
-                    int expectedCount = expectedSchema.Count;
-
-                    if (expectedCount > 0)
-                    {
-                        if (userResultTable.Columns.Count != expectedCount)
+                        using (token.Register(() => {
+                            try { cmd.Cancel(); } catch { }
+                            try { connection.Close(); } catch { }
+                            try { connection.Dispose(); } catch { }
+                        }))
                         {
-                            correct = false;
-                            errorFeedback =
-                                $"❌ Falsche Spaltenanzahl. Erwartet: {expectedCount}, Erhalten: {userResultTable.Columns.Count}";
+                            rowsAffected = cmd.ExecuteNonQuery();
                         }
-                        else
-                        {
-                            for (int i = 0; i < expectedCount; i++)
-                            {
-                                string userColName = userResultTable.Columns[i].ColumnName;
+                    }
+                }
 
-                                if (expectedSchema != null && expectedSchema.Count > 0)
+            // validation logic
+            List<string[]> actualRows = new List<string[]>();
+
+            string ObjectToInvariantString(object x) // localization fix (de: ',' | us: '.')
+            {
+                if (x == null || x == DBNull.Value) return "NULL";
+                if (x is IFormattable formattable) return formattable.ToString(null, CultureInfo.InvariantCulture);
+                return x.ToString();
+            }
+
+            // 1: user did a select -> validate the result directly
+            if (userResultTable != null)
+            {
+                foreach (DataRow row in userResultTable.Rows)
+                {
+                    string[] rowData = row.ItemArray
+                        .Select(ObjectToInvariantString)
+                        .ToArray();
+                    actualRows.Add(rowData);
+                }
+            }
+            // 2: user did update/insert -> run verification query
+            else if (!string.IsNullOrEmpty(level.VerificationQuery))
+            {
+                var verifyDt = ExecuteDbQuery(connection, level.VerificationQuery, token);
+                foreach (DataRow row in verifyDt.Rows)
+                {
+                    string[] rowData = row.ItemArray.Select(ObjectToInvariantString).ToArray();
+                    actualRows.Add(rowData);
+                }
+
+                userResultTable = verifyDt;
+            }
+
+            bool correct = true;
+            string errorFeedback = "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
+
+            // column name verification
+            if (isSelect && userResultTable != null)
+            {
+                var expectedSchema = level.ExpectedSchema;
+
+                // determine which source to use
+                int expectedCount = expectedSchema.Count;
+
+                if (expectedCount > 0)
+                {
+                    if (userResultTable.Columns.Count != expectedCount)
+                    {
+                        correct = false;
+                        errorFeedback =
+                            $"❌ Falsche Spaltenanzahl. Erwartet: {expectedCount}, Erhalten: {userResultTable.Columns.Count}";
+                    }
+                    else
+                    {
+                        for (int i = 0; i < expectedCount; i++)
+                        {
+                            string userColName = userResultTable.Columns[i].ColumnName;
+
+                            if (expectedSchema != null && expectedSchema.Count > 0)
+                            {
+                                var expectedCol = expectedSchema[i];
+                                if (expectedCol.StrictName && !userColName.Equals(expectedCol.Name,
+                                        StringComparison.OrdinalIgnoreCase))
                                 {
-                                    var expectedCol = expectedSchema[i];
-                                    if (expectedCol.StrictName && !userColName.Equals(expectedCol.Name,
-                                            StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        correct = false;
-                                        errorFeedback =
-                                            $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{expectedCol.Name}', Erhalten: '{userColName}'";
-                                        break;
-                                    }
+                                    correct = false;
+                                    errorFeedback =
+                                        $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{expectedCol.Name}', Erhalten: '{userColName}'";
+                                    break;
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                if (correct)
-                {
-                    // basic dimensional check
-                    if (actualRows.Count != level.ExpectedResult.Count)
-                        correct = false;
-                    else
-                        // deep content check
-                        for (int i = 0; i < actualRows.Count; i++)
+            if (correct)
+            {
+                // basic dimensional check
+                if (actualRows.Count != level.ExpectedResult.Count)
+                    correct = false;
+                else
+                    // deep content check
+                    for (int i = 0; i < actualRows.Count; i++)
+                    {
+                        if (actualRows[i].Length != level.ExpectedResult[i].Length)
                         {
-                            if (actualRows[i].Length != level.ExpectedResult[i].Length)
+                            correct = false;
+                            break;
+                        }
+
+                        for (int j = 0; j < actualRows[i].Length; j++)
+                        {
+                            string expectedCell = level.ExpectedResult[i][j] ?? "";
+                            if (expectedCell == "") expectedCell = "NULL";
+
+                            if (actualRows[i][j] != expectedCell)
                             {
                                 correct = false;
                                 break;
                             }
-
-                            for (int j = 0; j < actualRows[i].Length; j++)
-                            {
-                                string expectedCell = level.ExpectedResult[i][j] ?? "";
-                                if (expectedCell == "") expectedCell = "NULL";
-
-                                if (actualRows[i][j] != expectedCell)
-                                {
-                                    correct = false;
-                                    break;
-                                }
-                            }
-
-                            if (!correct) break;
                         }
+
+                        if (!correct) break;
+                    }
                 }
 
                 string msg = correct ? "✓ Richtig! Aufgabe gelöst." : errorFeedback;
@@ -235,6 +258,12 @@ public static class SqlLevelTester
         }
         catch (Exception ex)
         {
+            // if forcefully killed via the token, safely suppress native termination errors
+            if (token.IsCancellationRequested)
+            {
+                token.ThrowIfCancellationRequested();
+            }
+
             string errorMsg = ex.Message.Replace("SQLite Error", "SQL Fehler");
             return new SqlTestResult
             {
@@ -245,7 +274,7 @@ public static class SqlLevelTester
         }
     }
 
-    public static string ConvertMysqlToSqlite(SqliteConnection conn, string query)
+    public static string ConvertMysqlToSqlite(SqliteConnection conn, string query, CancellationToken token = default)
     {
         string q = query;
 
@@ -261,20 +290,32 @@ public static class SqlLevelTester
             {
                 string subQuery = varValue.Substring(1, varValue.Length - 2).Trim();
                 if (subQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
-                    using (var cmd = conn.CreateCommand())
+                {
+                    try
                     {
-                        cmd.CommandText = subQuery;
-                        var result = cmd.ExecuteScalar();
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = subQuery;
+                            using (token.Register(() => { try { cmd.Cancel(); } catch { } }))
+                            {
+                                var result = cmd.ExecuteScalar();
 
-                        if (result == null || result == DBNull.Value)
-                            varValue = "NULL";
-                        else if (result is string s)
-                            varValue = $"'{s.Replace("'", "''")}'"; // escape string
-                        else if (result is IFormattable formattable)
-                            varValue = formattable.ToString(null, CultureInfo.InvariantCulture);
-                        else
-                            varValue = result.ToString();
+                                if (result == null || result == DBNull.Value)
+                                    varValue = "NULL";
+                                else if (result is string s)
+                                    varValue = $"'{s.Replace("'", "''")}'"; // escape string
+                                else if (result is IFormattable formattable)
+                                    varValue = formattable.ToString(null, CultureInfo.InvariantCulture);
+                                else
+                                    varValue = result.ToString();
+                            }
+                        }
                     }
+                    catch (Exception) when (token.IsCancellationRequested)
+                    {
+                        token.ThrowIfCancellationRequested();
+                    }
+                }
             }
 
             // remove the 'SET' statement from the query
@@ -422,16 +463,46 @@ public static class SqlLevelTester
         return q;
     }
 
-    private static DataTable ExecuteDbQuery(SqliteConnection conn, string sql)
+    private static DataTable ExecuteDbQuery(SqliteConnection conn, string sql, CancellationToken token = default)
     {
         var dt = new DataTable();
-        using (var cmd = conn.CreateCommand())
+        try
         {
-            cmd.CommandText = sql;
-            using (var reader = cmd.ExecuteReader())
+            using (var cmd = conn.CreateCommand())
             {
-                dt.Load(reader);
+                cmd.CommandText = sql;
+                using (token.Register(() => { 
+                    try { cmd.Cancel(); } catch { } 
+                    try { conn.Close(); } catch { }
+                    try { conn.Dispose(); } catch { }
+                }))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        // initialize columns
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            dt.Columns.Add(reader.GetName(i), reader.GetFieldType(i) ?? typeof(object));
+                        }
+
+                        // manually read rows to allow cancellation checking during memory allocation
+                        while (reader.Read())
+                        {
+                            token.ThrowIfCancellationRequested();
+                            var row = dt.NewRow();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[i] = reader.GetValue(i);
+                            }
+                            dt.Rows.Add(row);
+                        }
+                    }
+                }
             }
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            token.ThrowIfCancellationRequested();
         }
 
         return dt;

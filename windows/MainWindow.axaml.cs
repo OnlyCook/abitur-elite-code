@@ -49,6 +49,8 @@ public partial class MainWindow : Window
 
     private TabDockManager _tabDockManager;
 
+    private bool _isSystemResourceCancellation = false;
+
     private const string MonospaceFontFamily =
         "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
@@ -152,11 +154,12 @@ public partial class MainWindow : Window
     private VimMode _vimPreviousMode = VimMode.Normal;
     private int _vimVisualStartOffset = -1;
     private readonly Timer autoSaveTimer;
+
     private readonly SolidColorBrush BrushBgPanel = SolidColorBrush.Parse("#202124");
     private readonly SolidColorBrush BrushTextHighlight = SolidColorBrush.Parse("#6495ED"); // blue
-
     private readonly SolidColorBrush BrushTextNormal = SolidColorBrush.Parse("#E6E6E6");
     private readonly SolidColorBrush BrushTextTitle = SolidColorBrush.Parse("#32A852"); // green
+    
     private Level currentLevel;
     private SqlLevel currentSqlLevel;
     private readonly CustomPlayerData customPlayerData;
@@ -2241,16 +2244,14 @@ public partial class MainWindow : Window
         }
 
         _compilationCts = new CancellationTokenSource();
+        _isSystemResourceCancellation = false;
         IconRun.Path = "/assets/icons/ic_stop.svg";
         BtnRun.Width = 135;
         BtnRun.Background = SolidColorBrush.Parse("#B43232");
         ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
-        // monitor resource usage for custom levels (anti-virus)
-        if (_isCustomLevelMode)
-        {
-            _ = MonitorResourcesAsync(_compilationCts, false);
-        }
+        // monitor resource usage globally (anti-virus + infinite loops)
+        _ = MonitorResourcesAsync(_compilationCts, false, _isCustomLevelMode);
 
         TxtConsole.Inlines?.Clear();
 
@@ -2341,10 +2342,9 @@ public partial class MainWindow : Window
 
                             if (token.IsCancellationRequested) return (false, null, null);
 
-                            if (runDesignerTest || useCustomValidation)
+                            // layer 1: strict security analysis (only for custom levels / designer)
+                            if (useCustomValidation)
                             {
-                                // layer 1: strict security analysis
-                                // analyze users syntax tree to ensure no malicious apois are used
                                 var userModel = compilation.GetSemanticModel(syntaxTree);
                                 var securityResult = SandboxSecurity.AnalyzeUserCode(syntaxTree, userModel);
 
@@ -2356,88 +2356,135 @@ public partial class MainWindow : Window
                                         Error = new Exception(securityResult.ErrorFeedback)
                                     });
                                 }
+                            }
 
-                                // layer 2: out-of-process execution (sandbox)
-                                // combine user code, validator code and sandbox bootstrap into single dll
-                                string validatorSource = @"
-                                    using System;
-                                    using System.Reflection;
-                                    using System.Collections.Generic;
-                                    using System.Linq;
+                            // layer 2: out-of-process execution (sandbox)
+                            // combine user code, validator code and sandbox bootstrap into single dll
+                            string bootstrapSource;
+                            if (useCustomValidation)
+                            {
+                                bootstrapSource = @"
+                                using System;
+                                using System.Reflection;
+                                using System.Collections.Generic;
+                                using System.Linq;
 
-                                    public static class DesignerValidator 
-                                    {
-                                        " + validationLogic + @"
-                                    }
-
-                                    public static class AecSandboxBootstrap 
-                                    {
-                                        public static void Execute(out bool success, out string feedback) 
-                                        {
-                                            var valType = typeof(DesignerValidator);
-                
-                                            var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                                                .FirstOrDefault(m => m.ReturnType == typeof(bool)
-                                                                        && m.GetParameters().Length == 2
-                                                                        && m.GetParameters()[0].ParameterType == typeof(Assembly)
-                                                                        && m.GetParameters()[1].IsOut);
-
-                                            if (valMethod == null)
-                                            {
-                                                success = false;
-                                                feedback = ""Fehler: Keine gültige ValidateLevel Methode gefunden."";
-                                                return;
-                                            }
-
-                                            object[] args = new object[] { Assembly.GetExecutingAssembly(), null };
-                
-                                            try
-                                            {
-                                                success = (bool)valMethod.Invoke(null, args);
-                                                feedback = (string)args[1];
-                                            }
-                                            catch (TargetInvocationException tie)
-                                            {
-                                                success = false;
-                                                feedback = ""Laufzeitfehler in Validierung: "" + (tie.InnerException?.Message ?? tie.Message);
-                                            }
-                                        }
-                                    }";
-
-                                var validatorTree = CSharpSyntaxTree.ParseText(validatorSource, cancellationToken: token);
-                                var combinedTrees = new List<SyntaxTree>(trees) { validatorTree };
-
-                                var combinedCompilation = CSharpCompilation.Create(
-                                    "SandboxPayload_" + Guid.NewGuid(),
-                                    combinedTrees,
-                                    references,
-                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-                                );
-
-                                using (var combinedMs = new MemoryStream())
+                                public static class DesignerValidator 
                                 {
-                                    var combinedEmit = combinedCompilation.Emit(combinedMs, cancellationToken: token);
-
-                                    if (!combinedEmit.Success)
-                                    {
-                                        string errorMsg = combinedEmit.Diagnostics.FirstOrDefault()?.GetMessage() ?? "Unbekannter Fehler";
-                                        return (Success: true, Diagnostics: null, TestResult: new TestResult { Success = false, Error = new Exception("Fehler im Validierungs-Code (Designer): " + errorMsg) });
-                                    }
-
-                                    // pass the compiled bytes to the hidden child process
-                                    byte[] finalDll = combinedMs.ToArray();
-                                    var testResult = SandboxRunner.RunInSandboxAsync(finalDll, token).GetAwaiter().GetResult();
-
-                                    return (Success: true, Diagnostics: null, TestResult: testResult);
+                                    " + validationLogic + @"
                                 }
+
+                                public static class AecSandboxBootstrap 
+                                {
+                                    public static void Execute(out bool success, out string feedback) 
+                                    {
+                                        var valType = typeof(DesignerValidator);
+                
+                                        var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                            .FirstOrDefault(m => m.ReturnType == typeof(bool)
+                                                                    && m.GetParameters().Length == 2
+                                                                    && m.GetParameters()[0].ParameterType == typeof(Assembly)
+                                                                    && m.GetParameters()[1].IsOut);
+
+                                        if (valMethod == null)
+                                        {
+                                            success = false;
+                                            feedback = ""Fehler: Keine gültige ValidateLevel Methode gefunden."";
+                                            return;
+                                        }
+
+                                        object[] args = new object[] { Assembly.GetExecutingAssembly(), null };
+                
+                                        try
+                                        {
+                                            success = (bool)valMethod.Invoke(null, args);
+                                            feedback = (string)args[1];
+                                        }
+                                        catch (TargetInvocationException tie)
+                                        {
+                                            success = false;
+                                            feedback = ""Laufzeitfehler in Validierung: "" + (tie.InnerException?.Message ?? tie.Message);
+                                        }
+                                    }
+                                }";
                             }
                             else
                             {
-                                // standard level logic (in-process)
-                                ms.Seek(0, SeekOrigin.Begin);
-                                var assembly = Assembly.Load(ms.ToArray());
+                                // encode code to safely inject it as a string literal
+                                string base64Code = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(codeText));
 
-                                var testResult = LevelTester.Run(levelContext.Id, assembly, codeText);
+                                bootstrapSource = $@"
+                                using System;
+                                using System.Reflection;
+                                using System.Linq;
+
+                                public static class AecSandboxBootstrap 
+                                {{
+                                    public static void Execute(out bool success, out string feedback) 
+                                    {{
+                                        try
+                                        {{
+                                            var assembly = Assembly.GetExecutingAssembly();
+                                            string code = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(""{base64Code}""));
+                        
+                                            // invoke LevelTester dynamically so we dont need strict project references here
+                                            var type = AppDomain.CurrentDomain.GetAssemblies()
+                                                        .SelectMany(a => a.GetTypes())
+                                                        .FirstOrDefault(t => t.Name == ""LevelTester"");
+
+                                            if (type == null)
+                                            {{
+                                                success = false;
+                                                feedback = ""Fehler: LevelTester nicht gefunden."";
+                                                return;
+                                            }}
+
+                                            var method = type.GetMethod(""Run"");
+                        
+                                            // use standard object reflection instead of 'dynamic' to avoid Microsoft.CSharp.dll dependency
+                                            object result = method.Invoke(null, new object[] {{ {levelContext.Id}, assembly, code }});
+                        
+                                            success = (bool)result.GetType().GetProperty(""Success"").GetValue(result);
+                                            var feedbackObj = result.GetType().GetProperty(""Feedback"").GetValue(result);
+                                            feedback = feedbackObj != null ? feedbackObj.ToString() : """";
+                                        }}
+                                        catch (Exception ex)
+                                        {{
+                                            success = false;
+                                            feedback = ""Laufzeitfehler (Standard Level): "" + (ex.InnerException?.Message ?? ex.Message);
+                                        }}
+                                    }}
+                                }}";
+                            }
+
+                            var bootstrapTree = CSharpSyntaxTree.ParseText(bootstrapSource, cancellationToken: token);
+                            var combinedTrees = new List<SyntaxTree>(trees) { bootstrapTree };
+
+                            var combinedCompilation = CSharpCompilation.Create(
+                                "SandboxPayload_" + Guid.NewGuid(),
+                                combinedTrees,
+                                references,
+                                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                            );
+
+                            using (var combinedMs = new MemoryStream())
+                            {
+                                var combinedEmit = combinedCompilation.Emit(combinedMs, cancellationToken: token);
+
+                                if (!combinedEmit.Success)
+                                {
+                                    string errorMsg = combinedEmit.Diagnostics.FirstOrDefault()?.GetMessage() ?? "Unbekannter Fehler";
+                                    return (Success: true, Diagnostics: null, TestResult: new TestResult
+                                    {
+                                        Success = false,
+                                        Error = new Exception("Fehler im Ausführungs-Code: " + errorMsg)
+                                    });
+                                }
+
+                                // pass the compiled bytes to the hidden child process
+                                byte[] finalDll = combinedMs.ToArray();
+                                var testResult = SandboxRunner.RunInSandboxAsync(finalDll, token).GetAwaiter().GetResult();
+
                                 return (Success: true, Diagnostics: null, TestResult: testResult);
                             }
                         }
@@ -2448,13 +2495,29 @@ public partial class MainWindow : Window
                     }
                 }, token);
 
+            // this guarantees gc fires exactly when the ghost thread finally dies (even if it takes some time)
+            _ = processingTask.ContinueWith(_ =>
+            {
+                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(2, GCCollectionMode.Forced, true, true);
+                GC.WaitForPendingFinalizers();
+            });
+
             var timeoutTask = Task.Delay(12000, token);
             var completedTask = await Task.WhenAny(processingTask, timeoutTask);
 
             if (token.IsCancellationRequested)
             {
                 StopCsharpLoadingAnimation();
-                AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
+                if (!_isSystemResourceCancellation)
+                    AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
+
+                // allow background thread to unwind its stack before forcing gc
+                try
+                {
+                    await Task.WhenAny(processingTask, Task.Delay(1500));
+                }
+                catch { }
             }
             else if (completedTask == timeoutTask)
             {
@@ -2462,6 +2525,13 @@ public partial class MainWindow : Window
                 _compilationCts.Cancel();
                 stopwatch.Stop();
                 AddToConsole("\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 12 Sekunden überschritten.", Brushes.Red);
+
+                // allow background thread to unwind its stack before forcing gc
+                try
+                {
+                    await Task.WhenAny(processingTask, Task.Delay(1500));
+                }
+                catch { }
             }
             else
             {
@@ -2507,7 +2577,7 @@ public partial class MainWindow : Window
                                 msg = "Validierung fehlgeschlagen (false zurückgegeben).";
                             }
 
-                            AddToConsole($"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
+                            AddToConsole($"⚠ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
                             BtnDesignerExport.IsEnabled = false;
                             if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
                             _verifiedDraftState = null;
@@ -2523,7 +2593,8 @@ public partial class MainWindow : Window
         catch (OperationCanceledException)
         {
             StopCsharpLoadingAnimation();
-            AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
+            if (!_isSystemResourceCancellation)
+                AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
         }
         catch (Exception ex)
         {
@@ -2633,7 +2704,7 @@ public partial class MainWindow : Window
             string msg = result.Error != null
                 ? result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message
                 : "Unbekannter Fehler";
-            AddToConsole("❌ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
+            AddToConsole("⚠ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
         }
     }
 
@@ -2978,16 +3049,14 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(userQuery)) return;
 
         _compilationCts = new CancellationTokenSource();
+        _isSystemResourceCancellation = false;
         IconRun.Path = "/assets/icons/ic_stop.svg";
         BtnRun.Width = 135;
         BtnRun.Background = SolidColorBrush.Parse("#B43232");
         ToolTip.SetTip(BtnRun, "Ausführung stoppen");
 
-        // monitor resource usage for custom levels (anti-virus)
-        if (_isCustomLevelMode)
-        {
-            _ = MonitorResourcesAsync(_compilationCts, true);
-        }
+        // monitor resource usage globally (anti-virus + infinite loops)
+        _ = MonitorResourcesAsync(_compilationCts, true, _isCustomLevelMode);
 
         if (!_hasRunOnce)
         {
@@ -3000,12 +3069,22 @@ public partial class MainWindow : Window
 
         try
         {
-            var result = await Task.Run(() => SqlLevelTester.Run(levelContext, userQuery), token);
+            var sqlTask = Task.Run(() => SqlLevelTester.Run(levelContext, userQuery, token), token);
+
+            _ = sqlTask.ContinueWith(_ =>
+            {
+                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(2, GCCollectionMode.Forced, true, true);
+                GC.WaitForPendingFinalizers();
+            });
+
+            var result = await sqlTask;
 
             if (token.IsCancellationRequested)
             {
                 StopSqlLoadingAnimation();
-                AddSqlOutput("System", "⚠ Abbruch durch Benutzer.", Brushes.Orange, true);
+                if (!_isSystemResourceCancellation)
+                    AddSqlOutput("System", "⚠ Vorgang abgebrochen.", Brushes.Orange);
                 return;
             }
 
@@ -3146,6 +3225,12 @@ public partial class MainWindow : Window
                 AddSqlOutput("Error", displayFeedback, Brushes.Orange, false, expectedData);
             }
         }
+        catch (OperationCanceledException)
+        {
+            StopSqlLoadingAnimation();
+            if (!_isSystemResourceCancellation)
+                AddSqlOutput("System", "⚠ Vorgang abgebrochen.", Brushes.Orange);
+        }
         catch (Exception ex)
         {
             StopSqlLoadingAnimation();
@@ -3166,16 +3251,46 @@ public partial class MainWindow : Window
         }
     }
 
-    private DataTable ExecuteDbQuery(SqliteConnection conn, string sql)
+    private DataTable ExecuteDbQuery(SqliteConnection conn, string sql, CancellationToken token = default)
     {
         var dt = new DataTable();
-        using (var cmd = conn.CreateCommand())
+        try
         {
-            cmd.CommandText = sql;
-            using (var reader = cmd.ExecuteReader())
+            using (var cmd = conn.CreateCommand())
             {
-                dt.Load(reader);
+                cmd.CommandText = sql;
+                using (token.Register(() => {
+                    try { cmd.Cancel(); } catch { }
+                    try { conn.Close(); } catch { }
+                    try { conn.Dispose(); } catch { }
+                }))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        // initialize columns
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            dt.Columns.Add(reader.GetName(i), reader.GetFieldType(i) ?? typeof(object));
+                        }
+
+                        // manually read rows to allow cancellation checking during memory allocation
+                        while (reader.Read())
+                        {
+                            token.ThrowIfCancellationRequested();
+                            var row = dt.NewRow();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[i] = reader.GetValue(i);
+                            }
+                            dt.Rows.Add(row);
+                        }
+                    }
+                }
             }
+        }
+        catch (Exception ex) when (token.IsCancellationRequested)
+        {
+            throw new OperationCanceledException("Ausführung abgebrochen.", ex);
         }
 
         return dt;
@@ -3772,57 +3887,84 @@ public partial class MainWindow : Window
         HideSpoilerHint();
     }
 
-    private async Task MonitorResourcesAsync(CancellationTokenSource cts, bool isSql)
+    private async Task MonitorResourcesAsync(CancellationTokenSource cts, bool isSql, bool isCustom)
     {
         try
         {
             var process = Process.GetCurrentProcess();
+            process.Refresh();
+
+            // capture memory baseline before the task starts so we detect relative spikes,
+            // not just the absolute process size
+            long baselineMemory = process.PrivateMemorySize64;
             var lastCpuTime = process.TotalProcessorTime;
             var lastCheckTime = DateTime.UtcNow;
-            int violationCount = 0;
 
-            // 1 gb memory limit and 85% global cpu limit
-            long memoryLimit = 1024L * 1024L * 1024L;
+            int cpuViolationCount = 0;
+
+            // cancel immediately if memory grows more than 256MB over baseline or exceeds 1GB absolute
+            long memoryDeltaLimit = 256L * 1024L * 1024L;
+            long memoryAbsoluteLimit = 1024L * 1024L * 1024L;
             double cpuLimit = 0.85;
 
             while (!cts.Token.IsCancellationRequested)
             {
-                await Task.Delay(500, cts.Token);
+                await Task.Delay(50, cts.Token);
 
                 process.Refresh();
 
                 var currentTime = DateTime.UtcNow;
                 var currentCpuTime = process.TotalProcessorTime;
 
-                double cpuUsage = (currentCpuTime - lastCpuTime).TotalMilliseconds /
-                                  (currentTime - lastCheckTime).TotalMilliseconds /
-                                  Environment.ProcessorCount;
+                double elapsed = (currentTime - lastCheckTime).TotalMilliseconds;
+                double cpuUsage = elapsed > 0
+                    ? (currentCpuTime - lastCpuTime).TotalMilliseconds / elapsed / Environment.ProcessorCount
+                    : 0;
 
                 long currentMemory = process.PrivateMemorySize64;
 
-                if (currentMemory > memoryLimit || cpuUsage > cpuLimit)
-                {
-                    violationCount++;
-                    // 3 seconds of continuous violation to avoid false positives during compilation
-                    if (violationCount >= 6)
-                    {
-                        cts.Cancel();
-                        string msg = "> Ausführung abgebrochen: Ungewöhnlich hohe Systemauslastung (Memory/CPU) durch dieses Custom Level erkannt. Möglicherweise unsicherer Code.";
+                bool shouldCancel = false;
+                string cancelReason = "";
 
-                        if (isSql)
-                        {
-                            Dispatcher.UIThread.Post(() => AddSqlOutput("Error", msg, Brushes.Red));
-                        }
-                        else
-                        {
-                            AddToConsole($"\n{msg}", Brushes.Red);
-                        }
-                        break;
+                // react on the first memory violation
+                if (currentMemory - baselineMemory > memoryDeltaLimit || currentMemory > memoryAbsoluteLimit)
+                {
+                    shouldCancel = true;
+                    cancelReason = "Memory";
+                }
+
+                if (!shouldCancel && cpuUsage > cpuLimit)
+                {
+                    cpuViolationCount++;
+                    // require 150ms of sustained high cpu to avoid false positives on hit/startup spikes
+                    if (cpuViolationCount >= 3)
+                    {
+                        shouldCancel = true;
+                        cancelReason = "CPU";
                     }
                 }
-                else
+                else if (!shouldCancel)
                 {
-                    violationCount = 0;
+                    cpuViolationCount = 0;
+                }
+
+                if (shouldCancel)
+                {
+                    _isSystemResourceCancellation = true;
+                    cts.Cancel();
+                    string msg = $"> Ausführung abgebrochen: Ungewöhnlich hohe Systemauslastung ({cancelReason}) erkannt.";
+                    msg += isSql ? $" Möglicherweise ineffiziente{(isCustom ? "s oder unsicheres Level." : " Query (z.B. Endlosschleifen/Blob-Wachstum).")}"
+                        : $" Möglicherweise ineffiziente{(isCustom ? "s oder unsicheres Level." : "r Code (z.B. Endlosschleife).")}";
+
+                    if (isSql)
+                    {
+                        Dispatcher.UIThread.Post(() => AddSqlOutput("Error", msg, Brushes.Red));
+                    }
+                    else
+                    {
+                        AddToConsole($"\n{msg}", Brushes.Red);
+                    }
+                    break;
                 }
 
                 lastCpuTime = currentCpuTime;

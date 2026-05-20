@@ -22,7 +22,8 @@
             <ProgressBar x:Name="LoadingBar" Grid.Row="2" Height="4"
                          Minimum="0" Maximum="100" Value="0"
                          Foreground="#32A852" Background="#202124"
-                         HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                         HorizontalAlignment="Stretch" VerticalAlignment="Top"
+						 IsIndeterminate="False" />
         </Grid>
     </Border>
 </Window>

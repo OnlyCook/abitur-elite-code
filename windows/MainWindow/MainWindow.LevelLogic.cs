@@ -1347,109 +1347,152 @@ public partial class MainWindow
                                             try
                                             {
                                                 using (var connection =
-                                                    new SqliteConnection("Data Source=:memory:"))
+                                                        new SqliteConnection("Data Source=:memory:"))
                                                 {
                                                     connection.Open();
 
-                                                    // run setup code
-                                                    using (var setupCmd = connection.CreateCommand())
+                                                    using (var limitCmd = connection.CreateCommand())
                                                     {
-                                                        setupCmd.CommandText = draft.SetupScript;
-                                                        setupCmd.ExecuteNonQuery();
+                                                        limitCmd.CommandText = "PRAGMA hard_heap_limit = 250000000;";
+                                                        limitCmd.ExecuteNonQuery();
                                                     }
 
-                                                    // exclude empty input buffers
-                                                    var cleanedSchema = draft.ExpectedSchema
+                                                    using (cts.Token.Register(() =>
+                                                    {
+                                                        try { connection.Close(); } catch { }
+                                                        try { connection.Dispose(); } catch { }
+                                                    }))
+                                                    {
+                                                        // run setup code
+                                                        using (var setupCmd = connection.CreateCommand())
+                                                        {
+                                                            setupCmd.CommandText = draft.SetupScript;
+                                                            using (cts.Token.Register(() =>
+                                                            {
+                                                                try { setupCmd.Cancel(); } catch { }
+                                                                try { connection.Close(); } catch { }
+                                                                try { connection.Dispose(); } catch { }
+                                                            }))
+                                                            {
+                                                                try
+                                                                {
+                                                                    setupCmd.ExecuteNonQuery();
+                                                                }
+                                                                catch (Exception) when (cts.Token.IsCancellationRequested)
+                                                                {
+                                                                    cts.Token.ThrowIfCancellationRequested();
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // exclude empty input buffers
+                                                        var cleanedSchema = draft.ExpectedSchema
                                                         .Where(c => !string.IsNullOrWhiteSpace(c.Name))
                                                         .ToList();
-                                                    int validCols = cleanedSchema.Count;
+                                                        int validCols = cleanedSchema.Count;
 
-                                                    var cleanedResult = new List<string[]>();
-                                                    foreach (var r in draft.ExpectedResult)
-                                                    {
-                                                        var rowData = r.Take(validCols).Select(c => c ?? "")
-                                                            .ToArray();
-                                                        if (rowData.Any(c => !string.IsNullOrWhiteSpace(c)))
-                                                            cleanedResult.Add(rowData);
-                                                    }
-
-                                                    if (validCols == 0)
-                                                        throw new Exception(
-                                                            "Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
-
-                                                    DataTable actualDt = null;
-                                                    string sampleSolution =
-                                                        SqlLevelTester.ConvertMysqlToSqlite(connection,
-                                                            draft.SampleSolution);
-
-                                                    if (draft.IsDmlMode)
-                                                    {
-                                                        using (var dmlCmd = connection.CreateCommand())
+                                                        var cleanedResult = new List<string[]>();
+                                                        foreach (var r in draft.ExpectedResult)
                                                         {
-                                                            dmlCmd.CommandText = sampleSolution;
-                                                            dmlCmd.ExecuteNonQuery();
+                                                            var rowData = r.Take(validCols).Select(c => c ?? "")
+                                                                .ToArray();
+                                                            if (rowData.Any(c => !string.IsNullOrWhiteSpace(c)))
+                                                                cleanedResult.Add(rowData);
                                                         }
 
-                                                        if (string.IsNullOrWhiteSpace(draft.VerificationQuery))
+                                                        if (validCols == 0)
                                                             throw new Exception(
-                                                                "Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
+                                                                "Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
 
-                                                        string verifyQuery =
+                                                        DataTable actualDt = null;
+                                                        string sampleSolution =
                                                             SqlLevelTester.ConvertMysqlToSqlite(connection,
-                                                                draft.VerificationQuery);
-                                                        actualDt = ExecuteDbQuery(connection, verifyQuery);
-                                                    }
-                                                    else
-                                                    {
-                                                        actualDt = ExecuteDbQuery(connection, sampleSolution);
-                                                    }
+                                                                draft.SampleSolution);
 
-                                                    if (actualDt.Columns.Count != validCols)
-                                                        throw new Exception(
-                                                            $"Spaltenanzahl stimmt nicht überein. Erwartet: {validCols}, Ist: {actualDt.Columns.Count}");
-
-                                                    for (int i = 0; i < validCols; i++)
-                                                        if (!actualDt.Columns[i].ColumnName
-                                                                .Equals(cleanedSchema[i].Name,
-                                                                    StringComparison.OrdinalIgnoreCase))
-                                                            throw new Exception(
-                                                                $"Spaltenname an Position {i + 1} stimmt nicht. Erwartet: '{cleanedSchema[i].Name}', Ist: '{actualDt.Columns[i].ColumnName}'");
-
-                                                    if (actualDt.Rows.Count != cleanedResult.Count)
-                                                        throw new Exception(
-                                                            $"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
-
-                                                    for (int r = 0; r < cleanedResult.Count; r++)
-                                                        for (int c = 0; c < validCols; c++)
+                                                        if (draft.IsDmlMode)
                                                         {
-                                                            string expectedVal = cleanedResult[r][c] ?? "";
-                                                            if (expectedVal == "") expectedVal = "NULL";
-
-                                                            string actualVal = actualDt.Rows[r][c]?.ToString()
-                                                                ?.Replace(",", ".") ?? "";
-                                                            if (actualDt.Rows[r][c] == DBNull.Value ||
-                                                                string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
-
-                                                            if (double.TryParse(expectedVal, NumberStyles.Any,
-                                                                    CultureInfo.InvariantCulture,
-                                                                    out double expNum) &&
-                                                                double.TryParse(actualVal, NumberStyles.Any,
-                                                                    CultureInfo.InvariantCulture,
-                                                                    out double actNum))
+                                                            using (var dmlCmd = connection.CreateCommand())
                                                             {
-                                                                if (Math.Abs(expNum - actNum) > 0.0001)
+                                                                dmlCmd.CommandText = sampleSolution;
+                                                                using (cts.Token.Register(() =>
+                                                                {
+                                                                    try { dmlCmd.Cancel(); } catch { }
+                                                                    try { connection.Close(); } catch { }
+                                                                    try { connection.Dispose(); } catch { }
+                                                                }))
+                                                                {
+                                                                    try
+                                                                    {
+                                                                        dmlCmd.ExecuteNonQuery();
+                                                                    }
+                                                                    catch (Exception) when (cts.Token.IsCancellationRequested)
+                                                                    {
+                                                                        cts.Token.ThrowIfCancellationRequested();
+                                                                    }
+                                                                }
+                                                            }
+
+                                                            if (string.IsNullOrWhiteSpace(draft.VerificationQuery))
+                                                                throw new Exception(
+                                                                    "Im DML Modus muss eine Verifizierungs-Abfrage angegeben werden.");
+
+                                                            string verifyQuery =
+                                                                SqlLevelTester.ConvertMysqlToSqlite(connection,
+                                                                    draft.VerificationQuery, cts.Token);
+                                                            actualDt = ExecuteDbQuery(connection, verifyQuery, cts.Token);
+                                                        }
+                                                        else
+                                                        {
+                                                            actualDt = ExecuteDbQuery(connection, sampleSolution, cts.Token);
+                                                        }
+
+                                                        if (actualDt.Columns.Count != validCols)
+                                                            throw new Exception(
+                                                                $"Spaltenanzahl stimmt nicht überein. Erwartet: {validCols}, Ist: {actualDt.Columns.Count}");
+
+                                                        for (int i = 0; i < validCols; i++)
+                                                            if (!actualDt.Columns[i].ColumnName
+                                                                    .Equals(cleanedSchema[i].Name,
+                                                                        StringComparison.OrdinalIgnoreCase))
+                                                                throw new Exception(
+                                                                    $"Spaltenname an Position {i + 1} stimmt nicht. Erwartet: '{cleanedSchema[i].Name}', Ist: '{actualDt.Columns[i].ColumnName}'");
+
+                                                        if (actualDt.Rows.Count != cleanedResult.Count)
+                                                            throw new Exception(
+                                                                $"Zeilenanzahl stimmt nicht überein. Erwartet: {cleanedResult.Count}, Ist: {actualDt.Rows.Count}");
+
+                                                        for (int r = 0; r < cleanedResult.Count; r++)
+                                                            for (int c = 0; c < validCols; c++)
+                                                            {
+                                                                string expectedVal = cleanedResult[r][c] ?? "";
+                                                                if (expectedVal == "") expectedVal = "NULL";
+
+                                                                string actualVal = actualDt.Rows[r][c]?.ToString()
+                                                                    ?.Replace(",", ".") ?? "";
+                                                                if (actualDt.Rows[r][c] == DBNull.Value ||
+                                                                    string.IsNullOrEmpty(actualVal)) actualVal = "NULL";
+
+                                                                if (double.TryParse(expectedVal, NumberStyles.Any,
+                                                                        CultureInfo.InvariantCulture,
+                                                                        out double expNum) &&
+                                                                    double.TryParse(actualVal, NumberStyles.Any,
+                                                                        CultureInfo.InvariantCulture,
+                                                                        out double actNum))
+                                                                {
+                                                                    if (Math.Abs(expNum - actNum) > 0.0001)
+                                                                        throw new Exception(
+                                                                            $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                                }
+                                                                else if (!expectedVal.Equals(actualVal,
+                                                                                StringComparison.OrdinalIgnoreCase))
+                                                                {
                                                                     throw new Exception(
                                                                         $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
+                                                                }
                                                             }
-                                                            else if (!expectedVal.Equals(actualVal,
-                                                                            StringComparison.OrdinalIgnoreCase))
-                                                            {
-                                                                throw new Exception(
-                                                                    $"Wert in Zeile {r + 1}, Spalte {c + 1} stimmt nicht. Erwartet: '{expectedVal}', Ist: '{actualVal}'");
-                                                            }
-                                                        }
 
-                                                    return (true, cleanedSchema, cleanedResult);
+                                                        return (true, cleanedSchema, cleanedResult);
+                                                    }
                                                 }
                                             }
                                             catch (Exception ex)

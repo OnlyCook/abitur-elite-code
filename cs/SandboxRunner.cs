@@ -16,6 +16,80 @@ public static class SandboxRunner
             // keep a reference to the real stdout so we can talk to the parent app later
             var originalOut = Console.Out;
 
+            // self-monitoring background thread for the sandbox process
+            var monitorThread = new Thread(() =>
+            {
+                try
+                {
+                    var process = Process.GetCurrentProcess();
+                    long baselineMemory = process.PrivateMemorySize64;
+                    var lastCpuTime = process.TotalProcessorTime;
+                    var lastCheckTime = DateTime.UtcNow;
+                    int cpuViolationCount = 0;
+
+                    // cancel immediately if memory grows more than 256MB over baseline or exceeds 1GB absolute
+                    long memoryDeltaLimit = 256L * 1024L * 1024L;
+                    long memoryAbsoluteLimit = 1024L * 1024L * 1024L;
+                    double cpuLimit = 0.85;
+
+                    while (true)
+                    {
+                        Thread.Sleep(33);
+                        process.Refresh();
+
+                        var currentTime = DateTime.UtcNow;
+                        var currentCpuTime = process.TotalProcessorTime;
+
+                        double elapsed = (currentTime - lastCheckTime).TotalMilliseconds;
+                        double cpuUsage = elapsed > 0
+                            ? (currentCpuTime - lastCpuTime).TotalMilliseconds / elapsed / Environment.ProcessorCount
+                            : 0;
+
+                        long currentMemory = process.PrivateMemorySize64;
+
+                        bool shouldCancel = false;
+                        string cancelReason = "";
+
+                        // react on the first memory violation
+                        if (currentMemory - baselineMemory > memoryDeltaLimit || currentMemory > memoryAbsoluteLimit)
+                        {
+                            shouldCancel = true;
+                            cancelReason = "Memory";
+                        }
+
+                        // react on sustained cpu violation
+                        if (!shouldCancel && cpuUsage > cpuLimit)
+                        {
+                            cpuViolationCount++;
+                            if (cpuViolationCount >= 3)
+                            {
+                                shouldCancel = true;
+                                cancelReason = "CPU";
+                            }
+                        }
+                        else if (!shouldCancel)
+                        {
+                            cpuViolationCount = 0;
+                        }
+
+                        if (shouldCancel)
+                        {
+                            // bypass the muted stdout to send error directly to parent and terminate
+                            Console.SetOut(originalOut);
+                            Console.WriteLine($"AEC_ERROR|Ungewöhnlich hohe Systemauslastung ({cancelReason}) erkannt. Möglicherweise ineffizienter Code (z.B. Endlosschleife/Massenspeicher) oder unsicheres Level.");
+                            Environment.Exit(1);
+                        }
+
+                        lastCpuTime = currentCpuTime;
+                        lastCheckTime = currentTime;
+                    }
+                }
+                catch { }
+            });
+
+            monitorThread.IsBackground = true;
+            monitorThread.Start();
+
             try
             {
                 // read base64 encoded dll from standard input

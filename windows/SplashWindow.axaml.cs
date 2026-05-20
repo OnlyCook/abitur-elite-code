@@ -15,6 +15,7 @@ namespace AbiturEliteCode
 
         public void AddLoadingProgress(int val) => LoadingBar.Value += val;
         public double GetLoadingProgress() => LoadingBar.Value;
+        public void SetLoadingBarIndeterminateState(bool b) => LoadingBar.IsIndeterminate = b;
 
         public Task AnimateFakeProgressAsync(CancellationToken token)
         {
