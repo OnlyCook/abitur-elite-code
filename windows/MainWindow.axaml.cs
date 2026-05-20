@@ -976,12 +976,7 @@ public partial class MainWindow : Window
 
         // update tooltips
         ToolTip.SetTip(BtnSave, $"{(_isSqlMode ? "Query" : "Code")} speichern ({ctrlKey} + S)");
-
-        if (BtnSettings.Parent is Panel parentPanel)
-        {
-            var runBtn = parentPanel.Children.LastOrDefault() as Button;
-            if (runBtn != null) ToolTip.SetTip(runBtn, "Ausführen (F5)");
-        }
+        ToolTip.SetTip(BtnRun, $"Ausführen (F5{(_isSqlMode ? $" / {ctrlKey} + Enter" : "")})");
     }
 
     private void AddToConsole(string text, IBrush color)
@@ -2523,7 +2518,7 @@ public partial class MainWindow : Window
             BtnRun.Width = 135;
             BtnRun.Background = SolidColorBrush.Parse("#32A852");
             BtnRun.IsEnabled = true;
-            ToolTip.SetTip(BtnRun, "Ausführen (F5)");
+            UpdateShortcutsAndTooltips();
             CodeEditor.Focus();
         }
     }
@@ -3145,7 +3140,7 @@ public partial class MainWindow : Window
             BtnRun.Width = 135;
             BtnRun.Background = SolidColorBrush.Parse("#32A852");
             BtnRun.IsEnabled = true;
-            ToolTip.SetTip(BtnRun, "Ausführen (F5)");
+            UpdateShortcutsAndTooltips();
             SqlQueryEditor.Focus();
         }
     }

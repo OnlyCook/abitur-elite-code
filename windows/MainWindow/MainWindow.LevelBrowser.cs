@@ -426,15 +426,28 @@ public partial class MainWindow
 
                     cts.Cancel();
 
-                    // show error icon briefly if download failed
                     if (!success)
                     {
+                        // show error icon briefly if download failed
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
                             var errorIcon = LoadIcon("assets/icons/ic_error.svg", 16);
                             errorIcon.Margin = new Thickness(0, 0, 10, 0);
                             errorIcon.VerticalAlignment = VerticalAlignment.Center;
                             btnContent.Children[0] = errorIcon;
+                        });
+
+                        await Task.Delay(500);
+                    }
+                    else
+                    {
+                        // show success icon briefly otherwise
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            var successIcon = LoadIcon("assets/icons/ic_success.svg", 16);
+                            successIcon.Margin = new Thickness(0, 0, 10, 0);
+                            successIcon.VerticalAlignment = VerticalAlignment.Center;
+                            btnContent.Children[0] = successIcon;
                         });
 
                         await Task.Delay(500);

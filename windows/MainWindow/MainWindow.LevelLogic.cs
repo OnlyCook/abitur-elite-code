@@ -30,6 +30,24 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
+    private static int GetDeterministicHashCode(string str)
+    {
+        unchecked
+        {
+            int hash1 = (5381 << 16) + 5381;
+            int hash2 = hash1;
+
+            for (int i = 0; i < str.Length; i += 2)
+            {
+                hash1 = ((hash1 << 5) + hash1) ^ str[i];
+                if (i == str.Length - 1) break;
+                hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
+            }
+
+            return hash1 + (hash2 * 1566083941);
+        }
+    }
+
     private void UpdateNavigationButtonTooltips()
     {
         ToolTip.SetTip(BtnPrevLevel, "Vorheriges Level (Shift + Enter)");
@@ -2670,8 +2688,16 @@ public partial class MainWindow
             using (var doc = JsonDocument.Parse(json))
             {
                 var root = doc.RootElement;
-                int customId = path.GetHashCode();
-                if (customId > 0) customId *= -1;
+                int customId;
+                if (root.TryGetProperty("DiscussionNumber", out var dNum1))
+                {
+                    customId = -dNum1.GetInt32();
+                }
+                else
+                {
+                    customId = GetDeterministicHashCode(Path.GetFileName(path));
+                    if (customId > 0) customId *= -1;
+                }
 
                 var loadedLevel = new SqlLevel
                 {
@@ -2809,8 +2835,16 @@ public partial class MainWindow
         using (var doc = JsonDocument.Parse(json2))
         {
             var root = doc.RootElement;
-            int customId = path.GetHashCode();
-            if (customId > 0) customId *= -1;
+            int customId;
+            if (root.TryGetProperty("DiscussionNumber", out var dNumCsharp1))
+            {
+                customId = -dNumCsharp1.GetInt32();
+            }
+            else
+            {
+                customId = GetDeterministicHashCode(Path.GetFileName(path));
+                if (customId > 0) customId *= -1;
+            }
 
             var loadedLevel = new Level
             {

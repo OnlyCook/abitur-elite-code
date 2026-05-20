@@ -275,7 +275,7 @@ public partial class MainWindow
         }
     }
 
-    private async void UpdateCommunityUIAsync(string levelId, bool isSql)
+    private async Task UpdateCommunityUIAsync(string levelId, bool isSql, bool forceFetch = false)
     {
         Debug.WriteLine("[Debug] Fetching level " + levelId);
 
@@ -356,7 +356,7 @@ public partial class MainWindow
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
         // check cache first to prevent skeleton flashing
-        if (dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
+        if (!forceFetch && dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
         {
             PnlCommunityActions.IsVisible = true;
             SetCommunitySkeletonsVisible(false);
@@ -3607,9 +3607,19 @@ public partial class MainWindow
                 };
                 ToolTip.SetTip(btnDel, "Benachrichtigung löschen");
 
-                btnGo.Click += (s, e) =>
+                btnGo.Click += async (s, e) =>
                 {
                     if (_isDesignerMode) return; // locked in level designer
+
+                    if (!await CheckRealConnectivityAsync())
+                    {
+                        if (!_isKnownOffline)
+                        {
+                            _isKnownOffline = true;
+                            await Dispatcher.UIThread.InvokeAsync(async () => await ShowOfflineBannerOnceAsync());
+                        }
+                        return;
+                    }
 
                     if (!string.IsNullOrEmpty(notif.TargetDiscussionId))
                     {
@@ -3642,53 +3652,82 @@ public partial class MainWindow
                         {
                             bool isCustomLevel = int.TryParse(targetLevelId, out int parsedId) && parsedId < 0;
 
+                            _inboxFlyout?.Hide();
+
+                            // functionally and visually switch modes if differing
+                            if (_isSqlMode != isTargetSql)
+                            {
+                                BtnModeSwitch_Click(this, new RoutedEventArgs());
+                            }
+
+                            _targetHighlightCommentId = notif.TargetCommentId;
+                            _targetHighlightReplyId = notif.TargetReplyId;
+                            _isSqlMode = isTargetSql;
+
                             if (isCustomLevel)
                             {
                                 var customLevels = GetCustomLevels();
                                 var targetLvl = customLevels.FirstOrDefault(cl =>
                                 {
-                                    int id = cl.FilePath.GetHashCode();
+                                    int id = GetDeterministicHashCode(System.IO.Path.GetFileName(cl.FilePath));
                                     if (id > 0) id *= -1;
                                     return id.ToString() == targetLevelId;
                                 });
 
+                                // fallback: search by discussionNodeId if hashcode doesnt match (e.g. after app restart)
+                                if (targetLvl == null)
+                                {
+                                    foreach (var cl in customLevels)
+                                    {
+                                        try
+                                        {
+                                            string json = File.ReadAllText(cl.FilePath);
+                                            if (!json.TrimStart().StartsWith("{")) json = LevelEncryption.Decrypt(json);
+                                            using (var doc = JsonDocument.Parse(json))
+                                            {
+                                                if (doc.RootElement.TryGetProperty("DiscussionNodeId", out var dNodeId) &&
+                                                    dNodeId.GetString() == notif.TargetDiscussionId)
+                                                {
+                                                    targetLvl = cl;
+                                                    int newId;
+                                                    if (doc.RootElement.TryGetProperty("DiscussionNumber", out var dNum))
+                                                    {
+                                                        newId = -dNum.GetInt32();
+                                                    }
+                                                    else
+                                                    {
+                                                        newId = GetDeterministicHashCode(System.IO.Path.GetFileName(cl.FilePath));
+                                                        if (newId > 0) newId *= -1;
+                                                    }
+                                                    targetLevelId = newId.ToString();
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        catch { }
+                                    }
+                                }
+
                                 if (targetLvl != null)
                                 {
-                                    _inboxFlyout?.Hide();
-
-                                    _targetHighlightCommentId = notif.TargetCommentId;
-                                    _targetHighlightReplyId = notif.TargetReplyId;
-                                    _isSqlMode = isTargetSql;
-
                                     LoadCustomLevelFromFile(targetLvl.FilePath);
-
-                                    UpdateCommunityUIAsync(targetLevelId, isTargetSql);
-                                    PnlCommentsSection.IsVisible = true;
-                                    RenderCachedComments();
-
-                                    _targetHighlightCommentId = null;
-                                    _targetHighlightReplyId = null;
                                 }
                                 else
                                 {
                                     // show error temporarily if deleted or not found locally
+                                    _targetHighlightCommentId = null;
+                                    _targetHighlightReplyId = null;
                                     btnGo.Content = LoadIcon("assets/icons/ic_error.svg", 16);
                                     Task.Run(async () =>
                                     {
                                         await Task.Delay(500);
                                         await Dispatcher.UIThread.InvokeAsync(() => btnGo.Content = LoadIcon("assets/icons/ic_comment_go.svg", 16));
                                     });
+                                    return;
                                 }
                             }
                             else
                             {
-                                _inboxFlyout?.Hide();
-
-                                _targetHighlightCommentId = notif.TargetCommentId;
-                                _targetHighlightReplyId = notif.TargetReplyId;
-
-                                _isSqlMode = isTargetSql;
-
                                 if (isTargetSql)
                                 {
                                     if (sqlLevels == null) sqlLevels = SqlCurriculum.GetLevels();
@@ -3701,14 +3740,33 @@ public partial class MainWindow
                                     var lvl = levels.FirstOrDefault(l => l.Id.ToString() == targetLevelId);
                                     if (lvl != null) LoadLevel(lvl);
                                 }
-
-                                UpdateCommunityUIAsync(targetLevelId, isTargetSql);
-                                PnlCommentsSection.IsVisible = true;
-                                RenderCachedComments();
-
-                                _targetHighlightCommentId = null;
-                                _targetHighlightReplyId = null;
                             }
+
+                            await UpdateCommunityUIAsync(targetLevelId, isTargetSql, true);
+                            PnlCommentsSection.IsVisible = true;
+
+                            var dict = isTargetSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
+                            if (dict.TryGetValue(targetLevelId, out var cache))
+                            {
+                                int targetIdx = cache.Comments.FindIndex(c => c.Id == notif.TargetCommentId);
+                                while (targetIdx == -1 && cache.HasNextPage)
+                                {
+                                    await FetchCommunityDataAsync(_currentActiveDiscussionId, isTargetSql, targetLevelId, true);
+                                    targetIdx = cache.Comments.FindIndex(c => c.Id == notif.TargetCommentId);
+                                }
+
+                                if (targetIdx >= 0 && targetIdx >= _visibleCommentsCount)
+                                {
+                                    _visibleCommentsCount = targetIdx + 20;
+                                }
+                            }
+
+                            RenderCachedComments();
+
+                            _targetHighlightCommentId = null;
+                            _targetHighlightReplyId = null;
+
+                            ScrollToHighlightedComment();
                         }
                     }
                 };
@@ -4126,6 +4184,47 @@ public partial class MainWindow
         await dialog.ShowDialog(this);
     }
 
+    private void ScrollToHighlightedComment()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (PnlCommentsList == null || TaskScrollViewer == null) return;
+
+            Control FindHighlighted(Controls children)
+            {
+                foreach (var c in children)
+                {
+                    if (c is Border b && b.BorderThickness == new Thickness(2) && b.BorderBrush is SolidColorBrush sb && sb.Color == Color.Parse("#6495ED"))
+                        return b;
+
+                    if (c is Panel p)
+                    {
+                        var res = FindHighlighted(p.Children);
+                        if (res != null) return res;
+                    }
+                    else if (c is Border b2 && b2.Child is Panel p2)
+                    {
+                        var res = FindHighlighted(p2.Children);
+                        if (res != null) return res;
+                    }
+                }
+                return null;
+            }
+
+            var targetControl = FindHighlighted(PnlCommentsList.Children);
+
+            if (targetControl != null)
+            {
+                var transform = targetControl.TransformToVisual(TaskScrollViewer.Content as Control);
+                if (transform != null)
+                {
+                    double y = transform.Value.Transform(new Point(0, 0)).Y;
+                    TaskScrollViewer.Offset = new Vector(TaskScrollViewer.Offset.X, Math.Max(0, y - 50));
+                }
+            }
+        }, DispatcherPriority.Loaded);
+    }
+
     private static byte _Unmask(byte b, int i, byte[] lut)
     {
         int r = (i % 3) + 1;
@@ -4396,7 +4495,7 @@ public partial class MainWindow
         dialog.KeyDown += (s, ev) =>
         {
             if (ev.Key == Key.Escape) dialog.Close();
-       };
+        };
 
         var stack = new StackPanel
         {
