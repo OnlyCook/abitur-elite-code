@@ -2330,9 +2330,9 @@ public partial class MainWindow : Window
                         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
                     );
 
-                    using (var ms = new MemoryStream())
+                    try
                     {
-                        try
+                        using (var ms = new MemoryStream())
                         {
                             EmitResult emitResult = compilation.Emit(ms, cancellationToken: token);
 
@@ -2341,89 +2341,110 @@ public partial class MainWindow : Window
 
                             if (token.IsCancellationRequested) return (false, null, null);
 
-                            ms.Seek(0, SeekOrigin.Begin);
-                            var assembly = Assembly.Load(ms.ToArray());
-
                             if (runDesignerTest || useCustomValidation)
-                                // --- DESIGNER CUSTOM COMPILER LOGIC ---
-                                try
+                            {
+                                // layer 1: strict security analysis
+                                // analyze users syntax tree to ensure no malicious apois are used
+                                var userModel = compilation.GetSemanticModel(syntaxTree);
+                                var securityResult = SandboxSecurity.AnalyzeUserCode(syntaxTree, userModel);
+
+                                if (!securityResult.IsSafe)
                                 {
-                                    string validatorSource = @"
-                                        using System;
-                                        using System.Reflection;
-                                        using System.Collections.Generic;
-                                        using System.Linq;
-
-                                        public static class DesignerValidator 
-                                        {
-                                            " + validationLogic + @"
-                                        }";
-
-                                    var validatorTree = CSharpSyntaxTree.ParseText(validatorSource);
-                                    var valCompilation = CSharpCompilation.Create(
-                                        "Validator_" + Guid.NewGuid(),
-                                        new[] { validatorTree },
-                                        references,
-                                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-                                    );
-
-                                    using (var valMs = new MemoryStream())
+                                    return (Success: true, Diagnostics: null, TestResult: new TestResult
                                     {
-                                        var valEmit = valCompilation.Emit(valMs);
-                                        if (!valEmit.Success)
-                                        {
-                                            string errorMsg = valEmit.Diagnostics.FirstOrDefault()?.GetMessage() ??
-                                                              "Unbekannter Fehler";
-                                            throw new Exception("Fehler im Validierungs-Code (Designer): " + errorMsg);
-                                        }
+                                        Success = false,
+                                        Error = new Exception(securityResult.ErrorFeedback)
+                                    });
+                                }
 
-                                        valMs.Seek(0, SeekOrigin.Begin);
-                                        var valAssembly = Assembly.Load(valMs.ToArray());
-                                        var valType = valAssembly.GetType("DesignerValidator");
+                                // layer 2: out-of-process execution (sandbox)
+                                // combine user code, validator code and sandbox bootstrap into single dll
+                                string validatorSource = @"
+                                    using System;
+                                    using System.Reflection;
+                                    using System.Collections.Generic;
+                                    using System.Linq;
 
-                                        // dynamically find the method
-                                        var valMethod = valType.GetMethods(BindingFlags.Public |
-                                                                           BindingFlags.NonPublic | BindingFlags.Static)
-                                            .FirstOrDefault(m => m.ReturnType == typeof(bool)
-                                                                 && m.GetParameters().Length == 2
-                                                                 && m.GetParameters()[0].ParameterType ==
-                                                                 typeof(Assembly)
-                                                                 && m.GetParameters()[1].IsOut);
-
-                                        if (valMethod == null)
-                                            throw new Exception(
-                                                "Keine gültige Validierungsmethode gefunden. Signatur muss sein: bool Methode(Assembly a, out string f)");
-
-                                        object[] args = new object[] { assembly, null };
-
-                                        try
-                                        {
-                                            bool passed = (bool)valMethod.Invoke(null, args);
-                                            string feedback = (string)args[1];
-
-                                            return (Success: true, Diagnostics: null,
-                                                TestResult: new TestResult { Success = passed, Feedback = feedback });
-                                        }
-                                        catch (TargetInvocationException tie)
-                                        {
-                                            throw tie.InnerException ?? tie;
-                                        }
+                                    public static class DesignerValidator 
+                                    {
+                                        " + validationLogic + @"
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                    return (Success: true, Diagnostics: null,
-                                        TestResult: new TestResult { Success = false, Error = ex });
-                                }
 
-                            // normal level logic
-                            var testResult = LevelTester.Run(levelContext.Id, assembly, codeText);
-                            return (Success: true, Diagnostics: null, TestResult: testResult);
+                                    public static class AecSandboxBootstrap 
+                                    {
+                                        public static void Execute(out bool success, out string feedback) 
+                                        {
+                                            var valType = typeof(DesignerValidator);
+                
+                                            var valMethod = valType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                                .FirstOrDefault(m => m.ReturnType == typeof(bool)
+                                                                        && m.GetParameters().Length == 2
+                                                                        && m.GetParameters()[0].ParameterType == typeof(Assembly)
+                                                                        && m.GetParameters()[1].IsOut);
+
+                                            if (valMethod == null)
+                                            {
+                                                success = false;
+                                                feedback = ""Fehler: Keine gültige ValidateLevel Methode gefunden."";
+                                                return;
+                                            }
+
+                                            object[] args = new object[] { Assembly.GetExecutingAssembly(), null };
+                
+                                            try
+                                            {
+                                                success = (bool)valMethod.Invoke(null, args);
+                                                feedback = (string)args[1];
+                                            }
+                                            catch (TargetInvocationException tie)
+                                            {
+                                                success = false;
+                                                feedback = ""Laufzeitfehler in Validierung: "" + (tie.InnerException?.Message ?? tie.Message);
+                                            }
+                                        }
+                                    }";
+
+                                var validatorTree = CSharpSyntaxTree.ParseText(validatorSource, cancellationToken: token);
+                                var combinedTrees = new List<SyntaxTree>(trees) { validatorTree };
+
+                                var combinedCompilation = CSharpCompilation.Create(
+                                    "SandboxPayload_" + Guid.NewGuid(),
+                                    combinedTrees,
+                                    references,
+                                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                                );
+
+                                using (var combinedMs = new MemoryStream())
+                                {
+                                    var combinedEmit = combinedCompilation.Emit(combinedMs, cancellationToken: token);
+
+                                    if (!combinedEmit.Success)
+                                    {
+                                        string errorMsg = combinedEmit.Diagnostics.FirstOrDefault()?.GetMessage() ?? "Unbekannter Fehler";
+                                        return (Success: true, Diagnostics: null, TestResult: new TestResult { Success = false, Error = new Exception("Fehler im Validierungs-Code (Designer): " + errorMsg) });
+                                    }
+
+                                    // pass the compiled bytes to the hidden child process
+                                    byte[] finalDll = combinedMs.ToArray();
+                                    var testResult = SandboxRunner.RunInSandboxAsync(finalDll, token).GetAwaiter().GetResult();
+
+                                    return (Success: true, Diagnostics: null, TestResult: testResult);
+                                }
+                            }
+                            else
+                            {
+                                // standard level logic (in-process)
+                                ms.Seek(0, SeekOrigin.Begin);
+                                var assembly = Assembly.Load(ms.ToArray());
+
+                                var testResult = LevelTester.Run(levelContext.Id, assembly, codeText);
+                                return (Success: true, Diagnostics: null, TestResult: testResult);
+                            }
                         }
-                        catch (OperationCanceledException)
-                        {
-                            return (false, null, null);
-                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return (false, null, null);
                     }
                 }, token);
 

@@ -1,0 +1,168 @@
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AbiturEliteCode.cs;
+
+public static class SandboxRunner
+{
+    public static void InterceptSandbox(string[] args)
+    {
+        if (args.Length > 0 && args[0] == "--sandbox-run")
+        {
+            // keep a reference to the real stdout so we can talk to the parent app later
+            var originalOut = Console.Out;
+
+            try
+            {
+                // read base64 encoded dll from standard input
+                string base64Dll = Console.ReadLine();
+                if (string.IsNullOrEmpty(base64Dll)) return;
+
+                byte[] dllBytes = Convert.FromBase64String(base64Dll);
+
+                // mute normal console output before executing user code to prevent ipc corruption
+                Console.SetOut(TextWriter.Null);
+
+                var assembly = Assembly.Load(dllBytes);
+
+                // find our injected bootstrap class
+                var bootstrapType = assembly.GetType("AecSandboxBootstrap");
+                var method = bootstrapType.GetMethod("Execute", BindingFlags.Public | BindingFlags.Static);
+
+                // run the validator (execute expects: out bool success, out string feedback)
+                object[] methodArgs = new object[] { false, "" };
+                method.Invoke(null, methodArgs);
+
+                bool success = (bool)methodArgs[0];
+                string feedback = (string)methodArgs[1];
+
+                // restore console before sending the result back to main app
+                Console.SetOut(originalOut);
+
+                // sanitize newlines so the parent reads the whole payload in one ReadLine()
+                string cleanFeedback = feedback?.Replace("\r", "")?.Replace("\n", "<br>") ?? "";
+                Console.WriteLine($"AEC_RESULT|{success}|{cleanFeedback}");
+            }
+            catch (Exception ex)
+            {
+                // restore console before sending the error!
+                Console.SetOut(originalOut);
+                var inner = ex.InnerException ?? ex;
+                string cleanError = inner.Message.Replace("\r", "").Replace("\n", " | ");
+                Console.WriteLine($"AEC_ERROR|{inner.GetType().Name}: {cleanError}");
+            }
+            finally
+            {
+                Environment.Exit(0);
+            }
+        }
+    }
+
+    public static async Task<TestResult> RunInSandboxAsync(byte[] compiledDll, CancellationToken token)
+    {
+        string processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+            return new TestResult
+            {
+                Success = false,
+                Error = new Exception("Konnte den Sandbox-Prozess nicht ermitteln.")
+            };
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = processPath,
+            Arguments = "--sandbox-run",
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process
+        {
+            StartInfo = startInfo
+        };
+
+        try
+        {
+            process.Start();
+
+            // send payload to the hidden child process and explicitly flush the stream
+            await process.StandardInput.WriteLineAsync(Convert.ToBase64String(compiledDll));
+            await process.StandardInput.FlushAsync();
+            process.StandardInput.Close();
+
+            // wait with a strict timeout to prevent infinite loops from hanging user pc
+            var timeoutTask = Task.Delay(8000, token);
+            var readTask = process.StandardOutput.ReadLineAsync();
+
+            var completedTask = await Task.WhenAny(readTask, timeoutTask);
+
+            if (completedTask == timeoutTask)
+            {
+                process.Kill();
+                return new TestResult
+                {
+                    Success = false,
+                    Error = new Exception("TIMEOUT: Das Custom Level hat sich aufgehängt (Endlosschleife?) und wurde sicher terminiert.")
+                };
+            }
+
+            string resultLine = await readTask;
+
+            if (string.IsNullOrEmpty(resultLine))
+            {
+                return new TestResult
+                {
+                    Success = false,
+                    Error = new Exception("Der Sandbox-Prozess ist unerwartet abgestürzt (Speicherüberlauf/StackOverflow).")
+                
+                };
+            }
+
+            // parse ipc protocol
+            if (resultLine.StartsWith("AEC_RESULT|"))
+            {
+                var parts = resultLine.Split(new[] { '|' }, 3);
+                bool success = bool.Parse(parts[1]);
+                string feedback = parts.Length > 2 ? parts[2].Replace("<br>", "\n") : "";
+                return new TestResult
+                {
+                    Success = success,
+                    Feedback = feedback
+                };
+            }
+            else if (resultLine.StartsWith("AEC_ERROR|"))
+            {
+                var parts = resultLine.Split(new[] { '|' }, 2);
+                return new TestResult
+                {
+                    Success = false,
+                    Error = new Exception(parts[1])
+                };
+            }
+
+            return new TestResult
+            {
+                Success = false,
+                Error = new Exception("Unbekanntes Sandbox Protokoll Format.")
+            };
+        }
+        catch (Exception ex)
+        {
+            return new TestResult
+            {
+                Success = false,
+                Error = new Exception($"Sandbox Fehler: {ex.Message}")
+            };
+        }
+        finally
+        {
+            if (!process.HasExited) process.Kill();
+        }
+    }
+}

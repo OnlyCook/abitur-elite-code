@@ -1069,7 +1069,7 @@ public partial class SettingsWindow : Window
 
         innerContentPanel.Children.Add(new TextBlock
         {
-            Text = "Übertrage deinen Spielstand als Code auf ein anderes Gerät. Hinweis: Die GitHub-Anmeldung wird aus Sicherheitsgründen nicht mit kopiert.",
+            Text = "Übertrage deinen Fortschritt als Code auf ein anderes Gerät. Hinweis: Die GitHub-Anmeldung wird aus Sicherheitsgründen nicht mit kopiert.",
             Foreground = Brushes.LightGray,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 15)

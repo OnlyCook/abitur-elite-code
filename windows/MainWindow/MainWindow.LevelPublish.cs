@@ -43,36 +43,25 @@ public partial class MainWindow
         {
             string combinedCode = $"{_currentDraft.StarterCode}\n{_currentDraft.ValidationCode}\n{_currentDraft.TestCode}";
 
-            // blacklist of potentially harmful namespaces, classes and methods
-            string[] csharpBlacklist = {
-                "System.IO", "System.Net", "System.Reflection.Emit", "System.Diagnostics",
-                "System.Runtime.InteropServices", "System.Threading", "DllImport",
-                "Process.Start", "File.", "Directory.", "HttpClient", "WebRequest",
-                "unsafe", "stackalloc", "AppDomain", "Assembly.Load", "Environment.Exit",
-                "StreamReader", "StreamWriter", "Socket", "TcpClient"
-            };
-
-            foreach (var term in csharpBlacklist)
-            {
-                if (combinedCode.Contains(term, StringComparison.OrdinalIgnoreCase))
-                {
-                    errorFeedback = $"Sicherheitsrisiko: Die Verwendung von '{term}' ist aus Sicherheitsgründen nicht gestattet.";
-                    return false;
-                }
-            }
-
-            // static infinite loop detection
+            // basic infinite loop fallback check (semantic analyzer handles the rest)
             var infiniteLoopRegex = new Regex(@"while\s*\(\s*true\s*\)|for\s*\(\s*;\s*;\s*\)", RegexOptions.IgnoreCase);
             if (infiniteLoopRegex.IsMatch(combinedCode))
             {
-                errorFeedback = "Sicherheitsrisiko: Endlosschleifen (z.B. while(true)) sind in veröffentlichten Leveln verboten, um Abstürze zu verhindern.";
+                errorFeedback = "Sicherheitsrisiko: Offensichtliche Endlosschleifen (z.B. while(true)) sind in veröffentlichten Leveln verboten.";
                 return false;
             }
 
-            // bloatware / memory exhaustion checks (large arrays)
-            if (Regex.IsMatch(combinedCode, @"new\s+(int|byte|string|double|float|long|short|char)\[\s*[0-9]{6,}\s*\]"))
+            // run semantic analysis purely to validate safety
+            var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(combinedCode);
+            var refs = GetSafeReferences();
+            var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("Validation", new[] { tree }, refs);
+
+            var semanticModel = compilation.GetSemanticModel(tree);
+            var safetyCheck = SandboxSecurity.AnalyzeUserCode(tree, semanticModel);
+
+            if (!safetyCheck.IsSafe)
             {
-                errorFeedback = "Sicherheitsrisiko: Extrem große Arrays können den Arbeitsspeicher anderer Nutzer überlasten.";
+                errorFeedback = safetyCheck.ErrorFeedback;
                 return false;
             }
         }
@@ -572,6 +561,14 @@ public partial class MainWindow
                         forceClose = true;
                         dialog.Close();
                         if (resBody == "PERMA_BANNED") ShowPermaBanDialog(); else ShowBanDialog();
+                        return;
+                    }
+
+                    if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "PUBLISH_LIMIT_REACHED")
+                    {
+                        forceClose = true;
+                        dialog.Close();
+                        await ShowLimitIncreaseDialog();
                         return;
                     }
 
