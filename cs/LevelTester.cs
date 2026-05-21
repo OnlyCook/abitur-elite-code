@@ -16,6 +16,7 @@ public class TestResult
     public bool Success { get; set; }
     public string Feedback { get; set; }
     public Exception Error { get; set; }
+    public string ConsoleOutput { get; set; }
 }
 
 public static class LevelTester

@@ -98,8 +98,9 @@ public static class SandboxRunner
 
                 byte[] dllBytes = Convert.FromBase64String(base64Dll);
 
-                // mute normal console output before executing user code to prevent ipc corruption
-                Console.SetOut(TextWriter.Null);
+                // buffer console output instead of muting it (to allow debugging through console write)
+                using var debugWriter = new StringWriter();
+                Console.SetOut(debugWriter);
 
                 var assembly = Assembly.Load(dllBytes);
 
@@ -114,12 +115,18 @@ public static class SandboxRunner
                 bool success = (bool)methodArgs[0];
                 string feedback = (string)methodArgs[1];
 
+                // get intercepted console output
+                string consoleOutput = debugWriter.ToString();
+
                 // restore console before sending the result back to main app
                 Console.SetOut(originalOut);
 
                 // sanitize newlines so the parent reads the whole payload in one ReadLine()
+                string cleanConsole = consoleOutput?.Replace("\r", "")?.Replace("\n", "<br>") ?? "";
                 string cleanFeedback = feedback?.Replace("\r", "")?.Replace("\n", "<br>") ?? "";
-                Console.WriteLine($"AEC_RESULT|{success}|{cleanFeedback}");
+
+                // send via safe ipc stream
+                Console.WriteLine($"AEC_RESULT|{success}|{cleanFeedback}|{cleanConsole}");
             }
             catch (Exception ex)
             {
@@ -201,13 +208,16 @@ public static class SandboxRunner
             // parse ipc protocol
             if (resultLine.StartsWith("AEC_RESULT|"))
             {
-                var parts = resultLine.Split(new[] { '|' }, 3);
+                var parts = resultLine.Split(new[] { '|' }, 4);
                 bool success = bool.Parse(parts[1]);
                 string feedback = parts.Length > 2 ? parts[2].Replace("<br>", "\n") : "";
+                string consoleOutput = parts.Length > 3 ? parts[3].Replace("<br>", "\n") : "";
+
                 return new TestResult
                 {
                     Success = success,
-                    Feedback = feedback
+                    Feedback = feedback,
+                    ConsoleOutput = consoleOutput
                 };
             }
             else if (resultLine.StartsWith("AEC_ERROR|"))

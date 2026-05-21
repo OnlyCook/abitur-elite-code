@@ -1539,6 +1539,17 @@ public partial class MainWindow
 
                                                 var references = GetSafeReferences();
 
+                                                // before compiling run security checks!
+                                                var testTree = CSharpSyntaxTree.ParseText(fullCode, cancellationToken: cts.Token);
+                                                var testComp = CSharpCompilation.Create("SecCheckTest", new[] { testTree }, references);
+                                                var testSecurity = SandboxSecurity.AnalyzeUserCode(testTree, testComp.GetSemanticModel(testTree), false);
+                                                if (!testSecurity.IsSafe) throw new Exception("Test-Code blockiert: " + testSecurity.ErrorFeedback);
+
+                                                var valSecurityTree = CSharpSyntaxTree.ParseText(validatorCode, cancellationToken: cts.Token);
+                                                var valComp = CSharpCompilation.Create("SecCheckVal", new[] { valSecurityTree }, references);
+                                                var valSecurity = SandboxSecurity.AnalyzeUserCode(valSecurityTree, valComp.GetSemanticModel(valSecurityTree), true);
+                                                if (!valSecurity.IsSafe) throw new Exception("Validierungs-Code blockiert: " + valSecurity.ErrorFeedback);
+
                                                 var tree = CSharpSyntaxTree.ParseText(fullCode,
                                                     cancellationToken: cts.Token);
                                                 var compilation = CSharpCompilation.Create(

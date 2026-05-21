@@ -19,6 +19,7 @@ using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.Data.Sqlite;
 using System;
@@ -163,6 +164,7 @@ public partial class MainWindow : Window
     private Level currentLevel;
     private SqlLevel currentSqlLevel;
     private readonly CustomPlayerData customPlayerData;
+    private bool _isHardcoreMode = false;
 
     private readonly ScaleTransform ImgScale;
     private readonly TranslateTransform ImgTranslate;
@@ -2308,6 +2310,27 @@ public partial class MainWindow : Window
 
                     // inject global loop breaker to catch infinite loops and avoid frying any cpus
                     var root = syntaxTree.GetRoot(token);
+
+                    // remove 'Thread.Sleep' in Level 25 to avoid security block and wait times
+                    if (!runDesignerTest && levelContext != null && levelContext.Id == 25)
+                    {
+                        var sleepRewriter = new Level25SleepRewriter();
+                        root = sleepRewriter.Visit(root);
+
+                        // if found but placed incorrectly, fail immediately
+                        if (sleepRewriter.SleepFound && !sleepRewriter.IsValid)
+                        {
+                            return (Success: true, Diagnostics: null, TestResult: new TestResult
+                            {
+                                Success = false,
+                                Error = new Exception("Logikfehler: Zwischen dem Blockieren und Entsperren wurde nicht gewartet.")
+                            });
+                        }
+
+                        syntaxTree = syntaxTree.WithRootAndOptions(root, syntaxTree.Options);
+                        root = syntaxTree.GetRoot(token);
+                    }
+
                     var rewriter = new LoopGuardRewriter();
                     syntaxTree = rewriter.Visit(root).SyntaxTree;
 
@@ -2342,23 +2365,42 @@ public partial class MainWindow : Window
 
                             if (token.IsCancellationRequested) return (false, null, null);
 
-                            // layer 1: strict security analysis (only for custom levels / designer)
-                            if (useCustomValidation)
-                            {
-                                var userModel = compilation.GetSemanticModel(syntaxTree);
-                                var securityResult = SandboxSecurity.AnalyzeUserCode(syntaxTree, userModel);
+                            // --- layer 1: strict security analysis ---
 
-                                if (!securityResult.IsSafe)
+                            // always check user code, regardless of level type (standard and custom)
+                            var userModel = compilation.GetSemanticModel(syntaxTree);
+                            var userSecurityResult = SandboxSecurity.AnalyzeUserCode(syntaxTree, userModel, false);
+
+                            if (!userSecurityResult.IsSafe)
+                            {
+                                return (Success: true, Diagnostics: null, TestResult: new TestResult
+                                {
+                                    Success = false,
+                                    Error = new Exception(userSecurityResult.ErrorFeedback)
+                                });
+                            }
+
+                            // only check validation code for custom levels / designer (standard levels use internal secure validation)
+                            if (useCustomValidation && !string.IsNullOrWhiteSpace(validationLogic))
+                            {
+                                string valFullCode = "using System;\nusing System.Reflection;\nusing System.Collections.Generic;\nusing System.Linq;\npublic static class DesignerValidator { " + validationLogic + " }";
+                                var valTree = CSharpSyntaxTree.ParseText(valFullCode, cancellationToken: token);
+                                var valCompilation = CSharpCompilation.Create("ValSecurityCheck", new[] { valTree }, references);
+                                var valModel = valCompilation.GetSemanticModel(valTree);
+
+                                var valSecurityResult = SandboxSecurity.AnalyzeUserCode(valTree, valModel, true);
+
+                                if (!valSecurityResult.IsSafe)
                                 {
                                     return (Success: true, Diagnostics: null, TestResult: new TestResult
                                     {
                                         Success = false,
-                                        Error = new Exception(securityResult.ErrorFeedback)
+                                        Error = new Exception("Validierungs-Code blockiert: " + valSecurityResult.ErrorFeedback)
                                     });
                                 }
                             }
 
-                            // layer 2: out-of-process execution (sandbox)
+                            // --- layer 2: out-of-process execution (sandbox) ---
                             // combine user code, validator code and sandbox bootstrap into single dll
                             string bootstrapSource;
                             if (useCustomValidation)
@@ -2443,10 +2485,20 @@ public partial class MainWindow : Window
                         
                                             // use standard object reflection instead of 'dynamic' to avoid Microsoft.CSharp.dll dependency
                                             object result = method.Invoke(null, new object[] {{ {levelContext.Id}, assembly, code }});
-                        
+                    
                                             success = (bool)result.GetType().GetProperty(""Success"").GetValue(result);
-                                            var feedbackObj = result.GetType().GetProperty(""Feedback"").GetValue(result);
-                                            feedback = feedbackObj != null ? feedbackObj.ToString() : """";
+                                        
+                                            var errorObj = result.GetType().GetProperty(""Error"").GetValue(result);
+                                            if (errorObj != null)
+                                            {{
+                                                var exMsgObj = errorObj.GetType().GetProperty(""Message"").GetValue(errorObj);
+                                                feedback = exMsgObj != null ? exMsgObj.ToString() : ""Unbekannter Fehler"";
+                                            }}
+                                            else
+                                            {{
+                                                var feedbackObj = result.GetType().GetProperty(""Feedback"").GetValue(result);
+                                                feedback = feedbackObj != null ? feedbackObj.ToString() : """";
+                                            }}
                                         }}
                                         catch (Exception ex)
                                         {{
@@ -2542,16 +2594,30 @@ public partial class MainWindow : Window
                 if (!result.Success && result.Diagnostics != null)
                 {
                     AddToConsole("KOMPILIERFEHLER:\n", Brushes.Red);
-                    foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+
+                    if (_isHardcoreMode)
                     {
-                        var lineSpan = diag.Location.GetLineSpan();
-                        int userLine = lineSpan.StartLinePosition.Line - (headerLineCount - 1);
-                        if (userLine < 0) userLine = 0;
-                        AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
+                        AddToConsole("Zeile ?: Unbekannter Fehler (Hardcore-Modus aktiv)\n", Brushes.Red);
+                    }
+                    else
+                    {
+                        foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+                        {
+                            var lineSpan = diag.Location.GetLineSpan();
+                            int userLine = lineSpan.StartLinePosition.Line - (headerLineCount - 1);
+                            if (userLine < 0) userLine = 0;
+                            AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
+                        }
                     }
                 }
                 else if (result.Success)
                 {
+                    // write console output (if given)
+                    if (result.TestResult != null && !string.IsNullOrWhiteSpace((string)result.TestResult.ConsoleOutput))
+                    {
+                        AddToConsole((string)result.TestResult.ConsoleOutput + "\n", Brushes.Cyan);
+                    }
+
                     if (runDesignerTest)
                     {
                         // handle designer result
@@ -2701,9 +2767,17 @@ public partial class MainWindow : Window
         }
         else
         {
-            string msg = result.Error != null
-                ? result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message
-                : "Unbekannter Fehler";
+            string msg;
+            if (_isHardcoreMode)
+            {
+                msg = "Fehlgeschlagen (Hardcore-Modus aktiv).";
+            }
+            else
+            {
+                msg = result.Error != null
+                    ? result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message
+                    : (!string.IsNullOrEmpty((string)result.Feedback) ? result.Feedback : "Unbekannter Fehler");
+            }
             AddToConsole("⚠ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
         }
     }
@@ -3180,35 +3254,44 @@ public partial class MainWindow : Window
 
                 // format error
                 string displayFeedback = result.Feedback ?? "Unbekannter Fehler.";
-                if (Regex.IsMatch(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:", RegexOptions.IgnoreCase))
+
+                if (_isHardcoreMode)
                 {
-                    // strip unnecessary prefix
-                    displayFeedback = Regex.Replace(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:\s*", "",
-                        RegexOptions.IgnoreCase);
-
-                    // attempt to map the error to a line number by locating the problematic token
-                    var match = Regex.Match(displayFeedback, @"(?:column:|table:|near)\s*['""]?([a-zA-Z0-9_]+)['""]?",
-                        RegexOptions.IgnoreCase);
-                    if (match.Success && match.Groups.Count > 1)
+                    displayFeedback = "Fehlerhafte Query (Hardcore-Modus aktiv).";
+                }
+                else
+                {
+                    if (Regex.IsMatch(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:", RegexOptions.IgnoreCase))
                     {
-                        string tokenStr = match.Groups[1].Value;
-                        int index = userQuery.IndexOf(tokenStr, StringComparison.OrdinalIgnoreCase);
+                        // strip unnecessary prefix
+                        displayFeedback = Regex.Replace(displayFeedback, @"^(?:SQLite Error|SQL Fehler)\s*\d+:\s*", "",
+                            RegexOptions.IgnoreCase);
 
-                        if (index != -1)
+                        // attempt to map the error to a line number by locating the problematic token
+                        var match = Regex.Match(displayFeedback, @"(?:column:|table:|near)\s*['""]?([a-zA-Z0-9_]+)['""]?",
+                            RegexOptions.IgnoreCase);
+                        if (match.Success && match.Groups.Count > 1)
                         {
-                            int lineNumber = userQuery.Substring(0, index).Count(c => c == '\n') + 1;
+                            string tokenStr = match.Groups[1].Value;
+                            int index = userQuery.IndexOf(tokenStr, StringComparison.OrdinalIgnoreCase);
 
-                        // capitalize first letter if it is a letter
-                            if (displayFeedback.Length > 0 && char.IsLetter(displayFeedback[0]))
-                                displayFeedback = char.ToUpper(displayFeedback[0]) + displayFeedback.Substring(1);
+                            if (index != -1)
+                            {
+                                int lineNumber = userQuery.Substring(0, index).Count(c => c == '\n') + 1;
 
-                            displayFeedback = $"Zeile {lineNumber}: {displayFeedback}";
+                                // capitalize first letter if it is a letter
+                                if (displayFeedback.Length > 0 && char.IsLetter(displayFeedback[0]))
+                                    displayFeedback = char.ToUpper(displayFeedback[0]) + displayFeedback.Substring(1);
+
+                                displayFeedback = $"Zeile {lineNumber}: {displayFeedback}";
+                            }
                         }
                     }
                 }
 
                 DataTable expectedData = null;
-                if (levelContext.ExpectedResult != null && levelContext.ExpectedResult.Count > 0)
+                // hide expected table (diff) when hardcore mode is active
+                if (!_isHardcoreMode && levelContext.ExpectedResult != null && levelContext.ExpectedResult.Count > 0)
                 {
                     expectedData = new DataTable();
 
@@ -3983,5 +4066,56 @@ public static class CodeGuard
     public static void Check()
     {
         if (Token.IsCancellationRequested) throw new Exception("Ausführung durch Timeout oder Benutzer abgebrochen.");
+    }
+}
+
+public class Level25SleepRewriter : CSharpSyntaxRewriter
+{
+    public bool IsValid { get; private set; } = false;
+    public bool SleepFound { get; private set; } = false;
+
+    public override SyntaxNode VisitExpressionStatement(ExpressionStatementSyntax node)
+    {
+        if (node.Expression is InvocationExpressionSyntax invocation)
+        {
+            string text = invocation.Expression.ToString().Replace(" ", "");
+
+            // check if this is the 'Thread.Sleep' or 'Task.Delay' statement
+            if (text.EndsWith("Thread.Sleep") || text.EndsWith("Task.Delay") || text.EndsWith("Sleep") || text.EndsWith("Delay"))
+            {
+                SleepFound = true;
+
+                // verify its inside a block and grab previous and next statements
+                if (node.Parent is BlockSyntax block)
+                {
+                    int index = block.Statements.IndexOf(node);
+                    if (index > 0 && index < block.Statements.Count - 1)
+                    {
+                        var prev = block.Statements[index - 1];
+                        var next = block.Statements[index + 1];
+
+                        // check for exact placement between 'Unlock()' and 'Lock()'
+                        if (IsMethodCall(prev, "Unlock") && IsMethodCall(next, "Lock"))
+                        {
+                            IsValid = true;
+                            // remove the sleep statement entirely from the syntax tree
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+        return base.VisitExpressionStatement(node);
+    }
+
+    private bool IsMethodCall(StatementSyntax stmt, string methodName)
+    {
+        if (stmt is ExpressionStatementSyntax exprStmt &&
+            exprStmt.Expression is InvocationExpressionSyntax invocation)
+        {
+            string text = invocation.Expression.ToString();
+            return text.EndsWith("." + methodName) || text == methodName;
+        }
+        return false;
     }
 }
