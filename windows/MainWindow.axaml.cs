@@ -2395,7 +2395,7 @@ public partial class MainWindow : Window
                                     return (Success: true, Diagnostics: null, TestResult: new TestResult
                                     {
                                         Success = false,
-                                        Error = new Exception("Validierungs-Code blockiert: " + valSecurityResult.ErrorFeedback)
+                                        Error = new Exception("Validierungs-Code blockiert (unsicheres Level)!\n" + valSecurityResult.ErrorFeedback)
                                     });
                                 }
                             }

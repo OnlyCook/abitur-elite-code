@@ -28,11 +28,14 @@ public class TabDockManager
     private readonly Border _dropPreview;
     private readonly Border _reorderIndicator;
 
+    private readonly Cursor _dragCursor = new Cursor(StandardCursorType.SizeAll);
+
     private TabItem? _draggedTab;
     private TabControl? _sourceTabControl;
     private Point _dragStartPoint;
     private bool _isDragging;
     private Border? _ghostElement;
+    private bool _isReordering = false;
 
     private TabControl? _targetTabControl;
     private DockPosition _dockPosition = DockPosition.None;
@@ -100,7 +103,8 @@ public class TabDockManager
         if (_isDragging && _ghostElement != null)
         {
             // force size all cursor during entire drag duration
-            _window.Cursor = new Cursor(StandardCursorType.SizeAll);
+            if (_window.Cursor != _dragCursor)
+                _window.Cursor = _dragCursor;
 
             var pos = e.GetPosition(_window);
             Canvas.SetLeft(_ghostElement, pos.X + 10);
@@ -142,7 +146,13 @@ public class TabDockManager
             if (hint != null)
                 hint.Opacity = 0;
 
-        _window.Cursor = Cursor.Default;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!_isDragging)
+            {
+                _window.Cursor = null; // standard cursor
+            }
+        });
     }
 
     private void StartDrag()
@@ -181,19 +191,53 @@ public class TabDockManager
                     StrokeThickness = 2,
                     Opacity = 0,
                     IsHitTestVisible = false,
-                    ZIndex = 100
+                    ZIndex = 100,
+                    Transitions = new Avalonia.Animation.Transitions
+                    {
+                        new Avalonia.Animation.DoubleTransition
+                        {
+                            Property = Visual.OpacityProperty,
+                            Duration = TimeSpan.FromMilliseconds(150)
+                        }
+                    }
                 };
                 _indicatorsCanvas.Children.Add(_dockHints[i]);
             }
-            _dockHints[i].Opacity = 1;
         }
 
         _activeMorphDock = DockPosition.None;
         _animatingMorphDock = DockPosition.None;
         _morphProgress = 0;
-        UpdateDockHintsGeometry();
+        _isReordering = false;
 
-        _window.Cursor = new Cursor(StandardCursorType.SizeAll);
+        UpdateDockHintsGeometry();
+        UpdateDockHintsState();
+
+        if (_window.Cursor != _dragCursor)
+            _window.Cursor = _dragCursor;
+    }
+
+    private void UpdateDockHintsState()
+    {
+        // fade to low opacity when the blue reorder indicator is showing
+        double baseOpacity = _isReordering ? 0.15 : 1.0;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (_dockHints[i] == null) continue;
+
+            DockPosition pos = i == 0 ? DockPosition.Left : i == 1 ? DockPosition.Right : i == 2 ? DockPosition.Top : DockPosition.Bottom;
+
+            if (_activeMorphDock != DockPosition.None)
+            {
+                bool isMorphed = (_activeMorphDock == pos);
+                _dockHints[i].Opacity = isMorphed ? baseOpacity : 0.0;
+            }
+            else
+            {
+                _dockHints[i].Opacity = baseOpacity;
+            }
+        }
     }
 
     private void UpdateDropIndicators(Point pointerPos)
@@ -249,11 +293,18 @@ public class TabDockManager
                     _activeMorphDock = _dockPosition;
                     _animatingMorphDock = _dockPosition;
                     StartMorphAnimation();
+                    UpdateDockHintsState();
                 }
 
-                _dropPreview.Opacity = 0; // hide regular preview since the morph handles it
+                _dropPreview.Opacity = 0;
                 _reorderIndicator.Opacity = 0;
-                return; // skip normal tab control hit testing
+
+                if (_isReordering != false)
+                {
+                    _isReordering = false;
+                    UpdateDockHintsState();
+                }
+                return;
             }
         }
 
@@ -262,6 +313,7 @@ public class TabDockManager
         {
             _activeMorphDock = DockPosition.None;
             StartMorphAnimation();
+            UpdateDockHintsState();
         }
 
         foreach (var tc in GetTabControls(_container))
@@ -337,7 +389,7 @@ public class TabDockManager
                         double itemBottom = itemTop + visibleItems[i].Bounds.Height;
 
                         // check if pointer is in this row (using small vertical buffer)
-                        if (pointerPos.Y <= itemBottom + 4)
+                        if (pointerPos.Y <= itemBottom + 12)
                         {
                             double centerX = topLeft.Value.X + (visibleItems[i].Bounds.Width / 2);
                             if (pointerPos.X < centerX)
@@ -518,6 +570,12 @@ public class TabDockManager
 
         _dropPreview.Opacity = showPreview ? 1 : 0;
         _reorderIndicator.Opacity = showReorder ? 1 : 0;
+
+        if (_isReordering != showReorder)
+        {
+            _isReordering = showReorder;
+            UpdateDockHintsState();
+        }
     }
 
     private bool IsRedundantDock(DockPosition pos)
@@ -1102,16 +1160,6 @@ public class TabDockManager
 
             // pop the active morphing shape to the front so it overlaps others cleanly
             _dockHints[i].ZIndex = isMorphed ? 101 : 100;
-
-            // fade out the non-active hints smoothly while morphing
-            if (_animatingMorphDock != DockPosition.None && !isMorphed)
-            {
-                _dockHints[i].Opacity = 1.0 - t;
-            }
-            else
-            {
-                _dockHints[i].Opacity = 1.0;
-            }
         }
     }
 }

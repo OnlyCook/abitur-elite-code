@@ -1062,7 +1062,7 @@
 						</Border>
 
 						<Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,10">
-							<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+							<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" MinHeight="36">
 
 								<Panel>
 									<Button Name="BtnInbox"
@@ -1094,10 +1094,12 @@
 										CornerRadius="5" Click="BtnReset_Click" ToolTip.Tip="Code zurücksetzen">
 									<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20" />
 								</Button>
+
 								<Button Name="BtnSave" Background="#464646" Width="50"
 										CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern (Ctrl + S)">
 									<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20" />
 								</Button>
+
 								<Button Name="BtnRun" Background="#32A852" Foreground="White"
 										FontWeight="Bold"
 										Padding="15,8" CornerRadius="5" Click="BtnRun_Click" Width="135"
