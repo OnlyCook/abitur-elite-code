@@ -10,6 +10,8 @@ using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -60,11 +62,12 @@ public partial class SettingsWindow : Window
     private TextBlock _txtGithubStatus = null!;
 
     private Control _editorPanel = null!;
-    private StackPanel _displayPanel = null!;
+    private Control _displayPanel = null!;
     private Control _dataPanel = null!;
     private Control _updatesPanel = null!;
     private Button _btnScrollTop = null!;
-    private StackPanel _miscPanel = null!;
+    private Control _miscPanel = null!;
+    private bool _isUpdatingAutoUpdateUi = false;
 
     // github community
     private const string ClientId = "Ov23liAiILTN73TYZ1cj";
@@ -982,8 +985,8 @@ public partial class SettingsWindow : Window
         });
         scaleRow.Children.Add(scaleValPanel);
 
-        _displayPanel = new StackPanel { Spacing = 15 };
-        _displayPanel.Children.Add(new TextBlock
+        var innerDisplayPanel = new StackPanel { Spacing = 15 };
+        innerDisplayPanel.Children.Add(new TextBlock
         {
             Text = "Darstellung",
             FontSize = 18,
@@ -991,20 +994,27 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _displayPanel.Children.Add(new TextBlock
+        innerDisplayPanel.Children.Add(new TextBlock
         {
             Text = "UI Skalierung",
             Foreground = Brushes.LightGray
         });
-        _displayPanel.Children.Add(scaleRow);
-        _displayPanel.Children.Add(new Border
+        innerDisplayPanel.Children.Add(scaleRow);
+        innerDisplayPanel.Children.Add(new Border
         {
             Height = 1,
             Background = SolidColorBrush.Parse("#333"),
             Margin = new Thickness(0, 10, 0, 10)
         });
-        _displayPanel.Children.Add(chkAutoSaveLayout);
-        _displayPanel.Children.Add(btnResetLayout);
+        innerDisplayPanel.Children.Add(chkAutoSaveLayout);
+        innerDisplayPanel.Children.Add(btnResetLayout);
+
+        _displayPanel = new ScrollViewer
+        {
+            Content = innerDisplayPanel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
     }
 
     private void BuildDataPanel()
@@ -1058,14 +1068,118 @@ public partial class SettingsWindow : Window
             Margin = new Thickness(0, 15, 0, 15)
         });
 
-        innerContentPanel.Children.Add(new TextBlock
+        // backup header with filter button
+        var backupHeaderGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto, *"),
+            ColumnSpacing = 5
+        };
+
+        backupHeaderGrid.Children.Add(new TextBlock
         {
             Text = "Backup / Wiederherstellung",
             FontSize = 16,
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,
-            Margin = new Thickness(0, 0, 0, 10)
+            VerticalAlignment = VerticalAlignment.Center
         });
+
+        // advanced export options button
+        var btnFilterExport = new Button
+        {
+            Background = Brushes.Transparent,
+            Width = 32,
+            Height = 32,
+            Padding = new Thickness(0),
+            CornerRadius = new CornerRadius(16),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        Grid.SetColumn(btnFilterExport, 1);
+        ToolTip.SetTip(btnFilterExport, "Erweiterte Export-Einstellungen");
+
+        void UpdateFilterIcon()
+        {
+            bool isDefault = !_ctx.PlayerData.Settings.ExportIncludeLevels && !_ctx.PlayerData.Settings.ExportIncludeDrafts && _ctx.PlayerData.Settings.ExportIncludeCustomSave;
+            btnFilterExport.Content = _ctx.LoadIcon(isDefault ? "assets/icons/ic_filter.svg" : "assets/icons/ic_filter_filled.svg", 18);
+        }
+        UpdateFilterIcon();
+
+        btnFilterExport.Click += (_, _) =>
+        {
+            var flyout = new Flyout();
+            var flyoutPanel = new StackPanel
+            {
+                Spacing = 10,
+                Margin = new Thickness(5)
+            };
+
+            flyoutPanel.Children.Add(new TextBlock
+            {
+                Text = "Erweiterte Export-Einstellungen",
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(0, 0, 0, 5)
+            });
+
+            int levelCount = 0;
+            int draftCount = 0;
+            string levelsDir = SaveSystem.GetLevelsDirectory();
+
+            if (Directory.Exists(levelsDir))
+            {
+                levelCount = Directory.GetFiles(levelsDir, "*.*").Count(f => f.EndsWith(".elitelvl") || f.EndsWith(".eliteslvl"));
+                draftCount = Directory.GetFiles(levelsDir, "*.*").Count(f => f.EndsWith(".elitelvldraft") || f.EndsWith(".eliteslvldraft"));
+            }
+
+            var chkCustom = new CheckBox
+            {
+                Content = "Eigene Level Fortschritte einschließen",
+                IsChecked = _ctx.PlayerData.Settings.ExportIncludeCustomSave
+            };
+            var chkLevels = new CheckBox
+            {
+                Content = $"Levels-Ordner einschließen ({levelCount} Dateien)",
+                IsChecked = _ctx.PlayerData.Settings.ExportIncludeLevels
+            };
+            var chkDrafts = new CheckBox
+            {
+                Content = $"Level-Entwürfe einschließen ({draftCount} Dateien)",
+                IsChecked = _ctx.PlayerData.Settings.ExportIncludeDrafts,
+                Margin = new Thickness(20, 0, 0, 0),
+                IsEnabled = _ctx.PlayerData.Settings.ExportIncludeLevels
+            };
+
+            void ApplyFilterChanges()
+            {
+                _ctx.PlayerData.Settings.ExportIncludeCustomSave = chkCustom.IsChecked == true;
+                _ctx.PlayerData.Settings.ExportIncludeLevels = chkLevels.IsChecked == true;
+                _ctx.PlayerData.Settings.ExportIncludeDrafts = chkDrafts.IsChecked == true;
+                SaveSystem.Save(_ctx.PlayerData);
+                UpdateFilterIcon();
+            }
+
+            chkCustom.IsCheckedChanged += (_, _) => ApplyFilterChanges();
+
+            chkLevels.IsCheckedChanged += (_, _) =>
+            {
+                chkDrafts.IsEnabled = chkLevels.IsChecked == true;
+                if (chkLevels.IsChecked != true) chkDrafts.IsChecked = false;
+                ApplyFilterChanges();
+            };
+
+            chkDrafts.IsCheckedChanged += (_, _) => ApplyFilterChanges();
+
+            flyoutPanel.Children.Add(chkCustom);
+            flyoutPanel.Children.Add(chkLevels);
+            flyoutPanel.Children.Add(chkDrafts);
+            flyout.Content = flyoutPanel;
+
+            flyout.ShowAt(btnFilterExport);
+        };
+
+        backupHeaderGrid.Children.Add(btnFilterExport);
+        innerContentPanel.Children.Add(backupHeaderGrid);
 
         innerContentPanel.Children.Add(new TextBlock
         {
@@ -1142,7 +1256,7 @@ public partial class SettingsWindow : Window
 
         btnGenerateOffline.Click += (_, _) =>
         {
-            string rawCode = SaveSystem.ExportSaveString();
+            string rawCode = SaveSystem.ExportSaveString(_ctx.PlayerData.Settings);
             string formattedCode = $"AEC-SAVE-{DateTime.Now:dd.MM.yyyy}-{rawCode}";
 
             txtExport.Text = formattedCode;
@@ -1160,7 +1274,7 @@ public partial class SettingsWindow : Window
             btnGenerateOnline.Content = "Wird generiert...";
             btnGenerateOnline.IsEnabled = false;
 
-            string rawCode = SaveSystem.ExportSaveString();
+            string rawCode = SaveSystem.ExportSaveString(_ctx.PlayerData.Settings);
             string formattedCode = $"AEC-SAVE-{DateTime.Now:dd.MM.yyyy}-{rawCode}";
 
             string? shortId = await UploadToPastefy(formattedCode);
@@ -1510,7 +1624,7 @@ public partial class SettingsWindow : Window
         // event handlers
         _chkAutoUpdate.IsCheckedChanged += (_, _) =>
         {
-            if (AppSettings.IsCommunityFeaturesEnabled) return;
+            if (_isUpdatingAutoUpdateUi || AppSettings.IsCommunityFeaturesEnabled) return;
 
             AppSettings.AutoCheckForUpdates = _chkAutoUpdate.IsChecked ?? false;
             CheckChanges();
@@ -1883,6 +1997,7 @@ public partial class SettingsWindow : Window
             // update the visually enforced auto update checkbox
             if (_chkAutoUpdate != null)
             {
+                _isUpdatingAutoUpdateUi = true;
                 if (enabling)
                 {
                     _chkAutoUpdate.IsChecked = true;
@@ -1899,6 +2014,7 @@ public partial class SettingsWindow : Window
                     var wrapper = _chkAutoUpdate.Parent as Panel;
                     if (wrapper != null) ToolTip.SetTip(wrapper, null);
                 }
+                _isUpdatingAutoUpdateUi = false;
             }
 
             // save immediately
@@ -1941,8 +2057,8 @@ public partial class SettingsWindow : Window
             }
         };
 
-        _miscPanel = new StackPanel { Spacing = 15 };
-        _miscPanel.Children.Add(new TextBlock
+        var innerMiscPanel = new StackPanel { Spacing = 15 };
+        innerMiscPanel.Children.Add(new TextBlock
         {
             Text = "Sonstiges",
             FontSize = 18,
@@ -1950,16 +2066,23 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Margin = new Thickness(0, 0, 0, 10)
         });
-        _miscPanel.Children.Add(_chkSqlAntiSpoiler);
-        _miscPanel.Children.Add(_chkDiscordRpc);
-        _miscPanel.Children.Add(new Border
+        innerMiscPanel.Children.Add(_chkSqlAntiSpoiler);
+        innerMiscPanel.Children.Add(_chkDiscordRpc);
+        innerMiscPanel.Children.Add(new Border
         {
             Height = 1,
             Background = SolidColorBrush.Parse("#333"),
             Margin = new Thickness(0, 10, 0, 10)
         });
-        _miscPanel.Children.Add(_chkCommunityFeatures);
-        _miscPanel.Children.Add(_communitySubPanel);
+        innerMiscPanel.Children.Add(_chkCommunityFeatures);
+        innerMiscPanel.Children.Add(_communitySubPanel);
+
+        _miscPanel = new ScrollViewer
+        {
+            Content = innerMiscPanel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
 
         UpdateGithubUiState();
     }

@@ -590,7 +590,11 @@ public partial class MainWindow
             // save to files (include scrambledId in filename to prevent os file conflicts)
             string safeName = string.Join("_", meta.Title.Split(Path.GetInvalidFileNameChars()));
             string filename = $"{safeName}_{scrambledId}.{(_isSqlMode ? "eliteslvl" : "elitelvl")}";
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels", filename);
+
+            string levelsDir = SaveSystem.GetLevelsDirectory();
+            if (!Directory.Exists(levelsDir)) Directory.CreateDirectory(levelsDir);
+
+            string path = Path.Combine(levelsDir, filename);
 
             File.WriteAllText(path, reEncrypted);
 

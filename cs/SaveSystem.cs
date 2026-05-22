@@ -39,6 +39,11 @@ public class PlayerSettings
     [SettingKey("savedlayout")] public string SavedAppLayout { get; set; } = "";
     [SettingKey("designersavedlayout")] public string DesignerSavedAppLayout { get; set; } = "";
 
+    // --- Daten ---
+    [SettingKey("explevels")] public bool ExportIncludeLevels { get; set; } = false;
+    [SettingKey("expdrafts")] public bool ExportIncludeDrafts { get; set; } = false;
+    [SettingKey("expcustom")] public bool ExportIncludeCustomSave { get; set; } = true;
+
     // --- Updates ---
     [SettingKey("autoupdate")] public bool AutoCheckForUpdates { get; set; } = true;
 
@@ -160,6 +165,22 @@ public static class SaveSystem
         return GetActivePath() == RootPath;
     }
 
+    public static string GetLevelsDirectory()
+    {
+        return IsPortableModeEnabled()
+            ? Path.Combine(rootFolder, "levels")
+            : Path.Combine(appDataFolder, "levels");
+    }
+
+    private static void CopyDirectory(string sourceDir, string destinationDir)
+    {
+        Directory.CreateDirectory(destinationDir);
+        foreach (var file in Directory.GetFiles(sourceDir))
+            File.Copy(file, Path.Combine(destinationDir, Path.GetFileName(file)), true);
+        foreach (var dir in Directory.GetDirectories(sourceDir))
+            CopyDirectory(dir, Path.Combine(destinationDir, Path.GetFileName(dir)));
+    }
+
     public static bool CanWriteToRoot()
     {
         try
@@ -185,6 +206,15 @@ public static class SaveSystem
                 File.Copy(AppDataPath, RootPath, true);
             else
                 Save(new PlayerData(), RootPath);
+
+            // move levels folder
+            string appDataLevels = Path.Combine(appDataFolder, "levels");
+            string rootLevels = Path.Combine(rootFolder, "levels");
+            if (Directory.Exists(appDataLevels))
+            {
+                CopyDirectory(appDataLevels, rootLevels);
+                Directory.Delete(appDataLevels, true);
+            }
         }
         else
         {
@@ -195,23 +225,57 @@ public static class SaveSystem
                 File.Copy(RootPath, AppDataPath, true);
                 File.Delete(RootPath);
             }
+
+            // move levels folder
+            string appDataLevels = Path.Combine(appDataFolder, "levels");
+            string rootLevels = Path.Combine(rootFolder, "levels");
+            if (Directory.Exists(rootLevels))
+            {
+                CopyDirectory(rootLevels, appDataLevels);
+                Directory.Delete(rootLevels, true);
+            }
         }
     }
 
-    public static string ExportSaveString()
+    public static string ExportSaveString(PlayerSettings settings = null)
     {
         var dict = new Dictionary<string, string>();
         string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+
+        bool includeCustom = settings?.ExportIncludeCustomSave ?? true;
+        bool includeLevels = settings?.ExportIncludeLevels ?? false;
+        bool includeDrafts = settings?.ExportIncludeDrafts ?? false;
 
         // use short keys to optimize compression length
         string sPath = Path.Combine(dir, "savegame.elitedata");
         if (File.Exists(sPath)) dict["s"] = File.ReadAllText(sPath);
 
-        string cPath = Path.Combine(dir, "customsave.elitedata");
-        if (File.Exists(cPath)) dict["c"] = File.ReadAllText(cPath);
+        if (includeCustom)
+        {
+            string cPath = Path.Combine(dir, "customsave.elitedata");
+            if (File.Exists(cPath)) dict["c"] = File.ReadAllText(cPath);
+        }
 
         string ccPath = Path.Combine(dir, "communitycache.elitedata");
         if (File.Exists(ccPath)) dict["cc"] = File.ReadAllText(ccPath);
+
+        if (includeLevels)
+        {
+            string levelsDir = GetLevelsDirectory();
+            if (Directory.Exists(levelsDir))
+            {
+                var levelFiles = Directory.GetFiles(levelsDir).Where(f => f.EndsWith(".elitelvl") || f.EndsWith(".eliteslvl"));
+                foreach (var lf in levelFiles)
+                    dict["l:" + Path.GetFileName(lf)] = File.ReadAllText(lf);
+
+                if (includeDrafts)
+                {
+                    var draftFiles = Directory.GetFiles(levelsDir).Where(f => f.EndsWith(".elitelvldraft") || f.EndsWith(".eliteslvldraft"));
+                    foreach (var df in draftFiles)
+                        dict["d:" + Path.GetFileName(df)] = File.ReadAllText(df);
+                }
+            }
+        }
 
         string json = System.Text.Json.JsonSerializer.Serialize(dict);
         byte[] bytes = Encoding.UTF8.GetBytes(json);
@@ -241,10 +305,20 @@ public static class SaveSystem
             BackupCurrentSave();
 
             string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
+            string levelsDir = GetLevelsDirectory();
 
-            if (dict.TryGetValue("s", out var sData)) File.WriteAllText(Path.Combine(dir, "savegame.elitedata"), sData);
-            if (dict.TryGetValue("c", out var cData)) File.WriteAllText(Path.Combine(dir, "customsave.elitedata"), cData);
-            if (dict.TryGetValue("cc", out var ccData)) File.WriteAllText(Path.Combine(dir, "communitycache.elitedata"), ccData);
+            foreach (var kvp in dict)
+            {
+                if (kvp.Key == "s") File.WriteAllText(Path.Combine(dir, "savegame.elitedata"), kvp.Value);
+                else if (kvp.Key == "c") File.WriteAllText(Path.Combine(dir, "customsave.elitedata"), kvp.Value);
+                else if (kvp.Key == "cc") File.WriteAllText(Path.Combine(dir, "communitycache.elitedata"), kvp.Value);
+                else if (kvp.Key.StartsWith("l:") || kvp.Key.StartsWith("d:"))
+                {
+                    if (!Directory.Exists(levelsDir)) Directory.CreateDirectory(levelsDir);
+                    string fileName = kvp.Key.Substring(2);
+                    File.WriteAllText(Path.Combine(levelsDir, fileName), kvp.Value);
+                }
+            }
 
             return true;
         }

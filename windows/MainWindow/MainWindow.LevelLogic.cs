@@ -2147,7 +2147,7 @@ public partial class MainWindow
 
     private void OpenLevelsFolder()
     {
-        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+        string path = SaveSystem.GetLevelsDirectory();
         if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
         try
@@ -2167,7 +2167,7 @@ public partial class MainWindow
     private List<CustomLevelInfo> GetCustomLevels()
     {
         var list = new List<CustomLevelInfo>();
-        string rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+        string rootPath = SaveSystem.GetLevelsDirectory();
 
         if (!Directory.Exists(rootPath)) return list;
 
@@ -2556,7 +2556,7 @@ public partial class MainWindow
                         string name = nameProp.GetString();
                         string safeName = string.Join("_", name.Split(Path.GetInvalidFileNameChars()));
                         string filename = $"{safeName}.{(_isSqlMode ? "eliteslvldraft" : "elitelvldraft")}";
-                        string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+                        string dir = SaveSystem.GetLevelsDirectory();
                         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                         string path = Path.Combine(dir, filename);
@@ -2579,7 +2579,7 @@ public partial class MainWindow
 
                     string safeName = string.Join("_", txtName.Text.Split(Path.GetInvalidFileNameChars()));
                     string filename = $"{safeName}.{(_isSqlMode ? "eliteslvldraft" : "elitelvldraft")}";
-                    string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels");
+                    string dir = SaveSystem.GetLevelsDirectory();
                     if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                     string path = Path.Combine(dir, filename);
