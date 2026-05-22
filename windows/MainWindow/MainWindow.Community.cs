@@ -9,7 +9,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using HarfBuzzSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -35,6 +34,7 @@ public partial class MainWindow
     private CancellationTokenSource? _offlineCts;
     private bool _isKnownOffline = false;
     private CancellationTokenSource? _fullQueueCts;
+    private CancellationTokenSource? _notFoundCts;
 
     private TextBlock? _cooldownLabel;
     private CancellationTokenSource? _cooldownCts;
@@ -47,7 +47,9 @@ public partial class MainWindow
     private HashSet<string> _expandedCommentIds = new();
     private Control? _currentActiveTopLevelComment = null;
 
-    private DispatcherTimer? _activeDiscussionRefreshTimer;
+    private DateTime _commentsOpenedAt = DateTime.MinValue;
+    private TimeSpan _accumulatedCommentsOpenTime = TimeSpan.Zero;
+    private DispatcherTimer? _commentsRefreshHintTimer;
 
     private static string _draftSupportMessage = string.Empty;
     private static string _draftReportReason = string.Empty;
@@ -152,6 +154,40 @@ public partial class MainWindow
 
         if (TxtCommunityOutdatedStatus != null)
             TxtCommunityOutdatedStatus.IsVisible = true;
+    }
+
+    private async Task ShowCommunityNotFoundBannerAsync()
+    {
+        _notFoundCts?.Cancel();
+        _notFoundCts?.Dispose();
+        _notFoundCts = new CancellationTokenSource();
+        var token = _notFoundCts.Token;
+
+        BtnLike.IsEnabled = false;
+        BtnDislike.IsEnabled = false;
+        BtnToggleComments.IsEnabled = false;
+        PnlCommentsSection.IsVisible = false;
+        SetCommunitySkeletonsVisible(false);
+
+        PnlCommunityActions.IsVisible = true;
+        if (TxtCommunityOfflineStatus != null) TxtCommunityOfflineStatus.IsVisible = false;
+        if (TxtCommunityOutdatedStatus != null) TxtCommunityOutdatedStatus.IsVisible = false;
+        if (TxtCommunityFullQueueStatus != null) TxtCommunityFullQueueStatus.IsVisible = false;
+
+        var txtNotFound = this.FindControl<TextBlock>("TxtCommunityNotFoundStatus");
+        if (txtNotFound != null) txtNotFound.IsVisible = true;
+
+        try
+        {
+            await Task.Delay(3000, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (txtNotFound != null) txtNotFound.IsVisible = false;
+        PnlCommunityActions.IsVisible = false;
     }
 
     private void FlushPendingDebounces()
@@ -277,9 +313,23 @@ public partial class MainWindow
 
     private async Task UpdateCommunityUIAsync(string levelId, bool isSql, bool forceFetch = false)
     {
+        // cancel any pending banner auto-hide tasks to prevent them from bleeding into the new level
+        _offlineCts?.Cancel();
+        _notFoundCts?.Cancel();
+        _fullQueueCts?.Cancel();
+
         Debug.WriteLine("[Debug] Fetching level " + levelId);
 
         // reset comment section and active discussion, but keep the panel visible
+        if (PnlCommentsSection.IsVisible)
+        {
+            if (_commentsOpenedAt != DateTime.MinValue)
+            {
+                _accumulatedCommentsOpenTime += (DateTime.Now - _commentsOpenedAt);
+                _commentsOpenedAt = DateTime.MinValue;
+            }
+        }
+
         PnlCommentsSection.IsVisible = false;
         _currentActiveDiscussionId = -1;
 
@@ -352,6 +402,9 @@ public partial class MainWindow
 
         var txtOutdated = this.FindControl<TextBlock>("TxtCommunityOutdatedStatus");
         if (txtOutdated != null) txtOutdated.IsVisible = false;
+
+        var txtNotFound = this.FindControl<TextBlock>("TxtCommunityNotFoundStatus");
+        if (txtNotFound != null) txtNotFound.IsVisible = false;
 
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
@@ -479,6 +532,14 @@ public partial class MainWindow
                     {
                         var discussion = repo.GetProperty("discussion");
 
+                        if (discussion.ValueKind == JsonValueKind.Null)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(async () => {
+                                await ShowCommunityNotFoundBannerAsync();
+                            });
+                            return;
+                        }
+
                         if (!fetchNextPage)
                         {
                             cache.DiscussionNodeId = discussion.GetProperty("id").GetString();
@@ -598,15 +659,6 @@ public partial class MainWindow
                 if (cache != null && PnlCommentsSection != null && PnlCommentsSection.IsVisible)
                 {
                     BtnLoadMoreComments.IsVisible = (_visibleCommentsCount < cache.Comments.Count) || cache.HasNextPage;
-                }
-
-                if (_activeDiscussionRefreshTimer != null)
-                {
-                    _activeDiscussionRefreshTimer.Stop();
-                    if (PnlCommentsSection != null && PnlCommentsSection.IsVisible)
-                    {
-                        _activeDiscussionRefreshTimer.Start();
-                    }
                 }
             });
         }
@@ -825,22 +877,50 @@ public partial class MainWindow
         }
 
         PnlCommentsSection.IsVisible = !PnlCommentsSection.IsVisible;
-        IconToggleComments.Path = PnlCommentsSection.IsVisible ? "/assets/icons/ic_comment_hide.svg" : "/assets/icons/ic_comment.svg";
+
+        // reset tooltip proactively
+        ToolTip.SetTip(BtnToggleComments, null);
 
         if (!PnlCommentsSection.IsVisible && BtnScrollTopComments != null)
         {
             BtnScrollTopComments.IsVisible = false;
         }
 
-        if (PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
+        if (PnlCommentsSection.IsVisible)
         {
-            _activeDiscussionRefreshTimer?.Stop();
-            _activeDiscussionRefreshTimer?.Start();
-            RenderCachedComments();
+            IconToggleComments.Path = "/assets/icons/ic_comment_hide.svg";
+            _commentsOpenedAt = DateTime.Now;
+
+            if (_currentActiveDiscussionId != -1)
+            {
+                RenderCachedComments();
+
+                double remainingSeconds = 20 - _accumulatedCommentsOpenTime.TotalSeconds;
+                if (remainingSeconds <= 0)
+                {
+                    _accumulatedCommentsOpenTime = TimeSpan.Zero;
+                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                    _ = FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
+
+                    // restart hint timer for the new valid viewing session
+                    StartCommentsRefreshHintTimer(20);
+                }
+                else
+                {
+                    StartCommentsRefreshHintTimer(remainingSeconds);
+                }
+            }
         }
         else
         {
-            _activeDiscussionRefreshTimer?.Stop();
+            IconToggleComments.Path = "/assets/icons/ic_comment.svg";
+            _commentsRefreshHintTimer?.Stop();
+
+            if (_commentsOpenedAt != DateTime.MinValue)
+            {
+                _accumulatedCommentsOpenTime += (DateTime.Now - _commentsOpenedAt);
+                _commentsOpenedAt = DateTime.MinValue;
+            }
         }
     }
 
@@ -1547,8 +1627,7 @@ public partial class MainWindow
             };
             var spoilerContent = new StackPanel
             {
-                IsVisible = false,
-                Margin = new Thickness(0, 10, 0, 0)
+                IsVisible = false
             };
 
             MarkdownRenderer.RenderMarkdownToPanel(spoilerContent, bodyToRender, _isSqlMode, true);
@@ -2966,21 +3045,6 @@ public partial class MainWindow
             }
         };
         _notificationPollTimer.Start();
-
-        // fast refresh timer for actively open discussion
-        _activeDiscussionRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
-        _activeDiscussionRefreshTimer.Tick += async (s, e) =>
-        {
-            if (this.IsActive && PnlCommentsSection != null && PnlCommentsSection.IsVisible && _currentActiveDiscussionId != -1)
-            {
-                if (!_isFetchingComments && _apiQueueInFlight == 0 && !UpdateManager.IsOutdated)
-                {
-                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-                    await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
-                }
-            }
-        };
-        _activeDiscussionRefreshTimer.Start();
 
         // trigger initial poll shortly after startup
         Task.Run(async () =>
@@ -4466,7 +4530,6 @@ public partial class MainWindow
                 BtnCommunityDiscussionMenu.IsVisible = false;
                 PnlCommunityActions.IsVisible = false;
                 PnlCommentsSection.IsVisible = false;
-                _activeDiscussionRefreshTimer?.Stop();
             }
             else
             {
@@ -4608,5 +4671,22 @@ public partial class MainWindow
         stack.Children.Add(btnPanel);
         dialog.Content = stack;
         await dialog.ShowDialog(this);
+    }
+
+    private void StartCommentsRefreshHintTimer(double seconds)
+    {
+        _commentsRefreshHintTimer?.Stop();
+        _commentsRefreshHintTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
+        _commentsRefreshHintTimer.Tick += (senderTimer, args) =>
+        {
+            _commentsRefreshHintTimer.Stop();
+            if (PnlCommentsSection != null && PnlCommentsSection.IsVisible)
+            {
+                if (IconToggleComments != null)
+                    IconToggleComments.Path = "/assets/icons/ic_comment_hide_old.svg";
+                ToolTip.SetTip(BtnToggleComments, "Schließen und erneut öffnen, um neue Kommentare zu laden");
+            }
+        };
+        _commentsRefreshHintTimer.Start();
     }
 }

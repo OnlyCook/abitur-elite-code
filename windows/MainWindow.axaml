@@ -398,6 +398,7 @@
 											<StackPanel>
 												<TextBlock Name="TxtCommunityOutdatedStatus	" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityNotFoundStatus" Text="Level-Diskussion nicht gefunden" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
 													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen" Foreground="#6495ED" FontStyle="Italic" TextDecorations="Underline" />

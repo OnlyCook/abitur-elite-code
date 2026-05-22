@@ -138,7 +138,7 @@ public partial class MainWindow
                 }
             }
 
-            // fetch discussions using the retrieved categoryId
+            // fetch discussions using categoryId (bulk fetch all so we can properly sort)
             string cursor = null;
             bool hasNext = true;
 
@@ -398,6 +398,7 @@ public partial class MainWindow
                     var localLvl = localCustomLevels.FirstOrDefault(cl => (cl.Name == uniqueName || cl.Name == m.Title) && cl.Author == m.Author);
                     if (localLvl != null)
                     {
+                        _openedViaCommunityBrowser = true;
                         LoadCustomLevelFromFile(localLvl.FilePath);
                         win.Close();
                     }

@@ -540,8 +540,17 @@ public partial class MainWindow
         levels ??= Curriculum.GetLevels();
 
         var win = new LevelSelector();
-        bool isCustomMode = false;
+        bool isCustomMode = _isCustomLevelMode;
         bool isCommunityMode = false;
+
+        // contextually open community browser if the level was loaded from there previously
+        if (isCustomMode && _openedViaCommunityBrowser)
+        {
+            if (!UpdateManager.IsOutdated && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                isCommunityMode = true;
+            }
+        }
 
         var btnToggleCommunity = win.FindControl<Button>("BtnToggleCommunity");
         var iconToggleCommunity = win.FindControl<Avalonia.Svg.Skia.Svg>("IconToggleCommunity");
@@ -1297,6 +1306,7 @@ public partial class MainWindow
                         {
                             if (!cl.IsDraft)
                             {
+                                _openedViaCommunityBrowser = false;
                                 LoadCustomLevelFromFile(cl.FilePath);
                                 win.Close();
                             }
@@ -1775,6 +1785,23 @@ public partial class MainWindow
         }
 
         RefreshUI();
+
+        // fetch data initially if contextual community mode was evaluated to true
+        if (isCommunityMode)
+        {
+            iconToggleCommunity.Path = "/assets/icons/ic_return.svg";
+            btnToggleCommunity.Background = SolidColorBrush.Parse("#3C3C3C");
+            ToolTip.SetTip(btnToggleCommunity, "Zurück zu eigenen Levels");
+
+            DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
+            bool isCooldownOver = (DateTime.Now - lastFetch).TotalSeconds >= 60;
+
+            if (_communityMetadataCache.Count == 0 || isCooldownOver)
+            {
+                _ = FetchCommunityMetadataAsync(win);
+            }
+        }
+
         win.ShowDialog(this);
         CodeEditor.Focus();
     }
@@ -1957,13 +1984,11 @@ public partial class MainWindow
 
         GenerateMaterials(level, _isCustomLevelMode ? _currentCustomSvgs : null);
 
-        TxtConsole.Inlines?.Clear();
-
         if (!_isCustomLevelMode)
             AddToConsole($"> System initialisiert.\n> Level {level.Id} (Code: {level.SkipCode}) geladen.",
-                Brushes.LightGray);
+                Brushes.LightGray, true);
         else
-            AddToConsole("> System initialisiert.", Brushes.LightGray);
+            AddToConsole("> System initialisiert.", Brushes.LightGray, true);
 
         DiscordRpcManager.ResetTimer();
         if (_isCustomLevelMode)

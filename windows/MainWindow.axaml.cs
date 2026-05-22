@@ -100,6 +100,7 @@ public partial class MainWindow : Window
     private bool _isDragging;
     private bool _isDraggingSplitter;
     private bool _isKeyboardTabSwitch;
+    private bool _openedViaCommunityBrowser = false;
 
     private bool _isLoadingDesigner;
 
@@ -802,6 +803,10 @@ public partial class MainWindow : Window
             }
         }
 
+        // save app-layout
+        if (AppSettings.IsLayoutAutoSaveEnabled && !_isRestoringLayout)
+            SaveAppLayout();
+
         base.OnClosing(e);
     }
 
@@ -984,10 +989,15 @@ public partial class MainWindow : Window
         ToolTip.SetTip(BtnRun, $"Ausführen (F5{(_isSqlMode ? $" / {ctrlKey} + Enter" : "")})");
     }
 
-    private void AddToConsole(string text, IBrush color)
+    private void AddToConsole(string text, IBrush color, bool clearFirst = false)
     {
         Dispatcher.UIThread.Post(() =>
         {
+            if (clearFirst)
+            {
+                TxtConsole.Inlines?.Clear();
+            }
+
             TxtConsole.Inlines ??= new InlineCollection();
 
             // split text to use explicit linebreaks
