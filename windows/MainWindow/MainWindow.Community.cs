@@ -4465,6 +4465,8 @@ public partial class MainWindow
 
                 BtnCommunityDiscussionMenu.IsVisible = false;
                 PnlCommunityActions.IsVisible = false;
+                PnlCommentsSection.IsVisible = false;
+                _activeDiscussionRefreshTimer?.Stop();
             }
             else
             {

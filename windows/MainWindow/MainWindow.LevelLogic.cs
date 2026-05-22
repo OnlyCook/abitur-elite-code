@@ -1149,7 +1149,8 @@ public partial class MainWindow
                             foreach (var item in groupPanel.Children)
                                 if (item is Grid row && row.Tag is CustomLevelInfo info)
                                 {
-                                    bool match = info.Name.ToLower().Contains(query) ||
+                                    // use clean name for search
+                                    bool match = GetCleanLevelName(info.Name).ToLower().Contains(query) ||
                                                  info.Author.ToLower().Contains(query);
                                     row.IsVisible = match;
                                     if (match) groupHasMatch = true;
@@ -1161,7 +1162,8 @@ public partial class MainWindow
                         }
                         else if (child is Grid row && row.Tag is CustomLevelInfo info)
                         {
-                            bool match = info.Name.ToLower().Contains(query) || info.Author.ToLower().Contains(query);
+                            // use clean name for search
+                            bool match = GetCleanLevelName(info.Name).ToLower().Contains(query) || info.Author.ToLower().Contains(query);
                             row.IsVisible = match;
                         }
                 };
@@ -1241,10 +1243,11 @@ public partial class MainWindow
                         var textStack = new StackPanel { Spacing = 2 };
                         Grid.SetColumn(textStack, 1);
 
-                        string displayName = cl.Name;
+                        // use clean name for ui rendering
+                        string displayName = GetCleanLevelName(cl.Name);
                         if (_isSqlMode && AppSettings.IsSqlAntiSpoilerEnabled && cl.Section != null &&
                             !cl.Section.StartsWith("Sektion 7"))
-                            displayName = Regex.Replace(cl.Name, @"\s*\(.*?\)", "").Trim();
+                            displayName = Regex.Replace(displayName, @"\s*\(.*?\)", "").Trim();
 
                         textStack.Children.Add(new TextBlock
                         {
@@ -1339,7 +1342,7 @@ public partial class MainWindow
                                 {
                                     if (_isSqlMode)
                                     {
-                                        LogToMiniConsole($"> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray, false);
+                                        LogToMiniConsole($"> Quick Export gestartet für: {GetCleanLevelName(cl.Name)}...", Brushes.LightGray, false);
                                         var draft = SqlLevelDesigner.LoadDraft(cl.FilePath);
 
                                         var validData = await Task.Run<(bool Success, List<SqlExpectedColumn> Schema, List<string[]> Result)>(() =>
@@ -1515,7 +1518,7 @@ public partial class MainWindow
 
                                         SqlLevelDesigner.ExportLevel(cl.FilePath, draft, validData.Schema, validData.Result);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        LogToMiniConsole($"✓ {cl.Name} erfolgreich exportiert!", Brushes.LightGreen, true);
+                                        LogToMiniConsole($"✓ {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
 
                                         _newlyCreatedLevelPath = cl.FilePath.Replace(".eliteslvldraft", ".eliteslvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
@@ -1523,7 +1526,7 @@ public partial class MainWindow
                                     }
                                     else
                                     {
-                                        LogToMiniConsole($"> Quick Export gestartet für: {cl.Name}...", Brushes.LightGray, false);
+                                        LogToMiniConsole($"> Quick Export gestartet für: {GetCleanLevelName(cl.Name)}...", Brushes.LightGray, false);
                                         var draft = LevelDesigner.LoadDraft(cl.FilePath);
 
                                         bool valid = await Task.Run(async () =>
@@ -1646,7 +1649,7 @@ public partial class MainWindow
                                         // export
                                         LevelDesigner.ExportLevel(cl.FilePath, draft);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        LogToMiniConsole($"✓ {cl.Name} erfolgreich exportiert!", Brushes.LightGreen, true);
+                                        LogToMiniConsole($"✓ {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
 
                                         _newlyCreatedLevelPath = cl.FilePath.Replace(".elitelvldraft", ".elitelvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
@@ -1659,7 +1662,7 @@ public partial class MainWindow
                                 catch (Exception ex)
                                 {
                                     string errorMsg = ex.Message;
-                                    LogToMiniConsole($"❌ Export Fehler ({cl.Name}): {errorMsg}", Brushes.Red, true, true, errorMsg);
+                                    LogToMiniConsole($"❌ Export Fehler ({GetCleanLevelName(cl.Name)}): {errorMsg}", Brushes.Red, true, true, errorMsg);
 
                                     btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
                                     btnQuickExport.IsEnabled = true;
@@ -1886,7 +1889,7 @@ public partial class MainWindow
             PnlTask.Children.Add(
                 new SelectableTextBlock
                 {
-                    Text = level.Title,
+                    Text = GetCleanLevelName(level.Title),
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
                     Foreground = BrushTextNormal,
@@ -1918,7 +1921,7 @@ public partial class MainWindow
             PnlTask.Children.Add(
                 new SelectableTextBlock
                 {
-                    Text = $"{level.Id}. {level.Title}",
+                    Text = $"{level.Id}. {GetCleanLevelName(level.Title)}",
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
                     Foreground = BrushTextNormal,
@@ -2635,7 +2638,7 @@ public partial class MainWindow
         };
         grid.Children.Add(new TextBlock
         {
-            Text = $"Möchtest du '{info.Name}' wirklich löschen?",
+            Text = $"Möchtest du '{GetCleanLevelName(info.Name)}' wirklich löschen?",
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center
@@ -3074,7 +3077,7 @@ public partial class MainWindow
         {
             PnlTask.Children.Add(new SelectableTextBlock
             {
-                Text = level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled),
+                Text = GetCleanLevelName(level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)),
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = BrushTextNormal,
@@ -3101,7 +3104,7 @@ public partial class MainWindow
             // standard level header
             PnlTask.Children.Add(new SelectableTextBlock
             {
-                Text = $"S{level.Id}. {level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)}",
+                Text = $"S{level.Id}. {GetCleanLevelName(level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled))}",
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
                 Foreground = BrushTextNormal,
@@ -3250,5 +3253,12 @@ public partial class MainWindow
 
             LoadLevel(startLevel);
         }
+    }
+
+    private string GetCleanLevelName(string rawName)
+    {
+        if (string.IsNullOrEmpty(rawName)) return rawName;
+        // removes the appended, scrambled discussionId from display name safely
+        return Regex.Replace(rawName, @" - [A-Za-z0-9\-_]{15,}$", "");
     }
 }

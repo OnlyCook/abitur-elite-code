@@ -310,8 +310,12 @@ public partial class MainWindow
                 Margin = new Thickness(0, 0, 0, 5)
             };
 
-            bool isDownloaded = localCustomLevels.Any(cl => cl.Name == m.Title && cl.Author == m.Author);
-            bool isCompleted = completedList.Contains(m.Title);
+            // calculate unique scrambled name to ensure backward and forward compatibility
+            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(m.NodeId)).Replace("=", "").Replace("+", "-").Replace("/", "_");
+            string uniqueName = $"{m.Title} - {scrambledId}";
+
+            bool isDownloaded = localCustomLevels.Any(cl => (cl.Name == uniqueName || cl.Name == m.Title) && cl.Author == m.Author);
+            bool isCompleted = completedList.Contains(uniqueName) || completedList.Contains(m.Title);
 
             string iconPath = isCompleted ? "assets/icons/ic_check.svg" : (isDownloaded ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_download.svg");
             var iconImage = LoadIcon(iconPath, 16);
@@ -391,7 +395,7 @@ public partial class MainWindow
                 if (isDownloaded)
                 {
                     // open the level and close the browser if its already downloaded
-                    var localLvl = localCustomLevels.FirstOrDefault(cl => cl.Name == m.Title && cl.Author == m.Author);
+                    var localLvl = localCustomLevels.FirstOrDefault(cl => (cl.Name == uniqueName || cl.Name == m.Title) && cl.Author == m.Author);
                     if (localLvl != null)
                     {
                         LoadCustomLevelFromFile(localLvl.FilePath);
@@ -403,28 +407,15 @@ public partial class MainWindow
                     if (_isDownloadingCommunityLevel) return;
                     _isDownloadingCommunityLevel = true;
 
-                    var cts = new System.Threading.CancellationTokenSource();
-                    var animTask = Task.Run(async () =>
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        int dotState = 0;
-                        string[] frames = { "assets/icons/ic_dot_left.svg", "assets/icons/ic_dot_middle.svg", "assets/icons/ic_dot_right.svg" };
-                        while (!cts.Token.IsCancellationRequested)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() =>
-                            {
-                                var newIcon = LoadIcon(frames[dotState], 16);
-                                newIcon.Margin = new Thickness(0, 0, 10, 0);
-                                newIcon.VerticalAlignment = VerticalAlignment.Center;
-                                btnContent.Children[0] = newIcon;
-                            });
-                            dotState = (dotState + 1) % 3;
-                            try { await Task.Delay(400, cts.Token); } catch { }
-                        }
-                    }, cts.Token);
+                        var pendingIcon = LoadIcon("assets/icons/ic_pending.svg", 16);
+                        pendingIcon.Margin = new Thickness(0, 0, 10, 0);
+                        pendingIcon.VerticalAlignment = VerticalAlignment.Center;
+                        btnContent.Children[0] = pendingIcon;
+                    });
 
                     bool success = await DownloadAndLoadCommunityLevelAsync(m, win);
-
-                    cts.Cancel();
 
                     if (!success)
                     {
@@ -588,12 +579,17 @@ public partial class MainWindow
             mutableDict["DiscussionNodeId"] = meta.NodeId;
             mutableDict["DiscussionNumber"] = meta.Number;
 
+            // generate scrambled id and append it to make level unique across downloads
+            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(meta.NodeId)).Replace("=", "").Replace("+", "-").Replace("/", "_");
+            if (mutableDict.ContainsKey("Name")) mutableDict["Name"] = $"{meta.Title} - {scrambledId}";
+            if (mutableDict.ContainsKey("Title")) mutableDict["Title"] = $"{meta.Title} - {scrambledId}";
+
             string updatedJson = JsonSerializer.Serialize(mutableDict);
             string reEncrypted = LevelEncryption.Encrypt(updatedJson);
 
-            // save to files
+            // save to files (include scrambledId in filename to prevent os file conflicts)
             string safeName = string.Join("_", meta.Title.Split(Path.GetInvalidFileNameChars()));
-            string filename = $"{safeName}.{(_isSqlMode ? "eliteslvl" : "elitelvl")}";
+            string filename = $"{safeName}_{scrambledId}.{(_isSqlMode ? "eliteslvl" : "elitelvl")}";
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "levels", filename);
 
             File.WriteAllText(path, reEncrypted);

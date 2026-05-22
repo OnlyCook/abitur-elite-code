@@ -466,6 +466,15 @@ public static class SaveSystem
 
     public static void SaveCustom(CustomPlayerData data)
     {
+        // merge existing completed levels so that deleting a file locally wont remove its solved status
+        try
+        {
+            CustomPlayerData existing = LoadCustom();
+            foreach (var comp in existing.CompletedCustomLevels) data.CompletedCustomLevels.Add(comp);
+            foreach (var comp in existing.CompletedCustomSqlLevels) data.CompletedCustomSqlLevels.Add(comp);
+        }
+        catch { }
+
         string path = CustomSavePath;
         string directory = Path.GetDirectoryName(path);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);

@@ -164,7 +164,7 @@ public partial class MainWindow : Window
     private Level currentLevel;
     private SqlLevel currentSqlLevel;
     private readonly CustomPlayerData customPlayerData;
-    private bool _isHardcoreMode = false;
+    private bool _isHardcoreMode = false; // would have to disable in designer
 
     private readonly ScaleTransform ImgScale;
     private readonly TranslateTransform ImgTranslate;

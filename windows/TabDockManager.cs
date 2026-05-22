@@ -220,7 +220,7 @@ public class TabDockManager
     private void UpdateDockHintsState()
     {
         // fade to low opacity when the blue reorder indicator is showing
-        double baseOpacity = _isReordering ? 0.15 : 1.0;
+        double baseOpacity = _isReordering ? 0.25 : 1.0;
 
         for (int i = 0; i < 4; i++)
         {
