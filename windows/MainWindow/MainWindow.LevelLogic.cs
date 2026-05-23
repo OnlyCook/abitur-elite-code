@@ -577,14 +577,34 @@ public partial class MainWindow
 
             if (isCommunityMode)
             {
-                // evaluate specific static variables to determine cooldown state properly
-                DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
-                bool isCooldownOver = (DateTime.Now - lastFetch).TotalSeconds >= 60;
+                bool hasInternet = await CheckRealConnectivityAsync();
+                bool wasOffline = _isOffline;
+                _isOffline = !hasInternet;
 
-                // refresh if cache is empty or cooldown has expired
-                if (_communityMetadataCache.Count == 0 || isCooldownOver)
+                DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
+                double remaining = 60 - (DateTime.Now - lastFetch).TotalSeconds;
+
+                var txtSearchBox = win.SearchContainer.Child as TextBox;
+                string searchTxt = txtSearchBox?.Text;
+
+                if (_isOffline)
                 {
-                    await FetchCommunityMetadataAsync(win);
+                    RenderCommunityBrowser(win, searchTxt);
+                }
+                else
+                {
+                    if (remaining > 0)
+                    {
+                        if (wasOffline)
+                        {
+                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false);
+                        }
+                        RenderCommunityBrowser(win, searchTxt);
+                    }
+                    else
+                    {
+                        await FetchCommunityMetadataAsync(win);
+                    }
                 }
             }
         };
@@ -686,6 +706,7 @@ public partial class MainWindow
         // ui refresh logic
         void RefreshUI()
         {
+            win.MiniConsolePanel.IsVisible = false;
             win.SearchContainer.Child = null;
             win.ContentScroll.Content = null;
             win.ContentScroll.IsVisible = !isCommunityMode;
@@ -844,8 +865,6 @@ public partial class MainWindow
 
             if (!isCustomMode)
             {
-                win.MiniConsolePanel.IsVisible = false;
-
                 // title and badge
                 if (_isSqlMode)
                 {
@@ -1793,13 +1812,38 @@ public partial class MainWindow
             btnToggleCommunity.Background = SolidColorBrush.Parse("#3C3C3C");
             ToolTip.SetTip(btnToggleCommunity, "Zurück zu eigenen Levels");
 
-            DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
-            bool isCooldownOver = (DateTime.Now - lastFetch).TotalSeconds >= 60;
-
-            if (_communityMetadataCache.Count == 0 || isCooldownOver)
+            Dispatcher.UIThread.Post(async () =>
             {
-                _ = FetchCommunityMetadataAsync(win);
-            }
+                bool hasInternet = await CheckRealConnectivityAsync();
+                bool wasOffline = _isOffline;
+                _isOffline = !hasInternet;
+
+                DateTime lastFetch = _isSqlMode ? _lastCommunityFetchTimeSql : _lastCommunityFetchTimeCs;
+                double remaining = 60 - (DateTime.Now - lastFetch).TotalSeconds;
+
+                var txtSearchBox = win.SearchContainer.Child as TextBox;
+                string searchTxt = txtSearchBox?.Text;
+
+                if (_isOffline)
+                {
+                    RenderCommunityBrowser(win, searchTxt);
+                }
+                else
+                {
+                    if (remaining > 0)
+                    {
+                        if (wasOffline)
+                        {
+                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false);
+                        }
+                        RenderCommunityBrowser(win, searchTxt);
+                    }
+                    else
+                    {
+                        await FetchCommunityMetadataAsync(win);
+                    }
+                }
+            });
         }
 
         win.ShowDialog(this);
@@ -2696,7 +2740,76 @@ public partial class MainWindow
             try
             {
                 if (File.Exists(info.FilePath))
+                {
+                    // unsubscribe from community level discussion and all its comments before deleting
+                    try
+                    {
+                        Debug.WriteLine("[Custom] Subscription Count Before: " + _communityCache.Subscriptions.Count);
+
+                        string json = File.ReadAllText(info.FilePath);
+                        if (!info.IsDraft && !json.TrimStart().StartsWith("{"))
+                            json = LevelEncryption.Decrypt(json);
+
+                        using (var doc = JsonDocument.Parse(json))
+                        {
+                            if (doc.RootElement.TryGetProperty("DiscussionNodeId", out var dNodeId))
+                            {
+                                string nodeId = dNodeId.GetString();
+                                if (!string.IsNullOrEmpty(nodeId))
+                                {
+                                    bool cacheChanged = false;
+
+                                    // unsubscribe from the main level
+                                    if (_communityCache.Subscriptions.Remove(nodeId))
+                                    {
+                                        cacheChanged = true;
+                                    }
+
+                                    // find all discussions in cache matching this nodeId to ensure we dont miss comments from duplicate/downloaded levels
+                                    var matchingCsDiscussions = _communityCache.CsharpDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == nodeId).ToList();
+                                    var matchingSqlDiscussions = _communityCache.SqlDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == nodeId).ToList();
+
+                                    foreach (var kvp in matchingCsDiscussions)
+                                    {
+                                        foreach (var comment in kvp.Value.Comments)
+                                        {
+                                            if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                                            foreach (var reply in comment.Replies)
+                                            {
+                                                if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                                            }
+                                        }
+                                        // remove the cache entry itself to prevent orphaned data
+                                        _communityCache.CsharpDiscussions.Remove(kvp.Key);
+                                        cacheChanged = true;
+                                    }
+
+                                    foreach (var kvp in matchingSqlDiscussions)
+                                    {
+                                        foreach (var comment in kvp.Value.Comments)
+                                        {
+                                            if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                                            foreach (var reply in comment.Replies)
+                                            {
+                                                if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                                            }
+                                        }
+                                        // remove the cache entry itself to prevent orphaned data
+                                        _communityCache.SqlDiscussions.Remove(kvp.Key);
+                                        cacheChanged = true;
+                                    }
+
+                                    if (cacheChanged) SaveSystem.SaveCommunityCache(_communityCache);
+                                }
+                            }
+                        }
+
+                        Debug.WriteLine("[Custom] Subscription Count After: " + _communityCache.Subscriptions.Count());
+                    }
+                    catch { }
+
                     File.Delete(info.FilePath);
+                }
 
                 // remove saved data for this level
                 if (!info.IsDraft)

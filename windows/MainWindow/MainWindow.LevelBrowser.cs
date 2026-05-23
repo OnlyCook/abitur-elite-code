@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AbiturEliteCode;
@@ -21,6 +22,8 @@ namespace AbiturEliteCode;
 public partial class MainWindow
 {
     private static bool _isDownloadingCommunityLevel = false;
+    private bool _isCommunityLoading = false;
+    private bool _isOffline = false;
 
     private string _currentCustomDiscussionNodeId = null;
     private int _currentCustomDiscussionNumber = -1;
@@ -59,12 +62,46 @@ public partial class MainWindow
     {
         if (UpdateManager.IsOutdated) return;
 
-        if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 60)
+        Window win = this;
+        if (sender is Control c && TopLevel.GetTopLevel(c) is Window vWin)
+            win = vWin;
+
+        bool hasInternet = await CheckRealConnectivityAsync();
+        bool wasOffline = _isOffline;
+        _isOffline = !hasInternet;
+
+        if (_isOffline)
         {
+            RenderCommunityBrowser(win);
             return;
         }
 
-        await FetchCommunityMetadataAsync(this);
+        double remaining = 60 - (DateTime.Now - _lastCommunityFetchTime).TotalSeconds;
+        if (remaining > 0)
+        {
+            if (wasOffline)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var panel = win.FindControl<Control>("MiniConsolePanel");
+                    var textBlock = win.FindControl<TextBlock>("MiniConsoleText");
+                    var btnCopy = win.FindControl<Button>("BtnMiniConsoleCopy");
+
+                    if (panel != null && textBlock != null && btnCopy != null)
+                    {
+                        panel.IsVisible = true;
+                        if (textBlock.Inlines != null) textBlock.Inlines.Clear();
+                        else textBlock.Inlines = new Avalonia.Controls.Documents.InlineCollection();
+
+                        ProcessTextWithEmojis($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.\n", Brushes.Orange, textBlock.Inlines);
+                        btnCopy.IsVisible = false;
+                    }
+                });
+            }
+            return;
+        }
+
+        await FetchCommunityMetadataAsync(win);
     }
 
     private async Task FetchCommunityMetadataAsync(Window win)
@@ -72,12 +109,20 @@ public partial class MainWindow
         if (UpdateManager.IsOutdated) return;
 
         if ((DateTime.Now - _lastCommunityFetchTime).TotalSeconds < 60) return;
+
+        var previousFetchTime = _lastCommunityFetchTime;
         _lastCommunityFetchTime = DateTime.Now;
 
+        _isCommunityLoading = true;
+        _isOffline = false;
+
         var loadingPanel = win.FindControl<StackPanel>("CommunityLoadingPanel");
-        loadingPanel.IsVisible = true;
+        if (loadingPanel != null) loadingPanel.IsVisible = true;
+
         if (_isSqlMode) _communityMetadataCacheSql.Clear();
         else _communityMetadataCacheCs.Clear();
+
+        RenderCommunityBrowser(win);
 
         string categoryId = _isSqlMode ? "DIC_kwDOSZnz_M4C9Il3" : "DIC_kwDOSZnz_M4C9Il2";
 
@@ -104,7 +149,10 @@ public partial class MainWindow
                 catRequest.Headers.UserAgent.ParseAdd("AbiturEliteCode");
 
                 var catResponse = await _httpClient.SendAsync(catRequest);
-                if (!catResponse.IsSuccessStatusCode) return;
+                if (!catResponse.IsSuccessStatusCode)
+                {
+                    return;
+                }
 
                 var respBody = await catResponse.Content.ReadAsStringAsync();
                 using var catDoc = JsonDocument.Parse(respBody);
@@ -173,7 +221,10 @@ public partial class MainWindow
                 request.Headers.UserAgent.ParseAdd("AbiturEliteCode");
 
                 var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode) break;
+                if (!response.IsSuccessStatusCode)
+                {
+                    break;
+                }
 
                 using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -259,11 +310,18 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
+            // only consider it offline if the ping actually fails
+            if (!await CheckRealConnectivityAsync())
+            {
+                _isOffline = true;
+                _lastCommunityFetchTime = previousFetchTime;
+            }
             Debug.WriteLine($"Failed to fetch community meta: {ex.Message}");
         }
         finally
         {
-            loadingPanel.IsVisible = false;
+            _isCommunityLoading = false;
+            if (loadingPanel != null) loadingPanel.IsVisible = false;
             RenderCommunityBrowser(win);
         }
     }
@@ -523,13 +581,19 @@ public partial class MainWindow
         }
 
         if (!sortedList.Any())
-            stack.Children.Add(new TextBlock
+        {
+            if (!_isCommunityLoading)
             {
-                Text = "Keine Level gefunden.",
-                Foreground = Brushes.Gray,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 0)
-            });
+                string emptyText = _isOffline ? "Keine Internetverbindung." : "Keine Level gefunden.";
+                stack.Children.Add(new TextBlock
+                {
+                    Text = emptyText,
+                    Foreground = Brushes.Gray,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 20, 0, 0)
+                });
+            }
+        }
 
         commScroll.Content = stack;
     }
