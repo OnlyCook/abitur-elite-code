@@ -3400,8 +3400,7 @@ public partial class MainWindow
         {
             Background = Brushes.Transparent,
             Padding = new Thickness(6),
-            CornerRadius = new CornerRadius(4),
-            Cursor = new Cursor(StandardCursorType.Hand)
+            CornerRadius = new CornerRadius(4)
         };
         ToolTip.SetTip(btnRefresh, "Aktualisieren");
 
@@ -3528,8 +3527,7 @@ public partial class MainWindow
             Content = LoadIcon("assets/icons/ic_unsubscribe.svg", 18),
             Background = Brushes.Transparent,
             Padding = new Thickness(6),
-            CornerRadius = new CornerRadius(4),
-            Cursor = new Cursor(StandardCursorType.Hand)
+            CornerRadius = new CornerRadius(4)
         };
         ToolTip.SetTip(btnUnsubscribeAll, $"Alle deabonnieren ({_communityCache.Subscriptions.Count}/100)");
 
@@ -3538,8 +3536,7 @@ public partial class MainWindow
             Content = LoadIcon("assets/icons/ic_delete_all.svg", 18),
             Background = Brushes.Transparent,
             Padding = new Thickness(6),
-            CornerRadius = new CornerRadius(4),
-            Cursor = new Cursor(StandardCursorType.Hand)
+            CornerRadius = new CornerRadius(4)
         };
         ToolTip.SetTip(btnDeleteAll, "Alle Benachrichtigungen löschen");
 
@@ -3548,8 +3545,7 @@ public partial class MainWindow
             Content = LoadIcon("assets/icons/ic_support.svg", 18),
             Background = Brushes.Transparent,
             Padding = new Thickness(6),
-            CornerRadius = new CornerRadius(4),
-            Cursor = new Cursor(StandardCursorType.Hand)
+            CornerRadius = new CornerRadius(4)
         };
         ToolTip.SetTip(btnSupport, "Support & Hilfe");
 
@@ -3659,15 +3655,13 @@ public partial class MainWindow
                 {
                     Content = LoadIcon("assets/icons/ic_comment_go.svg", 16),
                     Background = Brushes.Transparent,
-                    Cursor = new Cursor(StandardCursorType.Hand),
                     IsVisible = !_isDesignerMode
                 };
                 ToolTip.SetTip(btnGo, "Gehe zum betroffenen Kommentar (möglicherweise inakkurat)");
                 var btnDel = new Button
                 {
                     Content = LoadIcon("assets/icons/ic_delete.svg", 16),
-                    Background = Brushes.Transparent,
-                    Cursor = new Cursor(StandardCursorType.Hand)
+                    Background = Brushes.Transparent
                 };
                 ToolTip.SetTip(btnDel, "Benachrichtigung löschen");
 

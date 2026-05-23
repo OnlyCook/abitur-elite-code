@@ -941,7 +941,6 @@ public partial class MainWindow
                 Width = 30,
                 Height = 30,
                 CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand"),
                 VerticalAlignment = VerticalAlignment.Center
             };
             ToolTip.SetTip(btnDelete, "Entfernen");
@@ -973,8 +972,7 @@ public partial class MainWindow
                 Foreground = Brushes.White,
                 FontSize = 13,
                 Padding = new Thickness(10, 5),
-                CornerRadius = new CornerRadius(4),
-                Cursor = Cursor.Parse("Hand")
+                CornerRadius = new CornerRadius(4)
             };
             btn.Click += (s, e) => SwitchDesignerDiagramTab(index);
             return btn;

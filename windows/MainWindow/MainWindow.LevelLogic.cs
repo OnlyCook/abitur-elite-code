@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Data.Sqlite;
@@ -543,6 +544,285 @@ public partial class MainWindow
         bool isCustomMode = _isCustomLevelMode;
         bool isCommunityMode = false;
 
+        var btnToggleCommunity = win.FindControl<Button>("BtnToggleCommunity");
+        var iconToggleCommunity = win.FindControl<Avalonia.Svg.Skia.Svg>("IconToggleCommunity");
+
+        // drag and drag fields
+        CustomLevelInfo _draggedCustomLevel = null;
+        Button _draggedButton = null;
+        Point _dragStartPos = default;
+        bool _isDraggingLevel = false;
+        Border _dragGhost = null;
+        CustomLevelInfo _dropTargetLevel = null;
+        string _dropTargetFolder = null;
+        string _folderToFocus = null;
+
+        var overlay = win.FindControl<Canvas>("DragOverlayCanvas");
+        var indicators = win.FindControl<Canvas>("DragIndicatorsCanvas");
+        var dropPreview = win.FindControl<Border>("DropPreviewOverlay");
+
+        // register global pointer events for dragging
+        win.AddHandler(InputElement.PointerMovedEvent, (s, ev) =>
+        {
+            if (_draggedCustomLevel != null && !_isDraggingLevel)
+            {
+                var pos = ev.GetPosition(win);
+                if (Math.Abs(pos.X - _dragStartPos.X) > 4 || Math.Abs(pos.Y - _dragStartPos.Y) > 4)
+                {
+                    _isDraggingLevel = true;
+
+                    // override the buttons cursor to ensure it persists during the captured drag pointer state
+                    if (_draggedButton != null)
+                    {
+                        _draggedButton.Cursor = Cursor.Parse("SizeAll");
+                    }
+
+                    // enable overlay hit testing to force global cursor consistency
+                    if (overlay != null)
+                    {
+                        overlay.IsHitTestVisible = true;
+                        overlay.Background = Brushes.Transparent;
+                        overlay.Cursor = Cursor.Parse("SizeAll");
+                    }
+
+                    _dragGhost = new Border
+                    {
+                        Background = SolidColorBrush.Parse("#2D2D30"),
+                        BorderBrush = SolidColorBrush.Parse("#32A852"),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(4),
+                        Padding = new Thickness(15, 8),
+                        Child = new TextBlock
+                        {
+                            Text = GetCleanLevelName(_draggedCustomLevel.Name),
+                            Foreground = Brushes.White,
+                            FontWeight = FontWeight.Bold,
+                            FontSize = 12
+                        }
+                    };
+                    if (overlay != null) overlay.Children.Add(_dragGhost);
+                }
+            }
+
+            if (_isDraggingLevel && _dragGhost != null)
+            {
+                // align relative to the overlay root to fix misplacing 
+                if (overlay != null)
+                {
+                    var overlayPos = ev.GetPosition(overlay);
+                    Canvas.SetLeft(_dragGhost, overlayPos.X + 15);
+                    Canvas.SetTop(_dragGhost, overlayPos.Y + 15);
+                }
+
+                _dropTargetLevel = null;
+                _dropTargetFolder = null;
+                Control hoveredElement = null;
+
+                var pos = ev.GetPosition(win);
+                var visuals = win.GetVisualsAt(pos);
+                foreach (var v in visuals)
+                {
+                    if (v is Control c)
+                    {
+                        // check if hovering anywhere in or on a folder
+                        var expander = (c as Expander) ?? c.GetVisualAncestors().OfType<Expander>().FirstOrDefault();
+                        if (expander != null && expander.Header is Border headerBorder && headerBorder.Tag is string folderName)
+                        {
+                            // allow hovering over own folder to prevent bleeding into root drop zone
+                            _dropTargetFolder = folderName;
+                            hoveredElement = expander;
+                            break;
+                        }
+
+                        // check if hovering a level row directly
+                        var row = (c as Grid) ?? c.GetVisualAncestors().OfType<Grid>().FirstOrDefault(g => g.Tag is CustomLevelInfo);
+                        if (row != null && row.Tag is CustomLevelInfo info)
+                        {
+                            if (info != _draggedCustomLevel)
+                            {
+                                // only target specific levels when both are inside the standard root selection
+                                if (info.Section == "Einzelne Levels" && _draggedCustomLevel.Section == "Einzelne Levels")
+                                {
+                                    _dropTargetLevel = info;
+                                    hoveredElement = row;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (hoveredElement != null && dropPreview != null)
+                {
+                    var boundsPos = hoveredElement.TranslatePoint(new Point(0, 0), indicators);
+                    if (boundsPos.HasValue)
+                    {
+                        dropPreview.Opacity = 1;
+                        dropPreview.Width = hoveredElement.Bounds.Width;
+                        dropPreview.Height = hoveredElement.Bounds.Height;
+                        Canvas.SetLeft(dropPreview, boundsPos.Value.X);
+                        Canvas.SetTop(dropPreview, boundsPos.Value.Y);
+                    }
+                }
+                else if (dropPreview != null)
+                {
+                    var contentScroll = win.FindControl<ScrollViewer>("ContentScroll");
+                    var contentPos = contentScroll.TranslatePoint(new Point(0, 0), indicators);
+
+                    // root zone bounds
+                    if (contentPos.HasValue && pos.Y > contentPos.Value.Y && pos.Y < contentPos.Value.Y + contentScroll.Bounds.Height)
+                    {
+                        // only highlight standard root space if its not already in it
+                        if (_draggedCustomLevel.Section != "Einzelne Levels")
+                        {
+                            dropPreview.Opacity = 1;
+
+                            // expand the root indicator slightly to distinguish it from large folders
+                            double rootExpansion = 4;
+                            dropPreview.Width = contentScroll.Bounds.Width + (rootExpansion * 2);
+                            dropPreview.Height = contentScroll.Bounds.Height + (rootExpansion * 2);
+                            Canvas.SetLeft(dropPreview, contentPos.Value.X - rootExpansion);
+                            Canvas.SetTop(dropPreview, contentPos.Value.Y - rootExpansion);
+                        }
+                        else
+                        {
+                            dropPreview.Opacity = 0;
+                        }
+                    }
+                    else
+                    {
+                        dropPreview.Opacity = 0;
+                    }
+                }
+                ev.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
+
+        void MoveLevelFile(string srcPath, string destDir)
+        {
+            if (!File.Exists(srcPath)) return;
+            string fileName = Path.GetFileName(srcPath);
+            string destPath = Path.Combine(destDir, fileName);
+            if (File.Exists(destPath))
+                destPath = Path.Combine(destDir, Guid.NewGuid().ToString().Substring(0, 4) + "_" + fileName);
+            File.Move(srcPath, destPath);
+        }
+
+        win.AddHandler(InputElement.PointerReleasedEvent, (s, ev) =>
+        {
+            if (_isDraggingLevel)
+            {
+                // restore the dragged buttons original cursor
+                if (_draggedButton != null && _draggedCustomLevel != null)
+                {
+                    _draggedButton.Cursor = _draggedCustomLevel.IsDraft ? Cursor.Default : Cursor.Parse("Hand");
+                }
+
+                // reset overlay properties
+                if (overlay != null)
+                {
+                    overlay.IsHitTestVisible = false;
+                    overlay.Background = null;
+                    overlay.Cursor = Cursor.Default;
+                    overlay.Children.Clear();
+                }
+
+                if (dropPreview != null) dropPreview.Opacity = 0;
+
+                string rootPath = SaveSystem.GetLevelsDirectory();
+                string prefix = _isSqlMode ? "sql_" : "cs_";
+
+                if (_dropTargetLevel != null && _dropTargetLevel.Section == "Einzelne Levels" && _draggedCustomLevel.Section == "Einzelne Levels")
+                {
+                    int folderIdx = 1;
+                    string newFolderName;
+                    string targetDir;
+                    do
+                    {
+                        newFolderName = $"Ordner-{folderIdx}";
+                        targetDir = Path.Combine(rootPath, prefix + newFolderName);
+                        folderIdx++;
+                    } while (Directory.Exists(targetDir));
+
+                    Directory.CreateDirectory(targetDir);
+                    MoveLevelFile(_draggedCustomLevel.FilePath, targetDir);
+                    MoveLevelFile(_dropTargetLevel.FilePath, targetDir);
+
+                    _folderToFocus = newFolderName;
+                }
+                else if (_dropTargetFolder != null)
+                {
+                    // only move if dropped on a different folder
+                    if (_draggedCustomLevel.Section != _dropTargetFolder)
+                    {
+                        // check for internal prefixed folder first, fallback to unprefixed manual folder
+                        string targetDir = Path.Combine(rootPath, prefix + _dropTargetFolder);
+                        if (!Directory.Exists(targetDir))
+                            targetDir = Path.Combine(rootPath, _dropTargetFolder);
+
+                        if (Directory.Exists(targetDir))
+                            MoveLevelFile(_draggedCustomLevel.FilePath, targetDir);
+                    }
+                }
+                else if (_dropTargetLevel == null && _dropTargetFolder == null && _draggedCustomLevel.Section != "Einzelne Levels")
+                {
+                    MoveLevelFile(_draggedCustomLevel.FilePath, rootPath);
+                }
+
+                // cleanup any fully empty folders reliably
+                foreach (var dir in Directory.GetDirectories(rootPath))
+                {
+                    var dirInfo = new DirectoryInfo(dir);
+                    if (dirInfo.Name.StartsWith(prefix))
+                    {
+                        if (!Directory.EnumerateFiles(dir).Any())
+                        {
+                            try { Directory.Delete(dir); } catch { }
+                        }
+                    }
+                }
+
+                _isDraggingLevel = false;
+                _draggedCustomLevel = null;
+                _draggedButton = null;
+                ev.Handled = true;
+                RefreshUI();
+            }
+            else
+            {
+                _draggedCustomLevel = null;
+                _draggedButton = null;
+            }
+        }, RoutingStrategies.Tunnel);
+
+        void RenameFolder(string oldName, string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName) || oldName == newName) return;
+            string root = SaveSystem.GetLevelsDirectory();
+            string prefix = _isSqlMode ? "sql_" : "cs_";
+
+            // resolve old path (prefixed vs manual)
+            string oldPath = Path.Combine(root, prefix + oldName);
+            if (!Directory.Exists(oldPath))
+                oldPath = Path.Combine(root, oldName);
+
+            // enforce prefix for newly renamed folders to keep backend organized
+            string newPath = Path.Combine(root, prefix + newName);
+
+            if (Directory.Exists(oldPath) && !Directory.Exists(newPath))
+            {
+                try
+                {
+                    Directory.Move(oldPath, newPath);
+                    RefreshUI();
+                }
+                catch (Exception ex)
+                {
+                    LogToMiniConsole($"> Fehler beim Umbenennen: {ex.Message}", Brushes.Red, true);
+                }
+            }
+        }
+
         // contextually open community browser if the level was loaded from there previously
         if (isCustomMode && _openedViaCommunityBrowser)
         {
@@ -551,9 +831,6 @@ public partial class MainWindow
                 isCommunityMode = true;
             }
         }
-
-        var btnToggleCommunity = win.FindControl<Button>("BtnToggleCommunity");
-        var iconToggleCommunity = win.FindControl<Avalonia.Svg.Skia.Svg>("IconToggleCommunity");
 
         // bind static footer buttons
         win.BtnClose.Click += (_, __) => win.Close();
@@ -1266,6 +1543,8 @@ public partial class MainWindow
                         {
                             ColumnDefinitions = new ColumnDefinitions("Auto, *")
                         };
+
+                        Grid.SetColumn(iconImage, 0);
                         btnContentGrid.Children.Add(iconImage);
 
                         var textStack = new StackPanel { Spacing = 2 };
@@ -1277,19 +1556,63 @@ public partial class MainWindow
                             !cl.Section.StartsWith("Sektion 7"))
                             displayName = Regex.Replace(displayName, @"\s*\(.*?\)", "").Trim();
 
-                        textStack.Children.Add(new TextBlock
+                        // title panel to place the publish icon before the title
+                        var titlePanel = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Spacing = 5
+                        };
+
+                        if (cl.HasCommunityId)
+                        {
+                            var commIcon = LoadIcon("assets/icons/ic_publish.svg", 16);
+                            commIcon.VerticalAlignment = VerticalAlignment.Center;
+                            titlePanel.Children.Add(commIcon);
+                        }
+
+                        titlePanel.Children.Add(new TextBlock
                         {
                             Text = displayName + (cl.IsDraft ? " (Entwurf)" : ""),
                             Foreground = cl.IsDraft ? Brushes.Orange : Brushes.White,
-                            TextTrimming = TextTrimming.CharacterEllipsis
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                            VerticalAlignment = VerticalAlignment.Center
                         });
-                        textStack.Children.Add(new TextBlock
+
+                        textStack.Children.Add(titlePanel);
+
+                        var authorGrid = new Grid
                         {
-                            Text = "von " + cl.Author,
+                            ColumnDefinitions = new ColumnDefinitions("Auto, *")
+                        };
+
+                        var vonTextBlock = new TextBlock
+                        {
+                            Text = "von ",
                             FontSize = 11,
-                            Foreground = Brushes.Gray,
+                            Foreground = Brushes.Gray
+                        };
+                        Grid.SetColumn(vonTextBlock, 0);
+                        authorGrid.Children.Add(vonTextBlock);
+
+                        IBrush authorForeground = Brushes.Gray;
+                        if (cl.HasCommunityId && !string.IsNullOrEmpty(AppSettings.GithubUsername) && cl.Author.Equals(AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // highlight author name if community browser level and user is author
+                            authorForeground = SolidColorBrush.Parse("#6495ED");
+                        }
+
+                        var authorTextBlock = new TextBlock
+                        {
+                            Text = cl.Author,
+                            FontSize = 11,
+                            Foreground = authorForeground,
                             TextTrimming = TextTrimming.CharacterEllipsis
-                        });
+                        };
+                        Grid.SetColumn(authorTextBlock, 1);
+                        authorGrid.Children.Add(authorTextBlock);
+
+                        textStack.Children.Add(authorGrid);
+
                         btnContentGrid.Children.Add(textStack);
 
                         var btnMain = new Button
@@ -1301,9 +1624,19 @@ public partial class MainWindow
                                 ? SolidColorBrush.Parse("#2E8B57")
                                 : SolidColorBrush.Parse("#313133"),
                             CornerRadius = new CornerRadius(4),
-                            Padding = new Thickness(10),
-                            Cursor = cl.IsDraft ? Cursor.Default : Cursor.Parse("Hand")
+                            Padding = new Thickness(10)
                         };
+                        if (!_isDraggingLevel) btnMain.Cursor = cl.IsDraft ? Cursor.Default : Cursor.Parse("Hand");
+
+                        // drag start
+                        btnMain.AddHandler(InputElement.PointerPressedEvent, (s, ev) =>
+                        {
+                            if (!ev.GetCurrentPoint(win).Properties.IsLeftButtonPressed) return;
+                            _draggedCustomLevel = cl;
+                            _draggedButton = btnMain;
+                            _dragStartPos = ev.GetPosition(win);
+                            _isDraggingLevel = false;
+                        }, RoutingStrategies.Tunnel);
 
                         // remove highlight after delay
                         if (cl.FilePath == _newlyCreatedLevelPath)
@@ -1323,6 +1656,8 @@ public partial class MainWindow
 
                         btnMain.Click += (_, __) =>
                         {
+                            if (_isDraggingLevel) return;
+
                             if (!cl.IsDraft)
                             {
                                 _openedViaCommunityBrowser = false;
@@ -1765,35 +2100,97 @@ public partial class MainWindow
                         foreach (var cl in group)
                             groupContent.Children.Add(CreateLevelRow(cl));
 
+                        var headerBorder = new Border
+                        {
+                            Tag = group.Key,
+                            Background = Brushes.Transparent,
+                            Padding = new Thickness(0, 5)
+                        };
+
                         var headerPanel = new StackPanel
                         {
                             Orientation = Orientation.Horizontal,
                             Spacing = 10
                         };
-                        headerPanel.Children.Add(new TextBlock
+
+                        var txtFolder = new TextBox
                         {
                             Text = group.Key,
                             Foreground = BrushTextTitle,
                             FontWeight = FontWeight.Bold,
-                            VerticalAlignment = VerticalAlignment.Center
-                        });
+                            Background = Brushes.Transparent,
+                            BorderBrush = Brushes.Transparent,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            VerticalContentAlignment = VerticalAlignment.Center,
+                            Padding = new Thickness(5, 0),
+                            Margin = new Thickness(-5, 0, 0, 0)
+                        };
+
+                        txtFolder.PointerEntered += (s, ev) =>
+                        {
+                            txtFolder.BorderBrush = SolidColorBrush.Parse("#555");
+                            txtFolder.Background = SolidColorBrush.Parse("#1A1A1A");
+                        };
+                        txtFolder.PointerExited += (s, ev) =>
+                        {
+                            if (!txtFolder.IsFocused)
+                            {
+                                txtFolder.BorderBrush = Brushes.Transparent;
+                                txtFolder.Background = Brushes.Transparent;
+                            }
+                        };
+                        txtFolder.GotFocus += (s, ev) =>
+                        {
+                            txtFolder.BorderBrush = SolidColorBrush.Parse("#555");
+                            txtFolder.Background = SolidColorBrush.Parse("#1A1A1A");
+                        };
+                        txtFolder.LostFocus += (s, ev) =>
+                        {
+                            txtFolder.BorderBrush = Brushes.Transparent;
+                            txtFolder.Background = Brushes.Transparent;
+                            RenameFolder(group.Key, txtFolder.Text);
+                        };
+                        txtFolder.KeyDown += (s, ev) =>
+                        {
+                            if (ev.Key == Key.Enter)
+                            {
+                                win.Focus(); // force removing focus logically which resolves rename execution
+                                ev.Handled = true; // stop from bleeding to folder
+                            }
+                        };
+                        txtFolder.MaxLength = 50;
+
+                        headerPanel.Children.Add(txtFolder);
 
                         bool allComplete = group.All(l =>
                             !l.IsDraft && (_isSqlMode
                                 ? customPlayerData.CompletedCustomSqlLevels.Contains(l.Name)
                                 : customPlayerData.CompletedCustomLevels.Contains(l.Name)));
+
                         if (allComplete && group.Any())
                             headerPanel.Children.Add(LoadIcon("assets/icons/ic_done.svg", 16));
 
+                        headerBorder.Child = headerPanel;
+
                         customStack.Children.Add(new Expander
                         {
-                            Header = headerPanel,
+                            Header = headerBorder,
                             Content = groupContent,
                             IsExpanded = false,
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                             CornerRadius = new CornerRadius(4),
                             Margin = new Thickness(0, 0, 0, 5)
                         });
+
+                        // automatically focus and prep name field if it was newly created this cycle
+                        if (_folderToFocus == group.Key)
+                        {
+                            Dispatcher.UIThread.Post(() => {
+                                txtFolder.Focus();
+                                txtFolder.SelectAll();
+                                _folderToFocus = null;
+                            });
+                        }
                     }
 
                     foreach (var cl in rootLevels) customStack.Children.Add(CreateLevelRow(cl));
@@ -2240,7 +2637,7 @@ public partial class MainWindow
 
         if (!Directory.Exists(rootPath)) return list;
 
-        (string name, string author, bool quickGen) GetMetadata(string file)
+        (string name, string author, bool quickGen, bool hasCommunityId) GetMetadata(string file)
         {
             try
             {
@@ -2264,12 +2661,14 @@ public partial class MainWindow
                         if (qg.ValueKind == JsonValueKind.String && qg.GetString().ToLower() == "true") quickGen = true;
                     }
 
-                    return (name, author, quickGen);
+                    bool hasCommId = root.TryGetProperty("DiscussionNumber", out _) || root.TryGetProperty("DiscussionNodeId", out _);
+
+                    return (name, author, quickGen, hasCommId);
                 }
             }
             catch
             {
-                return (Path.GetFileNameWithoutExtension(file), "Fehler", false);
+                return (Path.GetFileNameWithoutExtension(file), "Fehler", false, false);
             }
         }
 
@@ -2277,7 +2676,6 @@ public partial class MainWindow
         {
             if (!Directory.Exists(dir)) return;
 
-            // regular custom levels
             foreach (var file in Directory.GetFiles(dir, _isSqlMode ? "*.eliteslvl" : "*.elitelvl"))
             {
                 var meta = GetMetadata(file);
@@ -2287,11 +2685,11 @@ public partial class MainWindow
                     Author = meta.author,
                     FilePath = file,
                     Section = sectionName,
-                    IsDraft = false
+                    IsDraft = false,
+                    HasCommunityId = meta.hasCommunityId
                 });
             }
 
-            // custom level drafts
             foreach (var file in Directory.GetFiles(dir, _isSqlMode ? "*.eliteslvldraft" : "*.elitelvldraft"))
             {
                 var meta = GetMetadata(file);
@@ -2302,21 +2700,23 @@ public partial class MainWindow
                     FilePath = file,
                     Section = sectionName,
                     IsDraft = true,
-                    QuickGenerate = meta.quickGen
+                    QuickGenerate = meta.quickGen,
+                    HasCommunityId = meta.hasCommunityId
                 });
             }
         }
 
-        // scan subdirectories (groups)
+        // scan all subdirectories mapping them accurately and removing prefix for ui if present
+        string prefix = _isSqlMode ? "sql_" : "cs_";
         foreach (var subdir in Directory.GetDirectories(rootPath))
         {
             string dirName = new DirectoryInfo(subdir).Name;
-            ScanDirectory(subdir, dirName);
+            string sectionName = dirName.StartsWith(prefix) ? dirName.Substring(prefix.Length) : dirName;
+
+            ScanDirectory(subdir, sectionName);
         }
 
-        // ccan root directory
         ScanDirectory(rootPath, "Einzelne Levels");
-
         return list;
     }
 

@@ -50,6 +50,26 @@
 
 			<!-- body -->
 			<Grid Grid.Row="2">
+				<!-- drop indicator -->
+				<Canvas Name="DragIndicatorsCanvas" IsHitTestVisible="False">
+					<Border Name="DropPreviewOverlay"
+					        Background="#3332A852"
+					        BorderBrush="#32A852"
+					        BorderThickness="2"
+					        CornerRadius="4"
+					        Opacity="0">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Canvas.Left" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+								<DoubleTransition Property="Canvas.Top" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+								<DoubleTransition Property="Width" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+								<DoubleTransition Property="Height" Duration="0:0:0.15" Easing="QuadraticEaseOut" />
+								<DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+							</Transitions>
+						</Border.Transitions>
+					</Border>
+				</Canvas>
+
 				<ScrollViewer Name="ContentScroll" VerticalScrollBarVisibility="Auto" />
 				<ScrollViewer Name="CommunityScroll" VerticalScrollBarVisibility="Auto" IsVisible="False" />
 
@@ -93,6 +113,8 @@
 
 				<Button Name="BtnClose" Grid.Column="3" Content="Schließen" HorizontalContentAlignment="Center" Padding="15,10" CornerRadius="4" Background="#3C3C3C" Foreground="White" />
 			</Grid>
+			<!-- drag overlay spanning all rows -->
+			<Canvas Name="DragOverlayCanvas" Grid.Row="0" Grid.RowSpan="5" IsHitTestVisible="False" ZIndex="1000" />
 		</Grid>
 	</Border>
 </Window>

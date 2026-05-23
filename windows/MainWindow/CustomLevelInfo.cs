@@ -10,5 +10,6 @@ public partial class MainWindow
         public string Section { get; set; }
         public bool IsDraft { get; set; } // .elitelvldraft = true; .elitelvl = false
         public bool QuickGenerate { get; set; }
+        public bool HasCommunityId { get; set; }
     }
 }
