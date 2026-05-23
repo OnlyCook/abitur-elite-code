@@ -213,8 +213,13 @@ public partial class MainWindow
                 if (idx > 0)
                 {
                     LoadCustomLevelFromFile(sectionLevels[idx - 1].FilePath);
-                    if (_isSqlMode) SqlQueryEditor.Focus();
-                    else CodeEditor.Focus();
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+                        if (_isSqlMode) { SqlQueryEditor.Focus(); SqlQueryEditor.TextArea.TextView.Redraw(); }
+                        else { CodeEditor.Focus(); CodeEditor.TextArea.TextView.Redraw(); }
+                        UpdateVimUI();
+                    }, DispatcherPriority.Render);
                 }
             }
 
@@ -224,12 +229,32 @@ public partial class MainWindow
         if (_isSqlMode && currentSqlLevel != null)
         {
             int idx = sqlLevels.IndexOf(currentSqlLevel);
-            if (idx > 0) LoadSqlLevel(sqlLevels[idx - 1]);
+            if (idx > 0)
+            {
+                LoadSqlLevel(sqlLevels[idx - 1]);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+                    SqlQueryEditor.Focus();
+                    UpdateVimUI();
+                    SqlQueryEditor.TextArea.TextView.Redraw();
+                }, DispatcherPriority.Render);
+            }
         }
         else if (currentLevel != null)
         {
             int idx = levels.IndexOf(currentLevel);
-            if (idx > 0) LoadLevel(levels[idx - 1]);
+            if (idx > 0)
+            {
+                LoadLevel(levels[idx - 1]);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+                    CodeEditor.Focus();
+                    UpdateVimUI();
+                    CodeEditor.TextArea.TextView.Redraw();
+                }, DispatcherPriority.Render);
+            }
         }
     }
 
@@ -279,8 +304,13 @@ public partial class MainWindow
             try
             {
                 LoadCustomLevelFromFile(_nextCustomLevelPath);
-                if (_isSqlMode) SqlQueryEditor.Focus();
-                else CodeEditor.Focus();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+                    if (_isSqlMode) { SqlQueryEditor.Focus(); SqlQueryEditor.TextArea.TextView.Redraw(); }
+                    else { CodeEditor.Focus(); CodeEditor.TextArea.TextView.Redraw(); }
+                    UpdateVimUI();
+                }, DispatcherPriority.Render);
             }
             catch (Exception ex)
             {
@@ -298,14 +328,26 @@ public partial class MainWindow
             var nextSqlLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
             if (nextSqlLvl != null)
                 LoadSqlLevel(nextSqlLvl);
-            SqlQueryEditor.Focus();
+            Dispatcher.UIThread.Post(() =>
+            {
+                // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+                SqlQueryEditor.Focus();
+                UpdateVimUI();
+                SqlQueryEditor.TextArea.TextView.Redraw();
+            }, DispatcherPriority.Render);
             return;
         }
 
         var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
         if (nextLvl != null)
             LoadLevel(nextLvl);
-        CodeEditor.Focus();
+        Dispatcher.UIThread.Post(() =>
+        {
+            // re-focus after button click cycle so KnownLayer.Caret renders (unfocused editor skips caret layer redraws)
+            CodeEditor.Focus();
+            UpdateVimUI();
+            CodeEditor.TextArea.TextView.Redraw();
+        }, DispatcherPriority.Render);
     }
 
     private async void ShowCourseCompletedDialog()
@@ -2314,6 +2356,12 @@ public partial class MainWindow
             if (playerData.UserCode.ContainsKey(level.Id)) rawCode = playerData.UserCode[level.Id];
         }
 
+        // clear autocomplete and pre-reset caret to prevent ghost text layout paradox
+        System.Diagnostics.Debug.WriteLine($"[LoadLevel] before ClearSuggestion: hasSuggestion={_csharpAutocompleteService?.HasSuggestion}");
+        _csharpAutocompleteService?.ClearSuggestion();
+        System.Diagnostics.Debug.WriteLine($"[LoadLevel] after ClearSuggestion: hasSuggestion={_csharpAutocompleteService?.HasSuggestion}");
+        CodeEditor.CaretOffset = 0;
+
         CodeEditor.Text = rawCode;
         CodeEditor.CaretOffset = 0; // reset caret pos
         CodeEditor.TextArea.Caret.Line = 1;
@@ -2323,6 +2371,13 @@ public partial class MainWindow
         CodeEditor.TextArea.ClearSelection();
         _vimMode = VimMode.Normal;
         _vimDesiredColumn = -1;
+
+        // fresh renderer instance to flush any stale visual-line state from ghost text
+        System.Diagnostics.Debug.WriteLine($"[LoadLevel] recreating VimBlockCaretRenderer");
+        CodeEditor.TextArea.TextView.BackgroundRenderers.Remove(_csharpBlockCaret);
+        _csharpBlockCaret = new VimBlockCaretRenderer(CodeEditor);
+        CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_csharpBlockCaret);
+
         UpdateVimUI();
         CodeEditor.TextArea.TextView.InvalidateVisual();
 
@@ -2439,9 +2494,13 @@ public partial class MainWindow
 
         UpdateSemanticHighlighting(); // init scan
 
-        Dispatcher.UIThread.Post(() => CodeEditor.Focus());
-
         UpdateCommunityUIAsync(level.Id.ToString(), false);
+
+        // ensure editor scrolls to top
+        Dispatcher.UIThread.Post(() => {
+            CodeEditor.Focus();
+            CodeEditor.ScrollTo(1, 1);
+        });
     }
 
     private CheckBox MakeFilterCheckBox(string label, bool isWhitelisted, bool isBlacklisted, Action<bool?> onChanged)
@@ -3581,6 +3640,12 @@ public partial class MainWindow
 
         BtnCustomLevelReturn.IsVisible = _isCustomLevelMode && !_isDesignerMode;
 
+        // clear autocomplete and pre-reset caret to prevent ghost text layout paradox
+        System.Diagnostics.Debug.WriteLine($"[LoadSqlLevel] before ClearSuggestion: hasSuggestion={_sqlAutocompleteService?.HasSuggestion}");
+        _sqlAutocompleteService?.ClearSuggestion();
+        System.Diagnostics.Debug.WriteLine($"[LoadSqlLevel] after ClearSuggestion: hasSuggestion={_sqlAutocompleteService?.HasSuggestion}");
+        SqlQueryEditor.CaretOffset = 0;
+
         // properly load custom or standard sql editor text
         if (_isCustomLevelMode)
         {
@@ -3605,6 +3670,13 @@ public partial class MainWindow
         SqlQueryEditor.TextArea.ClearSelection();
         _vimMode = VimMode.Normal;
         _vimDesiredColumn = -1;
+
+        // fresh renderer instance to flush any stale visual-line state from ghost text
+        System.Diagnostics.Debug.WriteLine($"[LoadSqlLevel] recreating VimBlockCaretRenderer");
+        SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Remove(_sqlBlockCaret);
+        _sqlBlockCaret = new VimBlockCaretRenderer(SqlQueryEditor);
+        SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(_sqlBlockCaret);
+
         UpdateVimUI();
         SqlQueryEditor.TextArea.TextView.InvalidateVisual();
 
@@ -3765,6 +3837,11 @@ public partial class MainWindow
             DiscordRpcManager.UpdatePresence($"SQL Level {level.Id}", "Querying greatness", "mysql_icon", "MySQL");
 
         UpdateCommunityUIAsync(level.Id.ToString(), true);
+
+        // ensure editor scrolls to top
+        Dispatcher.UIThread.Post(() => {
+            SqlQueryEditor.ScrollTo(1, 1);
+        });
     }
 
     private void BtnCustomLevelReturn_Click(object sender, RoutedEventArgs e)

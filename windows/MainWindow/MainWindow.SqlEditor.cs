@@ -430,6 +430,9 @@ public partial class MainWindow
     private void AddSqlOutput(string author, string text, IBrush color, bool isCode = false,
         DataTable expectedTable = null)
     {
+        // prevent avalonia selection end bug by appending a space to trailing newlines
+        if (text != null && text.EndsWith("\n")) text += " ";
+
         // remove old output if exceeds soft limit
         if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
 
@@ -502,6 +505,7 @@ public partial class MainWindow
             };
 
             ProcessTextWithEmojis(text, color, content.Inlines);
+            SetupSelectableBlockCopyFix(content);
 
             if (expectedTable != null && _consecutiveSqlFails >= 3 &&
                 text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))

@@ -218,6 +218,7 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         LogAddSplash("InitializeComponent", 6);
+        SetupSelectableBlockCopyFix(TxtConsole);
 
         _tabDockManager = new TabDockManager(
             this,
@@ -485,6 +486,10 @@ public partial class MainWindow : Window
             {
                 InvalidateMeasure();
                 RootScaleTransform?.InvalidateMeasure();
+
+                // fix initial downward scroll
+                CodeEditor.ScrollTo(1, 1);
+                if (SqlQueryEditor != null) SqlQueryEditor.ScrollTo(1, 1);
             }, DispatcherPriority.Render);
         };
 
@@ -989,6 +994,90 @@ public partial class MainWindow : Window
         ToolTip.SetTip(BtnRun, $"Ausführen (F5{(_isSqlMode ? $" / {ctrlKey} + Enter" : "")})");
     }
 
+    private string ExtractSelectedInlineText(InlineCollection inlines, int selStart, int selEnd)
+    {
+        var sb = new StringBuilder();
+        int pos = 0;
+        foreach (var inline in inlines)
+        {
+            if (inline is Run run)
+            {
+                string t = run.Text ?? "";
+                int overlapStart = Math.Max(selStart, pos);
+                int overlapEnd = Math.Min(selEnd, pos + t.Length);
+                if (overlapStart < overlapEnd)
+                    sb.Append(t, overlapStart - pos, overlapEnd - overlapStart);
+                pos += t.Length;
+            }
+            else if (inline is LineBreak)
+            {
+                if (pos >= selStart && pos < selEnd) sb.Append('\n');
+                pos++;
+            }
+            else if (inline is InlineUIContainer)
+            {
+                // skip svg icon in copied text but advance layout position by 1
+                pos++;
+            }
+        }
+        return sb.ToString();
+    }
+
+    private void SetupSelectableBlockCopyFix(SelectableTextBlock block)
+    {
+        // each InlineUIContainer adds +1 to layout positions but not to text, so
+        // Text.Substring(SelectionStart, …) is shifted by the number of svgs before the selection;
+        // remap layout endpoints to text positions by subtracting svg count before each endpoint
+        // this is a temporary fix, may need to work on this later as it works fine now but looks weird
+        block.AddHandler(PointerReleasedEvent, (s, e) =>
+        {
+            if (block.Inlines == null || block.SelectionStart == block.SelectionEnd) return;
+
+            bool isBackward = block.SelectionStart > block.SelectionEnd;
+            int lo = Math.Min(block.SelectionStart, block.SelectionEnd);
+            int hi = Math.Max(block.SelectionStart, block.SelectionEnd);
+
+            int pos = 0, svgsBeforeLo = 0, svgsBeforeHi = 0;
+            foreach (var inline in block.Inlines)
+            {
+                if (inline is Run run) pos += (run.Text ?? "").Length;
+                else if (inline is LineBreak) pos++;
+                else if (inline is InlineUIContainer)
+                {
+                    if (pos < lo) svgsBeforeLo++;
+                    if (pos < hi) svgsBeforeHi++;
+                    pos++;
+                }
+            }
+
+            if (svgsBeforeLo == 0 && svgsBeforeHi == 0) return;
+
+            int adjLo = lo - svgsBeforeLo;
+            int adjHi = hi - svgsBeforeHi;
+
+            if (isBackward) { block.SelectionStart = adjHi; block.SelectionEnd = adjLo; }
+            else            { block.SelectionStart = adjLo; block.SelectionEnd = adjHi; }
+        }, RoutingStrategies.Bubble);
+
+        block.AddHandler(KeyDownEvent, (s, e) =>
+        {
+            if (e.Key == Key.C && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
+            {
+                if (block.SelectionStart == block.SelectionEnd) return;
+
+                string text = !string.IsNullOrEmpty(block.SelectedText)
+                    ? block.SelectedText
+                    : ExtractSelectedInlineText(block.Inlines, block.SelectionStart, block.SelectionEnd);
+
+                if (!string.IsNullOrEmpty(text))
+                {
+                    _ = TopLevel.GetTopLevel(block)?.Clipboard?.SetTextAsync(text);
+                    e.Handled = true;
+                }
+            }
+        }, RoutingStrategies.Tunnel);
+    }
+
     private void AddToConsole(string text, IBrush color, bool clearFirst = false)
     {
         Dispatcher.UIThread.Post(() =>
@@ -999,6 +1088,9 @@ public partial class MainWindow : Window
             }
 
             TxtConsole.Inlines ??= new InlineCollection();
+
+            // prevent avalonia selection end bug by appending a space to trailing newlines
+            if (text != null && text.EndsWith("\n")) text += " ";
 
             // split text to use explicit linebreaks
             var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
@@ -1072,7 +1164,10 @@ public partial class MainWindow : Window
             {
                 // slightly adjust margin to align with text baseline
                 image.Margin = new Thickness(0, 0, 4, -2);
+                image.IsHitTestVisible = false;
                 inlines.Add(new InlineUIContainer { Child = image });
+                // anchor a text node after the svg so selection doesnt land on the InlineUIContainer boundary and break copy
+                inlines.Add(new Run { Text = "​", Foreground = color, FontFamily = new FontFamily(MonospaceFontFamily) });
             }
 
             currentText = currentText.Substring(firstEmojiIndex + foundEmoji.Length);
