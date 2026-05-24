@@ -2357,9 +2357,7 @@ public partial class MainWindow
         }
 
         // clear autocomplete and pre-reset caret to prevent ghost text layout paradox
-        System.Diagnostics.Debug.WriteLine($"[LoadLevel] before ClearSuggestion: hasSuggestion={_csharpAutocompleteService?.HasSuggestion}");
         _csharpAutocompleteService?.ClearSuggestion();
-        System.Diagnostics.Debug.WriteLine($"[LoadLevel] after ClearSuggestion: hasSuggestion={_csharpAutocompleteService?.HasSuggestion}");
         CodeEditor.CaretOffset = 0;
 
         CodeEditor.Text = rawCode;
@@ -2373,7 +2371,6 @@ public partial class MainWindow
         _vimDesiredColumn = -1;
 
         // fresh renderer instance to flush any stale visual-line state from ghost text
-        System.Diagnostics.Debug.WriteLine($"[LoadLevel] recreating VimBlockCaretRenderer");
         CodeEditor.TextArea.TextView.BackgroundRenderers.Remove(_csharpBlockCaret);
         _csharpBlockCaret = new VimBlockCaretRenderer(CodeEditor);
         CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_csharpBlockCaret);

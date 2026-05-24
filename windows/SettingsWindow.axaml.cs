@@ -2012,7 +2012,7 @@ public partial class SettingsWindow : Window
             FontSize = 16,
             FontWeight = FontWeight.Bold
         };
-        ToolTip.SetTip(_chkCommunityFeatures, "Erlaube das Laden von Kommentaren und Likes über GitHub");
+        ToolTip.SetTip(_chkCommunityFeatures, "Erlaube das Laden von Kommentaren, Likes und Diskussionen über GitHub");
 
         // github status and login button
         _txtGithubStatus = new TextBlock
@@ -2029,9 +2029,9 @@ public partial class SettingsWindow : Window
 
         var communityDescription = new TextBlock
         {
-            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben.",
+            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben sowie eigene Level hochzuladen und mit denen anderer Nutzer zu interagieren.",
             Foreground = Brushes.LightGray,
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+            TextWrapping = TextWrapping.Wrap
         };
 
         _communitySubPanel = new StackPanel

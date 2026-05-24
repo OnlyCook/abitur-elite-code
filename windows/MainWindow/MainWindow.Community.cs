@@ -58,6 +58,19 @@ public partial class MainWindow
     private static readonly uint _s1 = 0x9BE214DC;
     private static readonly uint _s2 = 0x6FA371C8;
 
+    private DispatcherTimer? _inboxAnimationTimer;
+    private int _inboxAnimationStep = 0;
+    private bool _hasCompletedInitialNotificationCheck = false;
+    private bool _isInitialNotificationCheckRunning = false;
+    private readonly string[] _inboxFrames = {
+        "ic_dot_left.svg",
+        "ic_dot_left_middle.svg",
+        "ic_dot_left_middle_right.svg",
+        "ic_dot_middle_right.svg",
+        "ic_dot_right.svg",
+        "ic_dot_none.svg"
+    };
+
     public static List<string> GetApiQueueSnapshot() => _apiQueue.Select(x => x.Description).ToList();
     public static DateTime GetNextAvailableApiTime() => _nextAvailableApiTime;
 
@@ -3087,243 +3100,269 @@ public partial class MainWindow
         _notificationPollTimer.Start();
 
         // trigger initial poll shortly after startup
-        Task.Run(async () =>
+        if (AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken))
         {
-            await Task.Delay(5000);
-            if (AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken))
+            // start animation immediately
+            _isInitialNotificationCheckRunning = true;
+            Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+
+            Task.Run(async () =>
             {
-                if (_apiQueue.Count == 0 && _apiQueueInFlight == 0)
-                {
-                    EnqueueApiRequest("Nach neuen Benachrichtigungen suchen", PollNotificationsAsync);
-                }
-            }
-        });
+                await Task.Delay(5000);
+
+                // force the initial fetch regardless of queue state to ensure the animation finishes correctly
+                EnqueueApiRequest("Nach neuen Benachrichtigungen suchen", PollNotificationsAsync);
+            });
+        }
+        else
+        {
+            _hasCompletedInitialNotificationCheck = true;
+        }
     }
 
     private async Task PollNotificationsAsync()
     {
-        if (UpdateManager.IsOutdated) return;
-        if (!await CheckRealConnectivityAsync()) return;
-        if (playerData.Settings.AreNotificationsPaused) return;
-
-        bool hasNewNotifications = false;
-
-        // check graphql api for subscribed comment replies and bootleg mentions
-        if (_communityCache.Subscriptions.Count > 0)
+        if (!_hasCompletedInitialNotificationCheck)
         {
-            try
+            _isInitialNotificationCheckRunning = true;
+            await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+        }
+
+        try
+        {
+            // early returns inside try-block so the finally-block is guaranteed to stop the animation
+            if (UpdateManager.IsOutdated) return;
+            if (!await CheckRealConnectivityAsync()) return;
+            if (playerData.Settings.AreNotificationsPaused) return;
+
+            bool hasNewNotifications = false;
+
+            // check graphql api for subscribed comment replies and bootleg mentions
+            if (_communityCache.Subscriptions.Count > 0)
             {
-                var allIds = _communityCache.Subscriptions.Keys.ToList();
-                int chunkSize = 50; // chunk to prevent graphql complexity limits for heavy users
-
-                for (int i = 0; i < allIds.Count; i += chunkSize)
+                try
                 {
-                    var ids = allIds.Skip(i).Take(chunkSize).ToList();
-                    var queryObj = new
-                    {
-                        query = @"query($ids: [ID!]!) {
-                            nodes(ids: $ids) {
-                                ... on DiscussionComment {
-                                    id
-                                    discussion { id }
-                                    author { login }
-                                    body
-                                    replies(last: 15) {
-                                        totalCount
-                                        nodes { id author { login } body }
-                                    }
-                                }
-                                ... on Discussion {
-                                    id
-                                    comments(last: 15) {
-                                        totalCount
-                                        nodes { id author { login } body }
-                                    }
-                                }
-                            }
-                        }",
-                        variables = new { ids = ids }
-                    };
+                    var allIds = _communityCache.Subscriptions.Keys.ToList();
+                    int chunkSize = 50; // chunk to prevent graphql complexity limits for heavy users
 
-                    var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
-                    using var graphqlRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
-                    graphqlRequest.Content = content;
-                    graphqlRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
-                    var graphqlResp = await _httpClient.SendAsync(graphqlRequest);
-
-                    if (graphqlResp.IsSuccessStatusCode)
+                    for (int i = 0; i < allIds.Count; i += chunkSize)
                     {
-                        using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
-                        if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
+                        var ids = allIds.Skip(i).Take(chunkSize).ToList();
+                        var queryObj = new
                         {
-                            int nodeIndex = 0;
-
-                            foreach (var node in nodes.EnumerateArray())
-                            {
-                                if (node.ValueKind == JsonValueKind.Null)
-                                {
-                                    // comment or discussion was deleted remotely -> remove it
-                                    string deletedId = ids[nodeIndex];
-                                    if (_communityCache.Subscriptions.Remove(deletedId))
-                                    {
-                                        SaveSystem.SaveCommunityCache(_communityCache);
-                                    }
-                                    nodeIndex++;
-                                    continue;
-                                }
-
-                                if (node.TryGetProperty("discussion", out var discProp))
-                                {
-                                    string commentId = node.GetProperty("id").GetString();
-                                    string discId = discProp.GetProperty("id").GetString();
-                                    string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
-                                    string parentBody = node.GetProperty("body").GetString();
-
-                                    // intercept bot messages to get real parent author
-                                    if (parentAuthor == "aec-community-bot")
-                                    {
-                                        var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                        if (match.Success)
-                                        {
-                                            parentAuthor = match.Groups[1].Value;
-                                            parentBody = match.Groups[2].Value; // extract body to clean the html tag
+                            query = @"query($ids: [ID!]!) {
+                                nodes(ids: $ids) {
+                                    ... on DiscussionComment {
+                                        id
+                                        discussion { id }
+                                        author { login }
+                                        body
+                                        replies(last: 15) {
+                                            totalCount
+                                            nodes { id author { login } body }
                                         }
                                     }
+                                    ... on Discussion {
+                                        id
+                                        comments(last: 15) {
+                                            totalCount
+                                            nodes { id author { login } body }
+                                        }
+                                    }
+                                }
+                            }",
+                            variables = new { ids = ids }
+                        };
 
-                                    var repliesData = node.GetProperty("replies");
-                                    int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
+                        var content = new StringContent(JsonSerializer.Serialize(queryObj), Encoding.UTF8, "application/json");
+                        using var graphqlRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.github.com/graphql");
+                        graphqlRequest.Content = content;
+                        graphqlRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+                        var graphqlResp = await _httpClient.SendAsync(graphqlRequest);
 
-                                    if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                        if (graphqlResp.IsSuccessStatusCode)
+                        {
+                            using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
+                            if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
+                            {
+                                int nodeIndex = 0;
+
+                                foreach (var node in nodes.EnumerateArray())
+                                {
+                                    if (node.ValueKind == JsonValueKind.Null)
                                     {
-                                        if (newTotalCount > lastKnownCount)
+                                        // comment or discussion was deleted remotely -> remove it
+                                        string deletedId = ids[nodeIndex];
+                                        if (_communityCache.Subscriptions.Remove(deletedId))
                                         {
-                                            int diff = newTotalCount - lastKnownCount;
-                                            var replyNodes = repliesData.GetProperty("nodes").EnumerateArray().ToList();
+                                            SaveSystem.SaveCommunityCache(_communityCache);
+                                        }
+                                        nodeIndex++;
+                                        continue;
+                                    }
 
-                                            // only evaluate the newly added replies
-                                            var newReplies = replyNodes.Skip(Math.Max(0, replyNodes.Count - diff)).ToList();
+                                    if (node.TryGetProperty("discussion", out var discProp))
+                                    {
+                                        string commentId = node.GetProperty("id").GetString();
+                                        string discId = discProp.GetProperty("id").GetString();
+                                        string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                                        string parentBody = node.GetProperty("body").GetString();
 
-                                            foreach (var replyNode in newReplies)
+                                        // intercept bot messages to get real parent author
+                                        if (parentAuthor == "aec-community-bot")
+                                        {
+                                            var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                            if (match.Success)
                                             {
-                                                string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
-                                                string replyBody = replyNode.GetProperty("body").GetString();
+                                                parentAuthor = match.Groups[1].Value;
+                                                parentBody = match.Groups[2].Value; // extract body to clean the html tag
+                                            }
+                                        }
 
-                                                // intercept bot messages for the reply author too
-                                                if (replyAuthor == "aec-community-bot")
+                                        var repliesData = node.GetProperty("replies");
+                                        int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
+
+                                        if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                                        {
+                                            if (newTotalCount > lastKnownCount)
+                                            {
+                                                int diff = newTotalCount - lastKnownCount;
+                                                var replyNodes = repliesData.GetProperty("nodes").EnumerateArray().ToList();
+
+                                                // only evaluate the newly added replies
+                                                var newReplies = replyNodes.Skip(Math.Max(0, replyNodes.Count - diff)).ToList();
+
+                                                foreach (var replyNode in newReplies)
                                                 {
-                                                    var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                                    if (match.Success)
+                                                    string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
+                                                    string replyBody = replyNode.GetProperty("body").GetString();
+
+                                                    // intercept bot messages for the reply author too
+                                                    if (replyAuthor == "aec-community-bot")
                                                     {
-                                                        replyAuthor = match.Groups[1].Value;
-                                                        replyBody = match.Groups[2].Value; // extract body to clean the html tag
+                                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                        if (match.Success)
+                                                        {
+                                                            replyAuthor = match.Groups[1].Value;
+                                                            replyBody = match.Groups[2].Value; // extract body to clean the html tag
+                                                        }
+                                                    }
+
+                                                    // use case-insensitive check
+                                                    if (string.Equals(replyAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
+
+                                                    // check for our injected zero-width space mention or a normal text mention fallback
+                                                    bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
+                                                    bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
+                                                                       replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
+
+                                                    if (!isAuthor && isMentioned)
+                                                    {
+                                                        _communityCache.Notifications.Add(new AppNotification
+                                                        {
+                                                            Message = $"{replyAuthor} hat dich in einer Antwort erwähnt.",
+                                                            Date = DateTime.Now,
+                                                            IsRead = false,
+                                                            TargetDiscussionId = discId,
+                                                            TargetCommentId = commentId,
+                                                            TargetReplyId = replyNode.GetProperty("id").GetString()
+                                                        });
+                                                        hasNewNotifications = true;
+                                                    }
+                                                    else if (isAuthor)
+                                                    {
+                                                        _communityCache.Notifications.Add(new AppNotification
+                                                        {
+                                                            Message = $"{replyAuthor} hat auf deinen Kommentar geantwortet.",
+                                                            Date = DateTime.Now,
+                                                            IsRead = false,
+                                                            TargetDiscussionId = discId,
+                                                            TargetCommentId = commentId,
+                                                            TargetReplyId = replyNode.GetProperty("id").GetString()
+                                                        });
+                                                        hasNewNotifications = true;
                                                     }
                                                 }
-
-                                                // use case-insensitive check
-                                                if (string.Equals(replyAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
-
-                                                // check for our injected zero-width space mention or a normal text mention fallback
-                                                bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
-                                                bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
-                                                                   replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
-
-                                                if (!isAuthor && isMentioned)
-                                                {
-                                                    _communityCache.Notifications.Add(new AppNotification
-                                                    {
-                                                        Message = $"{replyAuthor} hat dich in einer Antwort erwähnt.",
-                                                        Date = DateTime.Now,
-                                                        IsRead = false,
-                                                        TargetDiscussionId = discId,
-                                                        TargetCommentId = commentId,
-                                                        TargetReplyId = replyNode.GetProperty("id").GetString()
-                                                    });
-                                                    hasNewNotifications = true;
-                                                }
-                                                else if (isAuthor)
-                                                {
-                                                    _communityCache.Notifications.Add(new AppNotification
-                                                    {
-                                                        Message = $"{replyAuthor} hat auf deinen Kommentar geantwortet.",
-                                                        Date = DateTime.Now,
-                                                        IsRead = false,
-                                                        TargetDiscussionId = discId,
-                                                        TargetCommentId = commentId,
-                                                        TargetReplyId = replyNode.GetProperty("id").GetString()
-                                                    });
-                                                    hasNewNotifications = true;
-                                                }
+                                                _communityCache.Subscriptions[commentId] = newTotalCount;
                                             }
-                                            _communityCache.Subscriptions[commentId] = newTotalCount;
                                         }
                                     }
-                                }
-                                else if (node.TryGetProperty("comments", out var commentsData))
-                                {
-                                    string discId = node.GetProperty("id").GetString();
-                                    int newTotalCount = commentsData.GetProperty("totalCount").GetInt32();
-
-                                    if (_communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
+                                    else if (node.TryGetProperty("comments", out var commentsData))
                                     {
-                                        if (newTotalCount > lastKnownCount)
+                                        string discId = node.GetProperty("id").GetString();
+                                        int newTotalCount = commentsData.GetProperty("totalCount").GetInt32();
+
+                                        if (_communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
                                         {
-                                            int diff = newTotalCount - lastKnownCount;
-                                            var commentNodes = commentsData.GetProperty("nodes").EnumerateArray().ToList();
-                                            var newComments = commentNodes.Skip(Math.Max(0, commentNodes.Count - diff)).ToList();
-
-                                            foreach (var cNode in newComments)
+                                            if (newTotalCount > lastKnownCount)
                                             {
-                                                string cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
-                                                string cBody = cNode.GetProperty("body").GetString();
+                                                int diff = newTotalCount - lastKnownCount;
+                                                var commentNodes = commentsData.GetProperty("nodes").EnumerateArray().ToList();
+                                                var newComments = commentNodes.Skip(Math.Max(0, commentNodes.Count - diff)).ToList();
 
-                                                // intercept bot messages
-                                                if (cAuthor == "aec-community-bot")
+                                                foreach (var cNode in newComments)
                                                 {
-                                                    var match = System.Text.RegularExpressions.Regex.Match(cBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                                    if (match.Success) cAuthor = match.Groups[1].Value;
+                                                    string cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
+                                                    string cBody = cNode.GetProperty("body").GetString();
+
+                                                    // intercept bot messages
+                                                    if (cAuthor == "aec-community-bot")
+                                                    {
+                                                        var match = System.Text.RegularExpressions.Regex.Match(cBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                        if (match.Success) cAuthor = match.Groups[1].Value;
+                                                    }
+
+                                                    if (string.Equals(cAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
+
+                                                    _communityCache.Notifications.Add(new AppNotification
+                                                    {
+                                                        Message = $"{cAuthor} hat dein Level kommentiert.",
+                                                        Date = DateTime.Now,
+                                                        IsRead = false,
+                                                        TargetDiscussionId = discId,
+                                                        TargetCommentId = cNode.GetProperty("id").GetString(),
+                                                        TargetReplyId = null
+                                                    });
+                                                    hasNewNotifications = true;
                                                 }
-
-                                                if (string.Equals(cAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
-
-                                                _communityCache.Notifications.Add(new AppNotification
-                                                {
-                                                    Message = $"{cAuthor} hat dein Level kommentiert.",
-                                                    Date = DateTime.Now,
-                                                    IsRead = false,
-                                                    TargetDiscussionId = discId,
-                                                    TargetCommentId = cNode.GetProperty("id").GetString(),
-                                                    TargetReplyId = null
-                                                });
-                                                hasNewNotifications = true;
+                                                _communityCache.Subscriptions[discId] = newTotalCount;
                                             }
-                                            _communityCache.Subscriptions[discId] = newTotalCount;
                                         }
                                     }
+                                    nodeIndex++;
                                 }
-                                nodeIndex++;
                             }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Community] Polling Subscriptions Error: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+
+            if (hasNewNotifications)
             {
-                Debug.WriteLine($"[Community] Polling Subscriptions Error: {ex.Message}");
+                if (_inboxFlyout != null && _inboxFlyout.IsOpen)
+                {
+                    // mark as read if flyout already open
+                    foreach (var n in _communityCache.Notifications) n.IsRead = true;
+                    SaveSystem.SaveCommunityCache(_communityCache);
+                    await Dispatcher.UIThread.InvokeAsync(() => { ShowInboxFlyout(); });
+                }
+                else
+                {
+                    SaveSystem.SaveCommunityCache(_communityCache);
+                    await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+                }
             }
         }
-
-        if (hasNewNotifications)
+        finally
         {
-            if (_inboxFlyout != null && _inboxFlyout.IsOpen)
+            if (_isInitialNotificationCheckRunning)
             {
-                // mark as read if flyout already open
-                foreach (var n in _communityCache.Notifications) n.IsRead = true;
-                SaveSystem.SaveCommunityCache(_communityCache);
-                await Dispatcher.UIThread.InvokeAsync(() => { ShowInboxFlyout(); });
-            }
-            else
-            {
-                SaveSystem.SaveCommunityCache(_communityCache);
+                _isInitialNotificationCheckRunning = false;
+                _hasCompletedInitialNotificationCheck = true;
                 await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
             }
         }
@@ -3346,9 +3385,56 @@ public partial class MainWindow
                 if (BadgeInbox != null)
                     BadgeInbox.IsVisible = !playerData.Settings.AreNotificationsPaused && unreadCount > 0;
 
-                var icon = (!playerData.Settings.AreNotificationsPaused && unreadCount > 0) ? "ic_inbox_filled.svg" : "ic_inbox.svg";
-                BtnInbox.Content = LoadIcon($"assets/icons/{icon}", 20);
+                if (!playerData.Settings.AreNotificationsPaused && unreadCount > 0)
+                {
+                    StopInboxAnimation();
+                    BtnInbox.Content = LoadIcon("assets/icons/ic_inbox_filled.svg", 20);
+                }
+                else if (_isInitialNotificationCheckRunning && unreadCount == 0)
+                {
+                    StartInboxAnimation();
+                }
+                else
+                {
+                    StopInboxAnimation();
+                    BtnInbox.Content = LoadIcon("assets/icons/ic_inbox.svg", 20);
+                }
             }
+            else
+            {
+                StopInboxAnimation();
+            }
+        }
+    }
+
+    private void StartInboxAnimation()
+    {
+        if (_inboxAnimationTimer != null && _inboxAnimationTimer.IsEnabled) return;
+
+        _inboxAnimationStep = 0;
+        _inboxAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _inboxAnimationTimer.Tick += (s, e) =>
+        {
+            if (BtnInbox == null) return;
+
+            string iconName = _inboxFrames[_inboxAnimationStep];
+            BtnInbox.Content = LoadIcon($"assets/icons/{iconName}", 20);
+
+            _inboxAnimationStep = (_inboxAnimationStep + 1) % _inboxFrames.Length;
+        };
+
+        // set initial frame immediately
+        BtnInbox.Content = LoadIcon($"assets/icons/{_inboxFrames[0]}", 20);
+        _inboxAnimationStep = 1;
+        _inboxAnimationTimer.Start();
+    }
+
+    private void StopInboxAnimation()
+    {
+        if (_inboxAnimationTimer != null)
+        {
+            _inboxAnimationTimer.Stop();
+            _inboxAnimationTimer = null;
         }
     }
 
@@ -3481,6 +3567,14 @@ public partial class MainWindow
 
             cooldownTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
             double totalCooldown = 9.5;
+
+            // prevent 1-frame flicker by setting the sweep angle immediately
+            double initialElapsed = (DateTime.Now - _lastNotificationRefreshTime).TotalSeconds;
+            double initialRemaining = 10.0 - initialElapsed;
+            if (initialRemaining > 0)
+            {
+                cooldownArc.SweepAngle = (initialRemaining / totalCooldown) * 360;
+            }
 
             cooldownTimer.Tick += (s, e) =>
             {

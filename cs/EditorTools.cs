@@ -2189,7 +2189,6 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
 
         var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, segment);
         var rect = rects.FirstOrDefault();
-        System.Diagnostics.Debug.WriteLine($"[VimCaret] Draw: offset={offset} docLen={_editor.Document.TextLength} rectDefault={rect == default} rectCount={rects.Count()} rect={rect}");
         if (rect != default)
         {
             var drawRect = rect;
