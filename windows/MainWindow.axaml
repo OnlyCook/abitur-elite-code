@@ -141,6 +141,26 @@
 			</Setter>
 			<Setter Property="Opacity" Value="0" />
 		</Style>
+
+		<!-- settings badge blinking -->
+		<Style Selector="Border.maintenance-blink">
+			<Style.Animations>
+				<Animation Duration="0:0:3" IterationCount="INFINITE">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+					<KeyFrame Cue="66%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+					<KeyFrame Cue="83%">
+						<Setter Property="Opacity" Value="0.3" />
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
 	</Window.Styles>
 
 	<LayoutTransformControl Name="RootScaleTransform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -379,7 +399,7 @@
 
 													<StackPanel Name="PnlCommentsList" Spacing="15" />
 													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden. Sei der Erste! " Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
-													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar." Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
+													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar " Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLoading" Text="Lädt..." Foreground="Gray" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<Button Name="BtnLoadMoreComments" Content="Weitere Kommentare laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
 												</StackPanel>
@@ -396,12 +416,13 @@
 
 										<Border Grid.Row="1" Name="PnlCommunityActions" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0" IsVisible="False">
 											<StackPanel>
-												<TextBlock Name="TxtCommunityOutdatedStatus	" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityNotFoundStatus" Text="Level-Diskussion nicht gefunden" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen" Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityOutdatedStatus" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityMaintenanceStatus" Text="Wartungsarbeiten sind derzeit aktiv " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityNotFoundStatus" Text="Level-Diskussion nicht gefunden " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
-													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen" Foreground="#6495ED" FontStyle="Italic" TextDecorations="Underline" />
+													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen " Foreground="#6495ED" FontStyle="Italic" TextDecorations="Underline" />
 												</Button>
 												<Grid ColumnDefinitions="Auto, Auto, *, Auto" Margin="15,10">
 													<Button Grid.Column="0" Name="BtnLike" Background="Transparent" Margin="0,0,10,0" Click="BtnLike_Click">

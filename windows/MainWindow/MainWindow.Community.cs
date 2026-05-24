@@ -152,8 +152,16 @@ public partial class MainWindow
         if (TxtCommunityOfflineStatus != null)
             TxtCommunityOfflineStatus.IsVisible = false;
 
-        if (TxtCommunityOutdatedStatus != null)
-            TxtCommunityOutdatedStatus.IsVisible = true;
+        if (UpdateManager.IsMaintenanceMode)
+        {
+            if (TxtCommunityOutdatedStatus != null) TxtCommunityOutdatedStatus.IsVisible = false;
+            if (TxtCommunityMaintenanceStatus != null) TxtCommunityMaintenanceStatus.IsVisible = true;
+        }
+        else
+        {
+            if (TxtCommunityMaintenanceStatus != null) TxtCommunityMaintenanceStatus.IsVisible = false;
+            if (TxtCommunityOutdatedStatus != null) TxtCommunityOutdatedStatus.IsVisible = true;
+        }
     }
 
     private async Task ShowCommunityNotFoundBannerAsync()
@@ -172,6 +180,7 @@ public partial class MainWindow
         PnlCommunityActions.IsVisible = true;
         if (TxtCommunityOfflineStatus != null) TxtCommunityOfflineStatus.IsVisible = false;
         if (TxtCommunityOutdatedStatus != null) TxtCommunityOutdatedStatus.IsVisible = false;
+        if (TxtCommunityMaintenanceStatus != null) TxtCommunityMaintenanceStatus.IsVisible = false;
         if (TxtCommunityFullQueueStatus != null) TxtCommunityFullQueueStatus.IsVisible = false;
 
         var txtNotFound = this.FindControl<TextBlock>("TxtCommunityNotFoundStatus");
@@ -391,7 +400,35 @@ public partial class MainWindow
         {
             PnlCommunityActions.IsVisible = true;
             SetCommunitySkeletonsVisible(true);
-            await UpdateManager.CheckForUpdatesAsync();
+            var result = await UpdateManager.CheckForUpdatesAsync();
+
+            // push the badge update to the ui if the community check found it first
+            if (result.UpdateAvailable)
+            {
+                _updateAvailable = true;
+                _latestVersion = result.LatestVersion;
+                _updateDownloadUrl = result.DownloadUrl;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (BadgeSettings != null)
+                    {
+                        BadgeSettings.IsVisible = true;
+                        if (UpdateManager.IsMaintenanceMode)
+                        {
+                            BadgeSettings.Background = SolidColorBrush.Parse("#B43232");
+                            BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                            if (!BadgeSettings.Classes.Contains("maintenance-blink"))
+                                BadgeSettings.Classes.Add("maintenance-blink");
+                        }
+                        else
+                        {
+                            BadgeSettings.Background = SolidColorBrush.Parse("#32A852");
+                            BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                            BadgeSettings.Classes.Remove("maintenance-blink");
+                        }
+                    }
+                });
+            }
         }
 
         if (UpdateManager.IsOutdated)
@@ -402,6 +439,9 @@ public partial class MainWindow
 
         var txtOutdated = this.FindControl<TextBlock>("TxtCommunityOutdatedStatus");
         if (txtOutdated != null) txtOutdated.IsVisible = false;
+
+        var txtMaintenance = this.FindControl<TextBlock>("TxtCommunityMaintenanceStatus");
+        if (txtMaintenance != null) txtMaintenance.IsVisible = false;
 
         var txtNotFound = this.FindControl<TextBlock>("TxtCommunityNotFoundStatus");
         if (txtNotFound != null) txtNotFound.IsVisible = false;

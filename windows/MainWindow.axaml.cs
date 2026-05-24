@@ -2948,7 +2948,25 @@ public partial class MainWindow : Window
             UpdateDiagnostics = UpdateDiagnostics,
             AddToConsole = (text, brush) => AddToConsole(text, brush),
             SetVimMode = mode => _vimMode = mode,
-            ShowUpdateBadge = () => BadgeSettings.IsVisible = true,
+            UpdateBadge = (isAvailable) => {
+                BadgeSettings.IsVisible = isAvailable;
+
+                if (!isAvailable) return;
+
+                if (UpdateManager.IsMaintenanceMode)
+                {
+                    BadgeSettings.Background = SolidColorBrush.Parse("#B43232");
+                    BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                    if (!BadgeSettings.Classes.Contains("maintenance-blink"))
+                        BadgeSettings.Classes.Add("maintenance-blink");
+                }
+                else
+                {
+                    BadgeSettings.Background = SolidColorBrush.Parse("#32A852");
+                    BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                    BadgeSettings.Classes.Remove("maintenance-blink");
+                }
+            },
             ShowManualUpdateDialog = (status, url, owner) => ShowManualUpdateDialog(status, url, owner),
 
             ScanSqlTokens = text => _sqlAutocompleteService?.ScanTokens(text),
@@ -3951,7 +3969,23 @@ public partial class MainWindow : Window
             _updateAvailable = true;
             _latestVersion = result.LatestVersion;
             _updateDownloadUrl = result.DownloadUrl;
-            Dispatcher.UIThread.Post(() => BadgeSettings.IsVisible = true);
+            Dispatcher.UIThread.Post(() =>
+            {
+                BadgeSettings.IsVisible = true;
+                if (UpdateManager.IsMaintenanceMode)
+                {
+                    BadgeSettings.Background = SolidColorBrush.Parse("#B43232");
+                    BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                    if (!BadgeSettings.Classes.Contains("maintenance-blink"))
+                        BadgeSettings.Classes.Add("maintenance-blink");
+                }
+                else
+                {
+                    BadgeSettings.Background = SolidColorBrush.Parse("#32A852");
+                    BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                    BadgeSettings.Classes.Remove("maintenance-blink");
+                }
+            });
         }
     }
 

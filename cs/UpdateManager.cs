@@ -1,9 +1,11 @@
-﻿using System;
+﻿using AbiturEliteCode.cs;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -17,7 +19,8 @@ public static class UpdateManager
         Success,
         UnsupportedOS,
         NoWritePermission,
-        NetworkError
+        NetworkError,
+        RateLimitExceeded
     }
 
     public const string CurrentVersion = "1.0.0";
@@ -25,6 +28,7 @@ public static class UpdateManager
 
     public static bool HasCheckedForUpdates { get; private set; } = false;
     public static bool IsOutdated { get; private set; } = false;
+    public static bool IsMaintenanceMode { get; private set; } = false;
 
     public static async Task<(UpdateStatus Status, bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
     {
@@ -33,10 +37,27 @@ public static class UpdateManager
             using var client = new HttpClient();
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");
 
+            // append token if available (unauthorized = 60/h rate limit; rather cooked for a classroom)
+            if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            }
+
             var response = await client.GetAsync(GithubApiUrl);
             if (!response.IsSuccessStatusCode)
             {
                 HasCheckedForUpdates = true;
+
+                // check for rate limit
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == (System.Net.HttpStatusCode)429)
+                {
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    if (errorJson.Contains("rate limit", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return (UpdateStatus.RateLimitExceeded, false, "", "");
+                    }
+                }
+
                 return (UpdateStatus.NetworkError, false, "", "");
             }
 
@@ -47,13 +68,37 @@ public static class UpdateManager
             if (root.TryGetProperty("tag_name", out var tagElement))
             {
                 string tag = tagElement.GetString()?.Trim() ?? "";
-                string currentClean = CurrentVersion.Contains('-') ? CurrentVersion[..CurrentVersion.IndexOf('-')] : CurrentVersion;
-                string latestClean = tag.Contains('-') ? tag[..tag.IndexOf('-')] : tag;
+
+                bool currentIsMaintenance = CurrentVersion.EndsWith("m");
+                bool latestIsMaintenance = tag.EndsWith("m");
+
+                string currentClean = CurrentVersion.Replace("m", "");
+                currentClean = currentClean.Contains('-') ? currentClean[..currentClean.IndexOf('-')] : currentClean;
+
+                string latestClean = tag.Replace("m", "");
+                latestClean = latestClean.Contains('-') ? latestClean[..latestClean.IndexOf('-')] : latestClean;
+
                 bool currentIsPreRelease = CurrentVersion.Contains('-');
                 bool latestIsPreRelease = tag.Contains('-');
 
                 if (Version.TryParse(currentClean, out var current) && Version.TryParse(latestClean, out var latest))
-                    if (latest > current || (latest == current && currentIsPreRelease && !latestIsPreRelease))
+                {
+                    bool isNewer = false;
+
+                    if (latest > current)
+                    {
+                        isNewer = true;
+                    }
+                    else if (latest == current)
+                    {
+                        if (currentIsPreRelease && !latestIsPreRelease) isNewer = true;
+                        else if (!currentIsPreRelease && !latestIsPreRelease)
+                        {
+                            if (!currentIsMaintenance && latestIsMaintenance) isNewer = true;
+                        }
+                    }
+
+                    if (isNewer)
                     {
                         string targetAsset = "AbiturEliteCode-win.zip";
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -62,21 +107,32 @@ public static class UpdateManager
                             targetAsset = "AbiturEliteCode-mac.zip";
 
                         string downloadUrl = "";
+                        bool hasZipAsset = false;
+
                         if (root.TryGetProperty("assets", out var assetsElement))
+                        {
                             foreach (var asset in assetsElement.EnumerateArray())
-                                if (asset.TryGetProperty("name", out var nameElement) &&
-                                    nameElement.GetString() == targetAsset)
+                            {
+                                if (asset.TryGetProperty("name", out var nameElement) && nameElement.GetString() == targetAsset)
                                 {
                                     downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                    hasZipAsset = true;
                                     break;
                                 }
+                            }
+                        }
+
+                        // flag as maintenance if tag explicitly ends with 'm' or it has no valid zip asset
+                        IsMaintenanceMode = latestIsMaintenance || !hasZipAsset;
 
                         IsOutdated = true;
                         HasCheckedForUpdates = true;
                         return (UpdateStatus.Success, true, tag, downloadUrl);
                     }
+                }
             }
 
+            IsMaintenanceMode = false;
             IsOutdated = false;
             HasCheckedForUpdates = true;
             return (UpdateStatus.Success, false, "", "");
@@ -95,6 +151,12 @@ public static class UpdateManager
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");
+
+            // append token if available
+            if (!string.IsNullOrEmpty(AppSettings.GithubToken))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.GithubToken);
+            }
 
             var response = await client.GetAsync("https://api.github.com/repos/OnlyCook/abitur-elite-code/releases");
             if (!response.IsSuccessStatusCode) return releases;

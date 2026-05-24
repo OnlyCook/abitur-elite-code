@@ -38,7 +38,7 @@ public class SettingsWindowContext
     public required Action UpdateDiagnostics { get; init; }
     public required Action<string, IBrush> AddToConsole { get; init; }
     public required Action<MainWindow.VimMode> SetVimMode { get; init; }
-    public required Action ShowUpdateBadge { get; init; }
+    public required Action<bool> UpdateBadge { get; init; }
     public required Func<UpdateManager.UpdateStatus, string, Window, Task> ShowManualUpdateDialog { get; init; }
 
     // --- autocompletion-callbacks ---

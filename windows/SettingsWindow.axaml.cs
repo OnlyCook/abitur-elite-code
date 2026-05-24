@@ -49,7 +49,7 @@ public partial class SettingsWindow : Window
     private ProgressBar _updateProgressBar = null!;
 
     private StackPanel _patchNotesPanel = null!;
-    private List<(string Version, string Body)> _cachedReleases = null!;
+    private static List<(string Version, string Body)> _cachedReleases = null!;
     private int _loadedReleasesCount = 0;
     private bool _isLoadingReleases = false;
     private bool _reachedFirstVersion = false;
@@ -99,6 +99,22 @@ public partial class SettingsWindow : Window
         BtnCatEditor.Content = _ctx.IsSqlMode ? "SQL Editor" : "C# Editor";
 
         UpdatesBadge.IsVisible = ctx.UpdateAvailable;
+        if (ctx.UpdateAvailable)
+        {
+            if (UpdateManager.IsMaintenanceMode)
+            {
+                UpdatesBadge.Background = SolidColorBrush.Parse("#B43232");
+                UpdatesBadge.BorderBrush = Brushes.Transparent;
+                if (!UpdatesBadge.Classes.Contains("maintenance-blink"))
+                    UpdatesBadge.Classes.Add("maintenance-blink");
+            }
+            else
+            {
+                UpdatesBadge.Background = SolidColorBrush.Parse("#32A852");
+                UpdatesBadge.BorderBrush = Brushes.Transparent;
+                UpdatesBadge.Classes.Remove("maintenance-blink");
+            }
+        }
 
         BuildEditorPanel();
         BuildDisplayPanel();
@@ -340,7 +356,7 @@ public partial class SettingsWindow : Window
         Grid.SetRow(btnPanel, 1);
 
         var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
-        var btnNo  = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+        var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
 
         btnYes.Click += (_, _) =>
         {
@@ -1539,10 +1555,10 @@ public partial class SettingsWindow : Window
                 mw.SkipSaveOnExit = true;
             }
 
-            var module = System.Diagnostics.Process.GetCurrentProcess().MainModule;
+            var module = Process.GetCurrentProcess().MainModule;
             if (module != null)
             {
-                System.Diagnostics.Process.Start(module.FileName);
+                Process.Start(module.FileName);
             }
 
             desktop.Shutdown();
@@ -1579,10 +1595,12 @@ public partial class SettingsWindow : Window
 
         _txtVersionInfo = new TextBlock
         {
-            Text = _ctx.UpdateAvailable
-                ? $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}"
-                : $"Aktuelle Version: {UpdateManager.CurrentVersion}",
-            Foreground = _ctx.UpdateAvailable ? SolidColorBrush.Parse("#32A852") : Brushes.Gray,
+            Text = UpdateManager.IsMaintenanceMode
+                ? $"Wartungsarbeiten sind derzeit aktiv. Updates sind pausiert.\nAktuelle Version: {UpdateManager.CurrentVersion}"
+                : _ctx.UpdateAvailable
+                    ? $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}"
+                    : $"Aktuelle Version: {UpdateManager.CurrentVersion}",
+            Foreground = UpdateManager.IsMaintenanceMode ? Brushes.Orange : (_ctx.UpdateAvailable ? SolidColorBrush.Parse("#32A852") : Brushes.Gray),
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             Margin = new Thickness(0, 10, 0, 10)
         };
@@ -1605,7 +1623,7 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
-            IsEnabled = _ctx.UpdateAvailable
+            IsEnabled = _ctx.UpdateAvailable && !UpdateManager.IsMaintenanceMode
         };
 
         _updateProgressBar = new ProgressBar
@@ -1642,17 +1660,58 @@ public partial class SettingsWindow : Window
             {
                 _txtVersionInfo.Text = "Keine Internetverbindung.";
                 _txtVersionInfo.Foreground = Brushes.Red;
+                
+                _ctx.UpdateAvailable = false;
+                UpdatesBadge.IsVisible = false;
+                _btnUpdateApp.IsEnabled = false;
+                _ctx.UpdateBadge?.Invoke(false);
+            }
+            // handle rate limit
+            else if (result.Status == UpdateManager.UpdateStatus.RateLimitExceeded)
+            {
+                _txtVersionInfo.Text = "GitHub API Rate-Limit erreicht. Bitte warte etwas oder melde dich mit GitHub an.";
+                _txtVersionInfo.Foreground = Brushes.Red;
+                
+                _ctx.UpdateAvailable = false;
+                UpdatesBadge.IsVisible = false;
+                _btnUpdateApp.IsEnabled = false;
+                _ctx.UpdateBadge?.Invoke(false);
             }
             else if (result.UpdateAvailable)
             {
                 _ctx.UpdateAvailable = true;
                 _ctx.LatestVersion = result.LatestVersion;
                 _ctx.UpdateDownloadUrl = result.DownloadUrl;
-                _ctx.ShowUpdateBadge();
+                _ctx.UpdateBadge?.Invoke(true);
 
-                _txtVersionInfo.Text = $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}";
-                _txtVersionInfo.Foreground = SolidColorBrush.Parse("#32A852");
-                _btnUpdateApp.IsEnabled = true;
+                // invalidate the patch notes cache if a new version was found to force a refresh
+                if (_cachedReleases != null && _cachedReleases.Count > 0 && _cachedReleases[0].Version != result.LatestVersion)
+                {
+                    _cachedReleases = null;
+                    _ = LoadInitialPatchNotesAsync();
+                }
+
+                if (UpdateManager.IsMaintenanceMode)
+                {
+                    _txtVersionInfo.Text = $"Wartungsarbeiten sind derzeit aktiv. Updates sind pausiert.\nAktuelle Version: {UpdateManager.CurrentVersion}";
+                    _txtVersionInfo.Foreground = Brushes.Orange;
+                    _btnUpdateApp.IsEnabled = false;
+
+                    UpdatesBadge.Background = SolidColorBrush.Parse("#B43232");
+                    UpdatesBadge.BorderBrush = Brushes.Transparent;
+                    if (!UpdatesBadge.Classes.Contains("maintenance-blink"))
+                        UpdatesBadge.Classes.Add("maintenance-blink");
+                }
+                else
+                {
+                    _txtVersionInfo.Text = $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}";
+                    _txtVersionInfo.Foreground = SolidColorBrush.Parse("#32A852");
+                    _btnUpdateApp.IsEnabled = true;
+
+                    UpdatesBadge.Background = SolidColorBrush.Parse("#32A852");
+                    UpdatesBadge.BorderBrush = Brushes.Transparent;
+                    UpdatesBadge.Classes.Remove("maintenance-blink");
+                }
 
                 UpdatesBadge.IsVisible = true;
             }
@@ -1660,6 +1719,21 @@ public partial class SettingsWindow : Window
             {
                 _txtVersionInfo.Text = $"Du bist auf dem neusten Stand.\nAktuelle Version: {UpdateManager.CurrentVersion}";
                 _txtVersionInfo.Foreground = Brushes.Gray;
+                
+                _ctx.UpdateAvailable = false;
+                UpdatesBadge.IsVisible = false;
+                _btnUpdateApp.IsEnabled = false;
+                _ctx.UpdateBadge?.Invoke(false);
+            }
+
+            NotifyMainWindowCommunityState(); 
+            
+            // spam prevention / cooldown
+            for (int i = 5; i > 0; i--)
+            {
+                if (!this.IsVisible) return; // safety check if the window was closed
+                _btnCheckUpdate.Content = $"Bitte warten... ({i}s)";
+                await Task.Delay(1000);
             }
 
             _btnCheckUpdate.Content = "Nach Updates suchen";
@@ -1845,22 +1919,40 @@ public partial class SettingsWindow : Window
 
     private void AddPatchNoteUI((string Version, string Body) release)
     {
-        Version.TryParse(UpdateManager.CurrentVersion, out var currentVer);
-        Version.TryParse(release.Version, out var releaseVer);
+        bool isMaintenance = release.Version.EndsWith("m");
+
+        string cleanVersion = release.Version.Replace("m", "");
+        cleanVersion = cleanVersion.Contains('-') ? cleanVersion[..cleanVersion.IndexOf('-')] : cleanVersion;
+
+        string currentClean = UpdateManager.CurrentVersion.Replace("m", "");
+        currentClean = currentClean.Contains('-') ? currentClean[..currentClean.IndexOf('-')] : currentClean;
+
+        Version.TryParse(currentClean, out var currentVer);
+        Version.TryParse(cleanVersion, out var releaseVer);
 
         bool isCurrentVersion = releaseVer != null && currentVer != null && releaseVer == currentVer;
         bool isNewerVersion = releaseVer != null && currentVer != null && releaseVer > currentVer;
 
-        string titleText = $"Patch Notes {release.Version}";
-        if (isNewerVersion) titleText += " (Neu)";
+        // determine if this is the latest available version (shown at the top of the list)
+        bool isLatestRelease = _cachedReleases != null && _cachedReleases.Count > 0 && _cachedReleases[0].Version == release.Version;
+
+        string sectionLabel = isMaintenance ? "Wartungsarbeiten" : "Patch Notes";
+        string titleText = $"{sectionLabel} {release.Version}";
+
+        if (isMaintenance && isLatestRelease && UpdateManager.IsOutdated)
+            titleText += " (Aktiv)";
+        else if (!isMaintenance && isNewerVersion)
+            titleText += " (Neu)";
+
+        // maintenance releases use red, current version uses green, others use default blue
+        string headerColor = isMaintenance ? "#B43232" : (isCurrentVersion ? "#32A852" : "#007ACC");
 
         var header = new TextBlock
         {
             Text = titleText,
             FontSize = 16,
             FontWeight = FontWeight.Bold,
-            // highlight current version in green, others in the default (blue)
-            Foreground = SolidColorBrush.Parse(isCurrentVersion ? "#32A852" : "#007ACC"),
+            Foreground = SolidColorBrush.Parse(headerColor),
             Margin = new Thickness(0, 15, 0, 5)
         };
 
@@ -2101,7 +2193,7 @@ public partial class SettingsWindow : Window
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (_, ev) => 
+        dialog.KeyDown += (_, ev) =>
         {
             if (ev.Key == Key.Escape)
                 dialog.Close();
@@ -2579,7 +2671,7 @@ public partial class SettingsWindow : Window
             Foreground = SolidColorBrush.Parse("#007ACC"),
             BorderBrush = SolidColorBrush.Parse("#333"),
             CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(8,4),
+            Padding = new Thickness(8, 4),
             Margin = new Thickness(0, 10, 0, 10)
         };
 

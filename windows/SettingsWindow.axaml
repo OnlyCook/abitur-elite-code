@@ -7,6 +7,28 @@
         Background="#252526"
         SystemDecorations="BorderOnly">
 
+	<Window.Styles>
+	    <!-- settings badge blinking -->
+		<Style Selector="Border.maintenance-blink">
+			<Style.Animations>
+				<Animation Duration="0:0:3" IterationCount="INFINITE">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+					<KeyFrame Cue="66%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+					<KeyFrame Cue="83%">
+						<Setter Property="Opacity" Value="0.3" />
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1.0" />
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</Window.Styles>
+	
     <Border CornerRadius="8"
             Background="#252526"
             BorderBrush="Transparent"
