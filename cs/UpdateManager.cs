@@ -24,7 +24,9 @@ public static class UpdateManager
     }
 
     public const string CurrentVersion = "1.0.0";
-    private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases/latest";
+    private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases";
+
+    public static List<(string Version, string Body)>? CachedReleases { get; set; } = null;
 
     public static bool HasCheckedForUpdates { get; private set; } = false;
     public static bool IsOutdated { get; private set; } = false;
@@ -65,69 +67,84 @@ public static class UpdateManager
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("tag_name", out var tagElement))
+            // github /releases returns an array; index 0 is the newest release
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
             {
-                string tag = tagElement.GetString()?.Trim() ?? "";
-
-                bool currentIsMaintenance = CurrentVersion.EndsWith("m");
-                bool latestIsMaintenance = tag.EndsWith("m");
-
-                string currentClean = CurrentVersion.Replace("m", "");
-                currentClean = currentClean.Contains('-') ? currentClean[..currentClean.IndexOf('-')] : currentClean;
-
-                string latestClean = tag.Replace("m", "");
-                latestClean = latestClean.Contains('-') ? latestClean[..latestClean.IndexOf('-')] : latestClean;
-
-                bool currentIsPreRelease = CurrentVersion.Contains('-');
-                bool latestIsPreRelease = tag.Contains('-');
-
-                if (Version.TryParse(currentClean, out var current) && Version.TryParse(latestClean, out var latest))
+                // cache all releases
+                CachedReleases = new();
+                foreach (var release in root.EnumerateArray())
                 {
-                    bool isNewer = false;
+                    string rTag = release.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+                    string rBody = release.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
+                    CachedReleases.Add((rTag, rBody));
+                }
 
-                    if (latest > current)
+                var latestRelease = root[0];
+
+                if (latestRelease.TryGetProperty("tag_name", out var tagElement))
+                {
+                    string tag = tagElement.GetString()?.Trim() ?? "";
+
+                    bool currentIsMaintenance = CurrentVersion.EndsWith("m");
+                    bool latestIsMaintenance = tag.EndsWith("m");
+
+                    string currentClean = CurrentVersion.Replace("m", "");
+                    currentClean = currentClean.Contains('-') ? currentClean[..currentClean.IndexOf('-')] : currentClean;
+
+                    string latestClean = tag.Replace("m", "");
+                    latestClean = latestClean.Contains('-') ? latestClean[..latestClean.IndexOf('-')] : latestClean;
+
+                    bool currentIsPreRelease = CurrentVersion.Contains('-');
+                    bool latestIsPreRelease = tag.Contains('-');
+
+                    if (Version.TryParse(currentClean, out var current) && Version.TryParse(latestClean, out var latest))
                     {
-                        isNewer = true;
-                    }
-                    else if (latest == current)
-                    {
-                        if (currentIsPreRelease && !latestIsPreRelease) isNewer = true;
-                        else if (!currentIsPreRelease && !latestIsPreRelease)
+                        bool isNewer = false;
+
+                        if (latest > current)
                         {
-                            if (!currentIsMaintenance && latestIsMaintenance) isNewer = true;
+                            isNewer = true;
                         }
-                    }
-
-                    if (isNewer)
-                    {
-                        string targetAsset = "AbiturEliteCode-win.zip";
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                            targetAsset = "AbiturEliteCode-linux.zip";
-                        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                            targetAsset = "AbiturEliteCode-mac.zip";
-
-                        string downloadUrl = "";
-                        bool hasZipAsset = false;
-
-                        if (root.TryGetProperty("assets", out var assetsElement))
+                        else if (latest == current)
                         {
-                            foreach (var asset in assetsElement.EnumerateArray())
+                            if (currentIsPreRelease && !latestIsPreRelease) isNewer = true;
+                            else if (!currentIsPreRelease && !latestIsPreRelease)
                             {
-                                if (asset.TryGetProperty("name", out var nameElement) && nameElement.GetString() == targetAsset)
-                                {
-                                    downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                                    hasZipAsset = true;
-                                    break;
-                                }
+                                if (!currentIsMaintenance && latestIsMaintenance) isNewer = true;
                             }
                         }
 
-                        // flag as maintenance if tag explicitly ends with 'm' or it has no valid zip asset
-                        IsMaintenanceMode = latestIsMaintenance || !hasZipAsset;
+                        if (isNewer)
+                        {
+                            string targetAsset = "AbiturEliteCode-win.zip";
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                                targetAsset = "AbiturEliteCode-linux.zip";
+                            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                                targetAsset = "AbiturEliteCode-mac.zip";
 
-                        IsOutdated = true;
-                        HasCheckedForUpdates = true;
-                        return (UpdateStatus.Success, true, tag, downloadUrl);
+                            string downloadUrl = "";
+                            bool hasZipAsset = false;
+
+                            if (latestRelease.TryGetProperty("assets", out var assetsElement))
+                            {
+                                foreach (var asset in assetsElement.EnumerateArray())
+                                {
+                                    if (asset.TryGetProperty("name", out var nameElement) && nameElement.GetString() == targetAsset)
+                                    {
+                                        downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                        hasZipAsset = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // flag as maintenance if tag explicitly ends with 'm' or it has no valid zip asset
+                            IsMaintenanceMode = latestIsMaintenance || !hasZipAsset;
+
+                            IsOutdated = true;
+                            HasCheckedForUpdates = true;
+                            return (UpdateStatus.Success, true, tag, downloadUrl);
+                        }
                     }
                 }
             }

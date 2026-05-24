@@ -49,7 +49,6 @@ public partial class SettingsWindow : Window
     private ProgressBar _updateProgressBar = null!;
 
     private StackPanel _patchNotesPanel = null!;
-    private static List<(string Version, string Body)> _cachedReleases = null!;
     private int _loadedReleasesCount = 0;
     private bool _isLoadingReleases = false;
     private bool _reachedFirstVersion = false;
@@ -1685,10 +1684,10 @@ public partial class SettingsWindow : Window
                 _ctx.UpdateBadge?.Invoke(true);
 
                 // invalidate the patch notes cache if a new version was found to force a refresh
-                if (_cachedReleases != null && _cachedReleases.Count > 0 && _cachedReleases[0].Version != result.LatestVersion)
+                if (UpdateManager.CachedReleases != null && UpdateManager.CachedReleases.Count > 0 && UpdateManager.CachedReleases[0].Version != result.LatestVersion)
                 {
-                    _cachedReleases = null;
-                    _ = LoadInitialPatchNotesAsync();
+                    UpdateManager.CachedReleases = null;
+                    await LoadPatchNotesAsync();
                 }
 
                 if (UpdateManager.IsMaintenanceMode)
@@ -1719,11 +1718,20 @@ public partial class SettingsWindow : Window
             {
                 _txtVersionInfo.Text = $"Du bist auf dem neusten Stand.\nAktuelle Version: {UpdateManager.CurrentVersion}";
                 _txtVersionInfo.Foreground = Brushes.Gray;
-                
+
                 _ctx.UpdateAvailable = false;
                 UpdatesBadge.IsVisible = false;
                 _btnUpdateApp.IsEnabled = false;
                 _ctx.UpdateBadge?.Invoke(false);
+
+                // check if the cache is stuck on a deleted/newer release
+                if (UpdateManager.CachedReleases != null &&
+                    UpdateManager.CachedReleases.Count > 0 &&
+                    UpdateManager.CachedReleases[0].Version != result.LatestVersion)
+                {
+                    UpdateManager.CachedReleases = null;
+                    await LoadPatchNotesAsync();
+                }
             }
 
             NotifyMainWindowCommunityState(); 
@@ -1852,29 +1860,30 @@ public partial class SettingsWindow : Window
 
         _updatesPanel = containerGrid;
 
-        _ = LoadInitialPatchNotesAsync();
+        _ = LoadPatchNotesAsync();
     }
 
-    private async Task LoadInitialPatchNotesAsync()
+    private async Task LoadPatchNotesAsync()
     {
+        if (UpdateManager.CachedReleases != null) return;
         if (_isLoadingReleases) return;
         _isLoadingReleases = true;
 
         try
         {
-            _cachedReleases ??= await UpdateManager.GetAllReleasesAsync();
+            UpdateManager.CachedReleases = await UpdateManager.GetAllReleasesAsync();
 
             _patchNotesPanel.Children.Clear();
             _loadedReleasesCount = 0;
             _reachedFirstVersion = false;
 
-            if (_cachedReleases.Count > 0)
+            if (UpdateManager.CachedReleases != null && UpdateManager.CachedReleases.Count > 0)
             {
                 // load only the most recent patch note initially
-                AddPatchNoteUI(_cachedReleases[0]);
+                AddPatchNoteUI(UpdateManager.CachedReleases[0]);
                 _loadedReleasesCount = 1;
 
-                if (_cachedReleases[0].Version == "0.1.0")
+                if (UpdateManager.CachedReleases[0].Version == "0.1.0")
                     _reachedFirstVersion = true;
             }
         }
@@ -1886,7 +1895,7 @@ public partial class SettingsWindow : Window
 
     private async Task LoadMorePatchNotesAsync()
     {
-        if (_isLoadingReleases || _reachedFirstVersion || _cachedReleases == null) return;
+        if (_isLoadingReleases || _reachedFirstVersion || UpdateManager.CachedReleases == null) return;
         _isLoadingReleases = true;
 
         try
@@ -1895,9 +1904,9 @@ public partial class SettingsWindow : Window
             int added = 0;
 
             // load the next batches iteratively
-            while (added < take && _loadedReleasesCount < _cachedReleases.Count)
+            while (added < take && _loadedReleasesCount < UpdateManager.CachedReleases.Count)
             {
-                var release = _cachedReleases[_loadedReleasesCount];
+                var release = UpdateManager.CachedReleases[_loadedReleasesCount];
                 AddPatchNoteUI(release);
 
                 _loadedReleasesCount++;
@@ -1934,7 +1943,7 @@ public partial class SettingsWindow : Window
         bool isNewerVersion = releaseVer != null && currentVer != null && releaseVer > currentVer;
 
         // determine if this is the latest available version (shown at the top of the list)
-        bool isLatestRelease = _cachedReleases != null && _cachedReleases.Count > 0 && _cachedReleases[0].Version == release.Version;
+        bool isLatestRelease = UpdateManager.CachedReleases != null && UpdateManager.CachedReleases.Count > 0 && UpdateManager.CachedReleases[0].Version == release.Version;
 
         string sectionLabel = isMaintenance ? "Wartungsarbeiten" : "Patch Notes";
         string titleText = $"{sectionLabel} {release.Version}";
