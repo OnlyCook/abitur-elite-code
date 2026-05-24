@@ -483,6 +483,13 @@ public partial class MainWindow : Window
         LoadLevel(startLevel);
         LogAddSplash("LoadLevel", 2);
 
+        Loaded += (s, e) =>
+        {
+            // fix initial downward scroll before the window is rendered to the user
+            CodeEditor.ScrollTo(1, 1);
+            if (SqlQueryEditor != null) SqlQueryEditor.ScrollTo(1, 1);
+        };
+
         Opened += (s, e) =>
         {
             CodeEditor.Focus();
@@ -491,10 +498,6 @@ public partial class MainWindow : Window
             {
                 InvalidateMeasure();
                 RootScaleTransform?.InvalidateMeasure();
-
-                // fix initial downward scroll
-                CodeEditor.ScrollTo(1, 1);
-                if (SqlQueryEditor != null) SqlQueryEditor.ScrollTo(1, 1);
             }, DispatcherPriority.Render);
         };
 
@@ -772,9 +775,7 @@ public partial class MainWindow : Window
         ConsoleEditor.Options.ShowSpaces = false;
         ConsoleEditor.Options.ShowTabs = false;
         ConsoleEditor.TextArea.Caret.CaretBrush = Brushes.Transparent;
-
         ConsoleEditor.TextArea.SelectionBrush = Brushes.Transparent;
-
         // disable background word matching for the console
         var selectionRenderer = new SelectionHighlightRenderer(ConsoleEditor)
         {
@@ -1501,6 +1502,7 @@ public partial class MainWindow : Window
                 codeBlockEditor.Options.ShowSpaces = false;
                 codeBlockEditor.Options.ShowTabs = false;
                 codeBlockEditor.Options.HighlightCurrentLine = false;
+                codeBlockEditor.TextArea.Caret.CaretBrush = Brushes.Transparent;
 
                 var border = new Border
                 {
@@ -2179,7 +2181,9 @@ public partial class MainWindow : Window
 
         if (hasRequired && hasOptional)
             innerList.Children.Add(new Separator
-                { Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 5, 0, 5) });
+            {
+                Background = SolidColorBrush.Parse("#333"), Margin = new Thickness(0, 5, 0, 5)
+            });
 
         RenderPrereqRows(optional, true);
 

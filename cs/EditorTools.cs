@@ -2169,11 +2169,12 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
     public bool IsEnabled { get; set; } = false;
     public bool IsHalfHeight { get; set; } = false;
 
-    public KnownLayer Layer => KnownLayer.Caret;
+    public KnownLayer Layer => KnownLayer.Selection;
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (!IsEnabled || _editor.Document == null) return;
+        // abort if visual lines are not ready to prevent stale rect calculations
+        if (!IsEnabled || _editor.Document == null || !textView.VisualLinesValid) return;
 
         int offset = _editor.CaretOffset;
         if (offset > _editor.Document.TextLength) return;

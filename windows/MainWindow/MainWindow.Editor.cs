@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text.RegularExpressions;
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,6 +6,9 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
+using System;
+using System.Text.RegularExpressions;
 
 namespace AbiturEliteCode;
 
@@ -55,6 +56,8 @@ public partial class MainWindow
 
         _csharpBlockCaret = new VimBlockCaretRenderer(CodeEditor);
         CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_csharpBlockCaret);
+        CodeEditor.TextArea.GotFocus += (s, e) => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        CodeEditor.TextArea.LostFocus += (s, e) => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
 
         var csSelectionHighlightRenderer = new SelectionHighlightRenderer(CodeEditor);
         CodeEditor.TextArea.TextView.BackgroundRenderers.Add(csSelectionHighlightRenderer);
@@ -84,6 +87,19 @@ public partial class MainWindow
             }
         }, RoutingStrategies.Tunnel);
 
+        CodeEditor.Document.Changed += (s, e) =>
+        {
+            // detect full text replacement (loading a new level / resetting code)
+            if (e.Offset == 0 && e.InsertionLength == CodeEditor.Document.TextLength)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    CodeEditor.CaretOffset = 0;
+                    CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                }, DispatcherPriority.Render);
+            }
+        };
+
         CodeEditor.TextArea.Caret.PositionChanged += (s, e) =>
         {
             // clamp caret in vim normal mode
@@ -95,6 +111,9 @@ public partial class MainWindow
 
             CodeEditor.TextArea.Caret.BringCaretToView(40);
             CodeEditor.TextArea.TextView.Redraw();
+
+            // target the selection layer now
+            Dispatcher.UIThread.Post(() => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection), DispatcherPriority.Render);
 
             if (AppSettings.IsAutocompleteEnabled)
             {
@@ -123,6 +142,9 @@ public partial class MainWindow
 
         CodeEditor.TextChanged += (s, e) =>
         {
+            // target the selection layer now
+            Dispatcher.UIThread.Post(() => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection), DispatcherPriority.Render);
+
             autoSaveTimer.Stop();
             autoSaveTimer.Start();
 

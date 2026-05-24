@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -10,9 +6,15 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace AbiturEliteCode;
 
@@ -50,12 +52,17 @@ public partial class MainWindow
 
         _sqlBlockCaret = new VimBlockCaretRenderer(SqlQueryEditor);
         SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(_sqlBlockCaret);
+        SqlQueryEditor.TextArea.GotFocus += (s, e) => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        SqlQueryEditor.TextArea.LostFocus += (s, e) => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
 
         var sqlSelectionHighlightRenderer = new SelectionHighlightRenderer(SqlQueryEditor);
         SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(sqlSelectionHighlightRenderer);
 
         SqlQueryEditor.TextChanged += (s, e) =>
         {
+            // target the selection layer now
+            Dispatcher.UIThread.Post(() => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection), DispatcherPriority.Render);
+
             autoSaveTimer.Stop();
             autoSaveTimer.Start();
 
@@ -96,6 +103,19 @@ public partial class MainWindow
             }
         }, RoutingStrategies.Tunnel);
 
+        SqlQueryEditor.Document.Changed += (s, e) =>
+        {
+            // detect full text replacement (loading a new level / resetting query)
+            if (e.Offset == 0 && e.InsertionLength == SqlQueryEditor.Document.TextLength)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    SqlQueryEditor.CaretOffset = 0;
+                    SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                }, DispatcherPriority.Render);
+            }
+        };
+
         SqlQueryEditor.TextArea.Caret.PositionChanged += (s, e) =>
         {
             // clamp caret in vim normal mode
@@ -107,6 +127,9 @@ public partial class MainWindow
 
             SqlQueryEditor.TextArea.Caret.BringCaretToView(40);
             SqlQueryEditor.TextArea.TextView.Redraw();
+
+            // target the selection layer now
+            Dispatcher.UIThread.Post(() => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection), DispatcherPriority.Render);
 
             if (AppSettings.IsSqlAutocompleteEnabled)
             {
@@ -465,6 +488,31 @@ public partial class MainWindow
             PnlSqlOutput.Children.Add(targetContainer);
         }
 
+        // helper to clear selections in all other text editors within the output panel
+        void ClearOtherSelections(TextEditor current)
+        {
+            if (current.TextArea.Selection.IsEmpty) return;
+
+            void ClearRecursively(Panel panel)
+            {
+                foreach (var child in panel.Children)
+                {
+                    if (child is TextEditor otherEditor && otherEditor != current)
+                        otherEditor.TextArea.ClearSelection();
+                    else if (child is Panel p)
+                        ClearRecursively(p);
+                    else if (child is Border b)
+                    {
+                        if (b.Child is Panel bp) ClearRecursively(bp);
+                        else if (b.Child is TextEditor borderEditor && borderEditor != current)
+                            borderEditor.TextArea.ClearSelection();
+                    }
+                }
+            }
+
+            ClearRecursively(PnlSqlOutput);
+        }
+
         if (isCode)
         {
             var codeOutput = new TextEditor
@@ -486,12 +534,8 @@ public partial class MainWindow
             codeOutput.Options.ShowSpaces = false;
             codeOutput.Options.ShowTabs = false;
             codeOutput.Options.HighlightCurrentLine = false;
-            codeOutput.TextArea.SelectionBrush = Brushes.Transparent;
-            var selectionRenderer = new SelectionHighlightRenderer(codeOutput)
-            {
-                EnableMatchingWordHighlight = false
-            };
-            codeOutput.TextArea.TextView.BackgroundRenderers.Add(selectionRenderer);
+            codeOutput.TextArea.Caret.CaretBrush = Brushes.Transparent;
+            codeOutput.TextArea.SelectionChanged += (s, e) => ClearOtherSelections(codeOutput);
 
             var border = new Border
             {
@@ -533,21 +577,7 @@ public partial class MainWindow
             content.TextArea.TextView.BackgroundRenderers.Add(selectionRenderer);
             content.TextArea.Caret.CaretBrush = Brushes.Transparent;
             content.TextArea.TextView.ElementGenerators.Add(new EmojiElementGenerator(LoadIcon, 14));
-
-            // clear selections in all sibling editors when selecting text here
-            content.TextArea.SelectionChanged += (s, e) =>
-            {
-                if (!content.TextArea.Selection.IsEmpty && content.Parent is Panel parentPanel)
-                {
-                    foreach (var child in parentPanel.Children)
-                    {
-                        if (child is TextEditor otherEditor && otherEditor != content)
-                        {
-                            otherEditor.TextArea.ClearSelection();
-                        }
-                    }
-                }
-            };
+            content.TextArea.SelectionChanged += (s, e) => ClearOtherSelections(content);
 
             if (expectedTable != null && _consecutiveSqlFails >= 3 &&
                 text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))

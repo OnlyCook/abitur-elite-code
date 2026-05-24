@@ -1497,9 +1497,18 @@ public partial class MainWindow
                 var line = TutorialEditor.Document.GetLineByOffset(TutorialEditor.CaretOffset);
                 if (TutorialEditor.CaretOffset == line.EndOffset && line.Length > 0) TutorialEditor.CaretOffset--;
             }
+
+            // force caret layer redraw to prevent ghosting when losing focus
+            TutorialEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
         };
 
-        TutorialEditor.TextChanged += (s, e) => { CheckTutorialProgress(); };
+        TutorialEditor.TextChanged += (s, e) =>
+        {
+            // force caret layer redraw to prevent ghosting when losing focus
+            TutorialEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+
+            CheckTutorialProgress();
+        };
     }
 
     private void UpdateVisualSelection()
