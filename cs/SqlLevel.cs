@@ -45,6 +45,7 @@ public class SqlLevel
     public string NextLevelCode { get; set; }
     public string Title { get; set; }
     public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
+    public List<string> Topics { get; set; } = new(); // max of 3
     public List<string> DiagramTags { get; set; } = new(); // "ER"
     public string Description { get; set; }
     public string SetupScript { get; set; }

@@ -643,6 +643,8 @@ public partial class MainWindow
             // inject discussion id -> re-encrypt (prevents students from modifying json directly to bypass restrictions)
             mutableDict["DiscussionNodeId"] = meta.NodeId;
             mutableDict["DiscussionNumber"] = meta.Number;
+            mutableDict["Difficulty"] = meta.Difficulty;
+            mutableDict["Tags"] = meta.Tags;
 
             // generate scrambled id and append it to make level unique across downloads
             string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(meta.NodeId)).Replace("=", "").Replace("+", "-").Replace("/", "_");

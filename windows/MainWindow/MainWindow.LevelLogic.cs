@@ -109,28 +109,40 @@ public partial class MainWindow
 
             if (currentInfo != null)
             {
-                // group by section and order alphabetically
-                var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name)
-                    .ToList();
-                int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
-
-                bool isFirst1 = idx <= 0;
-                bool isLast1 = idx >= sectionLevels.Count - 1;
-
-                BtnPrevLevel.IsEnabled = !isFirst1;
-                BtnPrevLevel.Opacity = isFirst1 ? 0.5 : 1.0;
-
-                if (isLast1)
+                // isolate levels in the root folder so they cant navigate to other unrelated levels
+                if (currentInfo.Section == "Einzelne Levels")
                 {
+                    BtnPrevLevel.IsEnabled = false;
+                    BtnPrevLevel.Opacity = 0.5;
+
                     BtnNextLevel.Content = "✓";
                     BtnNextLevel.IsEnabled = true;
                     _nextCustomLevelPath = "SECTION_COMPLETE";
                 }
                 else
                 {
-                    BtnNextLevel.Content = "→";
-                    BtnNextLevel.IsEnabled = true;
-                    _nextCustomLevelPath = sectionLevels[idx + 1].FilePath;
+                    // group by section and order alphabetically
+                    var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name).ToList();
+                    int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
+
+                    bool isFirst1 = idx <= 0;
+                    bool isLast1 = idx >= sectionLevels.Count - 1;
+
+                    BtnPrevLevel.IsEnabled = !isFirst1;
+                    BtnPrevLevel.Opacity = isFirst1 ? 0.5 : 1.0;
+
+                    if (isLast1)
+                    {
+                        BtnNextLevel.Content = "✓";
+                        BtnNextLevel.IsEnabled = true;
+                        _nextCustomLevelPath = "SECTION_COMPLETE";
+                    }
+                    else
+                    {
+                        BtnNextLevel.Content = "→";
+                        BtnNextLevel.IsEnabled = true;
+                        _nextCustomLevelPath = sectionLevels[idx + 1].FilePath;
+                    }
                 }
             }
 
@@ -207,8 +219,10 @@ public partial class MainWindow
 
             if (currentInfo != null)
             {
-                var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name)
-                    .ToList();
+                // block backwards navigation for single root-level items
+                if (currentInfo.Section == "Einzelne Levels") return;
+
+                var sectionLevels = allCustoms.Where(c => c.Section == currentInfo.Section).OrderBy(c => c.Name).ToList();
                 int idx = sectionLevels.FindIndex(c => c.FilePath == currentInfo.FilePath);
                 if (idx > 0)
                 {
@@ -2451,7 +2465,7 @@ public partial class MainWindow
             );
         }
 
-        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false);
+        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);
@@ -2705,9 +2719,12 @@ public partial class MainWindow
                 using (var doc = JsonDocument.Parse(json))
                 {
                     var root = doc.RootElement;
-                    string name = root.TryGetProperty("Name", out var n)
-                        ? n.GetString()
-                        : Path.GetFileNameWithoutExtension(file);
+
+                    // check for both name (c#) and title (sql) before falling back to filename
+                    string name = root.TryGetProperty("Name", out var n) ? n.GetString() :
+                                  root.TryGetProperty("Title", out var t) ? t.GetString() :
+                                  Path.GetFileNameWithoutExtension(file);
+
                     string author = root.TryGetProperty("Author", out var a) ? a.GetString() : "Unbekannt";
 
                     bool quickGen = false;
@@ -3355,6 +3372,7 @@ public partial class MainWindow
                     Id = customId,
                     Title = root.TryGetProperty("Title", out var titleProp) ? titleProp.GetString() : "Unbekannt",
                     Description = root.TryGetProperty("Description", out var descProp) ? descProp.GetString() : "",
+                    Difficulty = root.TryGetProperty("Difficulty", out var diffProp) ? diffProp.GetString() : "",
                     MaterialDocs = root.TryGetProperty("MaterialDocs", out var matProp) ? matProp.GetString() : "",
                     SetupScript = root.TryGetProperty("SetupScript", out var setupProp) ? setupProp.GetString() : "",
                     VerificationQuery = root.TryGetProperty("VerificationQuery", out var vqProp)
@@ -3402,6 +3420,11 @@ public partial class MainWindow
                 if (root.TryGetProperty("Prerequisites", out var prereqElem))
                     foreach (var p in prereqElem.EnumerateArray())
                         loadedLevel.Prerequisites.Add(p.GetString());
+
+                loadedLevel.Topics = new List<string>();
+                if (root.TryGetProperty("Tags", out var tagsElem))
+                    foreach (var t in tagsElem.EnumerateArray())
+                        loadedLevel.Topics.Add(t.GetString());
 
                 if (root.TryGetProperty("ExpectedSchema", out var schemaElem))
                     foreach (var col in schemaElem.EnumerateArray())
@@ -3473,7 +3496,7 @@ public partial class MainWindow
                 _nextCustomLevelPath = null;
 
                 LoadSqlLevel(loadedLevel);
-                AddSqlOutput("System", $"> Custom Level geladen: {loadedLevel.Title}", Brushes.LightGreen);
+                AddSqlOutput("System", $"> Custom Level geladen: {GetCleanLevelName(loadedLevel.Title)}", Brushes.LightGreen);
             }
 
             return;
@@ -3503,6 +3526,7 @@ public partial class MainWindow
                 Title = root.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() :
                     root.TryGetProperty("Title", out var titleProp2) ? titleProp2.GetString() : "Unbekannt",
                 Description = root.TryGetProperty("Description", out var descProp) ? descProp.GetString() : "",
+                Difficulty = root.TryGetProperty("Difficulty", out var diffPropCs) ? diffPropCs.GetString() : "",
                 StarterCode = root.TryGetProperty("StarterCode", out var scProp) ? scProp.GetString() : "",
                 MaterialDocs = root.TryGetProperty("MaterialDocs", out var matProp) ? matProp.GetString() : "",
                 SkipCode = "CUST",
@@ -3519,6 +3543,11 @@ public partial class MainWindow
             if (root.TryGetProperty("Prerequisites", out var prereqElem))
                 foreach (var p in prereqElem.EnumerateArray())
                     loadedLevel.Prerequisites.Add(p.GetString());
+
+            loadedLevel.Topics = new List<string>();
+            if (root.TryGetProperty("Tags", out var tagsElem))
+                foreach (var t in tagsElem.EnumerateArray())
+                    loadedLevel.Topics.Add(t.GetString());
 
             if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
             {
@@ -3603,7 +3632,7 @@ public partial class MainWindow
             _nextCustomLevelPath = null;
 
             LoadLevel(loadedLevel);
-            AddToConsole($"\n> Custom Level geladen: {loadedLevel.Title}", Brushes.LightGreen);
+            AddToConsole($"\n> Custom Level geladen: {GetCleanLevelName(loadedLevel.Title)}", Brushes.LightGreen);
         }
     }
 
@@ -3768,7 +3797,7 @@ public partial class MainWindow
         else if (MainTabs.SelectedIndex == 1)
             RenderRelationalModel(PnlUmlRelationalModel, level.IsRelationalModelReadOnly);
 
-        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, null, level.DiagramTags, true);
+        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, true, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);

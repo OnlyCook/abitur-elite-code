@@ -1351,7 +1351,7 @@ public partial class MainWindow : Window
         return resultImage;
     }
 
-    private WrapPanel BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql)
+    private WrapPanel BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
     {
         if (difficulty == "" && (topics == null || topics.Count == 0) &&
             (diagrams == null || diagrams.Count == 0)) return null;
@@ -1401,15 +1401,65 @@ public partial class MainWindow : Window
             panel.Children.Add(diffBorder);
         }
 
-        // topic tags (max of 3, currently c# only)
-        if (!isSql && topics != null)
+        var tagsContainer = new WrapPanel { Orientation = Orientation.Horizontal };
+        bool hasAnyTags = false;
+
+        // topic tags (max of 3)
+        if (topics != null && (!isSql || isCommunityCustomLevel))
+        {
             foreach (var topic in topics.Take(3))
-                panel.Children.Add(CreateTagBorder(topic, SolidColorBrush.Parse("#007ACC")));
+            {
+                tagsContainer.Children.Add(CreateTagBorder(topic, SolidColorBrush.Parse("#007ACC")));
+                hasAnyTags = true;
+            }
+        }
 
         // diagram tags (max of 3)
         if (diagrams != null)
+        {
             foreach (var diag in diagrams.Take(3))
-                panel.Children.Add(CreateTagBorder(diag, SolidColorBrush.Parse("#555555")));
+            {
+                tagsContainer.Children.Add(CreateTagBorder(diag, SolidColorBrush.Parse("#555555")));
+                hasAnyTags = true;
+            }
+        }
+
+        if (hasAnyTags)
+        {
+            // wrap tags inside a toggle if its a downloaded community level
+            if (isCommunityCustomLevel)
+            {
+                tagsContainer.IsVisible = false;
+
+                var toggleBtn = new Button
+                {
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(4),
+                    Margin = new Thickness(0, 0, 5, 5),
+                    CornerRadius = new CornerRadius(4),
+                    Cursor = Cursor.Parse("Hand")
+                };
+
+                var iconImg = LoadIcon("assets/icons/ic_eye_open.svg", 16);
+                toggleBtn.Content = iconImg;
+
+                ToolTip.SetTip(toggleBtn, "Tags anzeigen");
+
+                toggleBtn.Click += (s, e) =>
+                {
+                    bool isVisible = tagsContainer.IsVisible;
+                    tagsContainer.IsVisible = !isVisible;
+
+                    string newIcon = !isVisible ? "assets/icons/ic_eye_closed.svg" : "assets/icons/ic_eye_open.svg";
+                    iconImg.Source = LoadIcon(newIcon, 16).Source;
+                    ToolTip.SetTip(toggleBtn, !isVisible ? "Tags verbergen" : "Tags anzeigen");
+                };
+
+                panel.Children.Add(toggleBtn);
+            }
+
+            panel.Children.Add(tagsContainer);
+        }
 
         return panel;
     }
