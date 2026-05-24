@@ -2016,6 +2016,10 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                         }
 
                         drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);
+
+                        // prevent invisible tiny rectangles and phantom carets from generating sharp bridge artifacts
+                        if (drawRect.Width <= 1.5) continue;
+
                         targetList.Add(drawRect);
                     }
                 }
@@ -2073,6 +2077,10 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                                 }
 
                                 drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);
+
+                                // prevent invisible tiny rectangles and phantom carets from generating sharp bridge artifacts
+                                if (drawRect.Width <= 1.5) continue;
+
                                 targetList.Add(drawRect);
                             }
                         }
@@ -2098,22 +2106,48 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                 currentVisualColumn++;
         }
 
-        // calculate exact expected width accounting for tab stops
-        string segmentText = _editor.Document.GetText(subSegment.StartOffset, subSegment.Length);
         double expectedWidth = 0;
-        foreach (char c in segmentText)
+        int offset = subSegment.StartOffset - line.FirstDocumentLine.Offset;
+        int length = subSegment.Length;
+
+        // iterate visual elements to accurately measure embedded svgs rather than purely relying on char counts
+        foreach (var element in line.Elements)
         {
-            if (c == '\t')
+            int elStart = element.RelativeTextOffset;
+            int elEnd = elStart + element.DocumentLength;
+
+            int overlapStart = Math.Max(offset, elStart);
+            int overlapEnd = Math.Min(offset + length, elEnd);
+
+            if (overlapStart < overlapEnd)
             {
-                int nextTabStop = ((currentVisualColumn / tabSize) + 1) * tabSize;
-                int spaces = nextTabStop - currentVisualColumn;
-                expectedWidth += spaces * spaceWidth;
-                currentVisualColumn = nextTabStop;
-            }
-            else
-            {
-                expectedWidth += spaceWidth;
-                currentVisualColumn++;
+                if (element is CorrectedInlineObjectElement inlineObj)
+                {
+                    expectedWidth += inlineObj.Element.Width;
+                    currentVisualColumn += element.VisualLength;
+                }
+                else
+                {
+                    string text = _editor.Document.GetText(line.FirstDocumentLine.Offset + overlapStart, overlapEnd - overlapStart);
+                    foreach (char c in text)
+                    {
+                        // ignore newlines to prevent phantom width stubs and erroneous rectangle artifacts
+                        if (c == '\r' || c == '\n') continue;
+
+                        if (c == '\t')
+                        {
+                            int nextTabStop = ((currentVisualColumn / tabSize) + 1) * tabSize;
+                            int spaces = nextTabStop - currentVisualColumn;
+                            expectedWidth += spaces * spaceWidth;
+                            currentVisualColumn = nextTabStop;
+                        }
+                        else
+                        {
+                            expectedWidth += spaceWidth;
+                            currentVisualColumn++;
+                        }
+                    }
+                }
             }
         }
 

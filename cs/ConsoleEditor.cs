@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 using System;
@@ -104,11 +105,28 @@ public class EmojiElementGenerator : VisualLineElementGenerator
 
                     container.Children.Add(image);
 
-                    return new InlineObjectElement(2, container);
+                    // use custom inline object to also set selection count to 2 characters
+                    return new CorrectedInlineObjectElement(2, container);
                 }
             }
         }
 
         return null;
+    }
+}
+
+public class CorrectedInlineObjectElement : VisualLineElement
+{
+    public Control Element { get; }
+
+    public CorrectedInlineObjectElement(int documentLength, Control element)
+        : base(documentLength, documentLength)
+    {
+        Element = element;
+    }
+
+    public override TextRun CreateTextRun(int startVisualColumn, ITextRunConstructionContext context)
+    {
+        return new InlineObjectRun(DocumentLength, TextRunProperties, Element);
     }
 }
