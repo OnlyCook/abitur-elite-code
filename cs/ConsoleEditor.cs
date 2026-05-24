@@ -88,18 +88,23 @@ public class EmojiElementGenerator : VisualLineElementGenerator
 
                 if (EmojiMap.TryGetValue(key, out string svgPath))
                 {
-                    // multiply by 0.85 to comfortably fit within standard text ascent/descent
-                    // bounds, eliminating the upward line-height push
-                    var image = _loadIcon($"assets/emojis/{svgPath}", _iconSize * 0.85);
+                    var image = _loadIcon($"assets/emojis/{svgPath}", _iconSize);
 
-                    image.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+                    var container = new Canvas
+                    {
+                        Width = _iconSize + 4,
+                        Height = 0, // keeps layout engine from expanding the line
+                        ClipToBounds = false
+                    };
 
-                    // replace negative top/bottom margin with a simple right margin
-                    // to space out the icon from following text safely without clipping bounds
-                    image.Margin = new Thickness(0, 0, 4, 0);
+                    // canvas origin is at the top of the text line box
+                    // so we push it down slightly to align its center with the font
+                    Canvas.SetTop(image, 2);
+                    Canvas.SetLeft(image, 0);
 
-                    // Consumes 2 characters in the document
-                    return new InlineObjectElement(2, image);
+                    container.Children.Add(image);
+
+                    return new InlineObjectElement(2, container);
                 }
             }
         }

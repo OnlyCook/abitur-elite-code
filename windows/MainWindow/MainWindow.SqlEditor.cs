@@ -453,7 +453,7 @@ public partial class MainWindow
         {
             targetContainer = new StackPanel
             {
-                Spacing = 0
+                Spacing = author == "System" ? -5 : 0
             };
             targetContainer.Children.Add(new TextBlock
             {
@@ -518,7 +518,8 @@ public partial class MainWindow
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 3, 0, 5)
+                Margin = new Thickness(0, 3, 0, 5),
+                Padding = new Thickness(0, 3, 0, 0)
             };
 
             content.Options.HighlightCurrentLine = false;
