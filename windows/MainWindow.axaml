@@ -1196,15 +1196,17 @@
 
 						<Panel Grid.Row="3">
 							<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
-								<ScrollViewer Name="ConsoleScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-									<SelectableTextBlock Name="TxtConsole"
-														 FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
-														 FontSize="13"
-														 Padding="15"
-														 TextWrapping="Wrap"
-														 VerticalAlignment="Stretch"
-														 MinHeight="{Binding $parent[ScrollViewer].Bounds.Height}" />
-								</ScrollViewer>
+								<ae:TextEditor Name="ConsoleEditor"
+											   FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
+											   FontSize="13"
+											   Padding="15"
+											   IsReadOnly="True"
+											   WordWrap="True"
+											   ShowLineNumbers="False"
+											   Background="Transparent"
+											   Foreground="#E6E6E6"
+											   HorizontalScrollBarVisibility="Disabled"
+											   VerticalScrollBarVisibility="Auto" />
 							</Border>
 
 							<Border Name="PnlSqlQueryEditor" IsVisible="False" CornerRadius="10" ClipToBounds="True"

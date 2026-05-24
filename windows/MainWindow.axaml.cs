@@ -55,6 +55,10 @@ public partial class MainWindow : Window
     private const string MonospaceFontFamily =
         "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
+    private ConsoleColorizingTransformer _consoleColorizer;
+    private int _loadingAnimationOffset = -1;
+    private int _loadingAnimationLength = 0;
+
     private const int MaxPrerequisites = 8;
     private DesignerSource _activeDesignerSource = DesignerSource.None;
     private int _activeDiagramIndex;
@@ -218,7 +222,8 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         LogAddSplash("InitializeComponent", 6);
-        SetupSelectableBlockCopyFix(TxtConsole);
+
+        SetUpConsoleEditor();
 
         _tabDockManager = new TabDockManager(
             this,
@@ -757,6 +762,27 @@ public partial class MainWindow : Window
         _splash = null; // discard splash reference
     }
 
+    private void SetUpConsoleEditor()
+    {
+        ConsoleEditor.Document = new TextDocument();
+        _consoleColorizer = new ConsoleColorizingTransformer();
+        ConsoleEditor.TextArea.TextView.LineTransformers.Add(_consoleColorizer);
+        ConsoleEditor.TextArea.TextView.ElementGenerators.Add(new EmojiElementGenerator(LoadIcon, 13));
+        ConsoleEditor.Options.HighlightCurrentLine = false;
+        ConsoleEditor.Options.ShowSpaces = false;
+        ConsoleEditor.Options.ShowTabs = false;
+        ConsoleEditor.TextArea.Caret.CaretBrush = Brushes.Transparent;
+
+        ConsoleEditor.TextArea.SelectionBrush = Brushes.Transparent;
+
+        // disable background word matching for the console
+        var selectionRenderer = new SelectionHighlightRenderer(ConsoleEditor)
+        {
+            EnableMatchingWordHighlight = false
+        };
+        ConsoleEditor.TextArea.TextView.BackgroundRenderers.Add(selectionRenderer);
+    }
+
     public void WarmupRoslynReferences()
     {
         // warm up roslyn compiler in the background so the first manual run is faster
@@ -1084,29 +1110,17 @@ public partial class MainWindow : Window
         {
             if (clearFirst)
             {
-                TxtConsole.Inlines?.Clear();
+                ConsoleEditor.Document.Text = "";
+                _consoleColorizer.ColorSpans.Clear();
             }
 
-            TxtConsole.Inlines ??= new InlineCollection();
+            int startOffset = ConsoleEditor.Document.TextLength;
+            ConsoleEditor.AppendText(text);
+            int endOffset = ConsoleEditor.Document.TextLength;
 
-            // prevent avalonia selection end bug by appending a space to trailing newlines
-            if (text != null && text.EndsWith("\n")) text += " ";
+            _consoleColorizer.ColorSpans.Add((startOffset, endOffset, color));
 
-            // split text to use explicit linebreaks
-            var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                if (i > 0) TxtConsole.Inlines.Add(new LineBreak());
-
-                if (!string.IsNullOrEmpty(lines[i]))
-                {
-                    // parse and replace emojis with inline images
-                    ProcessTextWithEmojis(lines[i], color, TxtConsole.Inlines);
-                }
-            }
-
-            ConsoleScroller?.ScrollToEnd();
+            ConsoleEditor.TextArea.TextView.Redraw();
         });
     }
 
@@ -1167,7 +1181,12 @@ public partial class MainWindow : Window
                 image.IsHitTestVisible = false;
                 inlines.Add(new InlineUIContainer { Child = image });
                 // anchor a text node after the svg so selection doesnt land on the InlineUIContainer boundary and break copy
-                inlines.Add(new Run { Text = "​", Foreground = color, FontFamily = new FontFamily(MonospaceFontFamily) });
+                inlines.Add(new Run
+                {
+                    Text = "​",
+                    Foreground = color,
+                    FontFamily = new FontFamily(MonospaceFontFamily)
+                });
             }
 
             currentText = currentText.Substring(firstEmojiIndex + foundEmoji.Length);
@@ -2219,24 +2238,31 @@ public partial class MainWindow : Window
 
         Dispatcher.UIThread.Post(() =>
         {
-            _csharpLoadingRun = new Run
-            {
-                Text = $"{_chevronFrames[0]} {baseText}\n",
-                Foreground = Brushes.LightGray,
-                FontFamily = new FontFamily(MonospaceFontFamily)
-            };
+            string initialText = $"{_chevronFrames[0]} {baseText}\n";
+            _loadingAnimationOffset = ConsoleEditor.Document.TextLength;
+            _loadingAnimationLength = initialText.Length;
 
-            TxtConsole.Inlines ??= new InlineCollection();
-            TxtConsole.Inlines.Add(_csharpLoadingRun);
-            ConsoleScroller?.ScrollToEnd();
+            ConsoleEditor.AppendText(initialText);
+            _consoleColorizer.ColorSpans.Add((_loadingAnimationOffset, _loadingAnimationOffset + initialText.Length, Brushes.LightGray));
+
+            // only force scroll to end if content actually exceeds the current bounds 
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (ConsoleEditor.TextArea.TextView.DocumentHeight > ConsoleEditor.TextArea.TextView.Bounds.Height)
+                {
+                    ConsoleEditor.ScrollToEnd();
+                }
+            }, DispatcherPriority.Render);
 
             _loadingAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
             _loadingAnimationTimer.Tick += (s, e) =>
             {
-                if (_csharpLoadingRun != null)
+                if (_loadingAnimationOffset != -1)
                 {
                     _loadingAnimationFrame = (_loadingAnimationFrame + 1) % _chevronFrames.Length;
-                    _csharpLoadingRun.Text = $"{_chevronFrames[_loadingAnimationFrame]} {baseText}\n";
+                    string newText = $"{_chevronFrames[_loadingAnimationFrame]} {baseText}\n";
+                    ConsoleEditor.Document.Replace(_loadingAnimationOffset, _loadingAnimationLength, newText);
+                    _loadingAnimationLength = newText.Length;
                 }
             };
             _loadingAnimationTimer.Start();
@@ -2253,15 +2279,16 @@ public partial class MainWindow : Window
                 _loadingAnimationTimer = null;
             }
 
-            if (_csharpLoadingRun != null)
+            if (_loadingAnimationOffset != -1)
             {
-                string currentText = _csharpLoadingRun.Text;
+                string currentText = ConsoleEditor.Document.GetText(_loadingAnimationOffset, _loadingAnimationLength);
                 if (currentText.Length >= 4)
                 {
                     string baseText = currentText.Substring(4).TrimEnd();
-                    _csharpLoadingRun.Text = $"> {baseText}\n";
+                    string final = $"> {baseText}\n";
+                    ConsoleEditor.Document.Replace(_loadingAnimationOffset, _loadingAnimationLength, final);
                 }
-                _csharpLoadingRun = null;
+                _loadingAnimationOffset = -1;
             }
         });
     }
@@ -2360,7 +2387,8 @@ public partial class MainWindow : Window
         // monitor resource usage globally (anti-virus + infinite loops)
         _ = MonitorResourcesAsync(_compilationCts, false, _isCustomLevelMode);
 
-        TxtConsole.Inlines?.Clear();
+        ConsoleEditor.Document.Text = "";
+        _consoleColorizer.ColorSpans.Clear();
 
         string loadingText = !_hasRunOnce ? "Compiler wird gestartet..." : "Kompiliere...";
         _hasRunOnce = true;

@@ -451,8 +451,11 @@ public partial class MainWindow
 
         if (targetContainer == null)
         {
-            targetContainer = new StackPanel { Spacing = 0 };
-            targetContainer.Children.Add(new SelectableTextBlock
+            targetContainer = new StackPanel
+            {
+                Spacing = 0
+            };
+            targetContainer.Children.Add(new TextBlock
             {
                 Text = author,
                 FontWeight = FontWeight.Bold,
@@ -483,6 +486,12 @@ public partial class MainWindow
             codeOutput.Options.ShowSpaces = false;
             codeOutput.Options.ShowTabs = false;
             codeOutput.Options.HighlightCurrentLine = false;
+            codeOutput.TextArea.SelectionBrush = Brushes.Transparent;
+            var selectionRenderer = new SelectionHighlightRenderer(codeOutput)
+            {
+                EnableMatchingWordHighlight = false
+            };
+            codeOutput.TextArea.TextView.BackgroundRenderers.Add(selectionRenderer);
 
             var border = new Border
             {
@@ -496,16 +505,48 @@ public partial class MainWindow
         }
         else
         {
-            var content = new SelectableTextBlock
+            var content = new TextEditor
             {
+                Document = new TextDocument(text),
+                FontFamily = MonospaceFontFamily,
+                FontSize = 14,
+                IsReadOnly = true,
+                ShowLineNumbers = false,
+                WordWrap = true,
+                Background = Brushes.Transparent,
                 Foreground = color,
-                FontFamily = FontFamily.Default,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 5)
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 3, 0, 5)
             };
 
-            ProcessTextWithEmojis(text, color, content.Inlines);
-            SetupSelectableBlockCopyFix(content);
+            content.Options.HighlightCurrentLine = false;
+            content.Options.ShowSpaces = false;
+            content.Options.ShowTabs = false;
+            content.TextArea.SelectionBrush = Brushes.Transparent;
+            var selectionRenderer = new SelectionHighlightRenderer(content)
+            {
+                EnableMatchingWordHighlight = false
+            };
+            content.TextArea.TextView.BackgroundRenderers.Add(selectionRenderer);
+            content.TextArea.Caret.CaretBrush = Brushes.Transparent;
+            content.TextArea.TextView.ElementGenerators.Add(new EmojiElementGenerator(LoadIcon, 14));
+
+            // clear selections in all sibling editors when selecting text here
+            content.TextArea.SelectionChanged += (s, e) =>
+            {
+                if (!content.TextArea.Selection.IsEmpty && content.Parent is Panel parentPanel)
+                {
+                    foreach (var child in parentPanel.Children)
+                    {
+                        if (child is TextEditor otherEditor && otherEditor != content)
+                        {
+                            otherEditor.TextArea.ClearSelection();
+                        }
+                    }
+                }
+            };
 
             if (expectedTable != null && _consecutiveSqlFails >= 3 &&
                 text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))

@@ -306,7 +306,8 @@ public partial class MainWindow
             else
             {
                 CodeEditor.Text = "";
-                TxtConsole.Inlines?.Clear();
+                ConsoleEditor.Document.Text = "";
+                _consoleColorizer.ColorSpans.Clear();
                 AddToConsole("> C# Level Designer geladen. Wähle einen Bereich zum Bearbeiten.", Brushes.LightGray);
             }
 

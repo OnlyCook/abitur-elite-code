@@ -1780,6 +1780,8 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
     private readonly SolidColorBrush _mainSelectionBrush;
     private string _currentSelection = "";
 
+    public bool EnableMatchingWordHighlight { get; set; } = true;
+
     public SelectionHighlightRenderer(TextEditor editor)
     {
         _editor = editor;
@@ -1907,8 +1909,8 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
             }
         }
 
-        // draw highlighted matching background words (kept separate as requested)
-        if (!string.IsNullOrEmpty(_currentSelection))
+        // draw highlighted matching background words (only if enabled)
+        if (EnableMatchingWordHighlight && !string.IsNullOrEmpty(_currentSelection))
         {
             string docText = _editor.Document.Text;
             int index = 0;
