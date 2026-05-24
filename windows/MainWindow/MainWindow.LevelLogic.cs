@@ -1924,7 +1924,7 @@ public partial class MainWindow
 
                                         SqlLevelDesigner.ExportLevel(cl.FilePath, draft, validData.Schema, validData.Result);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        LogToMiniConsole($"✓ {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
+                                        LogToMiniConsole($"@S {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
 
                                         _newlyCreatedLevelPath = cl.FilePath.Replace(".eliteslvldraft", ".eliteslvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
@@ -2055,7 +2055,7 @@ public partial class MainWindow
                                         // export
                                         LevelDesigner.ExportLevel(cl.FilePath, draft);
                                         btnQuickExport.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                                        LogToMiniConsole($"✓ {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
+                                        LogToMiniConsole($"@S {GetCleanLevelName(cl.Name)} erfolgreich exportiert!", Brushes.LightGreen, true);
 
                                         _newlyCreatedLevelPath = cl.FilePath.Replace(".elitelvldraft", ".elitelvl", StringComparison.OrdinalIgnoreCase);
                                         await Task.Delay(2000);
@@ -2068,7 +2068,7 @@ public partial class MainWindow
                                 catch (Exception ex)
                                 {
                                     string errorMsg = ex.Message;
-                                    LogToMiniConsole($"❌ Export Fehler ({GetCleanLevelName(cl.Name)}): {errorMsg}", Brushes.Red, true, true, errorMsg);
+                                    LogToMiniConsole($"@E Export Fehler ({GetCleanLevelName(cl.Name)}): {errorMsg}", Brushes.Red, true, true, errorMsg);
 
                                     btnQuickExport.Content = LoadIcon("assets/icons/ic_error.svg", 16);
                                     btnQuickExport.IsEnabled = true;

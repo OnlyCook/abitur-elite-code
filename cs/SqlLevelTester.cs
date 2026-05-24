@@ -60,7 +60,7 @@ public static class SqlLevelTester
                     return new SqlTestResult
                     {
                         Success = false,
-                        Feedback = "❌ Umgehung erkannt: Bitte nutze keinen JOIN im äußeren SELECT (nutze eine Unterabfrage mit IN).",
+                        Feedback = "@E Umgehung erkannt: Bitte nutze keinen JOIN im äußeren SELECT (nutze eine Unterabfrage mit IN).",
                         ResultTable = null
                     };
                 }
@@ -74,7 +74,7 @@ public static class SqlLevelTester
                     return new SqlTestResult
                     {
                         Success = false,
-                        Feedback = "❌ Umgehung erkannt: Bitte ermittle die Ziel-ID dynamisch über eine Unterabfrage, anstatt sie direkt zu übergeben.",
+                        Feedback = "@E Umgehung erkannt: Bitte ermittle die Ziel-ID dynamisch über eine Unterabfrage, anstatt sie direkt zu übergeben.",
                         ResultTable = null
                     };
                 }
@@ -105,21 +105,21 @@ public static class SqlLevelTester
                     return new SqlTestResult
                     {
                         Success = false,
-                        Feedback = "❌ Umgehung erkannt: Bitte nutze UPDATE, um die Daten zu ändern.",
+                        Feedback = "@E Umgehung erkannt: Bitte nutze UPDATE, um die Daten zu ändern.",
                         ResultTable = null
                     };
                 if (taskIsInsert && (upperQuery.Contains("UPDATE") || upperQuery.Contains("DELETE")))
                     return new SqlTestResult
                     {
                         Success = false,
-                        Feedback = "❌ Umgehung erkannt: Bitte nutze INSERT, um die Daten hinzuzufügen.",
+                        Feedback = "@E Umgehung erkannt: Bitte nutze INSERT, um die Daten hinzuzufügen.",
                         ResultTable = null
                     };
                 if (taskIsDelete && (upperQuery.Contains("INSERT") || upperQuery.Contains("UPDATE")))
                     return new SqlTestResult
                     {
                         Success = false,
-                        Feedback = "❌ Umgehung erkannt: Bitte nutze DELETE, um die Daten zu löschen.",
+                        Feedback = "@E Umgehung erkannt: Bitte nutze DELETE, um die Daten zu löschen.",
                         ResultTable = null
                     };
 
@@ -173,7 +173,7 @@ public static class SqlLevelTester
             }
 
             bool correct = true;
-            string errorFeedback = "❌ Das Ergebnis stimmt nicht mit der Erwartung überein.";
+            string errorFeedback = "@E Das Ergebnis stimmt nicht mit der Erwartung überein.";
 
             // column name verification
             if (isSelect && userResultTable != null)
@@ -189,7 +189,7 @@ public static class SqlLevelTester
                     {
                         correct = false;
                         errorFeedback =
-                            $"❌ Falsche Spaltenanzahl. Erwartet: {expectedCount}, Erhalten: {userResultTable.Columns.Count}";
+                            $"@E Falsche Spaltenanzahl. Erwartet: {expectedCount}, Erhalten: {userResultTable.Columns.Count}";
                     }
                     else
                     {
@@ -205,7 +205,7 @@ public static class SqlLevelTester
                                 {
                                     correct = false;
                                     errorFeedback =
-                                        $"❌ Falscher Spaltenname an Position {i + 1}. Erwartet: '{expectedCol.Name}', Erhalten: '{userColName}'";
+                                        $"@E Falscher Spaltenname an Position {i + 1}. Erwartet: '{expectedCol.Name}', Erhalten: '{userColName}'";
                                     break;
                                 }
                             }
@@ -245,7 +245,7 @@ public static class SqlLevelTester
                     }
                 }
 
-                string msg = correct ? "✓ Richtig! Aufgabe gelöst." : errorFeedback;
+                string msg = correct ? "@S Richtig! Aufgabe gelöst." : errorFeedback;
                 if (!isSelect && correct) msg += $"\n({rowsAffected} Zeilen betroffen)";
 
                 return new SqlTestResult

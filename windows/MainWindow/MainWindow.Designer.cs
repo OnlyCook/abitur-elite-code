@@ -140,7 +140,7 @@ public partial class MainWindow
                 if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = true;
                 TxtDesignerStatus.Text = "Bereit zum Export";
                 AddSqlOutput("System",
-                    "✓ DESIGNER TEST BESTANDEN! Die Musterlösung erzeugt exakt das erwartete Ergebnis.",
+                    "@S DESIGNER TEST BESTANDEN! Die Musterlösung erzeugt exakt das erwartete Ergebnis.",
                     Brushes.LightGreen);
 
                 AddSqlTable(actualDt);
@@ -148,7 +148,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            AddSqlOutput("Error", $"❌ VALIDIERUNG FEHLGESCHLAGEN:\n{ex.Message}", Brushes.Orange);
+            AddSqlOutput("Error", $"@E VALIDIERUNG FEHLGESCHLAGEN:\n{ex.Message}", Brushes.Orange);
             BtnDesignerExport.IsEnabled = false;
             if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
             TxtDesignerStatus.Text = "Entwurf geändert (Nicht verifiziert)";
@@ -612,14 +612,14 @@ public partial class MainWindow
         {
             if ((_currentSqlDraft.Name?.Length ?? 0) < 1 || (_currentSqlDraft.Author?.Length ?? 0) < 1)
             {
-                AddSqlOutput("Error", "⚠ Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.",
+                AddSqlOutput("Error", "@W Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.",
                     Brushes.Orange);
                 return;
             }
 
             if (_verifiedSqlDraftState == null)
             {
-                AddSqlOutput("Error", "❌ Fehler: Level muss vor dem Export erfolgreich getestet werden.", Brushes.Red);
+                AddSqlOutput("Error", "@E Fehler: Level muss vor dem Export erfolgreich getestet werden.", Brushes.Red);
                 return;
             }
 
@@ -629,7 +629,7 @@ public partial class MainWindow
             bool mainSuccess2 = await GenerateDiagramByIndex(0);
 
             if (!mainSuccess2)
-                AddSqlOutput("System", "⚠ Hinweis: Diagramm konnte nicht aktualisiert werden.", Brushes.Orange);
+                AddSqlOutput("System", "@W Hinweis: Diagramm konnte nicht aktualisiert werden.", Brushes.Orange);
 
             _verifiedSqlDraftState.PlantUmlSource = _currentSqlDraft.PlantUmlSource;
             _verifiedSqlDraftState.PlantUmlSvgContent = _currentSqlDraft.PlantUmlSvgContent;
@@ -644,13 +644,13 @@ public partial class MainWindow
 
         if ((_currentDraft.Name?.Length ?? 0) < 1 || (_currentDraft.Author?.Length ?? 0) < 1)
         {
-            AddToConsole("\n⚠ Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.", Brushes.Orange);
+            AddToConsole("\n@W Export abgelehnt: 'Level Name' und 'Autor' müssen gesetzt sein.", Brushes.Orange);
             return;
         }
 
         if (_verifiedDraftState == null)
         {
-            AddToConsole("\n❌ Fehler: Level muss vor dem Export erfolgreich getestet werden.", Brushes.Red);
+            AddToConsole("\n@E Fehler: Level muss vor dem Export erfolgreich getestet werden.", Brushes.Red);
             return;
         }
 
@@ -668,7 +668,7 @@ public partial class MainWindow
         }
 
         if (!mainSuccess)
-            AddToConsole("\n⚠ Hinweis: Einige Diagramme konnten nicht aktualisiert werden.", Brushes.Orange);
+            AddToConsole("\n@W Hinweis: Einige Diagramme konnten nicht aktualisiert werden.", Brushes.Orange);
 
         _verifiedDraftState.PlantUmlSources = new List<string>(_currentDraft.PlantUmlSources);
         _verifiedDraftState.PlantUmlSvgContents = new List<string>(_currentDraft.PlantUmlSvgContents);

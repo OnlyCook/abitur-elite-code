@@ -1128,11 +1128,11 @@ public partial class MainWindow : Window
     {
         var emojiMap = new Dictionary<string, string>
         {
-            { "✓", "em_success.svg" },
-            { "🎉", "em_celebrate.svg" },
-            { "🔓", "em_unlock.svg" },
-            { "❌", "em_error.svg" },
-            { "⚠", "em_warning.svg" }
+            { "@S", "em_success.svg" },
+            { "@P", "em_celebrate.svg" },
+            { "@U", "em_unlock.svg" },
+            { "@E", "em_error.svg" },
+            { "@W", "em_warning.svg" }
         };
 
         string currentText = text;
@@ -2695,7 +2695,7 @@ public partial class MainWindow : Window
             {
                 StopCsharpLoadingAnimation();
                 if (!_isSystemResourceCancellation)
-                    AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
+                    AddToConsole("\n@W Abbruch durch Benutzer.", Brushes.Orange);
 
                 // allow background thread to unwind its stack before forcing gc
                 try
@@ -2709,7 +2709,7 @@ public partial class MainWindow : Window
                 StopCsharpLoadingAnimation();
                 _compilationCts.Cancel();
                 stopwatch.Stop();
-                AddToConsole("\n❌ TIMEOUT: Das Programm hat das Zeitlimit von 12 Sekunden überschritten.", Brushes.Red);
+                AddToConsole("\n@E TIMEOUT: Das Programm hat das Zeitlimit von 12 Sekunden überschritten.", Brushes.Red);
 
                 // allow background thread to unwind its stack before forcing gc
                 try
@@ -2726,7 +2726,7 @@ public partial class MainWindow : Window
 
                 if (!result.Success && result.Diagnostics != null)
                 {
-                    AddToConsole("KOMPILIERFEHLER:\n", Brushes.Red);
+                    AddToConsole("@E KOMPILIERFEHLER:\n", Brushes.Red);
 
                     if (_isHardcoreMode)
                     {
@@ -2756,7 +2756,7 @@ public partial class MainWindow : Window
                         // handle designer result
                         if (result.TestResult.Success)
                         {
-                            AddToConsole("✓ DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback,
+                            AddToConsole("@S DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback,
                                 Brushes.LightGreen);
                             BtnDesignerExport.IsEnabled = true;
                             if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = true;
@@ -2776,7 +2776,7 @@ public partial class MainWindow : Window
                                 msg = "Validierung fehlgeschlagen (false zurückgegeben).";
                             }
 
-                            AddToConsole($"⚠ VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
+                            AddToConsole($"@W VALIDIERUNG FEHLGESCHLAGEN:\n{msg}", Brushes.Orange);
                             BtnDesignerExport.IsEnabled = false;
                             if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = false;
                             _verifiedDraftState = null;
@@ -2793,7 +2793,7 @@ public partial class MainWindow : Window
         {
             StopCsharpLoadingAnimation();
             if (!_isSystemResourceCancellation)
-                AddToConsole("\n⚠ Abbruch durch Benutzer.", Brushes.Orange);
+                AddToConsole("\n@W Abbruch durch Benutzer.", Brushes.Orange);
         }
         catch (Exception ex)
         {
@@ -2818,7 +2818,7 @@ public partial class MainWindow : Window
     {
         if (result.Success)
         {
-            AddToConsole($"✓ TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n",
+            AddToConsole($"@S TEST BESTANDEN ({duration.TotalSeconds:F2}s): " + result.Feedback + "\n\n",
                 Brushes.LightGreen);
 
             if (_isCustomLevelMode)
@@ -2829,7 +2829,7 @@ public partial class MainWindow : Window
                     SaveSystem.SaveCustom(customPlayerData);
                 }
 
-                AddToConsole("🎉 Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                AddToConsole("@P Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
 
                 UpdateNavigationButtons();
                 if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
@@ -2868,7 +2868,7 @@ public partial class MainWindow : Window
                 // check if we are switching sections
                 if (nextLvl.Section != levelContext.Section)
                 {
-                    AddToConsole("\n🎉 Sektion abgeschlossen! Bereit für das nächste Thema?\n", SolidColorBrush.Parse("#FFD700"));
+                    AddToConsole("@P Sektion abgeschlossen! Bereit für das nächste Thema?\n", SolidColorBrush.Parse("#FFD700"));
                     BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                 }
                 else
@@ -2880,7 +2880,7 @@ public partial class MainWindow : Window
                 if (!playerData.UnlockedLevelIds.Contains(nextLvl.Id))
                 {
                     playerData.UnlockedLevelIds.Add(nextLvl.Id);
-                    AddToConsole($"🔓 Level {nextLvl.Id} freigeschaltet!\n", Brushes.LightGreen);
+                    AddToConsole($"@U Level {nextLvl.Id} freigeschaltet!\n", Brushes.LightGreen);
                 }
 
                 AddToConsole($"Nächstes Level Code: {nextLvl.SkipCode}\n", Brushes.LightGray);
@@ -2890,7 +2890,7 @@ public partial class MainWindow : Window
             else
             {
                 // no next level -> course completed
-                AddToConsole("🎉 Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", SolidColorBrush.Parse("#FFD700"));
+                AddToConsole("@P Herzlichen Glückwunsch! Du hast alle Levels gemeistert.", SolidColorBrush.Parse("#FFD700"));
                 BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                 BtnNextLevel.IsEnabled = true;
                 BtnNextLevel.Opacity = 1.0;
@@ -2911,7 +2911,7 @@ public partial class MainWindow : Window
                     ? result.Error.InnerException != null ? result.Error.InnerException.Message : result.Error.Message
                     : (!string.IsNullOrEmpty((string)result.Feedback) ? result.Feedback : "Unbekannter Fehler");
             }
-            AddToConsole("⚠ LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
+            AddToConsole("@W LAUFZEITFEHLER / LOGIK:\n" + msg, Brushes.Orange);
         }
     }
 
@@ -3291,7 +3291,7 @@ public partial class MainWindow : Window
             {
                 StopSqlLoadingAnimation();
                 if (!_isSystemResourceCancellation)
-                    AddSqlOutput("System", "⚠ Vorgang abgebrochen.", Brushes.Orange);
+                    AddSqlOutput("System", "@W Vorgang abgebrochen.", Brushes.Orange);
                 return;
             }
 
@@ -3314,7 +3314,7 @@ public partial class MainWindow : Window
                         SaveSystem.SaveCustom(customPlayerData);
                     }
 
-                    AddSqlOutput("System", "🎉 Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                    AddSqlOutput("System", "@P Custom Level erfolgreich abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
 
                     UpdateNavigationButtons();
                     if (_nextCustomLevelPath != "SECTION_COMPLETE" && !string.IsNullOrEmpty(_nextCustomLevelPath))
@@ -3352,7 +3352,7 @@ public partial class MainWindow : Window
                 {
                     if (nextLvl.Section != levelContext.Section)
                     {
-                        AddSqlOutput("System", "🎉 Sektion abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                        AddSqlOutput("System", "@P Sektion abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
                         BtnNextLevel.Content = "NÄCHSTE SEKTION →";
                     }
                     else
@@ -3363,13 +3363,13 @@ public partial class MainWindow : Window
                     if (!playerData.UnlockedSqlLevelIds.Contains(nextLvl.Id))
                     {
                         playerData.UnlockedSqlLevelIds.Add(nextLvl.Id);
-                        AddSqlOutput("System", $"🔓 Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
+                        AddSqlOutput("System", $"@U Level S{nextLvl.Id} freigeschaltet!", Brushes.LightGreen);
                     }
                 }
                 else
                 {
                     // no next level
-                    AddSqlOutput("System", "🎉 Kurs abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
+                    AddSqlOutput("System", "@P Kurs abgeschlossen!", SolidColorBrush.Parse("#FFD700"));
                     BtnNextLevel.Content = "KURS ABSCHLIESSEN ✓";
                 }
 
@@ -3445,7 +3445,7 @@ public partial class MainWindow : Window
         {
             StopSqlLoadingAnimation();
             if (!_isSystemResourceCancellation)
-                AddSqlOutput("System", "⚠ Vorgang abgebrochen.", Brushes.Orange);
+                AddSqlOutput("System", "@W Vorgang abgebrochen.", Brushes.Orange);
         }
         catch (Exception ex)
         {

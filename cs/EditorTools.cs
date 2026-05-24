@@ -1997,13 +1997,24 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                     var rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, subSegment, false);
                     double expectedWidth = CalculateExpectedWidth(subSegment, line, spaceWidth);
 
+                    double maxRight = double.MaxValue;
+                    bool isFirstRect = true;
+
                     foreach (var rect in rects)
                     {
                         var drawRect = rect;
-                        if (drawRect.Width > expectedWidth + (spaceWidth * 0.5))
+                        if (isFirstRect)
                         {
-                            drawRect = new Rect(drawRect.X, drawRect.Y, expectedWidth, drawRect.Height);
+                            maxRight = drawRect.X + expectedWidth;
+                            isFirstRect = false;
                         }
+
+                        if (drawRect.X >= maxRight) continue;
+                        if (drawRect.Right > maxRight)
+                        {
+                            drawRect = new Rect(drawRect.X, drawRect.Y, maxRight - drawRect.X, drawRect.Height);
+                        }
+
                         drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);
                         targetList.Add(drawRect);
                     }
@@ -2018,8 +2029,6 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                     for (int tli = 0; tli < line.TextLines.Count; tli++)
                     {
                         var textLine = line.TextLines[tli];
-                        bool isLastTextLine = tli == line.TextLines.Count - 1;
-
                         int lineStartVC = currentVC;
                         int lineEndVC = lineStartVC + textLine.Length;
 
@@ -2051,23 +2060,16 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
                             {
                                 var drawRect = rect;
 
-                                if (!isLastTextLine)
+                                if (isFirstRect)
                                 {
-                                    // anchor the right boundary once at the first rects x plus the exact content width; any rect bleeding past the wrap point gets cropped or skipped
-                                    if (isFirstRect)
-                                    {
-                                        maxRight = drawRect.X + expectedWidth;
-                                        isFirstRect = false;
-                                    }
-                                    if (drawRect.X >= maxRight) continue;
-                                    if (drawRect.Right > maxRight)
-                                        drawRect = new Rect(drawRect.X, drawRect.Y, maxRight - drawRect.X, drawRect.Height);
+                                    maxRight = drawRect.X + expectedWidth;
+                                    isFirstRect = false;
                                 }
-                                else
+
+                                if (drawRect.X >= maxRight) continue;
+                                if (drawRect.Right > maxRight)
                                 {
-                                    // strict clamp on the right side prevents stretching into oblivion
-                                    if (drawRect.Width > expectedWidth + (spaceWidth * 0.5))
-                                        drawRect = new Rect(drawRect.X, drawRect.Y, expectedWidth, drawRect.Height);
+                                    drawRect = new Rect(drawRect.X, drawRect.Y, maxRight - drawRect.X, drawRect.Height);
                                 }
 
                                 drawRect = new Rect(drawRect.X, drawRect.Y - 0.5, drawRect.Width, drawRect.Height + 1.0);

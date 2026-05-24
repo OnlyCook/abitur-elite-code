@@ -37,11 +37,11 @@ public class EmojiElementGenerator : VisualLineElementGenerator
 {
     private static readonly Dictionary<string, string> EmojiMap = new()
     {
-        { "✓", "em_success.svg" },
-        { "🎉", "em_celebrate.svg" },
-        { "🔓", "em_unlock.svg" },
-        { "❌", "em_error.svg" },
-        { "⚠", "em_warning.svg" }
+        { "@S", "em_success.svg" },
+        { "@P", "em_celebrate.svg" },
+        { "@U", "em_unlock.svg" },
+        { "@E", "em_error.svg" },
+        { "@W", "em_warning.svg" }
     };
 
     private readonly Func<string, double, Image> _loadIcon;
@@ -58,21 +58,15 @@ public class EmojiElementGenerator : VisualLineElementGenerator
         var document = CurrentContext.Document;
         int length = document.TextLength;
 
-        for (int i = startOffset; i < length; i++)
+        // Need at least 2 characters to match the @-tags
+        for (int i = startOffset; i < length - 1; i++)
         {
             char c = document.GetCharAt(i);
 
-            // standard 16-bit characters (fit in a single char)
-            if (c == '✓' || c == '❌' || c == '⚠')
-                return i;
-
-            // surrogate pairs (emojis that require 2 chars in utf-16)
-            if (char.IsHighSurrogate(c) && i + 1 < length)
+            if (c == '@')
             {
-                char low = document.GetCharAt(i + 1);
-                string pair = new string(new[] { c, low });
-
-                if (pair == "🎉" || pair == "🔓")
+                char next = document.GetCharAt(i + 1);
+                if (next == 'S' || next == 'P' || next == 'U' || next == 'E' || next == 'W')
                     return i;
             }
         }
@@ -82,30 +76,32 @@ public class EmojiElementGenerator : VisualLineElementGenerator
     public override VisualLineElement ConstructElement(int offset)
     {
         var document = CurrentContext.Document;
-        char c = document.GetCharAt(offset);
-        string emoji = c.ToString();
-        int elementLength = 1;
 
-        if (char.IsHighSurrogate(c) && offset + 1 < document.TextLength)
+        if (offset + 1 < document.TextLength)
         {
-            char low = document.GetCharAt(offset + 1);
-            emoji = new string(new[] { c, low });
-            elementLength = 2;
-        }
+            char c = document.GetCharAt(offset);
+            char next = document.GetCharAt(offset + 1);
 
-        if (EmojiMap.TryGetValue(emoji, out string svgPath))
-        {
-            // multiply by 0.85 to comfortably fit within standard text ascent/descent
-            // bounds, eliminating the upward line-height push
-            var image = _loadIcon($"assets/emojis/{svgPath}", _iconSize * 0.85);
+            if (c == '@')
+            {
+                string key = new string(new[] { c, next });
 
-            image.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+                if (EmojiMap.TryGetValue(key, out string svgPath))
+                {
+                    // multiply by 0.85 to comfortably fit within standard text ascent/descent
+                    // bounds, eliminating the upward line-height push
+                    var image = _loadIcon($"assets/emojis/{svgPath}", _iconSize * 0.85);
 
-            // replace negative top/bottom margin with a simple right margin
-            // to space out the icon from following text safely without clipping bounds
-            image.Margin = new Thickness(0, 0, 4, 0);
+                    image.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
 
-            return new InlineObjectElement(elementLength, image);
+                    // replace negative top/bottom margin with a simple right margin
+                    // to space out the icon from following text safely without clipping bounds
+                    image.Margin = new Thickness(0, 0, 4, 0);
+
+                    // Consumes 2 characters in the document
+                    return new InlineObjectElement(2, image);
+                }
+            }
         }
 
         return null;
