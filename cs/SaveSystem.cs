@@ -315,7 +315,8 @@ public static class SaveSystem
                 else if (kvp.Key.StartsWith("l:") || kvp.Key.StartsWith("d:"))
                 {
                     if (!Directory.Exists(levelsDir)) Directory.CreateDirectory(levelsDir);
-                    string fileName = kvp.Key.Substring(2);
+                    string fileName = Path.GetFileName(kvp.Key.Substring(2));
+                    if (string.IsNullOrEmpty(fileName)) continue;
                     File.WriteAllText(Path.Combine(levelsDir, fileName), kvp.Value);
                 }
             }

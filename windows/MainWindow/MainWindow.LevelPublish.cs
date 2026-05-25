@@ -887,6 +887,13 @@ public partial class MainWindow
                 fullTitle += $" | {selectedTags}";
             }
 
+            if (fullTitle.Length > 200)
+            {
+                txtStatus.Text = $"Titel zu lang ({fullTitle.Length}/200 Zeichen). Kürze den Level-Namen oder wähle weniger Tags.";
+                txtStatus.Foreground = Brushes.Orange;
+                return;
+            }
+
             string fullBody = encryptedData;
 
             var proxyPayload = new
@@ -917,7 +924,7 @@ public partial class MainWindow
                     return;
                 }
 
-                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "LIMIT_REACHED")
+                if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden && resBody == "PUBLISH_LIMIT_REACHED")
                 {
                     forceClose = true;
                     dialog.Close();
