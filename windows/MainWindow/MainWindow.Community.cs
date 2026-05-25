@@ -3136,6 +3136,114 @@ public partial class MainWindow
             if (playerData.Settings.AreNotificationsPaused) return;
 
             bool hasNewNotifications = false;
+            bool hasRemovedNotifications = false;
+
+            // local helper to deeply clean up deleted custom level community data
+            bool PurgeZombieCustomLevel(string discId)
+            {
+                bool cacheChanged = false;
+
+                // unsubscribe from the main level
+                if (_communityCache.Subscriptions.Remove(discId)) cacheChanged = true;
+
+                // remove all associated notifications
+                int removedNotis = _communityCache.Notifications.RemoveAll(n => n.TargetDiscussionId == discId);
+                if (removedNotis > 0)
+                {
+                    cacheChanged = true;
+                    hasRemovedNotifications = true;
+                }
+
+                // clean up cached discussions and their nested comment/reply subscriptions
+                var matchingCs = _communityCache.CsharpDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == discId).ToList();
+                var matchingSql = _communityCache.SqlDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == discId).ToList();
+
+                foreach (var kvp in matchingCs)
+                {
+                    foreach (var comment in kvp.Value.Comments)
+                    {
+                        if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                        foreach (var reply in comment.Replies)
+                        {
+                            if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                        }
+                    }
+                    _communityCache.CsharpDiscussions.Remove(kvp.Key);
+                    cacheChanged = true;
+                }
+
+                foreach (var kvp in matchingSql)
+                {
+                    foreach (var comment in kvp.Value.Comments)
+                    {
+                        if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                        foreach (var reply in comment.Replies)
+                        {
+                            if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                        }
+                    }
+                    _communityCache.SqlDiscussions.Remove(kvp.Key);
+                    cacheChanged = true;
+                }
+
+                return cacheChanged;
+            }
+
+            try
+            {
+                // find all valid local custom level ids
+                HashSet<string> validLocalCustomLevelIds = new();
+                var customLevels = GetCustomLevels();
+                foreach (var cl in customLevels)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(cl.FilePath);
+                        if (!json.TrimStart().StartsWith("{")) json = LevelEncryption.Decrypt(json);
+                        using var doc = JsonDocument.Parse(json);
+
+                        int newId;
+                        if (doc.RootElement.TryGetProperty("DiscussionNumber", out var dNum))
+                        {
+                            newId = -dNum.GetInt32();
+                        }
+                        else
+                        {
+                            newId = GetDeterministicHashCode(System.IO.Path.GetFileName(cl.FilePath));
+                            if (newId > 0) newId *= -1;
+                        }
+                        validLocalCustomLevelIds.Add(newId.ToString());
+                    }
+                    catch { }
+                }
+
+                bool cachePreCleaned = false;
+
+                // purge based on missing local file id (negative keys in cache not in validLocalCustomLevelIds)
+                var zombieLevelIds = _communityCache.CsharpDiscussions.Keys
+                    .Where(k => int.TryParse(k, out int id) && id < 0 && !validLocalCustomLevelIds.Contains(k))
+                    .ToList();
+                zombieLevelIds.AddRange(_communityCache.SqlDiscussions.Keys
+                    .Where(k => int.TryParse(k, out int id) && id < 0 && !validLocalCustomLevelIds.Contains(k)));
+
+                foreach (var zId in zombieLevelIds.Distinct())
+                {
+                    string discId = null;
+                    if (_communityCache.CsharpDiscussions.TryGetValue(zId, out var csCache)) discId = csCache.DiscussionNodeId;
+                    if (string.IsNullOrEmpty(discId) && _communityCache.SqlDiscussions.TryGetValue(zId, out var sqlCache)) discId = sqlCache.DiscussionNodeId;
+
+                    if (!string.IsNullOrEmpty(discId))
+                    {
+                        if (PurgeZombieCustomLevel(discId)) cachePreCleaned = true;
+                    }
+                }
+
+                if (cachePreCleaned) SaveSystem.SaveCommunityCache(_communityCache);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Community] Zombie Pre-Cleanup Error: {ex.Message}");
+            }
 
             // check graphql api for subscribed comment replies and bootleg mentions
             if (_communityCache.Subscriptions.Count > 0)
@@ -3143,7 +3251,7 @@ public partial class MainWindow
                 try
                 {
                     var allIds = _communityCache.Subscriptions.Keys.ToList();
-                    int chunkSize = 50; // chunk to prevent graphql complexity limits for heavy users
+                    int chunkSize = 100;
 
                     for (int i = 0; i < allIds.Count; i += chunkSize)
                     {
@@ -3154,7 +3262,11 @@ public partial class MainWindow
                                 nodes(ids: $ids) {
                                     ... on DiscussionComment {
                                         id
-                                        discussion { id }
+                                        discussion { 
+                                            id 
+                                            author { login }
+                                            body
+                                        }
                                         author { login }
                                         body
                                         replies(last: 15) {
@@ -3164,6 +3276,8 @@ public partial class MainWindow
                                     }
                                     ... on Discussion {
                                         id
+                                        author { login }
+                                        body
                                         comments(last: 15) {
                                             totalCount
                                             nodes { id author { login } body }
@@ -3185,10 +3299,12 @@ public partial class MainWindow
                             using var doc = JsonDocument.Parse(await graphqlResp.Content.ReadAsStringAsync());
                             if (doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("nodes", out var nodes))
                             {
-                                int nodeIndex = 0;
+                                var nodesArray = nodes.EnumerateArray().ToList();
 
-                                foreach (var node in nodes.EnumerateArray())
+                                for (int nodeIndex = 0; nodeIndex < nodesArray.Count; nodeIndex++)
                                 {
+                                    var node = nodesArray[nodeIndex];
+
                                     if (node.ValueKind == JsonValueKind.Null)
                                     {
                                         // comment or discussion was deleted remotely -> remove it
@@ -3197,7 +3313,6 @@ public partial class MainWindow
                                         {
                                             SaveSystem.SaveCommunityCache(_communityCache);
                                         }
-                                        nodeIndex++;
                                         continue;
                                     }
 
@@ -3205,13 +3320,14 @@ public partial class MainWindow
                                     {
                                         string commentId = node.GetProperty("id").GetString();
                                         string discId = discProp.GetProperty("id").GetString();
+
                                         string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
                                         string parentBody = node.GetProperty("body").GetString();
 
                                         // intercept bot messages to get real parent author
                                         if (parentAuthor == "aec-community-bot")
                                         {
-                                            var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                            var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                             if (match.Success)
                                             {
                                                 parentAuthor = match.Groups[1].Value;
@@ -3240,7 +3356,7 @@ public partial class MainWindow
                                                     // intercept bot messages for the reply author too
                                                     if (replyAuthor == "aec-community-bot")
                                                     {
-                                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                                         if (match.Success)
                                                         {
                                                             replyAuthor = match.Groups[1].Value;
@@ -3290,6 +3406,7 @@ public partial class MainWindow
                                     else if (node.TryGetProperty("comments", out var commentsData))
                                     {
                                         string discId = node.GetProperty("id").GetString();
+
                                         int newTotalCount = commentsData.GetProperty("totalCount").GetInt32();
 
                                         if (_communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
@@ -3308,7 +3425,7 @@ public partial class MainWindow
                                                     // intercept bot messages
                                                     if (cAuthor == "aec-community-bot")
                                                     {
-                                                        var match = System.Text.RegularExpressions.Regex.Match(cBody, @"\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
+                                                        var match = System.Text.RegularExpressions.Regex.Match(cBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
                                                         if (match.Success) cAuthor = match.Groups[1].Value;
                                                     }
 
@@ -3329,7 +3446,6 @@ public partial class MainWindow
                                             }
                                         }
                                     }
-                                    nodeIndex++;
                                 }
                             }
                         }
@@ -3341,12 +3457,15 @@ public partial class MainWindow
                 }
             }
 
-            if (hasNewNotifications)
+            if (hasNewNotifications || hasRemovedNotifications)
             {
                 if (_inboxFlyout != null && _inboxFlyout.IsOpen)
                 {
-                    // mark as read if flyout already open
-                    foreach (var n in _communityCache.Notifications) n.IsRead = true;
+                    // mark as read if flyout already open (only if we actually have new notifications)
+                    if (hasNewNotifications)
+                    {
+                        foreach (var n in _communityCache.Notifications) n.IsRead = true;
+                    }
                     SaveSystem.SaveCommunityCache(_communityCache);
                     await Dispatcher.UIThread.InvokeAsync(() => { ShowInboxFlyout(); });
                 }

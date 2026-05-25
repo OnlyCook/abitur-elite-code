@@ -3161,26 +3161,90 @@ public partial class MainWindow
 
     private async Task DeleteCustomLevel(CustomLevelInfo info, Window owner)
     {
+        bool hasSubscriptions = false;
+
+        // check if the level is connected to the community and has any active subscriptions before showing dialog
+        if (info.HasCommunityId && File.Exists(info.FilePath))
+        {
+            try
+            {
+                string json = File.ReadAllText(info.FilePath);
+                if (!info.IsDraft && !json.TrimStart().StartsWith("{"))
+                    json = LevelEncryption.Decrypt(json);
+
+                using (var doc = JsonDocument.Parse(json))
+                {
+                    if (doc.RootElement.TryGetProperty("DiscussionNodeId", out var dNodeId))
+                    {
+                        string nodeId = dNodeId.GetString();
+                        if (!string.IsNullOrEmpty(nodeId))
+                        {
+                            // check if the main level thread is subscribed
+                            if (_communityCache.Subscriptions.ContainsKey(nodeId))
+                            {
+                                hasSubscriptions = true;
+                            }
+                            else
+                            {
+                                // check deeply if any associated comments or replies are subscribed
+                                var matchingCs = _communityCache.CsharpDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == nodeId).ToList();
+                                var matchingSql = _communityCache.SqlDiscussions.Where(kvp => kvp.Value.DiscussionNodeId == nodeId).ToList();
+
+                                bool CheckDeepSubscriptions(List<KeyValuePair<string, DiscussionCache>> list)
+                                {
+                                    foreach (var kvp in list)
+                                    {
+                                        foreach (var comment in kvp.Value.Comments)
+                                        {
+                                            if (_communityCache.Subscriptions.ContainsKey(comment.Id)) return true;
+                                            foreach (var reply in comment.Replies)
+                                            {
+                                                if (_communityCache.Subscriptions.ContainsKey(reply.Id)) return true;
+                                            }
+                                        }
+                                    }
+                                    return false;
+                                }
+
+                                hasSubscriptions = CheckDeepSubscriptions(matchingCs) || CheckDeepSubscriptions(matchingSql);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
         var dialog = new Window
         {
             Title = "Löschen?",
             Width = 350,
-            Height = 150,
+            Height = hasSubscriptions ? 220 : 150,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
             Background = SolidColorBrush.Parse("#252526"),
             CornerRadius = new CornerRadius(8)
         };
-        dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
+        dialog.KeyDown += (s, ev) =>
+        {
+            if (ev.Key == Key.Escape) dialog.Close();
+        };
 
         var grid = new Grid
         {
             RowDefinitions = new RowDefinitions("*, Auto"),
             Margin = new Thickness(20)
         };
+
+        string dialogText = $"Möchtest du '{GetCleanLevelName(info.Name)}' wirklich löschen?";
+        if (hasSubscriptions)
+        {
+            dialogText += "\n\nHinweis: Durch das Löschen dieses Levels wirst du automatisch von allen zugehörigen Community-Benachrichtigungen (Level, Kommentare) deabonniert.";
+        }
+
         grid.Children.Add(new TextBlock
         {
-            Text = $"Möchtest du '{GetCleanLevelName(info.Name)}' wirklich löschen?",
+            Text = dialogText,
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center
