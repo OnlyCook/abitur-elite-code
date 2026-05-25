@@ -12,8 +12,8 @@ namespace AbiturEliteCode.cs;
 public class SqlTestResult
 {
     public bool Success { get; set; }
-    public string Feedback { get; set; }
-    public DataTable ResultTable { get; set; }
+    public string Feedback { get; set; } = "";
+    public DataTable? ResultTable { get; set; }
 }
 
 public static class SqlLevelTester
@@ -68,7 +68,7 @@ public static class SqlLevelTester
             else if (level.Id == 35)
             {
                 // check if the target bid was hardcoded by the user
-                string targetBid = level.AuxiliaryIds.FirstOrDefault();
+                string? targetBid = level.AuxiliaryIds.FirstOrDefault();
                 if (!string.IsNullOrEmpty(targetBid) && Regex.IsMatch(userQuery, $@"\b{targetBid}\b"))
                 {
                     return new SqlTestResult
@@ -80,7 +80,7 @@ public static class SqlLevelTester
                 }
             }
 
-            DataTable userResultTable = null;
+            DataTable? userResultTable = null;
             string upperQueryCheck = processedQuery.Trim().ToUpper();
             // detect WITH (cte) as read queries alongside standard SELECT
             bool isSelect = upperQueryCheck.StartsWith("SELECT") || upperQueryCheck.StartsWith("WITH");
@@ -141,7 +141,7 @@ public static class SqlLevelTester
             // validation logic
             List<string[]> actualRows = new List<string[]>();
 
-            string ObjectToInvariantString(object x) // localization fix (de: ',' | us: '.')
+            string? ObjectToInvariantString(object? x) // localization fix (de: ',' | us: '.')
             {
                 if (x == null || x == DBNull.Value) return "NULL";
                 if (x is IFormattable formattable) return formattable.ToString(null, CultureInfo.InvariantCulture);
@@ -153,11 +153,11 @@ public static class SqlLevelTester
             {
                 foreach (DataRow row in userResultTable.Rows)
                 {
-                    string[] rowData = row.ItemArray
-                        .Select(ObjectToInvariantString)
-                        .ToArray();
-                    actualRows.Add(rowData);
-                }
+                        string[] rowData = row.ItemArray
+                                .Select(x => ObjectToInvariantString(x) ?? "")
+                                .ToArray();
+                        actualRows.Add(rowData);
+                    }
             }
             // 2: user did update/insert -> run verification query
             else if (!string.IsNullOrEmpty(level.VerificationQuery))
@@ -165,9 +165,11 @@ public static class SqlLevelTester
                 var verifyDt = ExecuteDbQuery(connection, level.VerificationQuery, token);
                 foreach (DataRow row in verifyDt.Rows)
                 {
-                    string[] rowData = row.ItemArray.Select(ObjectToInvariantString).ToArray();
-                    actualRows.Add(rowData);
-                }
+                        string[] rowData = row.ItemArray
+                                .Select(x => ObjectToInvariantString(x) ?? "")
+                                .ToArray();
+                        actualRows.Add(rowData);
+                    }
 
                 userResultTable = verifyDt;
             }
@@ -283,7 +285,7 @@ public static class SqlLevelTester
         foreach (Match m in varMatches)
         {
             string varName = m.Groups[1].Value;
-            string varValue = m.Groups[2].Value.Trim();
+            string? varValue = m.Groups[2].Value.Trim();
 
             // evaluate subquery if present
             if (varValue.StartsWith("(") && varValue.EndsWith(")"))
@@ -322,7 +324,7 @@ public static class SqlLevelTester
             q = q.Replace(m.Value, "");
 
             // replace all occurrences of @varName with the actual value
-            q = Regex.Replace(q, "@" + varName + @"\b", varValue);
+            if (varValue != null) q = Regex.Replace(q, "@" + varName + @"\b", varValue);
         }
 
         // comments
@@ -367,7 +369,7 @@ public static class SqlLevelTester
         if (insertSetMatch.Success)
         {
             string tableName = insertSetMatch.Groups[1].Value;
-            string alias = insertSetMatch.Groups[2].Success ? insertSetMatch.Groups[2].Value : null;
+            string? alias = insertSetMatch.Groups[2].Success ? insertSetMatch.Groups[2].Value : null;
             string assignments = insertSetMatch.Groups[3].Value.TrimEnd(' ', '\r', '\n', ';');
 
             if (!string.IsNullOrEmpty(alias) && !alias.Equals("SET", StringComparison.OrdinalIgnoreCase))

@@ -55,7 +55,7 @@ public partial class MainWindow : Window
     private const string MonospaceFontFamily =
         "Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace";
 
-    private ConsoleColorizingTransformer _consoleColorizer;
+    private ConsoleColorizingTransformer? _consoleColorizer;
     private int _loadingAnimationOffset = -1;
     private int _loadingAnimationLength = 0;
 
@@ -63,19 +63,19 @@ public partial class MainWindow : Window
     private DesignerSource _activeDesignerSource = DesignerSource.None;
     private int _activeDiagramIndex;
     private Control? _activeDraggingSplitter;
-    private BracketHighlightRenderer _bracketHighlightRenderer;
-    private Button _btnGlobalFk;
-    private Button _btnGlobalPk;
+    private BracketHighlightRenderer? _bracketHighlightRenderer;
+    private Button? _btnGlobalFk;
+    private Button? _btnGlobalPk;
 
     private CancellationTokenSource? _compilationCts;
     private int _consecutiveSqlFails;
-    private AutocompleteGhostGenerator _csharpAutocompleteGenerator;
-    private AutocompleteService _csharpAutocompleteService;
-    private VimBlockCaretRenderer _csharpBlockCaret;
+    private AutocompleteGhostGenerator? _csharpAutocompleteGenerator;
+    private AutocompleteService? _csharpAutocompleteService;
+    private VimBlockCaretRenderer? _csharpBlockCaret;
     private string _currentCustomAuthor = "";
-    private List<string> _currentCustomSvgs;
+    private List<string>? _currentCustomSvgs;
 
-    private string _currentCustomValidationCode;
+    private string? _currentCustomValidationCode;
     private int _currentDiagramIndex;
     private LevelDraft _currentDraft = new();
     private string _currentDraftPath = "";
@@ -85,17 +85,17 @@ public partial class MainWindow : Window
     private SqlLevelDraft _currentSqlDraft = new();
     private readonly Timer _designerAutoSaveTimer;
     private readonly DispatcherTimer _designerSyncTimer;
-    private DispatcherTimer _diagnosticTimer;
-    private EscapeSequenceTransformer _escapeSequenceTransformer;
-    private RColumn _focusedRColumn;
-    private TextBox _focusedRColumnTextBox;
-    private RTable _focusedRTable;
-    private GhostCharacterTransformer _ghostCharTransformer;
+    private DispatcherTimer? _diagnosticTimer;
+    private EscapeSequenceTransformer? _escapeSequenceTransformer;
+    private RColumn? _focusedRColumn;
+    private TextBox? _focusedRColumnTextBox;
+    private RTable? _focusedRTable;
+    private GhostCharacterTransformer? _ghostCharTransformer;
 
     private bool _hasRunOnce;
 
     private Control? _hoveredSplitter;
-    private IndentationGuideRenderer _indentationGuideRenderer;
+    private IndentationGuideRenderer? _indentationGuideRenderer;
     private string _initialRelationalModelJson = "";
 
     private bool _isCleaningTable;
@@ -117,9 +117,8 @@ public partial class MainWindow : Window
     private string _latestVersion = "";
 
     private int _mouseTabSwitchCount;
-    private string _newlyCreatedLevelPath;
-    private string _nextCustomLevelPath;
-    private bool _originalErrorSetting;
+    private string? _newlyCreatedLevelPath;
+    private string? _nextCustomLevelPath;
     private bool _originalSyntaxSetting;
 
     private readonly Timer _relationalAutoSaveTimer;
@@ -127,32 +126,32 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _relationalTipDelayTimer;
     private readonly DispatcherTimer _relationalTipDisplayTimer;
     private Image? _relationalValidationIcon;
-    private SemanticClassHighlightingTransformer _semanticClassTransformer;
+    private SemanticClassHighlightingTransformer? _semanticClassTransformer;
     private readonly DispatcherTimer _spoilerActiveTimer;
     private bool _spoilerDelayMet;
     private readonly DispatcherTimer _tabTipDisplayTimer;
 
     private readonly DispatcherTimer _spoilerDelayTimer;
-    private AutocompleteGhostGenerator _sqlAutocompleteGenerator;
-    private AutocompleteService _sqlAutocompleteService;
-    private VimBlockCaretRenderer _sqlBlockCaret;
+    private AutocompleteGhostGenerator? _sqlAutocompleteGenerator;
+    private AutocompleteService? _sqlAutocompleteService;
+    private VimBlockCaretRenderer? _sqlBlockCaret;
     private bool _suppressCsharpAutocomplete;
     private bool _suppressSqlAutocomplete;
-    private TextMarkerService _textMarkerService;
-    private VimBlockCaretRenderer _tutorialBlockCaret;
+    private TextMarkerService? _textMarkerService;
+    private VimBlockCaretRenderer? _tutorialBlockCaret;
     private int _tutorialKeystrokes;
     private int _tutorialMouseClicks;
     private int _tutorialPenalty;
     private DateTime _tutorialStart;
     private int _tutorialStep;
-    private UnusedCodeTransformer _unusedCodeTransformer;
+    private UnusedCodeTransformer? _unusedCodeTransformer;
 
     private bool _updateAvailable;
     private string _updateDownloadUrl = "";
-    private LevelDraft _verifiedDraftState;
-    private List<string[]> _verifiedExpectedResult;
-    private List<SqlExpectedColumn> _verifiedExpectedSchema;
-    private SqlLevelDraft _verifiedSqlDraftState;
+    private LevelDraft? _verifiedDraftState;
+    private List<string[]>? _verifiedExpectedResult;
+    private List<SqlExpectedColumn>? _verifiedExpectedSchema;
+    private SqlLevelDraft? _verifiedSqlDraftState;
     private string _vimClipboard = "";
     private string _vimCommandBuffer = ""; // for multi char commands
     private int _vimDesiredColumn = -1;
@@ -161,22 +160,21 @@ public partial class MainWindow : Window
     private int _vimVisualStartOffset = -1;
     private readonly Timer autoSaveTimer;
 
-    private Level currentLevel;
-    private SqlLevel currentSqlLevel;
+    private Level? currentLevel;
+    private SqlLevel? currentSqlLevel;
     private readonly CustomPlayerData customPlayerData;
     private bool _isHardcoreMode = false; // would have to disable in designer
 
-    private readonly ScaleTransform ImgScale;
-    private readonly TranslateTransform ImgTranslate;
+    private readonly ScaleTransform? ImgScale;
+    private readonly TranslateTransform? ImgTranslate;
     private List<Level> levels;
     private readonly PlayerData playerData;
-    private List<SqlLevel> sqlLevels;
+    private List<SqlLevel>? sqlLevels;
 
     // animation variables
     private readonly string[] _chevronFrames = { ">  ", ">> ", ">>>", " >>", "  >", "   " };
-    private DispatcherTimer _loadingAnimationTimer;
-    private Run _csharpLoadingRun;
-    private TextBlock _sqlLoadingBlock;
+    private DispatcherTimer? _loadingAnimationTimer;
+    private TextBlock? _sqlLoadingBlock;
     private int _loadingAnimationFrame;
 
     // cache
@@ -189,18 +187,18 @@ public partial class MainWindow : Window
 
     // community
     private static readonly HttpClient _httpClient = new HttpClient();
-    private Dictionary<string, Dictionary<string, int>> _discussionMappings;
+    private Dictionary<string, Dictionary<string, int>>? _discussionMappings;
     private CommunityCacheData _communityCache;
     private bool _isFetchingComments = false;
     private int _currentActiveDiscussionId = -1;
     private DateTime _lastCommentTime = DateTime.MinValue;
     private bool _isForceClosing = false;
-    private Flyout _inboxFlyout;
-    private DispatcherTimer _notificationPollTimer;
+    private Flyout? _inboxFlyout;
+    private DispatcherTimer? _notificationPollTimer;
     public DateTime _lastNotificationRefreshTime = DateTime.MinValue;
     private bool _isProgrammaticTextChange = false;
-    private string _targetHighlightCommentId = null;
-    private string _targetHighlightReplyId = null;
+    private string? _targetHighlightCommentId = null;
+    private string? _targetHighlightReplyId = null;
 
     public bool SkipSaveOnExit { get; set; } = false;
 
@@ -209,6 +207,10 @@ public partial class MainWindow : Window
         _splash?.AddLoadingProgress(val);
         Debug.WriteLine($"{str} {DateTime.Now}.{DateTime.Now.Millisecond}\n\tLoadingBar progress: {_splash?.GetLoadingProgress()}");
     }
+
+#pragma warning disable CS8618
+    public MainWindow() { InitializeComponent(); } // purely to fix a warning
+#pragma warning restore CS8618
 
     public MainWindow(List<Level> preloadedLevels, PlayerData preloadedPlayerData, CustomPlayerData preloadedCustomPlayerData, SplashWindow? splash = null)
     {
@@ -222,12 +224,12 @@ public partial class MainWindow : Window
 
         _tabDockManager = new TabDockManager(
             this,
-            this.FindControl<Panel>("LeftPanelContainer"),
+            this.FindControl<Panel>("LeftPanelContainer")!,
             MainTabs,
-            this.FindControl<Canvas>("DragGhostCanvas"),
-            this.FindControl<Canvas>("DropIndicatorsCanvas"),
-            this.FindControl<Border>("DropPreviewOverlay"),
-            this.FindControl<Border>("TabReorderIndicator")
+            this.FindControl<Canvas>("DragGhostCanvas")!,
+            this.FindControl<Canvas>("DropIndicatorsCanvas")!,
+            this.FindControl<Border>("DropPreviewOverlay")!,
+            this.FindControl<Border>("TabReorderIndicator")!
         );
 
         // remove designer/vim tab initially
@@ -238,9 +240,9 @@ public partial class MainWindow : Window
         }
 
         // dont reinit (already done through app script)
-        var transformGroup = (TransformGroup)ImgDiagram.RenderTransform;
-        ImgScale = (ScaleTransform)transformGroup.Children[0];
-        ImgTranslate = (TranslateTransform)transformGroup.Children[1];
+        var transformGroup = ImgDiagram.RenderTransform as TransformGroup;
+        ImgScale = transformGroup?.Children[0] as ScaleTransform;
+        ImgTranslate = transformGroup?.Children[1] as TranslateTransform;
 
         levels = preloadedLevels;
         playerData = preloadedPlayerData;
@@ -456,8 +458,8 @@ public partial class MainWindow : Window
 
             if (AppSettings.IsErrorHighlightingEnabled)
             {
-                _diagnosticTimer.Stop();
-                _diagnosticTimer.Start();
+                _diagnosticTimer?.Stop();
+                _diagnosticTimer?.Start();
             }
         };
 
@@ -623,8 +625,8 @@ public partial class MainWindow : Window
 
         AddHandler(PointerPressedEvent, (s, e) =>
         {
-            Control current = e.Source as Control;
-            GridSplitter splitter = null;
+            Control? current = e.Source as Control;
+            GridSplitter? splitter = null;
 
             // get gridsplitter
             while (current != null)
@@ -686,7 +688,7 @@ public partial class MainWindow : Window
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (ChkDesignerAutoSave.IsChecked == true)
-                    SaveDesignerDraft();
+                    _ = SaveDesignerDraft();
             });
         };
 
@@ -822,7 +824,7 @@ public partial class MainWindow : Window
             // save current progress before closing the app
             if (_isDesignerMode)
             {
-                SaveDesignerDraft();
+                _ = SaveDesignerDraft();
             }
             else
             {
@@ -864,7 +866,7 @@ public partial class MainWindow : Window
         }
     }
 
-    internal void OnMainTabChanged(object sender, SelectionChangedEventArgs e)
+    internal void OnMainTabChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (!(e.Source is TabControl tc)) return;
 
@@ -896,7 +898,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (wasQueryEditorFocused) Dispatcher.UIThread.Post(() => SqlQueryEditor.Focus());
+        if (wasQueryEditorFocused) Dispatcher.UIThread.Post(() => SqlQueryEditor?.Focus());
 
         // live preview update on tab switch
         var selectedTabHeader = (tc.SelectedItem as TabItem)?.Header?.ToString();
@@ -978,10 +980,12 @@ public partial class MainWindow : Window
         {
             try
             {
+#pragma warning disable IL3000
                 if (!string.IsNullOrEmpty(asm.Location))
                 {
-                    references.Add(MetadataReference.CreateFromFile(asm.Location));
+                    references.Add(MetadataReference.CreateFromFile(asm.Location)); // this warning is straight up microsoft bloat
                 }
+#pragma warning restore IL3000
                 else
                 {
                     unsafe
@@ -1016,30 +1020,33 @@ public partial class MainWindow : Window
         ToolTip.SetTip(BtnRun, $"Ausführen (F5{(_isSqlMode ? $" / {ctrlKey} + Enter" : "")})");
     }
 
-    private string ExtractSelectedInlineText(InlineCollection inlines, int selStart, int selEnd)
+    private string ExtractSelectedInlineText(InlineCollection? inlines, int selStart, int selEnd)
     {
         var sb = new StringBuilder();
         int pos = 0;
-        foreach (var inline in inlines)
+        if (inlines != null)
         {
-            if (inline is Run run)
+            foreach (var inline in inlines)
             {
-                string t = run.Text ?? "";
-                int overlapStart = Math.Max(selStart, pos);
-                int overlapEnd = Math.Min(selEnd, pos + t.Length);
-                if (overlapStart < overlapEnd)
-                    sb.Append(t, overlapStart - pos, overlapEnd - overlapStart);
-                pos += t.Length;
-            }
-            else if (inline is LineBreak)
-            {
-                if (pos >= selStart && pos < selEnd) sb.Append('\n');
-                pos++;
-            }
-            else if (inline is InlineUIContainer)
-            {
-                // skip svg icon in copied text but advance layout position by 1
-                pos++;
+                if (inline is Run run)
+                {
+                    string t = run.Text ?? "";
+                    int overlapStart = Math.Max(selStart, pos);
+                    int overlapEnd = Math.Min(selEnd, pos + t.Length);
+                    if (overlapStart < overlapEnd)
+                        sb.Append(t, overlapStart - pos, overlapEnd - overlapStart);
+                    pos += t.Length;
+                }
+                else if (inline is LineBreak)
+                {
+                    if (pos >= selStart && pos < selEnd) sb.Append('\n');
+                    pos++;
+                }
+                else if (inline is InlineUIContainer)
+                {
+                    // skip svg icon in copied text but advance layout position by 1
+                    pos++;
+                }
             }
         }
         return sb.ToString();
@@ -1107,14 +1114,14 @@ public partial class MainWindow : Window
             if (clearFirst)
             {
                 ConsoleEditor.Document.Text = "";
-                _consoleColorizer.ColorSpans.Clear();
+                _consoleColorizer?.ColorSpans.Clear();
             }
 
             int startOffset = ConsoleEditor.Document.TextLength;
             ConsoleEditor.AppendText(text);
             int endOffset = ConsoleEditor.Document.TextLength;
 
-            _consoleColorizer.ColorSpans.Add((startOffset, endOffset, color));
+            _consoleColorizer?.ColorSpans.Add((startOffset, endOffset, color));
 
             ConsoleEditor.TextArea.TextView.Redraw();
         });
@@ -1136,7 +1143,7 @@ public partial class MainWindow : Window
         while (currentText.Length > 0)
         {
             int firstEmojiIndex = -1;
-            string foundEmoji = null;
+            string? foundEmoji = null;
 
             foreach (var emoji in emojiMap.Keys)
             {
@@ -1169,7 +1176,8 @@ public partial class MainWindow : Window
                 });
             }
 
-            var image = LoadIcon($"assets/emojis/{emojiMap[foundEmoji]}", 14);
+
+            var image = foundEmoji != null ? LoadIcon($"assets/emojis/{emojiMap[foundEmoji]}", 14) : null;
             if (image != null)
             {
                 // slightly adjust margin to align with text baseline
@@ -1185,6 +1193,7 @@ public partial class MainWindow : Window
                 });
             }
 
+            if (currentText == null || foundEmoji == null) return;
             currentText = currentText.Substring(firstEmojiIndex + foundEmoji.Length);
         }
     }
@@ -1282,13 +1291,13 @@ public partial class MainWindow : Window
         }
     }
 
-    private IImage LoadDiagramImage(string relativePath)
+    private IImage? LoadDiagramImage(string relativePath)
     {
         // check cache first to prevent redundant disk I/O
         if (_diagramCache.TryGetValue(relativePath, out var cachedImage))
             return cachedImage;
 
-        IImage resultImage = null;
+        IImage? resultImage = null;
 
         // check if its a full file path (custom levels)
         if (File.Exists(relativePath))
@@ -1346,7 +1355,7 @@ public partial class MainWindow : Window
         return resultImage;
     }
 
-    private WrapPanel BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
+    private WrapPanel? BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
     {
         if (difficulty == "" && (topics == null || topics.Count == 0) &&
             (diagrams == null || diagrams.Count == 0)) return null;
@@ -1506,7 +1515,7 @@ public partial class MainWindow : Window
             // code block
             if (part.StartsWith("{|") && part.EndsWith("|}") && part.Length >= 4)
             {
-                if (currentTb.Inlines.Count > 0)
+                if (currentTb?.Inlines?.Count > 0)
                 {
                     var lastRun = currentTb.Inlines.LastOrDefault() as Run;
                     if (lastRun != null && !string.IsNullOrEmpty(lastRun.Text)) lastRun.Text = lastRun.Text.TrimEnd();
@@ -1566,7 +1575,7 @@ public partial class MainWindow : Window
                 string content = part.Substring(1, part.Length - 2);
                 content = content.Replace("\x01", "[").Replace("\x02", "]");
 
-                currentTb.Inlines.Add(new Run
+                currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
                     FontWeight = FontWeight.Bold,
@@ -1580,7 +1589,7 @@ public partial class MainWindow : Window
                 string content = part.Substring(2, part.Length - 4);
                 content = content.Replace("\x01", "[").Replace("\x02", "]");
 
-                currentTb.Inlines.Add(new Run
+                currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
                     FontWeight = FontWeight.Bold,
@@ -1593,7 +1602,7 @@ public partial class MainWindow : Window
                 string content = part.Substring(2, part.Length - 4);
                 content = content.Replace("\x01", "[").Replace("\x02", "]");
 
-                currentTb.Inlines.Add(new Run
+                currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
                     Foreground = Scheme.BrushTextNormal,
@@ -1605,7 +1614,7 @@ public partial class MainWindow : Window
             {
                 string content = part.Replace("\x01", "[").Replace("\x02", "]");
                 if (!string.IsNullOrEmpty(content))
-                    currentTb.Inlines.Add(new Run
+                    currentTb?.Inlines?.Add(new Run
                     {
                         Text = content,
                         Foreground = Scheme.BrushTextNormal
@@ -1613,7 +1622,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (currentTb.Inlines.Count > 0) panel.Children.Add(currentTb);
+        if (currentTb?.Inlines?.Count > 0) panel.Children.Add(currentTb);
     }
 
     private async void UpdateDiagnostics()
@@ -1648,7 +1657,7 @@ public partial class MainWindow : Window
             var userTree = CSharpSyntaxTree.ParseText(fullCode);
             var trees = new List<SyntaxTree> { userTree };
 
-            if (currentLevel.AuxiliaryIds != null)
+            if (currentLevel?.AuxiliaryIds != null)
                 foreach (var auxId in currentLevel.AuxiliaryIds)
                 {
                     string auxCode = AuxiliaryImplementations.GetCode(auxId, code);
@@ -1674,8 +1683,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        _textMarkerService.Clear();
-        _unusedCodeTransformer.UnusedSegments.Clear();
+        _textMarkerService?.Clear();
+        _unusedCodeTransformer?.UnusedSegments.Clear();
 
         var unusedWarningIds = new HashSet<string>
         {
@@ -1693,15 +1702,15 @@ public partial class MainWindow : Window
 
             if (diag.Severity == DiagnosticSeverity.Error)
             {
-                _textMarkerService.Add(start, length, Colors.Red, diag.GetMessage());
+                _textMarkerService?.Add(start, length, Colors.Red, diag.GetMessage());
             }
             else if (diag.Severity == DiagnosticSeverity.Warning)
             {
                 // unused vars
                 if (unusedWarningIds.Contains(diag.Id))
-                    _unusedCodeTransformer.UnusedSegments.Add(new TextSegment { StartOffset = start, Length = length });
+                    _unusedCodeTransformer?.UnusedSegments.Add(new TextSegment { StartOffset = start, Length = length });
                 else
-                    _textMarkerService.Add(start, length, Colors.Yellow, diag.GetMessage());
+                    _textMarkerService?.Add(start, length, Colors.Yellow, diag.GetMessage());
             }
         }
 
@@ -1710,8 +1719,8 @@ public partial class MainWindow : Window
 
     private void ClearDiagnostics()
     {
-        _textMarkerService.Clear();
-        _unusedCodeTransformer.UnusedSegments.Clear();
+        _textMarkerService?.Clear();
+        _unusedCodeTransformer?.UnusedSegments.Clear();
         CodeEditor.TextArea.TextView.Redraw();
     }
 
@@ -1756,7 +1765,7 @@ public partial class MainWindow : Window
         {
             _isDragging = true;
             _lastMousePoint = pointer.Position;
-            (sender as Control).Cursor = new Cursor(StandardCursorType.SizeAll);
+            ((Control)sender).Cursor = new Cursor(StandardCursorType.SizeAll);
             e.Handled = true;
         }
     }
@@ -1782,7 +1791,7 @@ public partial class MainWindow : Window
         if (_isDragging)
         {
             _isDragging = false;
-            (sender as Control).Cursor = Cursor.Default;
+            ((Control)sender).Cursor = Cursor.Default;
             e.Handled = true;
         }
     }
@@ -1810,7 +1819,7 @@ public partial class MainWindow : Window
     {
         if (ImgScale != null && ImgTranslate != null)
         {
-            if (_isSqlMode || currentLevel.NoUMLAutoScale)
+            if (_isSqlMode || currentLevel?.NoUMLAutoScale == true)
                 _currentScale = 1.0;
             else
                 _currentScale = 0.5;
@@ -1824,7 +1833,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void GenerateMaterials(Level level, List<string> draftAdditionalSvgs = null)
+    private void GenerateMaterials(Level level, List<string>? draftAdditionalSvgs = null)
     {
         PnlMaterials.Children.Clear();
 
@@ -1832,7 +1841,7 @@ public partial class MainWindow : Window
         if (level.AuxiliaryIds != null && level.AuxiliaryIds.Count > 0)
         {
             bool headerAdded = false;
-            WrapPanel auxWrapPanel = null;
+            WrapPanel? auxWrapPanel = null;
 
             foreach (var auxId in level.AuxiliaryIds)
             {
@@ -1862,7 +1871,7 @@ public partial class MainWindow : Window
                         headerAdded = true;
                     }
 
-                    auxWrapPanel.Children.Add(
+                    auxWrapPanel?.Children.Add(
                         new Image
                         {
                             Source = auxImage,
@@ -2088,7 +2097,7 @@ public partial class MainWindow : Window
 
         var innerList = (StackPanel)contentPanel.Child;
 
-        void RenderPrereqRows(List<string> topics, bool isOptional)
+        void RenderPrereqRows(List<string>? topics, bool isOptional)
         {
             if (topics == null) return;
 
@@ -2100,7 +2109,7 @@ public partial class MainWindow : Window
                 string docUrl = "";
                 string vidTooltip = "";
                 string docTooltip = "";
-                IBrush vidColor = null;
+                IBrush? vidColor = null;
 
                 if (_isSqlMode)
                 {
@@ -2292,7 +2301,7 @@ public partial class MainWindow : Window
             _loadingAnimationLength = initialText.Length;
 
             ConsoleEditor.AppendText(initialText);
-            _consoleColorizer.ColorSpans.Add((_loadingAnimationOffset, _loadingAnimationOffset + initialText.Length, Brushes.LightGray));
+            _consoleColorizer?.ColorSpans.Add((_loadingAnimationOffset, _loadingAnimationOffset + initialText.Length, Brushes.LightGray));
 
             // only force scroll to end if content actually exceeds the current bounds 
             Dispatcher.UIThread.Post(() =>
@@ -2384,8 +2393,8 @@ public partial class MainWindow : Window
 
             if (_sqlLoadingBlock != null)
             {
-                string currentText = _sqlLoadingBlock.Text;
-                if (currentText.Length >= 4)
+                string? currentText = _sqlLoadingBlock.Text;
+                if (currentText?.Length >= 4)
                 {
                     string baseText = currentText.Substring(4).TrimEnd();
                     _sqlLoadingBlock.Text = $"> {baseText}";
@@ -2395,7 +2404,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private async void BtnRun_Click(object sender, RoutedEventArgs e)
+    private async void BtnRun_Click(object? sender, RoutedEventArgs? e)
     {
         if (_isSqlMode)
         {
@@ -2437,7 +2446,7 @@ public partial class MainWindow : Window
         _ = MonitorResourcesAsync(_compilationCts, false, _isCustomLevelMode);
 
         ConsoleEditor.Document.Text = "";
-        _consoleColorizer.ColorSpans.Clear();
+        _consoleColorizer?.ColorSpans.Clear();
 
         string loadingText = !_hasRunOnce ? "Compiler wird gestartet..." : "Kompiliere...";
         _hasRunOnce = true;
@@ -2453,11 +2462,11 @@ public partial class MainWindow : Window
         // capture designer state needed for the thread
         bool runDesignerTest = _isDesignerMode;
         bool useCustomValidation = runDesignerTest || _isCustomLevelMode;
-        string validationLogic = runDesignerTest ? TxtDesignValidation.Text : _currentCustomValidationCode;
+        string? validationLogic = runDesignerTest ? TxtDesignValidation.Text : _currentCustomValidationCode;
 
         if (_isDesignerMode) UpdateDraftFromUI();
 
-        LevelDraft pendingSnapshot = null;
+        LevelDraft? pendingSnapshot = null;
         if (_isDesignerMode)
         {
             // deep copy to ensure we capture the exact state at runtime
@@ -2472,7 +2481,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var processingTask = Task.Run<(bool Success, ImmutableArray<Diagnostic>? Diagnostics, dynamic TestResult)>(
+            var processingTask = Task.Run<(bool Success, ImmutableArray<Diagnostic>? Diagnostics, dynamic? TestResult)>(
                 () =>
                 {
                     if (token.IsCancellationRequested) return (false, null, null);
@@ -2519,7 +2528,7 @@ public partial class MainWindow : Window
                     var trees = new List<SyntaxTree> { syntaxTree };
 
                     // handle auxiliary code
-                    if (!runDesignerTest && !_isCustomLevelMode && levelContext.AuxiliaryIds != null)
+                    if (!runDesignerTest && !_isCustomLevelMode && levelContext?.AuxiliaryIds != null)
                         foreach (var auxId in levelContext.AuxiliaryIds)
                         {
                             string auxCode = AuxiliaryImplementations.GetCode(auxId, codeText);
@@ -2530,7 +2539,7 @@ public partial class MainWindow : Window
                     var references = GetSafeReferences();
 
                     var compilation = CSharpCompilation.Create(
-                        $"Level_{(runDesignerTest ? "Designer" : levelContext.Id.ToString())}_{Guid.NewGuid()}",
+                        $"Level_{(runDesignerTest ? "Designer" : levelContext?.Id.ToString())}_{Guid.NewGuid()}",
                         trees,
                         references,
                         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -2543,7 +2552,7 @@ public partial class MainWindow : Window
                             EmitResult emitResult = compilation.Emit(ms, cancellationToken: token);
 
                             if (!emitResult.Success)
-                                return (Success: false, Diagnostics: emitResult.Diagnostics, TestResult: (dynamic)null);
+                                return (Success: false, Diagnostics: emitResult.Diagnostics, TestResult: null);
 
                             if (token.IsCancellationRequested) return (false, null, null);
 
@@ -2666,7 +2675,7 @@ public partial class MainWindow : Window
                                             var method = type.GetMethod(""Run"");
                         
                                             // use standard object reflection instead of 'dynamic' to avoid Microsoft.CSharp.dll dependency
-                                            object result = method.Invoke(null, new object[] {{ {levelContext.Id}, assembly, code }});
+                                            object result = method.Invoke(null, new object[] {{ {levelContext?.Id}, assembly, code }});
                     
                                             success = (bool)result.GetType().GetProperty(""Success"").GetValue(result);
                                         
@@ -2783,29 +2792,32 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+                        if (result.Diagnostics != null)
                         {
-                            var lineSpan = diag.Location.GetLineSpan();
-                            int userLine = lineSpan.StartLinePosition.Line - (headerLineCount - 1);
-                            if (userLine < 0) userLine = 0;
-                            AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
+                            foreach (var diag in result.Diagnostics.Value.Where(d => d.Severity == DiagnosticSeverity.Error))
+                            {
+                                var lineSpan = diag.Location.GetLineSpan();
+                                int userLine = lineSpan.StartLinePosition.Line - (headerLineCount - 1);
+                                if (userLine < 0) userLine = 0;
+                                AddToConsole($"Zeile {userLine}: {diag.GetMessage()}\n", Brushes.Red);
+                            }
                         }
                     }
                 }
                 else if (result.Success)
                 {
                     // write console output (if given)
-                    if (result.TestResult != null && !string.IsNullOrWhiteSpace((string)result.TestResult.ConsoleOutput))
+                    if (result.TestResult != null && !string.IsNullOrWhiteSpace(result.TestResult?.ConsoleOutput as string))
                     {
-                        AddToConsole((string)result.TestResult.ConsoleOutput + "\n", Brushes.Cyan);
+                        AddToConsole((result.TestResult?.ConsoleOutput as string) + "\n", Brushes.Cyan);
                     }
 
                     if (runDesignerTest)
                     {
                         // handle designer result
-                        if (result.TestResult.Success)
+                        if (result.TestResult?.Success)
                         {
-                            AddToConsole("@S DESIGNER TEST BESTANDEN: " + result.TestResult.Feedback,
+                            AddToConsole("@S DESIGNER TEST BESTANDEN: " + result.TestResult?.Feedback,
                                 Brushes.LightGreen);
                             BtnDesignerExport.IsEnabled = true;
                             if (BtnDesignerPublish != null) BtnDesignerPublish.IsEnabled = true;
@@ -2815,7 +2827,7 @@ public partial class MainWindow : Window
                         else
                         {
                             string msg;
-                            if (result.TestResult.Error != null)
+                            if (result.TestResult?.Error != null)
                             {
                                 Exception err = result.TestResult.Error;
                                 msg = $"{err.GetType().Name}: {err.Message}\n\nStack Trace:\n{err.StackTrace}";
@@ -3119,7 +3131,7 @@ public partial class MainWindow : Window
         await dialog.ShowDialog(this);
         if (result)
         {
-            CodeEditor.Text = currentLevel.StarterCode;
+            CodeEditor.Text = currentLevel?.StarterCode;
             AddToConsole("\n> Code auf Standard zurückgesetzt.", Brushes.LightGray);
         }
 
@@ -3151,11 +3163,11 @@ public partial class MainWindow : Window
 
         BtnNextLevel.IsVisible = false;
 
-        var rightGrid = this.FindControl<Grid>("RootGrid").Children
+        var rightGrid = this.FindControl<Grid>("RootGrid")?.Children
             .OfType<Grid>().FirstOrDefault(g => g.ColumnDefinitions.Count == 3)
             ?.Children.OfType<Grid>().FirstOrDefault(g => g.GetValue(Grid.ColumnProperty) == 2);
 
-        RowDefinition bottomRow = null;
+        RowDefinition? bottomRow = null;
         if (rightGrid != null && rightGrid.RowDefinitions.Count > 3)
             bottomRow = rightGrid.RowDefinitions[3];
 
@@ -3302,7 +3314,7 @@ public partial class MainWindow : Window
 
         classes.ExceptWith(AutocompleteService.CsharpKeywords); // filter out c# keywords (safety)
 
-        _semanticClassTransformer.KnownClasses = classes;
+        _semanticClassTransformer?.KnownClasses = classes;
         CodeEditor.TextArea.TextView.Redraw();
     }
 
@@ -3340,6 +3352,7 @@ public partial class MainWindow : Window
 
         var token = _compilationCts.Token;
         var levelContext = currentSqlLevel;
+        if (levelContext == null) return;
 
         try
         {
@@ -3375,7 +3388,7 @@ public partial class MainWindow : Window
 
                 if (_isCustomLevelMode)
                 {
-                    if (!customPlayerData.CompletedCustomSqlLevels.Contains(levelContext.Title))
+                    if (levelContext != null && !customPlayerData.CompletedCustomSqlLevels.Contains(levelContext.Title))
                     {
                         customPlayerData.CompletedCustomSqlLevels.Add(levelContext.Title);
                         SaveSystem.SaveCustom(customPlayerData);
@@ -3391,7 +3404,7 @@ public partial class MainWindow : Window
                     else if (_nextCustomLevelPath == "SECTION_COMPLETE")
                     {
                         // adapt button text based on level type
-                        if (levelContext.Section == "Einzelne Levels")
+                        if (levelContext?.Section == "Einzelne Levels")
                             BtnNextLevel.Content = "LEVEL ABSCHLIESSEN ✓";
                         else
                             BtnNextLevel.Content = "SEKTION ABSCHLIESSEN ✓";
@@ -3402,7 +3415,7 @@ public partial class MainWindow : Window
                     return;
                 }
 
-                if (!playerData.CompletedSqlLevelIds.Contains(levelContext.Id))
+                if (levelContext != null && !playerData.CompletedSqlLevelIds.Contains(levelContext.Id))
                 {
                     playerData.CompletedSqlLevelIds.Add(levelContext.Id);
 
@@ -3413,11 +3426,11 @@ public partial class MainWindow : Window
                     }
                 }
 
-                var nextLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == levelContext.NextLevelCode);
+                var nextLvl = sqlLevels?.FirstOrDefault(l => l.SkipCode == levelContext?.NextLevelCode);
 
                 if (nextLvl != null)
                 {
-                    if (nextLvl.Section != levelContext.Section)
+                    if (nextLvl.Section != levelContext?.Section)
                     {
                         AddSqlOutput("System", "@P Sektion abgeschlossen!", Scheme.BrushDopamineEnducingGold);
                         BtnNextLevel.Content = "NÄCHSTE SEKTION →";
@@ -3489,9 +3502,9 @@ public partial class MainWindow : Window
                     }
                 }
 
-                DataTable expectedData = null;
+                DataTable? expectedData = null;
                 // hide expected table (diff) when hardcore mode is active
-                if (!_isHardcoreMode && levelContext.ExpectedResult != null && levelContext.ExpectedResult.Count > 0)
+                if (!_isHardcoreMode && levelContext?.ExpectedResult != null && levelContext.ExpectedResult.Count > 0)
                 {
                     expectedData = new DataTable();
 
@@ -3579,7 +3592,7 @@ public partial class MainWindow : Window
         return dt;
     }
 
-    private Grid BuildTableGrid(DataTable table, List<string> manualTypes = null)
+    private Grid BuildTableGrid(DataTable table, List<string>? manualTypes = null)
     {
         var grid = new Grid();
 
@@ -3607,7 +3620,7 @@ public partial class MainWindow : Window
                     bool isInt = true;
                     foreach (DataRow row in table.Rows)
                     {
-                        string val = row[col]?.ToString()?.Replace(",", ".");
+                        string? val = row[col]?.ToString()?.Replace(",", ".");
                         if (string.IsNullOrEmpty(val)) continue;
                         if (!int.TryParse(val, out _)) isInt = false;
                         if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
@@ -3738,7 +3751,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateFocusedColumn(RColumn col, TextBox tb)
+    private void UpdateFocusedColumn(RColumn? col, TextBox? tb)
     {
         _focusedRColumn = col;
         _focusedRColumnTextBox = tb;
@@ -3797,7 +3810,7 @@ public partial class MainWindow : Window
         for (int c = 0; c < cols; c++) GridExpectedTable.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
 
         GridExpectedTable.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        Control elementToFocus = null;
+        Control? elementToFocus = null;
 
         // headers
         for (int c = 0; c < cols; c++)
@@ -3924,7 +3937,7 @@ public partial class MainWindow : Window
             {
                 if (colIndex < _currentSqlDraft.ExpectedSchema.Count)
                 {
-                    _currentSqlDraft.ExpectedSchema[colIndex].Type = cmbType.SelectedItem as string;
+                    _currentSqlDraft.ExpectedSchema[colIndex].Type = (string)cmbType.SelectedItem;
                     InvalidateDesignerExport();
                 }
             };
@@ -3979,7 +3992,8 @@ public partial class MainWindow : Window
                     if (rowIndex < _currentSqlDraft.ExpectedResult.Count &&
                         colIndex < _currentSqlDraft.ExpectedResult[rowIndex].Length)
                     {
-                        if (_currentSqlDraft.ExpectedResult[rowIndex].Length > colIndex)
+
+                        if (_currentSqlDraft.ExpectedResult[rowIndex].Length > colIndex && txtCell.Text != null)
                             _currentSqlDraft.ExpectedResult[rowIndex][colIndex] = txtCell.Text;
 
                         InvalidateDesignerExport();
@@ -4290,7 +4304,7 @@ public class Level25SleepRewriter : CSharpSyntaxRewriter
     public bool IsValid { get; private set; } = false;
     public bool SleepFound { get; private set; } = false;
 
-    public override SyntaxNode VisitExpressionStatement(ExpressionStatementSyntax node)
+    public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
     {
         if (node.Expression is InvocationExpressionSyntax invocation)
         {

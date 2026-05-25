@@ -196,7 +196,7 @@ public partial class MainWindow
         if (posInDoc.HasValue)
         {
             int offset = CodeEditor.Document.GetOffset(posInDoc.Value.Location);
-            var marker = _textMarkerService.GetMarkerAtOffset(offset);
+            var marker = _textMarkerService?.GetMarkerAtOffset(offset);
 
             if (marker != null && !string.IsNullOrEmpty(marker.Message))
             {
@@ -208,7 +208,7 @@ public partial class MainWindow
         ToolTip.SetTip(CodeEditor, null);
     }
 
-    private void CodeEditor_KeyDown(object sender, KeyEventArgs e)
+    private void CodeEditor_KeyDown(object? sender, KeyEventArgs e)
     {
         if (_isTutorialMode)
         {
@@ -217,7 +217,7 @@ public partial class MainWindow
         }
 
         // escape key to clear suggestions
-        if (e.Key == Key.Escape && _csharpAutocompleteService.HasSuggestion)
+        if (e.Key == Key.Escape && _csharpAutocompleteService?.HasSuggestion == true)
         {
             _csharpAutocompleteService.ClearSuggestion();
             CodeEditor.TextArea.TextView.Redraw();
@@ -227,7 +227,7 @@ public partial class MainWindow
 
         // up and down arrows for autocompletion cycling
         if (AppSettings.IsAutocompleteEnabled && (e.Key == Key.Up || e.Key == Key.Down) &&
-            _csharpAutocompleteService.HasSuggestion)
+            _csharpAutocompleteService?.HasSuggestion == true)
         {
             if (e.Key == Key.Up) _csharpAutocompleteService.CyclePrevious();
             else _csharpAutocompleteService.CycleNext();
@@ -274,7 +274,7 @@ public partial class MainWindow
         {
             if (_isDesignerMode)
             {
-                SaveDesignerDraft();
+                _ = SaveDesignerDraft();
                 e.Handled = true;
                 return;
             }
@@ -305,10 +305,10 @@ public partial class MainWindow
         }
 
         // tab => confirm autocompletion
-        if (AppSettings.IsAutocompleteEnabled && e.Key == Key.Tab && _csharpAutocompleteService.HasSuggestion)
+        if (AppSettings.IsAutocompleteEnabled && e.Key == Key.Tab && _csharpAutocompleteService?.HasSuggestion == true)
             if (!AppSettings.IsVimEnabled || _vimMode == VimMode.Insert)
             {
-                string suffixText = _csharpAutocompleteService.CurrentSuggestionSuffix;
+                string? suffixText = _csharpAutocompleteService.CurrentSuggestionSuffix;
                 if (!string.IsNullOrEmpty(suffixText))
                 {
                     int offset = CodeEditor.CaretOffset;
@@ -323,7 +323,7 @@ public partial class MainWindow
             }
 
         // temporarily disable autocompletion if moving to the right
-        if (e.Key == Key.Right && _csharpAutocompleteService.HasSuggestion)
+        if (e.Key == Key.Right && _csharpAutocompleteService?.HasSuggestion == true)
         {
             _csharpAutocompleteService.ClearSuggestion();
             CodeEditor.TextArea.TextView.Redraw();
@@ -332,7 +332,7 @@ public partial class MainWindow
 
         if (e.Key == Key.Back)
         {
-            if (AppSettings.IsAutocompleteEnabled && _csharpAutocompleteService.HasSuggestion)
+            if (AppSettings.IsAutocompleteEnabled && _csharpAutocompleteService?.HasSuggestion == true)
             {
                 _csharpAutocompleteService.ClearSuggestion();
                 CodeEditor.TextArea.TextView.Redraw();
@@ -425,7 +425,7 @@ public partial class MainWindow
         HandleVimNormalInput(e);
     }
 
-    private void CodeEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+    private void CodeEditor_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         // zoom via ctrl + mwheel
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
@@ -439,9 +439,9 @@ public partial class MainWindow
         }
     }
 
-    private void Editor_TextEntering(object sender, TextInputEventArgs e)
+    private void Editor_TextEntering(object? sender, TextInputEventArgs e)
     {
-        if (string.IsNullOrEmpty(e.Text))
+        if (string.IsNullOrEmpty(e.Text) || sender == null)
             return;
 
         char charTyped = e.Text[0];

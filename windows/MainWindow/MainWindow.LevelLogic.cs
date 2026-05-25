@@ -1,4 +1,5 @@
-﻿using AbiturEliteCode.cs;
+﻿#nullable disable
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -2506,7 +2507,7 @@ public partial class MainWindow
 
         UpdateSemanticHighlighting(); // init scan
 
-        UpdateCommunityUIAsync(level.Id.ToString(), false);
+        _ = UpdateCommunityUIAsync(level.Id.ToString(), false);
 
         // ensure editor scrolls to top
         Dispatcher.UIThread.Post(() => {
@@ -2994,7 +2995,9 @@ public partial class MainWindow
             var topLevel = GetTopLevel(dialog);
             if (topLevel?.Clipboard != null)
             {
+#pragma warning disable CS0618
                 string text = await topLevel.Clipboard.GetTextAsync();
+#pragma warning restore CS0618
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     txtJson.Text = text;
@@ -3927,7 +3930,7 @@ public partial class MainWindow
         else
             DiscordRpcManager.UpdatePresence($"SQL Level {level.Id}", "Querying greatness", "mysql_icon", "MySQL");
 
-        UpdateCommunityUIAsync(level.Id.ToString(), true);
+        _ = UpdateCommunityUIAsync(level.Id.ToString(), true);
 
         // ensure editor scrolls to top
         Dispatcher.UIThread.Post(() => {

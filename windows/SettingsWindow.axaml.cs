@@ -73,6 +73,10 @@ public partial class SettingsWindow : Window
     private CancellationTokenSource? _loginCts;
     private bool _suppressCommunityHandler = false;
 
+#pragma warning disable CS8618
+    public SettingsWindow() { InitializeComponent(); } // purely to fix a warning
+#pragma warning restore CS8618
+
     public SettingsWindow(SettingsWindowContext ctx, bool openMiscTab = false)
     {
         _ctx = ctx;

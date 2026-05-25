@@ -65,7 +65,7 @@ public class TabDockManager
         _window.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased, Avalonia.Interactivity.RoutingStrategies.Tunnel);
     }
 
-    public IEnumerable<TabControl> GetAllTabControls() => GetTabControls(_container);
+    public IEnumerable<TabControl>? GetAllTabControls() => GetTabControls(_container);
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -158,7 +158,7 @@ public class TabDockManager
     private void StartDrag()
     {
         _isDragging = true;
-        string headerText = "Tab";
+        string? headerText = "Tab";
         if (_draggedTab?.Header is string s) headerText = s;
         else if (_draggedTab?.Header is TextBlock tb) headerText = tb.Text;
 
@@ -316,7 +316,9 @@ public class TabDockManager
             UpdateDockHintsState();
         }
 
-        foreach (var tc in GetTabControls(_container))
+        var con = GetTabControls(_container);
+        if (con == null) return;
+        foreach (var tc in con)
         {
             var p = _window.TranslatePoint(pointerPos, tc);
             if (p.HasValue && new Rect(0, 0, tc.Bounds.Width, tc.Bounds.Height).Contains(p.Value))
@@ -354,7 +356,9 @@ public class TabDockManager
                 return;
             }
 
-            var p = _window.TranslatePoint(pointerPos, _targetTabControl).Value;
+            var tp = _window.TranslatePoint(pointerPos, _targetTabControl);
+            if (tp == null) return;
+            var p = tp.Value;
             double w = _targetTabControl.Bounds.Width;
             double h = _targetTabControl.Bounds.Height;
 
@@ -628,11 +632,11 @@ public class TabDockManager
             _sourceTabControl.Items.Remove(_draggedTab);
 
             if (adjustInsertIndex < 0) adjustInsertIndex = 0;
-            if (adjustInsertIndex > _targetTabControl.Items.Count)
+            if (adjustInsertIndex > _targetTabControl?.Items.Count)
                 adjustInsertIndex = _targetTabControl.Items.Count;
 
-            _targetTabControl.Items.Insert(adjustInsertIndex, _draggedTab);
-            _targetTabControl.SelectedItem = _draggedTab;
+            _targetTabControl?.Items.Insert(adjustInsertIndex, _draggedTab);
+            _targetTabControl?.SelectedItem = _draggedTab;
         }
         else
         {
@@ -728,8 +732,10 @@ public class TabDockManager
         _container.Children.Insert(rootIndex, grid);
     }
 
-    private void SplitTabControl(TabControl target, TabControl newTabControl, DockPosition pos)
+    private void SplitTabControl(TabControl? target, TabControl newTabControl, DockPosition pos)
     {
+        if (target == null) return;
+
         var parent = target.Parent as Panel;
         if (parent == null) return;
 
@@ -800,12 +806,12 @@ public class TabDockManager
         parent.Children.Insert(targetIndex, grid);
     }
 
-    public TabControl GetMainTabControl()
+    public TabControl? GetMainTabControl()
     {
-        return GetTabControls(_container).FirstOrDefault() ?? _window.FindControl<TabControl>("MainTabs");
+        return GetTabControls(_container)?.FirstOrDefault() ?? _window.FindControl<TabControl>("MainTabs");
     }
 
-    public void EnsureTabInMainSystem(TabItem tab, bool select = true, string insertBeforeName = null)
+    public void EnsureTabInMainSystem(TabItem tab, bool select = true, string? insertBeforeName = null)
     {
         var currentTc = tab.Parent as TabControl;
 
@@ -816,23 +822,23 @@ public class TabDockManager
 
             if (!string.IsNullOrEmpty(insertBeforeName))
             {
-                var target = mainTc.Items.OfType<TabItem>().FirstOrDefault(t => t.Name == insertBeforeName);
+                var target = mainTc?.Items.OfType<TabItem>().FirstOrDefault(t => t.Name == insertBeforeName);
                 if (target != null)
                 {
-                    int idx = mainTc.Items.IndexOf(target);
-                    mainTc.Items.Insert(idx, tab);
+                    int? idx = mainTc?.Items.IndexOf(target);
+                    if (idx != null) mainTc?.Items.Insert((int)idx, tab);
                 }
                 else
                 {
-                    mainTc.Items.Add(tab);
+                    mainTc?.Items.Add(tab);
                 }
             }
             else
             {
-                mainTc.Items.Add(tab);
+                mainTc?.Items.Add(tab);
             }
 
-            if (select) mainTc.SelectedItem = tab;
+            if (select) mainTc?.SelectedItem = tab;
         }
         else
         {
@@ -848,7 +854,8 @@ public class TabDockManager
 
     private void CleanupEmptyTabControls(Panel root)
     {
-        var tabControls = GetTabControls(root).ToList();
+        var tabControls = GetTabControls(root)?.ToList();
+        if (tabControls == null) return;
 
         for (int i = tabControls.Count - 1; i >= 0; i--)
         {
@@ -904,11 +911,14 @@ public class TabDockManager
         _window.TriggerLayoutAutoSave();
     }
 
-    private IEnumerable<TabControl> GetTabControls(Visual parent)
+    private IEnumerable<TabControl>? GetTabControls(Visual? parent)
     {
         if (parent is TabControl tc) yield return tc;
-        foreach (var visual in parent.GetVisualDescendants())
-            if (visual is TabControl childTc) yield return childTc;
+        if (parent != null && parent.GetVisualDescendants() != null)
+        {
+            foreach (var visual in parent.GetVisualDescendants())
+                if (visual is TabControl childTc) yield return childTc;
+        }
     }
 
     private void StartMorphAnimation()

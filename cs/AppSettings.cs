@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace AbiturEliteCode.cs;
@@ -52,7 +53,7 @@ public static class AppSettings
     {
         var snap = new Dictionary<string, object>();
         foreach (var prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Static))
-            snap[prop.Name] = prop.GetValue(null);
+            snap[prop.Name] = prop.GetValue(null)!;
         return snap;
     }
 

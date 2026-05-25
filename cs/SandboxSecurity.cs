@@ -45,7 +45,7 @@ public static class SandboxSecurity
             string fullNamespace = symbol.ContainingNamespace?.ToString() ?? "";
 
             // correctly resolve the type name whether the symbol is a type itself or a member of a type
-            string fullTypeName = symbol is ITypeSymbol ? symbol.ToString() : (symbol.ContainingType?.ToString() ?? "");
+            string fullTypeName = symbol is ITypeSymbol ? (symbol.ToString() ?? "") : (symbol.ContainingType?.ToString() ?? "");
 
             // fallback if it's a namespace or unresolved object
             if (string.IsNullOrEmpty(fullTypeName))

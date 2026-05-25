@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Svg.Skia;
@@ -390,7 +392,7 @@ public partial class MainWindow
             var topLevel = GetTopLevel(this);
             if (topLevel?.Clipboard != null)
             {
-                string clipboardText = await topLevel.Clipboard.GetTextAsync();
+                string clipboardText = await topLevel.Clipboard.TryGetTextAsync();
                 var parsedModel = TryParseRelationalModel(clipboardText);
 
                 if (parsedModel != null)

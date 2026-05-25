@@ -1,4 +1,5 @@
-﻿using AbiturEliteCode.cs;
+﻿#nullable disable
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;

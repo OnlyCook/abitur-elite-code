@@ -1,5 +1,4 @@
-﻿using Avalonia;
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit.Document;
@@ -87,7 +86,7 @@ public class EmojiElementGenerator : VisualLineElementGenerator
             {
                 string key = new string(new[] { c, next });
 
-                if (EmojiMap.TryGetValue(key, out string svgPath))
+                if (EmojiMap.TryGetValue(key, out string? svgPath))
                 {
                     var image = _loadIcon($"assets/emojis/{svgPath}", _iconSize);
 
@@ -111,7 +110,7 @@ public class EmojiElementGenerator : VisualLineElementGenerator
             }
         }
 
-        return null;
+        return null!;
     }
 }
 

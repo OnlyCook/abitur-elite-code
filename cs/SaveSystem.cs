@@ -129,7 +129,7 @@ public static class SaveSystem
             try
             {
                 // check if running from usb stick
-                string driveLetter = Path.GetPathRoot(rootFolder);
+                string driveLetter = Path.GetPathRoot(rootFolder) ?? "";
                 var driveInfo = new DriveInfo(driveLetter);
                 if (driveInfo.DriveType == DriveType.Removable)
                     shouldBePortable = true;
@@ -237,7 +237,7 @@ public static class SaveSystem
         }
     }
 
-    public static string ExportSaveString(PlayerSettings settings = null)
+    public static string ExportSaveString(PlayerSettings? settings = null)
     {
         var dict = new Dictionary<string, string>();
         string dir = Path.GetDirectoryName(GetActivePath()) ?? string.Empty;
@@ -398,12 +398,12 @@ public static class SaveSystem
             if (prop.PropertyType == typeof(string))
             {
                 // encode strings to base64
-                string str = (string)prop.GetValue(s) ?? "";
+                string str = prop.GetValue(s) as string ?? "";
                 string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
                 parts.Add($"{attr.Key}:{encoded}");
             }
             else if (prop.PropertyType == typeof(double))
-                parts.Add($"{attr.Key}:{((double)prop.GetValue(s)).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                parts.Add($"{attr.Key}:{((double)prop.GetValue(s)!).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             else
                 parts.Add($"{attr.Key}:{prop.GetValue(s)}");
         }
@@ -415,7 +415,7 @@ public static class SaveSystem
         var lookup = typeof(PlayerSettings).GetProperties()
             .Select(p => (prop: p, attr: p.GetCustomAttribute<SettingKeyAttribute>()))
             .Where(x => x.attr != null)
-            .ToDictionary(x => x.attr.Key, x => x.prop);
+            .ToDictionary(x => x.attr!.Key, x => x.prop);
 
         foreach (var part in raw.Split(';'))
         {
@@ -442,10 +442,10 @@ public static class SaveSystem
         }
     }
 
-    public static void Save(PlayerData data, string forcePath = null)
+    public static void Save(PlayerData data, string? forcePath = null)
     {
         string targetPath = forcePath ?? GetActivePath();
-        string directory = Path.GetDirectoryName(targetPath);
+        string directory = Path.GetDirectoryName(targetPath) ?? "";
 
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
@@ -550,7 +550,7 @@ public static class SaveSystem
         catch { }
 
         string path = CustomSavePath;
-        string directory = Path.GetDirectoryName(path);
+        string directory = Path.GetDirectoryName(path) ?? "";
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
         // c# data
@@ -748,7 +748,7 @@ public static class SaveSystem
         try
         {
             string path = TokenPath;
-            string directory = Path.GetDirectoryName(path);
+            string directory = Path.GetDirectoryName(path) ?? "";
             if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
             File.WriteAllText(path, EncryptToken(token, installKey));
         }
@@ -799,7 +799,7 @@ public static class SaveSystem
                 Encoding.UTF8.GetBytes("AbiturEliteCode"),
                 System.Security.Cryptography.DataProtectionScope.CurrentUser
             );
-            string dir = Path.GetDirectoryName(DpapiKeyPath);
+            string dir = Path.GetDirectoryName(DpapiKeyPath) ?? "";
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             File.WriteAllBytes(DpapiKeyPath, protected_);
             return Convert.ToBase64String(secret);
@@ -823,7 +823,7 @@ public static class SaveSystem
                     RedirectStandardOutput = true,
                     UseShellExecute = false
                 });
-                string output = proc.StandardOutput.ReadToEnd();
+                string output = proc!.StandardOutput.ReadToEnd();
                 var match = System.Text.RegularExpressions.Regex.Match(output, @"IOPlatformUUID""\s*=\s*""([^""]+)""");
                 if (match.Success) return match.Groups[1].Value;
             }
@@ -847,9 +847,9 @@ public static class SaveSystem
 
 public class GithubComment
 {
-    public string Id { get; set; }
-    public string Author { get; set; }
-    public string Body { get; set; }
+    public string? Id { get; set; } = "";
+    public string? Author { get; set; } = "";
+    public string? Body { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public int Upvotes { get; set; }
     public bool ViewerHasUpvoted { get; set; }
@@ -858,9 +858,9 @@ public class GithubComment
 
 public class GithubReply
 {
-    public string Id { get; set; }
-    public string Author { get; set; }
-    public string Body { get; set; }
+    public string? Id { get; set; } = "";
+    public string? Author { get; set; } = "";
+    public string? Body { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public int Upvotes { get; set; }
     public bool ViewerHasUpvoted { get; set; }
@@ -874,10 +874,10 @@ public class DiscussionCache
 
     public bool ViewerHasLiked { get; set; }
     public bool ViewerHasDisliked { get; set; }
-    public string DiscussionNodeId { get; set; }
+    public string? DiscussionNodeId { get; set; } = "";
 
     public List<GithubComment> Comments { get; set; } = new();
-    public string EndCursor { get; set; }
+    public string? EndCursor { get; set; } = "";
     public bool HasNextPage { get; set; }
     public DateTime LastFetched { get; set; }
 }
@@ -894,10 +894,10 @@ public class CommunityCacheData
 public class AppNotification
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string Message { get; set; }
+    public string Message { get; set; } = "";
     public DateTime Date { get; set; }
     public bool IsRead { get; set; }
-    public string TargetDiscussionId { get; set; }
-    public string TargetCommentId { get; set; }
-    public string TargetReplyId { get; set; }
+    public string? TargetDiscussionId { get; set; } = "";
+    public string? TargetCommentId { get; set; } = "";
+    public string? TargetReplyId { get; set; } = "";
 }

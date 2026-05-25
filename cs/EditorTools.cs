@@ -28,14 +28,14 @@ public class ConsoleRedirectionWriter : StringWriter
         _onWrite = onWrite;
     }
 
-    public override void Write(string value)
+    public override void Write(string? value)
     {
-        _onWrite?.Invoke(value);
+        if (value != null) _onWrite?.Invoke(value);
     }
 
-    public override void WriteLine(string value)
+    public override void WriteLine(string? value)
     {
-        _onWrite?.Invoke(value + "\n");
+        _onWrite?.Invoke((value ?? "") + "\n");
     }
 
     public override void Write(char value)
@@ -98,13 +98,13 @@ public class TextMarkerService : IBackgroundRenderer
 
     public KnownLayer Layer => KnownLayer.Selection;
 
-    public TextMarker GetMarkerAtOffset(int offset)
+    public TextMarker? GetMarkerAtOffset(int offset)
     {
         if (_markers == null) return null;
         return _markers.FindSegmentsContaining(offset).FirstOrDefault();
     }
 
-    public void Add(int offset, int length, Color color, string message = null)
+    public void Add(int offset, int length, Color color, string? message = null)
     {
         _markers.Add(new TextMarker(offset, length)
         {
@@ -128,7 +128,7 @@ public class TextMarkerService : IBackgroundRenderer
         }
 
         public Color MarkerColor { get; set; }
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 }
 
@@ -774,11 +774,11 @@ public class AutocompleteService
     }
 
     public int CurrentWordLength { get; private set; }
-    public string CurrentSuggestionFull => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
+    public string? CurrentSuggestionFull => HasSuggestion ? _currentSuggestions[_suggestionIndex] : null;
 
     public bool HasSuggestion => _currentSuggestions.Count > 0;
 
-    public string CurrentSuggestionSuffix
+    public string? CurrentSuggestionSuffix
     {
         get
         {
@@ -856,7 +856,7 @@ public class AutocompleteService
             foreach (var member in cls.Members)
             {
                 bool isStatic = member.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-                string memberName = null;
+                string? memberName = null;
 
                 if (member is MethodDeclarationSyntax method) memberName = method.Identifier.Text;
                 else if (member is PropertyDeclarationSyntax prop) memberName = prop.Identifier.Text;
@@ -1293,14 +1293,14 @@ public class AutocompleteGhostGenerator : VisualLineElementGenerator
     {
         if (_service.HasSuggestion && offset == _editor.CaretOffset)
         {
-            string suffix = _service.CurrentSuggestionSuffix;
+            string? suffix = _service.CurrentSuggestionSuffix;
 
             if (!string.IsNullOrEmpty(suffix))
                 // returns a custom element that renders the ghost text
                 return new GhostTextElement(suffix, _editor);
         }
 
-        return null;
+        return null!;
     }
 }
 

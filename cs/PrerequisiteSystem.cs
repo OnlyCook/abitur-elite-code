@@ -81,7 +81,7 @@ internal static class PrerequisiteSystem
                 using (var stream = AssetLoader.Open(uri))
                 using (var reader = new StreamReader(stream))
                 {
-                    string line;
+                    string? line;
                     while ((line = reader.ReadLine()) != null)
                     {
                         if (string.IsNullOrWhiteSpace(line) || line.StartsWith(">")) continue;
@@ -113,7 +113,7 @@ internal static class PrerequisiteSystem
 
     public static LessonData GetLesson(string title)
     {
-        return _database.TryGetValue(title, out var data) ? data : null;
+        return _database.TryGetValue(title, out var data) ? data : null!;
     }
 
     public static void OpenUrl(string url)
@@ -162,8 +162,8 @@ internal static class PrerequisiteSystem
 
     public class LessonData
     {
-        public string Title { get; set; }
-        public string DometrainUrl { get; set; }
-        public string DocsUrl { get; set; }
+        public string Title { get; set; } = "";
+        public string DometrainUrl { get; set; } = "";
+        public string DocsUrl { get; set; } = "";
     }
 }

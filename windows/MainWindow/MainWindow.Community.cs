@@ -36,7 +36,6 @@ public partial class MainWindow
     private CancellationTokenSource? _fullQueueCts;
     private CancellationTokenSource? _notFoundCts;
 
-    private TextBlock? _cooldownLabel;
     private CancellationTokenSource? _cooldownCts;
 
     private const int ApiQueueLimit = 10;
@@ -51,9 +50,9 @@ public partial class MainWindow
     private TimeSpan _accumulatedCommentsOpenTime = TimeSpan.Zero;
     private DispatcherTimer? _commentsRefreshHintTimer;
 
-    private static string _draftSupportMessage = string.Empty;
-    private static string _draftReportReason = string.Empty;
-    private static string _draftReportTargetUser = string.Empty;
+    private static string? _draftSupportMessage = string.Empty;
+    private static string? _draftReportReason = string.Empty;
+    private static string? _draftReportTargetUser = string.Empty;
 
     private static readonly uint _s1 = 0x9BE214DC;
     private static readonly uint _s2 = 0x6FA371C8;
@@ -333,8 +332,10 @@ public partial class MainWindow
         }
     }
 
-    private async Task UpdateCommunityUIAsync(string levelId, bool isSql, bool forceFetch = false)
+    private async Task UpdateCommunityUIAsync(string? levelId, bool isSql, bool forceFetch = false)
     {
+        if (levelId == null) return;
+
         // cancel any pending banner auto-hide tasks to prevent them from bleeding into the new level
         _offlineCts?.Cancel();
         _notFoundCts?.Cancel();
@@ -462,7 +463,7 @@ public partial class MainWindow
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
         // check cache first to prevent skeleton flashing
-        if (!forceFetch && dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
+        if (!forceFetch && levelId != null && dict.TryGetValue(levelId, out var cache) && (DateTime.Now - cache.LastFetched).TotalMinutes < 5)
         {
             PnlCommunityActions.IsVisible = true;
             SetCommunitySkeletonsVisible(false);
@@ -502,7 +503,7 @@ public partial class MainWindow
         return new string(buf);
     }
 
-    private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string levelId, bool fetchNextPage)
+    private async Task FetchCommunityDataAsync(int discussionNumber, bool isSql, string? levelId, bool fetchNextPage)
     {
         if (UpdateManager.IsOutdated) return;
 
@@ -520,10 +521,14 @@ public partial class MainWindow
         TxtCommentsLoading.IsVisible = true;
 
         var dict = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-        if (!dict.TryGetValue(levelId, out var cache))
+        DiscussionCache? cache = null;
+        if (levelId != null)
         {
-            cache = new DiscussionCache();
-            dict[levelId] = cache;
+            if (!dict.TryGetValue(levelId, out cache))
+            {
+                cache = new DiscussionCache();
+                dict[levelId] = cache;
+            }
         }
 
         var queryObj = new
@@ -561,7 +566,7 @@ public partial class MainWindow
             variables = new
             {
                 num = discussionNumber,
-                cursor = fetchNextPage ? cache.EndCursor : null
+                cursor = fetchNextPage ? cache?.EndCursor : null
             }
         };
 
@@ -593,6 +598,8 @@ public partial class MainWindow
                             return;
                         }
 
+                        if (cache == null) return;
+
                         if (!fetchNextPage)
                         {
                             cache.DiscussionNodeId = discussion.GetProperty("id").GetString();
@@ -612,16 +619,16 @@ public partial class MainWindow
 
                         foreach (var node in commentsData.GetProperty("nodes").EnumerateArray())
                         {
-                            string commentAuthor = node.GetProperty("author").GetProperty("login").GetString();
-                            string commentBody = node.GetProperty("body").GetString();
+                            string? commentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                            string? commentBody = node.GetProperty("body").GetString();
                             bool isBotComment = false;
 
                             // intercept bot messages and extract the real author
                             if (commentAuthor == "aec-community-bot")
                             {
                                 isBotComment = true;
-                                var match = System.Text.RegularExpressions.Regex.Match(commentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                if (match.Success)
+                                var match = commentBody != null ? System.Text.RegularExpressions.Regex.Match(commentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline) : null;
+                                if (match != null && match.Success)
                                 {
                                     commentAuthor = match.Groups[1].Value;
                                     commentBody = match.Groups[2].Value;
@@ -645,14 +652,14 @@ public partial class MainWindow
                             {
                                 foreach (var rep in repNodes.EnumerateArray())
                                 {
-                                    string replyAuthor = rep.GetProperty("author").GetProperty("login").GetString();
-                                    string replyBody = rep.GetProperty("body").GetString();
+                                    string? replyAuthor = rep.GetProperty("author").GetProperty("login").GetString();
+                                    string? replyBody = rep.GetProperty("body").GetString();
 
                                     // intercept bot messages for replies as well
                                     if (replyAuthor == "aec-community-bot")
                                     {
-                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                        if (match.Success)
+                                        var match = replyBody != null ? System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline) : null;
+                                        if (match != null && match.Success)
                                         {
                                             replyAuthor = match.Groups[1].Value;
                                             replyBody = match.Groups[2].Value;
@@ -699,7 +706,7 @@ public partial class MainWindow
             }
 
             var dictLocal = isSql ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-            if (dictLocal.TryGetValue(levelId, out var cacheData) && string.IsNullOrEmpty(cacheData.DiscussionNodeId))
+            if (levelId != null && dictLocal.TryGetValue(levelId, out var cacheData) && string.IsNullOrEmpty(cacheData.DiscussionNodeId))
             {
                 dictLocal.Remove(levelId);
             }
@@ -777,11 +784,12 @@ public partial class MainWindow
 
         // draw from the loaded custom level fields
         string levelAuthor = _currentCustomAuthor;
-        string levelName = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+        string? levelName = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
         bool isAuthor = string.Equals(levelAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
 
         if (isAuthor)
         {
+            if (cache.DiscussionNodeId == null) return;
             bool isSubscribed = _communityCache.Subscriptions.ContainsKey(cache.DiscussionNodeId);
             var btnSubscribe = new Button
             {
@@ -881,7 +889,9 @@ public partial class MainWindow
             };
             btnReport.Click += (s, e) =>
             {
-                if (BtnCommunityDiscussionMenu != null) BtnCommunityDiscussionMenu.Flyout?.Hide();
+                if (levelName == null) return;
+                BtnCommunityDiscussionMenu?.Flyout?.Hide();
+                if (cache.DiscussionNodeId == null) return;
                 ShowLevelReportDialog(levelName, levelAuthor, cache.DiscussionNodeId);
             };
             flyoutStack.Children.Add(btnReport);
@@ -952,7 +962,7 @@ public partial class MainWindow
                 if (remainingSeconds <= 0)
                 {
                     _accumulatedCommentsOpenTime = TimeSpan.Zero;
-                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                    string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                     _ = FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
 
                     // restart hint timer for the new valid viewing session
@@ -993,10 +1003,10 @@ public partial class MainWindow
 
         if (_isFetchingComments || _currentActiveDiscussionId == -1) return;
 
-        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
-        if (dict.TryGetValue(levelId, out var cache))
+        if (levelId != null && dict.TryGetValue(levelId, out var cache))
         {
             if (_visibleCommentsCount < cache.Comments.Count)
             {
@@ -1026,7 +1036,7 @@ public partial class MainWindow
         if (BtnScrollTopComments != null)
         {
             double commentsTop = 0;
-            var commentsTransform = PnlCommentsSection.TransformToVisual(TaskScrollViewer.Content as Control);
+            var commentsTransform = TaskScrollViewer != null && TaskScrollViewer.Content != null ? PnlCommentsSection.TransformToVisual((Control)TaskScrollViewer.Content) : null;
             if (commentsTransform != null)
             {
                 commentsTop = commentsTransform.Value.Transform(new Point(0, 0)).Y;
@@ -1040,7 +1050,7 @@ public partial class MainWindow
                 bool inReplies = false;
                 _currentActiveTopLevelComment = null;
 
-                var contentControl = TaskScrollViewer.Content as Control;
+                var contentControl = TaskScrollViewer != null ? TaskScrollViewer.Content as Control : null;
                 if (contentControl != null)
                 {
                     // check whether we are looking at a top level comments replies
@@ -1099,7 +1109,7 @@ public partial class MainWindow
         if (_currentActiveTopLevelComment != null)
         {
             // jump up to the top-level comment that owns the replies we are looking at
-            var transform = _currentActiveTopLevelComment.TransformToVisual(TaskScrollViewer.Content as Control);
+            var transform = TaskScrollViewer.Content != null ? _currentActiveTopLevelComment.TransformToVisual((Control)TaskScrollViewer.Content) : null;
             if (transform != null)
             {
                 double y = transform.Value.Transform(new Point(0, 0)).Y;
@@ -1109,7 +1119,7 @@ public partial class MainWindow
         else
         {
             // jump back to the very top of the comment section
-            var transform = PnlCommentsSection.TransformToVisual(TaskScrollViewer.Content as Control);
+            var transform = TaskScrollViewer.Content != null ? PnlCommentsSection.TransformToVisual((Control)TaskScrollViewer.Content) : null;
             if (transform != null)
             {
                 double y = transform.Value.Transform(new Point(0, 0)).Y;
@@ -1121,16 +1131,13 @@ public partial class MainWindow
     private void RenderCachedComments()
     {
         PnlCommentsList.Children.Clear();
-        string levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        string? levelKey = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
 
-        if (!dict.TryGetValue(levelKey, out var cache)) return;
+        if (levelKey == null || !dict.TryGetValue(levelKey, out var cache)) return;
 
         var txtEmpty = this.FindControl<TextBlock>("TxtCommentsEmpty");
-        if (txtEmpty != null)
-        {
-            txtEmpty.IsVisible = cache.Comments.Count == 0;
-        }
+        txtEmpty?.IsVisible = cache.Comments.Count == 0;
 
         string sortMode = (CmbCommentSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Beste";
         var sortedComments = cache.Comments.ToList();
@@ -1155,7 +1162,9 @@ public partial class MainWindow
         int toShow = Math.Min(_visibleCommentsCount, sortedComments.Count);
         for (int i = 0; i < toShow; i++)
         {
-            PnlCommentsList.Children.Add(CreateCommentUI(sortedComments[i], cache.DiscussionNodeId));
+            if (cache.DiscussionNodeId == null) return;
+            var control = CreateCommentUI(sortedComments[i], cache.DiscussionNodeId);
+            if (control != null) PnlCommentsList.Children.Add(control);
         }
 
         bool hasMoreLocal = _visibleCommentsCount < sortedComments.Count;
@@ -1206,9 +1215,9 @@ public partial class MainWindow
             return;
         }
 
-        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-        if (!dict.TryGetValue(levelId, out var cache)) return;
+        if (levelId == null || !dict.TryGetValue(levelId, out var cache)) return;
 
         // mutually exclusive local state updates
         if (isLike)
@@ -1367,7 +1376,7 @@ public partial class MainWindow
     }
 
 
-    private Control CreateCommentUI(GithubComment comment, string discussionId, bool isReply = false, Action<string> onTagUser = null, GithubComment parentComment = null)
+    private Control? CreateCommentUI(GithubComment? comment, string? discussionId, bool isReply = false, Action<string>? onTagUser = null, GithubComment? parentComment = null)
     {
         var border = new Border
         {
@@ -1380,7 +1389,7 @@ public partial class MainWindow
         };
 
         // highlight visualizer for notifications
-        if ((!isReply && comment.Id == _targetHighlightCommentId) || (isReply && comment.Id == _targetHighlightReplyId))
+        if ((!isReply && comment != null && comment.Id != null && comment.Id == _targetHighlightCommentId) || (isReply && comment != null && comment.Id == _targetHighlightReplyId))
         {
             border.BorderBrush = Scheme.BrushTextHighlight;
             border.BorderThickness = new Thickness(2);
@@ -1389,11 +1398,12 @@ public partial class MainWindow
         var mainStack = new StackPanel { Spacing = 8 };
 
         // remove zero-width space so mentions display normally in the ui
-        string bodyToRender = comment.Body.Replace("@\u200B", "@");
-        string activeTag = null;
+        string? bodyToRender = comment?.Body?.Replace("@\u200B", "@");
+        string? activeTag = null;
         IBrush tagColor = Brushes.Gray;
 
         // dynamically highlight any mentions toward user
+        if (bodyToRender == null) return null;
         bodyToRender = System.Text.RegularExpressions.Regex.Replace(bodyToRender, $@"(@{System.Text.RegularExpressions.Regex.Escape(AppSettings.GithubUsername)})", "__$1__");
 
         var tags = new Dictionary<string, (string Label, SolidColorBrush Color)>
@@ -1428,14 +1438,14 @@ public partial class MainWindow
         };
         headerPanel.Children.Add(new TextBlock
         {
-            Text = $"{comment.Author}",
-            Foreground = comment.Author == AppSettings.GithubUsername ? Scheme.BrushTextHighlight : Brushes.Gray,
+            Text = $"{comment?.Author}",
+            Foreground = comment?.Author == AppSettings.GithubUsername ? Scheme.BrushTextHighlight : Brushes.Gray,
             FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center
         });
         headerPanel.Children.Add(new TextBlock
         {
-            Text = $" • {comment.CreatedAt:dd.MM.yyyy 'um' HH:mm}",
+            Text = $" • {comment?.CreatedAt:dd.MM.yyyy 'um' HH:mm}",
             Foreground = Brushes.Gray,
             FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center
@@ -1474,8 +1484,8 @@ public partial class MainWindow
         Grid.SetColumn(btnMore, 1);
         headerGrid.Children.Add(btnMore);
 
-        Button btnEdit = null;
-        Button btnDelete = null;
+        Button? btnEdit = null;
+        Button? btnDelete = null;
 
         var flyout = new Flyout();
         var flyoutStack = new StackPanel
@@ -1484,9 +1494,10 @@ public partial class MainWindow
             Margin = new Thickness(-5)
         };
 
+        if (comment == null) return null;
         bool hasUserReplied = !isReply && comment.Replies.Any(r => r.Author == AppSettings.GithubUsername);
         bool isAuthor = comment.Author == AppSettings.GithubUsername;
-        if (!isReply && (isAuthor || hasUserReplied))
+        if (comment.Id != null && !isReply && (isAuthor || hasUserReplied))
         {
             var isSubscribed = _communityCache.Subscriptions.ContainsKey(comment.Id);
             var btnSubscribe = new Button
@@ -1617,6 +1628,7 @@ public partial class MainWindow
                 };
                 btnTag.Click += (s, e) =>
                 {
+                    if (comment.Author == null) return;
                     btnMore.Flyout?.Hide();
                     onTagUser?.Invoke(comment.Author);
                 };
@@ -1904,7 +1916,7 @@ public partial class MainWindow
         actionsPanel.Children.Add(btnUpvote);
 
         // reply button and box setup
-        Grid replyInputGrid = null;
+        Grid? replyInputGrid = null;
         if (!isReply)
         {
             var btnToggleReply = new Button
@@ -2097,9 +2109,9 @@ public partial class MainWindow
                     AddOrUpdateSubscription(comment.Id, comment.Replies.Count + 1);
 
                     // keep parent replies visible after refreshing
-                    _expandedCommentIds.Add(comment.Id);
+                    if (comment.Id != null) _expandedCommentIds.Add(comment.Id);
 
-                    string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                    string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                     await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                 }
             };
@@ -2142,7 +2154,7 @@ public partial class MainWindow
 
             actionsPanel.Children.Add(btnToggleReply);
 
-            Border repliesContainer = null;
+            Border? repliesContainer = null;
             if (comment.Replies.Count > 0)
             {
                 var btnShowReplies = new Button
@@ -2189,16 +2201,16 @@ public partial class MainWindow
                     showRepliesContent.Children[0] = LoadIcon(
                         repliesContainer.IsVisible ? "assets/icons/ic_comment_hide.svg" : "assets/icons/ic_comment.svg", 16);
 
-                    if (repliesContainer.IsVisible) _expandedCommentIds.Add(comment.Id);
-                    else _expandedCommentIds.Remove(comment.Id);
+                    if (repliesContainer.IsVisible && comment.Id != null) _expandedCommentIds.Add(comment.Id);
+                    else if (comment.Id != null) _expandedCommentIds.Remove(comment.Id);
                 };
 
-                if ((comment.Id == _targetHighlightCommentId && comment.Replies.Count > 0) || _expandedCommentIds.Contains(comment.Id))
+                if ((comment.Id == _targetHighlightCommentId && comment.Replies.Count > 0) || (comment.Id != null && _expandedCommentIds.Contains(comment.Id)))
                 {
                     repliesContainer.IsVisible = true;
                     txtShowReplies.Text = "Antworten ausblenden";
                     showRepliesContent.Children[0] = LoadIcon("assets/icons/ic_comment_hide.svg", 16);
-                    _expandedCommentIds.Add(comment.Id);
+                    if (comment.Id != null) _expandedCommentIds.Add(comment.Id);
                 }
 
                 int maxRepliesShown = 10;
@@ -2216,8 +2228,11 @@ public partial class MainWindow
                         ViewerHasUpvoted = reply.ViewerHasUpvoted
                     }, discussionId, true, localTagAction, comment);
 
-                    replyUIs.Add(rUI);
-                    repliesStack.Children.Add(rUI);
+                    if (rUI != null)
+                    {
+                        replyUIs.Add(rUI);
+                        repliesStack.Children.Add(rUI);
+                    }
                 }
 
                 // add button for loading more replies if there are more than 10
@@ -2298,7 +2313,7 @@ public partial class MainWindow
                     btnSaveEdit.IsEnabled = true;
                     return;
                 }
-                string newBody = txtEdit.Text;
+                string? newBody = txtEdit.Text;
 
                 // optimistic ui update
                 editGrid.IsVisible = false;
@@ -2316,7 +2331,7 @@ public partial class MainWindow
                     {
                         if (updated)
                         {
-                            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                            string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                             await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                         }
                         else
@@ -2359,7 +2374,7 @@ public partial class MainWindow
                     if (deleted)
                     {
                         // remove the deleted comment itself from subscriptions if subscribed
-                        if (_communityCache.Subscriptions.ContainsKey(comment.Id))
+                        if (comment.Id != null && _communityCache.Subscriptions.ContainsKey(comment.Id))
                         {
                             _communityCache.Subscriptions.Remove(comment.Id);
                             SaveSystem.SaveCommunityCache(_communityCache);
@@ -2368,7 +2383,7 @@ public partial class MainWindow
                         if (isReply && parentComment != null && parentComment.Author != AppSettings.GithubUsername)
                         {
                             bool hasOtherReplies = parentComment.Replies.Any(r => r.Id != comment.Id && r.Author == AppSettings.GithubUsername);
-                            if (!hasOtherReplies)
+                            if (!hasOtherReplies && parentComment.Id != null)
                             {
                                 _communityCache.Subscriptions.Remove(parentComment.Id);
                                 SaveSystem.SaveCommunityCache(_communityCache);
@@ -2380,7 +2395,7 @@ public partial class MainWindow
                     {
                         if (deleted)
                         {
-                            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+                            string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
                             await FetchCommunityDataAsync(_currentActiveDiscussionId, _isSqlMode, levelId, false);
                         }
                         else
@@ -2459,7 +2474,7 @@ public partial class MainWindow
         // inject zero-width space to bypass githubs native mention system
         fullBody = System.Text.RegularExpressions.Regex.Replace(fullBody, @"@([A-Za-z0-9-]+)", "@\u200B$1");
 
-        string tagSelection = (CmbCommentTag.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        string? tagSelection = (CmbCommentTag.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
         if (!string.IsNullOrEmpty(tagSelection) && tagSelection != "–")
         {
@@ -2467,9 +2482,9 @@ public partial class MainWindow
             fullBody = $"!{tagSelection.ToUpper()};\n{fullBody}";
         }
 
-        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
         var dict = _isSqlMode ? _communityCache.SqlDiscussions : _communityCache.CsharpDiscussions;
-        if (dict.TryGetValue(levelId, out var cache))
+        if (levelId != null && dict.TryGetValue(levelId, out var cache))
         {
             // in case the node id didnt cache properly
             if (string.IsNullOrEmpty(cache.DiscussionNodeId))
@@ -2550,7 +2565,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task<bool> SendReplyToGithubAsync(string discussionNodeId, string commentNodeId, string body)
+    private async Task<bool> SendReplyToGithubAsync(string? discussionNodeId, string? commentNodeId, string body)
     {
         if (UpdateManager.IsOutdated) return false;
         if (CheckAndHandlePermaBan()) return false;
@@ -2606,7 +2621,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task ToggleCommentUpvoteAsync(string subjectId, bool targetState)
+    private async Task ToggleCommentUpvoteAsync(string? subjectId, bool targetState)
     {
         if (UpdateManager.IsOutdated) return;
 
@@ -2645,7 +2660,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task<bool> UpdateCommentOrReplyAsync(string id, string body)
+    private async Task<bool> UpdateCommentOrReplyAsync(string? id, string? body)
     {
         if (UpdateManager.IsOutdated) return false;
 
@@ -2698,7 +2713,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task<bool> DeleteCommentOrReplyAsync(string id)
+    private async Task<bool> DeleteCommentOrReplyAsync(string? id)
     {
         if (UpdateManager.IsOutdated) return false;
 
@@ -2742,7 +2757,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task ToggleReplyUpvoteAsync(string subjectId, bool targetState)
+    private async Task ToggleReplyUpvoteAsync(string? subjectId, bool targetState)
     {
         if (UpdateManager.IsOutdated) return;
 
@@ -2899,8 +2914,8 @@ public partial class MainWindow
         BtnCommunityLoggedOutStatus.IsVisible = false;
 
         // restore normal community ui state based on current login/settings
-        string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-        UpdateCommunityUIAsync(levelId, _isSqlMode);
+        string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+        _ = UpdateCommunityUIAsync(levelId, _isSqlMode);
     }
 
     public void RefreshCommunityUI()
@@ -2913,8 +2928,8 @@ public partial class MainWindow
                 if (BtnCommunityLoggedOutStatus != null)
                     BtnCommunityLoggedOutStatus.IsVisible = false;
             }
-            string levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
-            UpdateCommunityUIAsync(levelId, _isSqlMode);
+            string? levelId = (_isSqlMode ? currentSqlLevel?.Id : currentLevel?.Id).ToString();
+            _ = UpdateCommunityUIAsync(levelId, _isSqlMode);
         });
     }
 
@@ -3162,10 +3177,10 @@ public partial class MainWindow
                 {
                     foreach (var comment in kvp.Value.Comments)
                     {
-                        if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                        if (comment.Id != null && _communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
                         foreach (var reply in comment.Replies)
                         {
-                            if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                            if (reply.Id != null && _communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
                         }
                     }
                     _communityCache.CsharpDiscussions.Remove(kvp.Key);
@@ -3176,10 +3191,10 @@ public partial class MainWindow
                 {
                     foreach (var comment in kvp.Value.Comments)
                     {
-                        if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
+                        if (comment.Id != null && _communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
                         foreach (var reply in comment.Replies)
                         {
-                            if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
+                            if (reply.Id != null && _communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
                         }
                     }
                     _communityCache.SqlDiscussions.Remove(kvp.Key);
@@ -3228,7 +3243,7 @@ public partial class MainWindow
 
                 foreach (var zId in zombieLevelIds.Distinct())
                 {
-                    string discId = null;
+                    string? discId = null;
                     if (_communityCache.CsharpDiscussions.TryGetValue(zId, out var csCache)) discId = csCache.DiscussionNodeId;
                     if (string.IsNullOrEmpty(discId) && _communityCache.SqlDiscussions.TryGetValue(zId, out var sqlCache)) discId = sqlCache.DiscussionNodeId;
 
@@ -3318,17 +3333,17 @@ public partial class MainWindow
 
                                     if (node.TryGetProperty("discussion", out var discProp))
                                     {
-                                        string commentId = node.GetProperty("id").GetString();
-                                        string discId = discProp.GetProperty("id").GetString();
+                                        string? commentId = node.GetProperty("id").GetString();
+                                        string? discId = discProp.GetProperty("id").GetString();
 
-                                        string parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
-                                        string parentBody = node.GetProperty("body").GetString();
+                                        string? parentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+                                        string? parentBody = node.GetProperty("body").GetString();
 
                                         // intercept bot messages to get real parent author
                                         if (parentAuthor == "aec-community-bot")
                                         {
-                                            var match = System.Text.RegularExpressions.Regex.Match(parentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                            if (match.Success)
+                                            var match = parentBody != null ? System.Text.RegularExpressions.Regex.Match(parentBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline) : null;
+                                            if (match != null && match.Success)
                                             {
                                                 parentAuthor = match.Groups[1].Value;
                                                 parentBody = match.Groups[2].Value; // extract body to clean the html tag
@@ -3338,7 +3353,7 @@ public partial class MainWindow
                                         var repliesData = node.GetProperty("replies");
                                         int newTotalCount = repliesData.GetProperty("totalCount").GetInt32();
 
-                                        if (_communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
+                                        if (commentId != null && _communityCache.Subscriptions.TryGetValue(commentId, out int lastKnownCount))
                                         {
                                             if (newTotalCount > lastKnownCount)
                                             {
@@ -3350,14 +3365,14 @@ public partial class MainWindow
 
                                                 foreach (var replyNode in newReplies)
                                                 {
-                                                    string replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
-                                                    string replyBody = replyNode.GetProperty("body").GetString();
+                                                    string? replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
+                                                    string? replyBody = replyNode.GetProperty("body").GetString();
 
                                                     // intercept bot messages for the reply author too
                                                     if (replyAuthor == "aec-community-bot")
                                                     {
-                                                        var match = System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                                        if (match.Success)
+                                                        var match = replyBody != null ? System.Text.RegularExpressions.Regex.Match(replyBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline) : null;
+                                                        if (match != null && match.Success)
                                                         {
                                                             replyAuthor = match.Groups[1].Value;
                                                             replyBody = match.Groups[2].Value; // extract body to clean the html tag
@@ -3369,10 +3384,10 @@ public partial class MainWindow
 
                                                     // check for our injected zero-width space mention or a normal text mention fallback
                                                     bool isAuthor = string.Equals(parentAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
-                                                    bool isMentioned = replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
-                                                                       replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase);
+                                                    bool? isMentioned = replyBody != null ? replyBody.Contains($"@\u200B{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) ||
+                                                                       replyBody.Contains($"@{AppSettings.GithubUsername}", StringComparison.OrdinalIgnoreCase) : null;
 
-                                                    if (!isAuthor && isMentioned)
+                                                    if (!isAuthor && isMentioned != null && (bool)isMentioned)
                                                     {
                                                         _communityCache.Notifications.Add(new AppNotification
                                                         {
@@ -3405,11 +3420,11 @@ public partial class MainWindow
                                     }
                                     else if (node.TryGetProperty("comments", out var commentsData))
                                     {
-                                        string discId = node.GetProperty("id").GetString();
+                                        string? discId = node.GetProperty("id").GetString();
 
                                         int newTotalCount = commentsData.GetProperty("totalCount").GetInt32();
 
-                                        if (_communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
+                                        if (discId != null && _communityCache.Subscriptions.TryGetValue(discId, out int lastKnownCount))
                                         {
                                             if (newTotalCount > lastKnownCount)
                                             {
@@ -3419,14 +3434,17 @@ public partial class MainWindow
 
                                                 foreach (var cNode in newComments)
                                                 {
-                                                    string cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
-                                                    string cBody = cNode.GetProperty("body").GetString();
+                                                    string? cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
+                                                    string? cBody = cNode.GetProperty("body").GetString();
 
                                                     // intercept bot messages
                                                     if (cAuthor == "aec-community-bot")
                                                     {
-                                                        var match = System.Text.RegularExpressions.Regex.Match(cBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline);
-                                                        if (match.Success) cAuthor = match.Groups[1].Value;
+                                                        var match = cBody != null ? System.Text.RegularExpressions.Regex.Match(cBody, @"^<!-- aec-author:\s*(.+?)\s*-->\r?\n?(.*)", System.Text.RegularExpressions.RegexOptions.Singleline) : null;
+                                                        if (match != null && match.Success)
+                                                        {
+                                                            cAuthor = match.Groups[1].Value;
+                                                        }
                                                     }
 
                                                     if (string.Equals(cAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase)) continue;
@@ -3934,7 +3952,7 @@ public partial class MainWindow
 
                     if (!string.IsNullOrEmpty(notif.TargetDiscussionId))
                     {
-                        string targetLevelId = null;
+                        string? targetLevelId = null;
                         bool isTargetSql = false;
 
                         foreach (var kvp in _communityCache.CsharpDiscussions)
@@ -4029,7 +4047,7 @@ public partial class MainWindow
                                     _targetHighlightCommentId = null;
                                     _targetHighlightReplyId = null;
                                     btnGo.Content = LoadIcon("assets/icons/ic_error.svg", 16);
-                                    Task.Run(async () =>
+                                    _ = Task.Run(async () =>
                                     {
                                         await Task.Delay(500);
                                         await Dispatcher.UIThread.InvokeAsync(() => btnGo.Content = LoadIcon("assets/icons/ic_comment_go.svg", 16));
@@ -4247,7 +4265,7 @@ public partial class MainWindow
         await dialog.ShowDialog(this);
     }
 
-    private async void ShowReportDialog(string targetId, string author, string discussionId, string body, DateTime createdAt)
+    private async void ShowReportDialog(string? targetId, string? author, string? discussionId, string? body, DateTime createdAt)
     {
         bool isPrankReady = false;
         bool isPranking = false;
@@ -4501,7 +4519,7 @@ public partial class MainWindow
         {
             if (PnlCommentsList == null || TaskScrollViewer == null) return;
 
-            Control FindHighlighted(Controls children)
+            Control? FindHighlighted(Controls children)
             {
                 foreach (var c in children)
                 {
@@ -4526,7 +4544,7 @@ public partial class MainWindow
 
             if (targetControl != null)
             {
-                var transform = targetControl.TransformToVisual(TaskScrollViewer.Content as Control);
+                var transform = TaskScrollViewer.Content != null ? targetControl.TransformToVisual((Control)TaskScrollViewer.Content) : null;
                 if (transform != null)
                 {
                     double y = transform.Value.Transform(new Point(0, 0)).Y;
@@ -4654,8 +4672,10 @@ public partial class MainWindow
         return true;
     }
 
-    private void AddOrUpdateSubscription(string commentId, int count)
+    private void AddOrUpdateSubscription(string? commentId, int count)
     {
+        if (commentId == null) return;
+
         if (!_communityCache.Subscriptions.ContainsKey(commentId))
         {
             if (_communityCache.Subscriptions.Count >= SubscriptionCountLimit)
@@ -4668,8 +4688,10 @@ public partial class MainWindow
         SaveSystem.SaveCommunityCache(_communityCache);
     }
 
-    private async Task ShowLevelDeletionDialogAsync(string discussionId, string levelName)
+    private async Task ShowLevelDeletionDialogAsync(string discussionId, string? levelName)
     {
+        if (levelName == null) return;
+
         bool isConfirmed = false;
         var confirmDialog = new Window
         {

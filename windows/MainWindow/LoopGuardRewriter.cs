@@ -22,15 +22,15 @@ public partial class MainWindow
             return SyntaxFactory.Block(GetCheckStatement(), statement);
         }
 
-        public override SyntaxNode VisitWhileStatement(WhileStatementSyntax node)
+        public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
         {
-            var visitedNode = (WhileStatementSyntax)base.VisitWhileStatement(node);
+            var visitedNode = base.VisitWhileStatement(node) as WhileStatementSyntax;
 
-            var method = visitedNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            var method = visitedNode?.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
             if (method != null && (method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase) ||
                                    method.Identifier.Text.Equals("RunServer", StringComparison.OrdinalIgnoreCase)))
                 // only inject return if it is explicitly an infinite loop
-                if (visitedNode.Condition is LiteralExpressionSyntax literal &&
+                if (visitedNode?.Condition is LiteralExpressionSyntax literal &&
                     literal.IsKind(SyntaxKind.TrueLiteralExpression))
                 {
                     var returnStatement = SyntaxFactory.ParseStatement("return;\n");
@@ -39,32 +39,33 @@ public partial class MainWindow
                     return visitedNode.WithStatement(EnsureBlock(block));
                 }
 
-            return visitedNode.WithStatement(EnsureBlock(visitedNode.Statement));
+            return visitedNode?.WithStatement(EnsureBlock(visitedNode.Statement));
         }
 
-        public override SyntaxNode VisitForStatement(ForStatementSyntax node)
+        public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
         {
-            var visitedNode = (ForStatementSyntax)base.VisitForStatement(node);
+            var visitedNode = base.VisitForStatement(node) as ForStatementSyntax;
 
-            var method = visitedNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            var method = visitedNode?.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
             if (method != null && (method.Identifier.Text.Equals("Run", StringComparison.OrdinalIgnoreCase) ||
                                    method.Identifier.Text.Equals("RunServer", StringComparison.OrdinalIgnoreCase)))
                 // only inject return if it is an infinite for loop
-                if (visitedNode.Condition == null)
+                if (visitedNode?.Condition == null)
                 {
                     var returnStatement = SyntaxFactory.ParseStatement("return;\n");
-                    var block = visitedNode.Statement is BlockSyntax b ? b : SyntaxFactory.Block(visitedNode.Statement);
+                    var statement = visitedNode?.Statement;
+                    var block = statement is BlockSyntax b ? b : statement != null ? SyntaxFactory.Block(statement) : SyntaxFactory.Block();
                     block = block.AddStatements(returnStatement);
-                    return visitedNode.WithStatement(EnsureBlock(block));
+                    return visitedNode?.WithStatement(EnsureBlock(block));
                 }
 
-            return visitedNode.WithStatement(EnsureBlock(visitedNode.Statement));
+            return visitedNode?.WithStatement(EnsureBlock(visitedNode.Statement));
         }
 
-        public override SyntaxNode VisitDoStatement(DoStatementSyntax node)
+        public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
         {
-            var visitedNode = (DoStatementSyntax)base.VisitDoStatement(node);
-            return visitedNode.WithStatement(EnsureBlock(visitedNode.Statement));
+            var visitedNode = base.VisitDoStatement(node) as DoStatementSyntax;
+            return visitedNode?.WithStatement(EnsureBlock(visitedNode.Statement));
         }
     }
 }

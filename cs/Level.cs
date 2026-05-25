@@ -33,19 +33,19 @@ namespace AbiturEliteCode.cs;
 public class Level
 {
     public int Id { get; set; }
-    public string Section { get; set; }
-    public string SkipCode { get; set; }
-    public string NextLevelCode { get; set; }
-    public string Title { get; set; }
+    public string Section { get; set; } = "";
+    public string SkipCode { get; set; } = "";
+    public string NextLevelCode { get; set; } = "";
+    public string Title { get; set; } = "";
     public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
     public List<string> Topics { get; set; } = new(); // max of 3
     public List<string> DiagramTags { get; set; } = new(); // max of 3: "Klassen", "Strukto", "Sequenz"
-    public string Description { get; set; }
-    public string StarterCode { get; set; }
-    public string MaterialDocs { get; set; }
+    public string Description { get; set; } = "";
+    public string StarterCode { get; set; } = "";
+    public string MaterialDocs { get; set; } = "";
     public List<string> DiagramPaths { get; set; } = new(); // max of 3
     public List<string> PlantUMLSources { get; set; } = new(); // max of 3
-    public string NassiShneiderSource { get; set; } // pascal code for Structorizer
+    public string? NassiShneiderSource { get; set; } // pascal code for Structorizer
     public bool NoUMLAutoScale { get; set; } // set to true for large (especially wide) diagrams
     public List<string> AuxiliaryIds { get; set; } = new();
     public List<string> Prerequisites { get; set; } = new();

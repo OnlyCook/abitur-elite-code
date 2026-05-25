@@ -35,9 +35,9 @@ namespace AbiturEliteCode
                     System.Diagnostics.Debug.WriteLine($"Fake Loading started.. {DateTime.Now}.{DateTime.Now.Millisecond}");
 
                     // capture results
-                    List<Level> levels = null;
-                    PlayerData playerData = null;
-                    CustomPlayerData customPlayerData = null;
+                    List<Level>? levels = null;
+                    PlayerData? playerData = null;
+                    CustomPlayerData? customPlayerData = null;
 
                     var initTask = Task.Run(() =>
                     {
@@ -52,7 +52,7 @@ namespace AbiturEliteCode
 
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     // pass already loaded data in
-                    var mainWindow = new MainWindow(levels, playerData, customPlayerData, splash);
+                    var mainWindow = new MainWindow(levels!, playerData!, customPlayerData!, splash);
                     sw.Stop();
                     System.Diagnostics.Debug.WriteLine($"new MainWindow() took: {sw.ElapsedMilliseconds}ms");
 

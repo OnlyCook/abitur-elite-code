@@ -1,4 +1,5 @@
-﻿using AbiturEliteCode.cs;
+﻿#nullable disable
+using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -358,7 +359,7 @@ public partial class MainWindow
 
         var localCustomLevels = GetCustomLevels(); // to check if downloaded
         var completedList = _isSqlMode ? customPlayerData.CompletedCustomSqlLevels : customPlayerData.CompletedCustomLevels;
-        List<string> likedList = null; //_isSqlMode ? customPlayerData.LikedCustomSqlLevels : customPlayerData.LikedCustomLevels; // placeholder
+        //_isSqlMode ? customPlayerData.LikedCustomSqlLevels : customPlayerData.LikedCustomLevels; // placeholder (likedList unused)
 
         foreach (var m in sortedList.Take(_communityVisibleCount))
         {

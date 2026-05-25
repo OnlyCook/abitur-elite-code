@@ -8,8 +8,8 @@ public static class DiscordRpcManager
     private const string
         ClientId = "1490708551575011470"; // api key to my life savings (no one should see this, not even me)
 
-    private static DiscordRpcClient client;
-    private static Timestamps sessionTime;
+    private static DiscordRpcClient? client;
+    private static Timestamps? sessionTime;
 
     public static void Initialize()
     {

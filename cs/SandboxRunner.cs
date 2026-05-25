@@ -93,7 +93,7 @@ public static class SandboxRunner
             try
             {
                 // read base64 encoded dll from standard input
-                string base64Dll = Console.ReadLine();
+                string? base64Dll = Console.ReadLine();
                 if (string.IsNullOrEmpty(base64Dll)) return;
 
                 byte[] dllBytes = Convert.FromBase64String(base64Dll);
@@ -105,12 +105,12 @@ public static class SandboxRunner
                 var assembly = Assembly.Load(dllBytes);
 
                 // find our injected bootstrap class
-                var bootstrapType = assembly.GetType("AecSandboxBootstrap");
+                var bootstrapType = assembly.GetType("AecSandboxBootstrap")!;
                 var method = bootstrapType.GetMethod("Execute", BindingFlags.Public | BindingFlags.Static);
 
                 // run the validator (execute expects: out bool success, out string feedback)
                 object[] methodArgs = new object[] { false, "" };
-                method.Invoke(null, methodArgs);
+                method!.Invoke(null, methodArgs);
 
                 bool success = (bool)methodArgs[0];
                 string feedback = (string)methodArgs[1];
@@ -145,7 +145,7 @@ public static class SandboxRunner
 
     public static async Task<TestResult> RunInSandboxAsync(byte[] compiledDll, CancellationToken token)
     {
-        string processPath = Environment.ProcessPath;
+        string? processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
             return new TestResult
             {
@@ -193,7 +193,7 @@ public static class SandboxRunner
                 };
             }
 
-            string resultLine = await readTask;
+            string? resultLine = await readTask;
 
             if (string.IsNullOrEmpty(resultLine))
             {

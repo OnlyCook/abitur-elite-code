@@ -37,10 +37,10 @@ public class SqlLevelDraft
 
     public bool QuickGenerate { get; set; }
 
-    public string DiscussionId { get; set; }
+    public string? DiscussionId { get; set; }
     public int PublishVersion { get; set; }
-    public string PublishDifficulty { get; set; }
-    public string PublishTags { get; set; }
+    public string PublishDifficulty { get; set; } = "";
+    public string PublishTags { get; set; } = "";
 }
 
 public static class SqlLevelDesigner
@@ -84,7 +84,7 @@ public static class SqlLevelDesigner
     public static void ExportLevel(string draftPath, SqlLevelDraft draft, List<SqlExpectedColumn> expectedSchema,
         List<string[]> expectedResult)
     {
-        string dir = Path.GetDirectoryName(draftPath);
+        string dir = Path.GetDirectoryName(draftPath) ?? Path.GetFullPath(".");
         string filename = Path.GetFileNameWithoutExtension(draftPath);
         string targetPath = Path.Combine(dir, filename + ".eliteslvl");
 

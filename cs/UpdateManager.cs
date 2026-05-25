@@ -287,7 +287,7 @@ del ""%~f0""
     }
 
     private static async Task DownloadFileAsync(string url, string destination,
-        IProgress<(string message, double percentage)> progress)
+        IProgress<(string message, double percentage)>? progress)
     {
         using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("AbiturEliteCode-Updater");

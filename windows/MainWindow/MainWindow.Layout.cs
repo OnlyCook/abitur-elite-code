@@ -70,14 +70,14 @@ public partial class MainWindow
         SaveSystem.Save(playerData);
     }
 
-    private DockNode SerializeDockTree(Control c)
+    private DockNode? SerializeDockTree(Control c)
     {
         if (c is TabControl tc)
         {
             return new DockNode
             {
                 Type = "Tab",
-                Tabs = tc.Items.OfType<TabItem>().Select(t => t.Name ?? t.Header?.ToString()).ToList(),
+                Tabs = tc.Items.OfType<TabItem>().Select(t => t.Name ?? t.Header?.ToString() ?? "").ToList(),
                 SelectedTab = (tc.SelectedItem as TabItem)?.Name ?? (tc.SelectedItem as TabItem)?.Header?.ToString()
             };
         }
@@ -140,7 +140,7 @@ public partial class MainWindow
             var node = JsonSerializer.Deserialize<DockNode>(state.LeftPanelTree);
             if (node != null)
             {
-                var allTabs = _tabDockManager.GetAllTabControls().SelectMany(tc => tc.Items.OfType<TabItem>()).ToList();
+                var allTabs = (_tabDockManager.GetAllTabControls() ?? Enumerable.Empty<TabControl>()).SelectMany(tc => tc.Items.OfType<TabItem>()).ToList();
 
                 // ensure MainTabs is detached before clear to prevent visual tree errors
                 if (MainTabs.Parent is Panel p)
@@ -156,7 +156,7 @@ public partial class MainWindow
                 // dump leftover tabs into first found main tabcontrol
                 var mainTc = _tabDockManager.GetMainTabControl();
                 foreach (var tab in allTabs)
-                    if (tab.Parent == null) mainTc.Items.Add(tab);
+                    if (tab.Parent == null) mainTc?.Items.Add(tab);
             }
             UpdateTabStyles();
         }
@@ -168,9 +168,11 @@ public partial class MainWindow
     }
 
 
-    private Control BuildDockTree(DockNode node, List<TabItem> availableTabs, ref bool mainTabsUsed)
+    private Control? BuildDockTree(DockNode? node, List<TabItem> availableTabs, ref bool mainTabsUsed)
     {
-        if (node.Type == "Tab")
+        if (node == null) return null;
+
+        if (node.Type == "Tab" && node.Tabs != null)
         {
             TabControl tc;
 
@@ -285,7 +287,7 @@ public partial class MainWindow
     {
         _isRestoringLayout = true;
 
-        var tabControls = _tabDockManager.GetAllTabControls().ToList();
+        var tabControls = (_tabDockManager.GetAllTabControls() ?? Enumerable.Empty<TabControl>()).ToList();
         var allTabs = tabControls.SelectMany(tc => tc.Items.OfType<TabItem>()).ToList();
 
         // detach all tabs from their current parents to prevent visual parent exceptions
@@ -360,10 +362,10 @@ public class LayoutState
 public class DockNode
 {
     public string Type { get; set; } = "";
-    public List<string> Tabs { get; set; } = new();
-    public string SelectedTab { get; set; } = "";
-    public DockNode Child1 { get; set; } = null;
-    public DockNode Child2 { get; set; } = null;
+    public List<string>? Tabs { get; set; } = new();
+    public string? SelectedTab { get; set; } = "";
+    public DockNode? Child1 { get; set; } = null;
+    public DockNode? Child2 { get; set; } = null;
     public double Size1 { get; set; }
     public double Size2 { get; set; }
 }
