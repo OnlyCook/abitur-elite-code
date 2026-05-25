@@ -110,8 +110,12 @@ public partial class MainWindow
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    SqlQueryEditor.CaretOffset = 0;
-                    SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                    // only reset caret if the undo stack was cleared (programmatic text assignment)
+                    if (!SqlQueryEditor.Document.UndoStack.CanUndo)
+                    {
+                        SqlQueryEditor.CaretOffset = 0;
+                        SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                    }
                 }, DispatcherPriority.Render);
             }
         };

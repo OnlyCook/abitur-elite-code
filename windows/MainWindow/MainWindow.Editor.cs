@@ -94,8 +94,12 @@ public partial class MainWindow
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    CodeEditor.CaretOffset = 0;
-                    CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                    // only reset caret if the undo stack was cleared (programmatic text assignment)
+                    if (!CodeEditor.Document.UndoStack.CanUndo)
+                    {
+                        CodeEditor.CaretOffset = 0;
+                        CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+                    }
                 }, DispatcherPriority.Render);
             }
         };
