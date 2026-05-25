@@ -33,7 +33,7 @@ public static class ApiQueueDialog
             Height = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#202124"),
+            Background = Scheme.BrushBgPanel,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -57,7 +57,7 @@ public static class ApiQueueDialog
             Text = "Synchronisiere mit GitHub...",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#6495ED")
+            Foreground = Scheme.BrushTextHighlight
         });
         headerStack.Children.Add(new TextBlock
         {
@@ -75,9 +75,9 @@ public static class ApiQueueDialog
                 Content = queueListPanel,
                 Padding = new Thickness(10)
             },
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             CornerRadius = new CornerRadius(6),
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             BorderThickness = new Thickness(1),
             ClipToBounds = true
         };
@@ -101,7 +101,7 @@ public static class ApiQueueDialog
         var btnCancel = new Button
         {
             Content = cfg.CancelButtonText,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
@@ -113,7 +113,7 @@ public static class ApiQueueDialog
             var btnDestructive = new Button
             {
                 Content = cfg.DestructiveButtonText,
-                Background = SolidColorBrush.Parse("#B43232"),
+                Background = Scheme.BrushDiffHard,
                 Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4)
             };

@@ -164,8 +164,8 @@ public class TabDockManager
 
         _ghostElement = new Border
         {
-            Background = SolidColorBrush.Parse("#2D2D30"),
-            BorderBrush = SolidColorBrush.Parse("#6495ED"),
+            Background = Scheme.BrushBgPanel13,
+            BorderBrush = Scheme.BrushTextHighlight,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(15, 8),
@@ -187,7 +187,7 @@ public class TabDockManager
             {
                 _dockHints[i] = new Avalonia.Controls.Shapes.Path
                 {
-                    Stroke = SolidColorBrush.Parse("#6495ED"),
+                    Stroke = Scheme.BrushTextHighlight,
                     StrokeThickness = 2,
                     Opacity = 0,
                     IsHitTestVisible = false,
@@ -1148,8 +1148,8 @@ public class TabDockManager
             _dockHints[i].Data = StreamGeometry.Parse(System.FormattableString.Invariant(
                 $"M {p[0].X},{p[0].Y} L {p[1].X},{p[1].Y} Q {p[2].X},{p[2].Y} {p[3].X},{p[3].Y} L {p[4].X},{p[4].Y} Q {p[5].X},{p[5].Y} {p[6].X},{p[6].Y} L {p[7].X},{p[7].Y} Z"));
 
-            Color baseColor = Color.Parse("#1A6495ED");
-            Color activeColor = Color.Parse("#256495ED");
+            Color baseColor = Scheme.BrushTabDockHighlight.Color;
+            Color activeColor = Scheme.BrushTabDockHighlight2.Color;
 
             byte a = (byte)(baseColor.A + (activeColor.A - baseColor.A) * currentT);
             byte rCol = (byte)(baseColor.R + (activeColor.R - baseColor.R) * currentT);

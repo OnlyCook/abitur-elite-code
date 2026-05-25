@@ -428,15 +428,15 @@ public partial class MainWindow
                         BadgeSettings.IsVisible = true;
                         if (UpdateManager.IsMaintenanceMode)
                         {
-                            BadgeSettings.Background = SolidColorBrush.Parse("#B43232");
-                            BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                            BadgeSettings.Background = Scheme.BrushDiffHard;
+                            BadgeSettings.BorderBrush = Scheme.BrushBadgeDefault;
                             if (!BadgeSettings.Classes.Contains("maintenance-blink"))
                                 BadgeSettings.Classes.Add("maintenance-blink");
                         }
                         else
                         {
-                            BadgeSettings.Background = SolidColorBrush.Parse("#32A852");
-                            BadgeSettings.BorderBrush = SolidColorBrush.Parse("#1E1E1E");
+                            BadgeSettings.Background = Scheme.BrushTextTitle;
+                            BadgeSettings.BorderBrush = Scheme.BrushBadgeDefault;
                             BadgeSettings.Classes.Remove("maintenance-blink");
                         }
                     }
@@ -1371,10 +1371,10 @@ public partial class MainWindow
     {
         var border = new Border
         {
-            Background = SolidColorBrush.Parse(isReply ? "#141414" : "#1A1A1A"),
+            Background = isReply ? Scheme.BrushBgPanel7 : Scheme.BrushBgPanel3,
             CornerRadius = new CornerRadius(6),
             Padding = new Thickness(15),
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             BorderThickness = new Thickness(1),
             Margin = isReply ? new Thickness(20, 0, 0, 0) : new Thickness(0, 5, 0, 0)
         };
@@ -1382,7 +1382,7 @@ public partial class MainWindow
         // highlight visualizer for notifications
         if ((!isReply && comment.Id == _targetHighlightCommentId) || (isReply && comment.Id == _targetHighlightReplyId))
         {
-            border.BorderBrush = SolidColorBrush.Parse("#6495ED");
+            border.BorderBrush = Scheme.BrushTextHighlight;
             border.BorderThickness = new Thickness(2);
         }
 
@@ -1396,12 +1396,12 @@ public partial class MainWindow
         // dynamically highlight any mentions toward user
         bodyToRender = System.Text.RegularExpressions.Regex.Replace(bodyToRender, $@"(@{System.Text.RegularExpressions.Regex.Escape(AppSettings.GithubUsername)})", "__$1__");
 
-        var tags = new Dictionary<string, (string Label, string Color)>
+        var tags = new Dictionary<string, (string Label, SolidColorBrush Color)>
         {
-            { "!FEEDBACK;", ("Feedback", "#A870A8") },
-            { "!FRAGE;", ("Frage", "#007ACC") },
-            { "!TIPP;", ("Tipp", "#32A852") },
-            { "!LÖSUNG;", ("Lösung", "#FFD700") }
+            { "!FEEDBACK;", ("Feedback", Scheme.BrushFeedbackPink) },
+            { "!FRAGE;", ("Frage", Scheme.BrushTextHighlight2) },
+            { "!TIPP;", ("Tipp", Scheme.BrushTextTitle) },
+            { "!LÖSUNG;", ("Lösung", Scheme.BrushDopamineEnducingGold) }
         };
 
         foreach (var tag in tags)
@@ -1409,7 +1409,7 @@ public partial class MainWindow
             if (bodyToRender.StartsWith(tag.Key))
             {
                 activeTag = tag.Value.Label;
-                tagColor = SolidColorBrush.Parse(tag.Value.Color);
+                tagColor = tag.Value.Color;
                 bodyToRender = bodyToRender.Substring(tag.Key.Length).TrimStart();
                 break;
             }
@@ -1429,7 +1429,7 @@ public partial class MainWindow
         headerPanel.Children.Add(new TextBlock
         {
             Text = $"{comment.Author}",
-            Foreground = comment.Author == AppSettings.GithubUsername ? Brush.Parse("#6495ED") : Brushes.Gray,
+            Foreground = comment.Author == AppSettings.GithubUsername ? Scheme.BrushTextHighlight : Brushes.Gray,
             FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -1445,7 +1445,7 @@ public partial class MainWindow
         {
             headerPanel.Children.Add(new Border
             {
-                Background = SolidColorBrush.Parse("#252526"),
+                Background = Scheme.BrushTextNormal3,
                 BorderBrush = tagColor,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
@@ -1672,7 +1672,7 @@ public partial class MainWindow
             var spoilerBtn = new Button
             {
                 Content = "Lösung anzeigen",
-                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Background = Scheme.BrushBgPanel2,
                 Foreground = Brushes.White,
                 Padding = new Thickness(10, 5),
                 CornerRadius = new CornerRadius(4),
@@ -1705,7 +1705,7 @@ public partial class MainWindow
             bodyContainer.Margin = new Thickness(0, 0, 0, 30);
 
             // fog effect
-            Color bgColor = isReply ? Color.Parse("#141414") : Color.Parse("#1A1A1A");
+            Color bgColor = isReply ? Scheme.BrushBgPanel7.Color : Scheme.BrushBgPanel3.Color;
             var fogBorder = new Border
             {
                 Height = 50,
@@ -1798,9 +1798,9 @@ public partial class MainWindow
             Text = comment.Body,
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(4),
             MaxHeight = 150
         };
@@ -1814,12 +1814,12 @@ public partial class MainWindow
         var btnCancelEdit = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C")
+            Background = Scheme.BrushBgPanel2
         };
         var btnSaveEdit = new Button
         {
             Content = "Speichern",
-            Background = SolidColorBrush.Parse("#32A852")
+            Background = Scheme.BrushTextTitle
         };
 
         editActions.Children.Add(btnCancelEdit);
@@ -1840,8 +1840,8 @@ public partial class MainWindow
         // upvote
         var btnUpvote = new Button
         {
-            Background = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#256495ED") : Brushes.Transparent,
-            BorderBrush = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent,
+            Background = comment.ViewerHasUpvoted ? Scheme.BrushUpvoteFg : Brushes.Transparent,
+            BorderBrush = comment.ViewerHasUpvoted ? Scheme.BrushTextHighlight : Brushes.Transparent,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(5)
@@ -1855,7 +1855,7 @@ public partial class MainWindow
         upvoteContent.Children.Add(new TextBlock
         {
             Text = comment.Upvotes.ToString(),
-            Foreground = comment.ViewerHasUpvoted ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+            Foreground = comment.ViewerHasUpvoted ? Scheme.BrushTextHighlight : Brushes.Gray,
             VerticalAlignment = VerticalAlignment.Center
         });
         btnUpvote.Content = upvoteContent;
@@ -1886,14 +1886,14 @@ public partial class MainWindow
             comment.ViewerHasUpvoted = targetState;
             comment.Upvotes += targetState ? 1 : -1;
 
-            btnUpvote.Background = targetState ? SolidColorBrush.Parse("#256495ED") : Brushes.Transparent;
-            btnUpvote.BorderBrush = targetState ? SolidColorBrush.Parse("#6495ED") : Brushes.Transparent;
+            btnUpvote.Background = targetState ? Scheme.BrushUpvoteFg : Brushes.Transparent;
+            btnUpvote.BorderBrush = targetState ? Scheme.BrushTextHighlight : Brushes.Transparent;
             upvoteContent.Children.Clear();
             upvoteContent.Children.Add(LoadIcon(targetState ? "assets/icons/ic_upvote_filled.svg" : "assets/icons/ic_upvote.svg", 16));
             upvoteContent.Children.Add(new TextBlock
             {
                 Text = comment.Upvotes.ToString(),
-                Foreground = targetState ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+                Foreground = targetState ? Scheme.BrushTextHighlight : Brushes.Gray,
                 VerticalAlignment = VerticalAlignment.Center
             });
 
@@ -1939,9 +1939,9 @@ public partial class MainWindow
             var txtReply = new TextBox
             {
                 Watermark = "Antwort verfassen...",
-                Background = SolidColorBrush.Parse("#1A1A1A"),
+                Background = Scheme.BrushBgPanel3,
                 Foreground = Brushes.White,
-                BorderBrush = SolidColorBrush.Parse("#333"),
+                BorderBrush = Scheme.BrushBgPanel5,
                 CornerRadius = new CornerRadius(4),
                 AcceptsReturn = true,
                 MaxHeight = 100,
@@ -1949,7 +1949,7 @@ public partial class MainWindow
             };
             var btnSendReply = new Button
             {
-                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Background = Scheme.BrushBgPanel2,
                 Cursor = Cursor.Parse("Hand"),
                 Margin = new Thickness(10, 0, 0, 0),
                 Padding = new Thickness(8, 6),
@@ -1962,7 +1962,7 @@ public partial class MainWindow
 
             var replyCooldownLabel = new TextBlock
             {
-                Foreground = SolidColorBrush.Parse("#FF6B6B"),
+                Foreground = Scheme.BrushDeniedFg,
                 FontWeight = FontWeight.Bold,
                 Margin = new Thickness(0, 6, 0, 0),
                 IsVisible = false
@@ -2171,7 +2171,7 @@ public partial class MainWindow
                 {
                     Name = "RepliesContainer",
                     BorderThickness = new Thickness(2, 0, 0, 0),
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     Margin = new Thickness(15, 10, 0, 0),
                     Padding = new Thickness(0, 0, 0, 0),
                     IsVisible = false
@@ -2227,7 +2227,7 @@ public partial class MainWindow
                     {
                         Content = "Weitere Antworten laden...",
                         Background = Brushes.Transparent,
-                        Foreground = SolidColorBrush.Parse("#6495ED"),
+                        Foreground = Scheme.BrushTextHighlight,
                         Margin = new Thickness(20, 5, 0, 0),
                         HorizontalAlignment = HorizontalAlignment.Left
                     };
@@ -2406,7 +2406,7 @@ public partial class MainWindow
             // reddit curve pointing to username
             var branchLine = new Border
             {
-                BorderBrush = SolidColorBrush.Parse("#333"),
+                BorderBrush = Scheme.BrushBgPanel5,
                 BorderThickness = new Thickness(2, 0, 0, 2),
                 CornerRadius = new CornerRadius(0, 0, 0, 10),
                 Width = 25,
@@ -2922,12 +2922,12 @@ public partial class MainWindow
     {
         if (sender == BtnTabEdit)
         {
-            BtnTabEdit.Background = SolidColorBrush.Parse("#202124");
-            BtnTabEdit.Foreground = SolidColorBrush.Parse("#32A852");
+            BtnTabEdit.Background = Scheme.BrushBgPanel;
+            BtnTabEdit.Foreground = Scheme.BrushTextTitle;
             BtnTabEdit.FontWeight = FontWeight.SemiBold;
 
             BtnTabPreview.Background = Brushes.Transparent;
-            BtnTabPreview.Foreground = SolidColorBrush.Parse("#CCCCCC");
+            BtnTabPreview.Foreground = Scheme.BrushTextNormal7;
             BtnTabPreview.FontWeight = FontWeight.Normal;
 
             TxtCommentInput.IsVisible = true;
@@ -2936,12 +2936,12 @@ public partial class MainWindow
         }
         else
         {
-            BtnTabPreview.Background = SolidColorBrush.Parse("#202124");
-            BtnTabPreview.Foreground = SolidColorBrush.Parse("#32A852");
+            BtnTabPreview.Background = Scheme.BrushBgPanel;
+            BtnTabPreview.Foreground = Scheme.BrushTextTitle;
             BtnTabPreview.FontWeight = FontWeight.SemiBold;
 
             BtnTabEdit.Background = Brushes.Transparent;
-            BtnTabEdit.Foreground = SolidColorBrush.Parse("#CCCCCC");
+            BtnTabEdit.Foreground = Scheme.BrushTextNormal7;
             BtnTabEdit.FontWeight = FontWeight.Normal;
 
             TxtCommentInput.IsVisible = false;
@@ -3595,7 +3595,7 @@ public partial class MainWindow
         };
 
         bool isPaused = playerData.Settings.AreNotificationsPaused;
-        string activeColor = isPaused ? "#d44c0d" : "#32A852";
+        SolidColorBrush activeColor = isPaused ? Scheme.BrushDeniedBg : Scheme.BrushTextTitle;
 
         var btnToggleNotis = new Button
         {
@@ -3616,7 +3616,7 @@ public partial class MainWindow
         {
             Text = "Posteingang",
             FontSize = 18,
-            Foreground = SolidColorBrush.Parse(activeColor),
+            Foreground = activeColor,
             FontWeight = FontWeight.Bold,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -3664,7 +3664,7 @@ public partial class MainWindow
             Height = 18,
             StartAngle = -90,
             SweepAngle = 0,
-            Stroke = SolidColorBrush.Parse("#6495ED"),
+            Stroke = Scheme.BrushTextHighlight,
             StrokeThickness = 3,
             IsVisible = false
         };
@@ -3725,7 +3725,7 @@ public partial class MainWindow
         {
             // currently in checkmark animation phase
             btnRefresh.Content = LoadIcon("assets/icons/ic_success.svg", 18);
-            btnRefresh.Background = SolidColorBrush.Parse("#2E8B57");
+            btnRefresh.Background = Scheme.BrushApprovedBg;
             btnRefresh.IsEnabled = false;
 
             Task.Run(async () => {
@@ -3757,7 +3757,7 @@ public partial class MainWindow
 
             // temporarily show success icon and color
             btnRefresh.Content = LoadIcon("assets/icons/ic_success.svg", 18);
-            btnRefresh.Background = SolidColorBrush.Parse("#2E8B57");
+            btnRefresh.Background = Scheme.BrushApprovedBg;
 
             await Task.Delay(500);
 
@@ -3809,7 +3809,7 @@ public partial class MainWindow
 
             // temporarily show success icon and color
             btnDeleteAll.Content = LoadIcon("assets/icons/ic_success.svg", 18);
-            btnDeleteAll.Background = SolidColorBrush.Parse("#2E8B57");
+            btnDeleteAll.Background = Scheme.BrushApprovedBg;
             await Task.Delay(500);
 
             ShowInboxFlyout(); // re-render
@@ -3822,7 +3822,7 @@ public partial class MainWindow
 
             // temporarily show success icon and color
             btnUnsubscribeAll.Content = LoadIcon("assets/icons/ic_success.svg", 18);
-            btnUnsubscribeAll.Background = SolidColorBrush.Parse("#2E8B57");
+            btnUnsubscribeAll.Background = Scheme.BrushApprovedBg;
             await Task.Delay(500);
 
             btnUnsubscribeAll.Content = LoadIcon("assets/icons/ic_unsubscribe.svg", 18);
@@ -3868,10 +3868,10 @@ public partial class MainWindow
                 // wrap notification in its own contained styled border
                 var itemBorder = new Border
                 {
-                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    Background = Scheme.BrushBgPanel3,
                     CornerRadius = new CornerRadius(6),
                     Padding = new Thickness(10),
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     BorderThickness = new Thickness(1)
                 };
 
@@ -4119,7 +4119,7 @@ public partial class MainWindow
             Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) =>
@@ -4153,9 +4153,9 @@ public partial class MainWindow
             AcceptsReturn = true,
             MaxHeight = 100,
             Height = 80,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(4),
             Text = _draftSupportMessage // restore stored message
         };
@@ -4165,7 +4165,7 @@ public partial class MainWindow
 
         var txtError = new TextBlock
         {
-            Foreground = SolidColorBrush.Parse("#FF5555"),
+            Foreground = Scheme.BrushDeniedFg,
             FontWeight = FontWeight.SemiBold,
             IsVisible = false,
             TextWrapping = TextWrapping.Wrap
@@ -4181,7 +4181,7 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C")
+            Background = Scheme.BrushBgPanel2
         };
 
         // global 30s formspree cooldown check
@@ -4190,7 +4190,7 @@ public partial class MainWindow
         var btnSend = new Button
         {
             Content = secondsSinceLast < 30 ? $"Warte {(int)(30 - secondsSinceLast)}s" : "Senden",
-            Background = SolidColorBrush.Parse("#007ACC"),
+            Background = Scheme.BrushTextHighlight2,
             IsEnabled = secondsSinceLast >= 30
         };
 
@@ -4259,7 +4259,7 @@ public partial class MainWindow
             Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -4306,9 +4306,9 @@ public partial class MainWindow
             AcceptsReturn = true,
             MaxHeight = 60,
             Height = 60,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(4),
             Text = _draftReportReason // restore stored reason
         };
@@ -4318,7 +4318,7 @@ public partial class MainWindow
 
         var txtError = new TextBlock
         {
-            Foreground = SolidColorBrush.Parse("#FF5555"),
+            Foreground = Scheme.BrushDeniedFg,
             FontWeight = FontWeight.SemiBold,
             IsVisible = false,
             TextWrapping = TextWrapping.Wrap
@@ -4336,7 +4336,7 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C")
+            Background = Scheme.BrushBgPanel2
         };
 
         // global 30s formspree cooldown check
@@ -4345,7 +4345,7 @@ public partial class MainWindow
         var btnReport = new Button
         {
             Content = secondsSinceLast < 30 ? $"Warte {(int)(30 - secondsSinceLast)}s" : "Melden",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             IsEnabled = secondsSinceLast >= 30
         };
 
@@ -4398,13 +4398,13 @@ public partial class MainWindow
 
                 // change button appearance
                 btnCancel.Content = "Melden :D";
-                btnCancel.Background = SolidColorBrush.Parse("#B43232");
+                btnCancel.Background = Scheme.BrushDiffHard;
                 btnCancel.IsEnabled = true;
 
                 await Task.Delay(1000);
 
                 // simulate press
-                btnCancel.Background = SolidColorBrush.Parse("#8B0000"); // darker red
+                btnCancel.Background = Scheme.BrushPressedDenialBg; // darker red
                 await Task.Delay(200);
 
                 dialog.Close();
@@ -4440,7 +4440,7 @@ public partial class MainWindow
                 btnReport.IsVisible = false;
 
                 btnCancel.Content = "Ok :C";
-                btnCancel.Background = SolidColorBrush.Parse("#32a852");
+                btnCancel.Background = Scheme.BrushTextTitle;
 
                 if (author == "OnlyCook")
                 {
@@ -4505,7 +4505,7 @@ public partial class MainWindow
             {
                 foreach (var c in children)
                 {
-                    if (c is Border b && b.BorderThickness == new Thickness(2) && b.BorderBrush is SolidColorBrush sb && sb.Color == Color.Parse("#6495ED"))
+                    if (c is Border b && b.BorderThickness == new Thickness(2) && b.BorderBrush is SolidColorBrush sb && sb.Color == Scheme.BrushTextHighlight.Color)
                         return b;
 
                     if (c is Panel p)
@@ -4553,7 +4553,7 @@ public partial class MainWindow
             Height = 220,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -4569,7 +4569,7 @@ public partial class MainWindow
             Text = "Account temporär gesperrt",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#FF5555")
+            Foreground = Scheme.BrushDeniedFg
         });
 
         stack.Children.Add(new TextBlock
@@ -4582,7 +4582,7 @@ public partial class MainWindow
         var btnOk = new Button
         {
             Content = "Verstanden",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 10, 0, 0)
         };
@@ -4604,7 +4604,7 @@ public partial class MainWindow
             Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -4620,7 +4620,7 @@ public partial class MainWindow
             Text = "⛔ Account permanent gesperrt",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#FF2222")
+            Foreground = Scheme.BrushHardPassFg
         });
 
         stack.Children.Add(new TextBlock
@@ -4633,7 +4633,7 @@ public partial class MainWindow
         var btnOk = new Button
         {
             Content = "Verstanden",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 10, 0, 0)
         };
@@ -4678,7 +4678,7 @@ public partial class MainWindow
             Height = 205,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -4697,7 +4697,7 @@ public partial class MainWindow
 
         var txtConfirm = new TextBox
         {
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
             Margin = new Thickness(0, 15, 0, 15)
         };
@@ -4715,14 +4715,14 @@ public partial class MainWindow
         var btnCancelDel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnConfirmDel = new Button
         {
             Content = "Endgültig Löschen",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             IsEnabled = false
@@ -4800,7 +4800,7 @@ public partial class MainWindow
             Height = 270,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -4836,16 +4836,16 @@ public partial class MainWindow
             AcceptsReturn = true,
             MaxHeight = 60,
             Height = 60,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(4)
         };
         stack.Children.Add(txtReason);
 
         var txtError = new TextBlock
         {
-            Foreground = SolidColorBrush.Parse("#FF5555"),
+            Foreground = Scheme.BrushDeniedFg,
             FontWeight = FontWeight.SemiBold,
             IsVisible = false,
             TextWrapping = TextWrapping.Wrap
@@ -4861,14 +4861,14 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C")
+            Background = Scheme.BrushBgPanel2
         };
 
         double secondsSinceLast = (DateTime.Now - DateTime.FromOADate(playerData.Settings.LastFormspreeTime)).TotalSeconds;
         var btnReport = new Button
         {
             Content = secondsSinceLast < 30 ? $"Warte {(int)(30 - secondsSinceLast)}s" : "Melden",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             IsEnabled = secondsSinceLast >= 30
         };
 

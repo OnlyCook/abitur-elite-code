@@ -111,7 +111,7 @@ public static class MarkdownRenderer
                 textBlock.FontSize = 14;
                 textBlock.FontWeight = FontWeight.Medium;
                 textBlock.Margin = new Thickness(0, 6, 0, 2);
-                if (!useSelectableText) textBlock.Foreground = SolidColorBrush.Parse("#B0B0B0");
+                if (!useSelectableText) textBlock.Foreground = Scheme.BrushMarkdownH3;
             }
 
             if (isList)
@@ -162,11 +162,11 @@ public static class MarkdownRenderer
             }
             else if (match.Groups["kbd"].Success)
             {
-                inlines.Add(CreateInlineBadge(match.Groups["kbdtext"].Value, "#3C3C3C", "#555555", Brushes.White));
+                inlines.Add(CreateInlineBadge(match.Groups["kbdtext"].Value, Scheme.BrushBgPanel2.ToString(), Scheme.BrushTextNormal2.ToString(), Brushes.White));
             }
             else if (match.Groups["code"].Success)
             {
-                inlines.Add(CreateInlineBadge(match.Groups["codetext"].Value, "#2D2D30", "Transparent", SolidColorBrush.Parse("#DCDCAA")));
+                inlines.Add(CreateInlineBadge(match.Groups["codetext"].Value, Scheme.BrushBgPanel13.ToString(), "Transparent", Scheme.BrushMarkdownInlineCode));
             }
 
             currentIndex = match.Index + match.Length;
@@ -225,11 +225,11 @@ public static class MarkdownRenderer
 
         return new Border
         {
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             CornerRadius = new CornerRadius(6),
             ClipToBounds = true,
             Margin = new Thickness(0, 5, 0, 5),
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             BorderThickness = new Thickness(1),
             Child = codeBlockEditor
         };

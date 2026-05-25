@@ -82,7 +82,7 @@ public partial class MainWindow
 
         if (CcVimCheatSheetToggle != null)
         {
-            string activeColor = isEasyMode ? "#32A852" : "#007ACC";
+            SolidColorBrush activeColor = isEasyMode ? Scheme.BrushTextTitle : Scheme.BrushTextHighlight2;
 
             var btnToggleMode = new Button
             {
@@ -105,7 +105,7 @@ public partial class MainWindow
             {
                 Text = isEasyMode ? "Vim Cheat Sheet (Easy)" : "Vim Cheat Sheet (Pro)",
                 FontSize = 20,
-                Foreground = SolidColorBrush.Parse(activeColor),
+                Foreground = activeColor,
                 FontWeight = FontWeight.Bold,
                 VerticalAlignment = VerticalAlignment.Center
             });
@@ -126,7 +126,7 @@ public partial class MainWindow
                 {
                     Text = title,
                     FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextHighlight,
+                    Foreground = Scheme.BrushTextHighlight,
                     FontSize = 16,
                     Margin = new Thickness(0, 0, 0, 5)
                 }
@@ -191,7 +191,7 @@ public partial class MainWindow
             {
                 var border = new Border
                 {
-                    Background = SolidColorBrush.Parse("#333"),
+                    Background = Scheme.BrushBgPanel5,
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(12, 6),
                     Margin = new Thickness(2)
@@ -984,28 +984,28 @@ public partial class MainWindow
         switch (_vimMode)
         {
             case VimMode.Normal:
-                activeBorder.Background = SolidColorBrush.Parse("#007ACC");
+                activeBorder.Background = Scheme.BrushTextHighlight2;
                 activeText.Text = "-- NORMAL --";
                 break;
             case VimMode.Insert:
-                activeBorder.Background = SolidColorBrush.Parse("#28a745");
+                activeBorder.Background = Scheme.BrushDiffEasy;
                 activeText.Text = "-- INSERT --";
                 break;
             case VimMode.CommandPending:
-                activeBorder.Background = SolidColorBrush.Parse("#d08770");
+                activeBorder.Background = Scheme.BrushDiffMid;
                 activeText.Text = _vimCommandBuffer;
                 break;
             case VimMode.CommandLine:
             case VimMode.Search:
-                activeBorder.Background = SolidColorBrush.Parse("#444");
+                activeBorder.Background = Scheme.BrushBgPanel8;
                 activeText.Text = _vimCommandBuffer;
                 break;
             case VimMode.Visual:
-                activeBorder.Background = SolidColorBrush.Parse("#8A2BE2");
+                activeBorder.Background = Scheme.BrushDiffAbi;
                 activeText.Text = "-- VISUAL --";
                 break;
             case VimMode.VisualLine:
-                activeBorder.Background = SolidColorBrush.Parse("#8A2BE2");
+                activeBorder.Background = Scheme.BrushDiffAbi;
                 activeText.Text = "-- VISUAL LINE --";
                 break;
         }
@@ -1084,7 +1084,7 @@ public partial class MainWindow
         mousePanel.Children.Add(new TextBlock
         {
             Text = $"{_tutorialMouseClicks}",
-            Foreground = _tutorialMouseClicks > 0 ? SolidColorBrush.Parse("#B43232") : Brushes.White,
+            Foreground = _tutorialMouseClicks > 0 ? Scheme.BrushDiffHard : Brushes.White,
             FontSize = 16,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -1103,7 +1103,7 @@ public partial class MainWindow
         scoreRow.Children.Add(new TextBlock
         {
             Text = $"Score: {score}",
-            Foreground = SolidColorBrush.Parse("#FFD700"),
+            Foreground = Scheme.BrushDopamineEnducingGold,
             FontSize = 22,
             FontWeight = FontWeight.Bold,
             VerticalAlignment = VerticalAlignment.Center
@@ -1114,7 +1114,7 @@ public partial class MainWindow
             PnlTutorialStatsContent.Children.Add(new TextBlock
             {
                 Text = "NEUER HIGHSCORE!",
-                Foreground = SolidColorBrush.Parse("#32A852"),
+                Foreground = Scheme.BrushTextTitle,
                 FontWeight = FontWeight.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center
             });
@@ -1328,8 +1328,8 @@ public partial class MainWindow
 
                 var keyBorder = new Border
                 {
-                    Background = SolidColorBrush.Parse("#444"),
-                    BorderBrush = SolidColorBrush.Parse("#666"),
+                    Background = Scheme.BrushBgPanel8,
+                    BorderBrush = Scheme.BrushBgPanel9,
                     BorderThickness = new Thickness(1, 1, 1, 3),
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(6, 0),
@@ -1353,7 +1353,7 @@ public partial class MainWindow
                 {
                     Text = content,
                     FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextHighlight,
+                    Foreground = Scheme.BrushTextHighlight,
                     FontFamily = new FontFamily(MonospaceFontFamily)
                 });
             }
@@ -1477,7 +1477,7 @@ public partial class MainWindow
         TutorialEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         TutorialEditor.FontSize = AppSettings.EditorFontSize;
         TutorialEditor.Background = Brushes.Transparent;
-        TutorialEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
+        TutorialEditor.Foreground = Scheme.BrushTextNormal6;
         TutorialEditor.SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting();
 
         _tutorialBlockCaret = new VimBlockCaretRenderer(TutorialEditor);

@@ -275,7 +275,7 @@ public partial class MainWindow
             Text = "Relationales Modell (Schema)",
             FontSize = 16,
             FontWeight = FontWeight.Bold,
-            Foreground = BrushTextTitle,
+            Foreground = Scheme.BrushTextTitle,
             VerticalAlignment = VerticalAlignment.Center
         });
 
@@ -366,7 +366,7 @@ public partial class MainWindow
 
                 // temporarily show success icon and color
                 btnCopyModel.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                btnCopyModel.Background = SolidColorBrush.Parse("#2E8B57");
+                btnCopyModel.Background = Scheme.BrushApprovedBg;
                 await Task.Delay(500);
                 btnCopyModel.Content = LoadIcon("assets/icons/ic_copy.svg", 16);
                 btnCopyModel.Background = Brushes.Transparent;
@@ -397,7 +397,7 @@ public partial class MainWindow
                 {
                     // temporarily show success icon and color
                     btnPasteModel.Content = LoadIcon("assets/icons/ic_success.svg", 16);
-                    btnPasteModel.Background = SolidColorBrush.Parse("#2E8B57");
+                    btnPasteModel.Background = Scheme.BrushApprovedBg;
                     await Task.Delay(500);
 
                     // clear and insert new model
@@ -418,7 +418,7 @@ public partial class MainWindow
                 {
                     // temporarily show error icon and color
                     btnPasteModel.Content = LoadIcon("assets/icons/ic_error.svg", 16);
-                    btnPasteModel.Background = SolidColorBrush.Parse("#a81d1d");
+                    btnPasteModel.Background = Scheme.BrushDiffHard;
                     await Task.Delay(500);
                     btnPasteModel.Content = LoadIcon("assets/icons/ic_import.svg", 16);
                     btnPasteModel.Background = Brushes.Transparent;
@@ -440,7 +440,7 @@ public partial class MainWindow
             _btnGlobalPk = new Button
             {
                 Content = "PK",
-                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Background = Scheme.BrushBgPanel2,
                 Foreground = Brushes.White,
                 Cursor = Cursor.Parse("Hand"),
                 IsEnabled = false,
@@ -461,7 +461,7 @@ public partial class MainWindow
             _btnGlobalFk = new Button
             {
                 Content = "FK",
-                Background = SolidColorBrush.Parse("#3C3C3C"),
+                Background = Scheme.BrushBgPanel2,
                 Foreground = Brushes.White,
                 Cursor = Cursor.Parse("Hand"),
                 IsEnabled = false,
@@ -516,20 +516,20 @@ public partial class MainWindow
                     FontSize = 15
                 };
                 tb.Inlines.Add(new Run
-                    { Text = table.Name, Foreground = BrushTextHighlight, FontWeight = FontWeight.Bold });
-                tb.Inlines.Add(new Run { Text = " (", Foreground = BrushTextNormal });
+                    { Text = table.Name, Foreground = Scheme.BrushTextHighlight, FontWeight = FontWeight.Bold });
+                tb.Inlines.Add(new Run { Text = " (", Foreground = Scheme.BrushTextNormal });
 
                 for (int i = 0; i < table.Columns.Count; i++)
                 {
                     var col = table.Columns[i];
-                    var run = new Run { Text = col.Name + (col.IsFk ? "#" : ""), Foreground = BrushTextNormal };
+                    var run = new Run { Text = col.Name + (col.IsFk ? "#" : ""), Foreground = Scheme.BrushTextNormal };
                     if (col.IsPk) run.TextDecorations = TextDecorations.Underline;
                     tb.Inlines.Add(run);
                     if (i < table.Columns.Count - 1)
-                        tb.Inlines.Add(new Run { Text = ", ", Foreground = BrushTextNormal });
+                        tb.Inlines.Add(new Run { Text = ", ", Foreground = Scheme.BrushTextNormal });
                 }
 
-                tb.Inlines.Add(new Run { Text = ")", Foreground = BrushTextNormal });
+                tb.Inlines.Add(new Run { Text = ")", Foreground = Scheme.BrushTextNormal });
                 targetPanel.Children.Add(tb);
             }
 
@@ -550,7 +550,7 @@ public partial class MainWindow
             var txtTableName = new TextBox
             {
                 Text = table.Name,
-                Foreground = BrushTextHighlight,
+                Foreground = Scheme.BrushTextHighlight,
                 FontFamily = new FontFamily(MonospaceFontFamily),
                 FontWeight = FontWeight.Bold,
                 FontSize = 15,
@@ -619,7 +619,7 @@ public partial class MainWindow
             rowPanel.Children.Add(txtTableName);
             rowPanel.Children.Add(new TextBlock
             {
-                Text = " (", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
+                Text = " (", Foreground = Scheme.BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15
             });
 
@@ -679,7 +679,7 @@ public partial class MainWindow
                 var txtCol = new TextBox
                 {
                     Text = col.Name,
-                    Foreground = BrushTextNormal,
+                    Foreground = Scheme.BrushTextNormal,
                     FontFamily = new FontFamily(MonospaceFontFamily),
                     FontSize = 15,
                     LetterSpacing = 0.5,
@@ -696,7 +696,7 @@ public partial class MainWindow
                 var pkUnderlineBorder = new Border
                 {
                     BorderThickness = col.IsPk ? new Thickness(0, 0, 0, 1) : new Thickness(0),
-                    BorderBrush = BrushTextNormal,
+                    BorderBrush = Scheme.BrushTextNormal,
                     Child = txtCol
                 };
 
@@ -827,14 +827,14 @@ public partial class MainWindow
                 if (col.IsFk)
                     colStack.Children.Add(new TextBlock
                     {
-                        Text = "#", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
+                        Text = "#", Foreground = Scheme.BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
                         FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15
                     });
 
                 if (i < table.Columns.Count - 1)
                     colStack.Children.Add(new TextBlock
                     {
-                        Text = ", ", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
+                        Text = ", ", Foreground = Scheme.BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
                         FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15
                     });
 
@@ -844,7 +844,7 @@ public partial class MainWindow
             rowPanel.Children.Add(btnAddCol);
             rowPanel.Children.Add(new TextBlock
             {
-                Text = ")", Foreground = BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
+                Text = ")", Foreground = Scheme.BrushTextNormal, VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new FontFamily(MonospaceFontFamily), FontSize = 15
             });
 
@@ -873,7 +873,7 @@ public partial class MainWindow
         var btnAddTable = new Button
         {
             Content = "+ Tabelle",
-            Background = SolidColorBrush.Parse("#2D2D30"),
+            Background = Scheme.BrushBgPanel13,
             Foreground = Brushes.White,
             HorizontalAlignment = HorizontalAlignment.Left,
             CornerRadius = new CornerRadius(4),

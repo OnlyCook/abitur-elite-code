@@ -34,7 +34,7 @@ public partial class MainWindow
         SqlQueryEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         SqlQueryEditor.FontSize = AppSettings.SqlEditorFontSize;
         SqlQueryEditor.Background = Brushes.Transparent;
-        SqlQueryEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
+        SqlQueryEditor.Foreground = Scheme.BrushTextNormal6;
 
         // add renderers (ported from C# editor)
         var bracketRenderer = new BracketHighlightRenderer(SqlQueryEditor);
@@ -527,7 +527,7 @@ public partial class MainWindow
                 FontSize = 14,
                 IsReadOnly = true,
                 ShowLineNumbers = false,
-                Background = SolidColorBrush.Parse("#1A1A1A"),
+                Background = Scheme.BrushBgPanel3,
                 Foreground = Brushes.White,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -597,7 +597,7 @@ public partial class MainWindow
 
                 var btnExpected = new Border
                 {
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     Padding = new Thickness(8, 2),
                     CornerRadius = new CornerRadius(10),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -612,19 +612,19 @@ public partial class MainWindow
 
                 btnExpected.PointerEntered += (s, e) =>
                 {
-                    btnExpected.Background = SolidColorBrush.Parse("#4A4A4A");
+                    btnExpected.Background = Scheme.BrushBgPanel10;
                     ToolTip.SetIsOpen(btnExpected, true); // force open immediately
                 };
                 btnExpected.PointerExited += (s, e) =>
                 {
-                    btnExpected.Background = SolidColorBrush.Parse("#3C3C3C");
+                    btnExpected.Background = Scheme.BrushBgPanel2;
                     ToolTip.SetIsOpen(btnExpected, false); // force close immediately
                 };
 
                 var toolTipBorder = new Border
                 {
-                    Background = SolidColorBrush.Parse("#141414"),
-                    BorderBrush = SolidColorBrush.Parse("#333333"),
+                    Background = Scheme.BrushBgPanel7,
+                    BorderBrush = Scheme.BrushBgPanel4,
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(8),
                     ClipToBounds = true
@@ -654,9 +654,9 @@ public partial class MainWindow
         var tableContainer = new Border
         {
             CornerRadius = new CornerRadius(6),
-            BorderBrush = SolidColorBrush.Parse("#333333"),
+            BorderBrush = Scheme.BrushBgPanel4,
             BorderThickness = new Thickness(1),
-            Background = SolidColorBrush.Parse("#141414"),
+            Background = Scheme.BrushBgPanel7,
             ClipToBounds = true,
             Margin = new Thickness(0, 5, 0, 15),
             HorizontalAlignment = HorizontalAlignment.Stretch

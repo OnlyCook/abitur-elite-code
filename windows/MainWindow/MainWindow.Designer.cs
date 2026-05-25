@@ -509,7 +509,7 @@ public partial class MainWindow
                 Height = 160,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 SystemDecorations = SystemDecorations.BorderOnly,
-                Background = SolidColorBrush.Parse("#252526"),
+                Background = Scheme.BrushTextNormal3,
                 CornerRadius = new CornerRadius(8)
             };
 
@@ -531,17 +531,17 @@ public partial class MainWindow
 
             var btnSaveClose = new Button
             {
-                Content = "Speichern", Background = SolidColorBrush.Parse("#32A852"), Foreground = Brushes.White,
+                Content = "Speichern", Background = Scheme.BrushTextTitle, Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4)
             };
             var btnDiscard = new Button
             {
-                Content = "Verwerfen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White,
+                Content = "Verwerfen", Background = Scheme.BrushDiffHard, Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4)
             };
             var btnCancel = new Button
             {
-                Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White,
+                Content = "Abbrechen", Background = Scheme.BrushBgPanel2, Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4)
             };
 
@@ -813,7 +813,7 @@ public partial class MainWindow
             Text = draftName,
             FontSize = 20,
             FontWeight = FontWeight.Bold,
-            Foreground = BrushTextNormal,
+            Foreground = Scheme.BrushTextNormal,
             Margin = new Thickness(0)
         });
 
@@ -916,7 +916,7 @@ public partial class MainWindow
         {
             var container = new Border
             {
-                Background = SolidColorBrush.Parse("#252526"),
+                Background = Scheme.BrushTextNormal3,
                 CornerRadius = new CornerRadius(4),
                 Margin = new Thickness(0, 0, 0, 4),
                 Padding = new Thickness(2)
@@ -969,7 +969,7 @@ public partial class MainWindow
             var btn = new Button
             {
                 Content = title,
-                Background = isActive ? SolidColorBrush.Parse("#007ACC") : SolidColorBrush.Parse("#333"),
+                Background = isActive ? Scheme.BrushTextHighlight2 : Scheme.BrushBgPanel5,
                 Foreground = Brushes.White,
                 FontSize = 13,
                 Padding = new Thickness(10, 5),

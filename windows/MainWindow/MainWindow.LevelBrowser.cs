@@ -406,7 +406,7 @@ public partial class MainWindow
             {
                 Text = m.Author,
                 FontSize = 11,
-                Foreground = isOwnLevel ? SolidColorBrush.Parse("#6495ED") : Brushes.Gray,
+                Foreground = isOwnLevel ? Scheme.BrushTextHighlight : Brushes.Gray,
                 Margin = new Thickness(-2, 0)
             });
 
@@ -415,7 +415,7 @@ public partial class MainWindow
                 {
                     Text = "• " + string.Join(", ", m.Tags),
                     FontSize = 11,
-                    Foreground = SolidColorBrush.Parse("#32A852")
+                    Foreground = Scheme.BrushTextTitle
                 });
             textStack.Children.Add(subText);
 
@@ -428,13 +428,13 @@ public partial class MainWindow
             btnContent.Children.Add(textStack);
 
             // map difficulty to a dim color
-            string bgColor = m.Difficulty switch
+            SolidColorBrush bgColor = m.Difficulty switch
             {
-                "Einfach" => "#1a3320",
-                "Mittel" => "#33331a",
-                "Schwer" => "#331a1a",
-                "Abitur" => "#2d1a33",
-                _ => "#191919"
+                "Einfach" => Scheme.BrushDiffEasyBg,
+                "Mittel" => Scheme.BrushDiffMidBg,
+                "Schwer" => Scheme.BrushDiffHardBg,
+                "Abitur" => Scheme.BrushDiffAbiBg,
+                _ => Scheme.BrushDiffFallbackBg
             };
 
             var btnMain = new Button
@@ -442,7 +442,7 @@ public partial class MainWindow
                 Content = btnContent,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
-                Background = SolidColorBrush.Parse(bgColor),
+                Background = bgColor,
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(10),
                 Cursor = Cursor.Parse("Hand")
@@ -569,7 +569,7 @@ public partial class MainWindow
             {
                 Content = "Mehr laden...",
                 Background = Brushes.Transparent,
-                Foreground = SolidColorBrush.Parse("#6495ED"),
+                Foreground = Scheme.BrushTextHighlight,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             loadMore.Click += (s, e) =>

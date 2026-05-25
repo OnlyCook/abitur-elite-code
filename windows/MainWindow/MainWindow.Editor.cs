@@ -31,7 +31,7 @@ public partial class MainWindow
         CodeEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         CodeEditor.FontSize = AppSettings.EditorFontSize;
         CodeEditor.Background = Brushes.Transparent;
-        CodeEditor.Foreground = SolidColorBrush.Parse("#D4D4D4");
+        CodeEditor.Foreground = Scheme.BrushTextNormal6;
 
         _indentationGuideRenderer = new IndentationGuideRenderer(CodeEditor);
         CodeEditor.TextArea.TextView.BackgroundRenderers.Add(_indentationGuideRenderer);

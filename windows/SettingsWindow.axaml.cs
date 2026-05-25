@@ -102,14 +102,14 @@ public partial class SettingsWindow : Window
         {
             if (UpdateManager.IsMaintenanceMode)
             {
-                UpdatesBadge.Background = SolidColorBrush.Parse("#B43232");
+                UpdatesBadge.Background = Scheme.BrushDiffHard;
                 UpdatesBadge.BorderBrush = Brushes.Transparent;
                 if (!UpdatesBadge.Classes.Contains("maintenance-blink"))
                     UpdatesBadge.Classes.Add("maintenance-blink");
             }
             else
             {
-                UpdatesBadge.Background = SolidColorBrush.Parse("#32A852");
+                UpdatesBadge.Background = Scheme.BrushTextTitle;
                 UpdatesBadge.BorderBrush = Brushes.Transparent;
                 UpdatesBadge.Classes.Remove("maintenance-blink");
             }
@@ -173,7 +173,7 @@ public partial class SettingsWindow : Window
         BtnCatUpdates.Background = Brushes.Transparent;
         BtnCatMisc.Background = Brushes.Transparent;
 
-        activeBtn.Background = SolidColorBrush.Parse("#3E3E42");
+        activeBtn.Background = Scheme.BrushBgPanel17;
         RightPanel.Child = content;
     }
 
@@ -183,8 +183,8 @@ public partial class SettingsWindow : Window
         BtnSave.IsEnabled = hasChanges;
         BtnSave.Opacity = hasChanges ? 1.0 : 0.5;
         BtnSave.Background = hasChanges
-            ? SolidColorBrush.Parse("#32A852")
-            : SolidColorBrush.Parse("#464646");
+            ? Scheme.BrushTextTitle
+            : Scheme.BrushBgPanel18;
     }
 
     private void PerformSave()
@@ -245,7 +245,7 @@ public partial class SettingsWindow : Window
             Height = 160,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -278,21 +278,21 @@ public partial class SettingsWindow : Window
         var btnSaveClose = new Button
         {
             Content = "Speichern",
-            Background = SolidColorBrush.Parse("#32A852"),
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnDiscard = new Button
         {
             Content = "Verwerfen",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
@@ -329,7 +329,7 @@ public partial class SettingsWindow : Window
             Height = 150,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -354,8 +354,20 @@ public partial class SettingsWindow : Window
         };
         Grid.SetRow(btnPanel, 1);
 
-        var btnYes = new Button { Content = "Ja, zurücksetzen", Background = SolidColorBrush.Parse("#B43232"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
-        var btnNo = new Button { Content = "Abbrechen", Background = SolidColorBrush.Parse("#3C3C3C"), Foreground = Brushes.White, CornerRadius = new CornerRadius(4) };
+        var btnYes = new Button
+        {
+            Content = "Ja, zurücksetzen",
+            Background = Scheme.BrushDiffHard,
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
+        var btnNo = new Button
+        {
+            Content = "Abbrechen",
+            Background = Scheme.BrushBgPanel2,
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(4)
+        };
 
         btnYes.Click += (_, _) =>
         {
@@ -405,7 +417,7 @@ public partial class SettingsWindow : Window
             Height = height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -428,7 +440,7 @@ public partial class SettingsWindow : Window
         {
             Text = title,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#B43232"),
+            Foreground = Scheme.BrushDiffHard,
             FontSize = 16
         });
         contentPanel.Children.Add(new TextBlock
@@ -444,7 +456,7 @@ public partial class SettingsWindow : Window
             Content = "Verstanden",
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
-            Background = SolidColorBrush.Parse("#32A852"),
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White,
             Padding = new Thickness(20, 8),
             CornerRadius = new CornerRadius(4)
@@ -469,7 +481,7 @@ public partial class SettingsWindow : Window
             Height = height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -502,14 +514,14 @@ public partial class SettingsWindow : Window
         var btnConfirm = new Button
         {
             Content = "Bestätigen",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
@@ -871,7 +883,7 @@ public partial class SettingsWindow : Window
         textBox.PointerEntered += (_, _) =>
         {
             if (!textBox.IsFocused)
-                textBox.Background = SolidColorBrush.Parse("#2D2D30");
+                textBox.Background = Scheme.BrushBgPanel13;
         };
 
         textBox.PointerExited += (_, _) =>
@@ -885,13 +897,13 @@ public partial class SettingsWindow : Window
 
         textBox.GotFocus += (_, _) =>
         {
-            textBox.Background = SolidColorBrush.Parse("#3C3C3C");
-            textBox.BorderBrush = SolidColorBrush.Parse("#007ACC");
+            textBox.Background = Scheme.BrushBgPanel2;
+            textBox.BorderBrush = Scheme.BrushTextHighlight2;
         };
 
         textBox.LostFocus += (_, _) =>
         {
-            textBox.Background = textBox.IsPointerOver ? SolidColorBrush.Parse("#2D2D30") : Brushes.Transparent;
+            textBox.Background = textBox.IsPointerOver ? Scheme.BrushBgPanel13 : Brushes.Transparent;
             textBox.BorderBrush = Brushes.Transparent;
         };
     }
@@ -950,7 +962,7 @@ public partial class SettingsWindow : Window
         var btnResetLayout = new Button
         {
             Content = "Layout auf Standard zurücksetzen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
@@ -1018,7 +1030,7 @@ public partial class SettingsWindow : Window
         innerDisplayPanel.Children.Add(new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#333"),
+            Background = Scheme.BrushBgPanel5,
             Margin = new Thickness(0, 10, 0, 10)
         });
         innerDisplayPanel.Children.Add(chkAutoSaveLayout);
@@ -1079,7 +1091,7 @@ public partial class SettingsWindow : Window
         innerContentPanel.Children.Add(new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#333"),
+            Background = Scheme.BrushBgPanel5,
             Margin = new Thickness(0, 15, 0, 15)
         });
 
@@ -1209,7 +1221,7 @@ public partial class SettingsWindow : Window
             Content = "Code generieren",
             Width = 155,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(15, 8)
@@ -1221,7 +1233,7 @@ public partial class SettingsWindow : Window
             Content = "Kurz-Code generieren",
             Width = 185,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            Background = SolidColorBrush.Parse("#32A852"),
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(15, 8)
@@ -1249,9 +1261,9 @@ public partial class SettingsWindow : Window
             IsReadOnly = true,
             Width = 300,
             FontFamily = new FontFamily("Consolas, monospace"),
-            Background = SolidColorBrush.Parse("#1A1A1A"),
-            Foreground = SolidColorBrush.Parse("#007ACC"),
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            Background = Scheme.BrushBgPanel3,
+            Foreground = Scheme.BrushTextHighlight2,
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(6),
             VerticalContentAlignment = VerticalAlignment.Center
         };
@@ -1259,7 +1271,7 @@ public partial class SettingsWindow : Window
         var btnCopyExport = new Button
         {
             Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18),
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Padding = new Thickness(10),
             CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
@@ -1275,7 +1287,7 @@ public partial class SettingsWindow : Window
             string formattedCode = $"AEC-SAVE-{DateTime.Now:dd.MM.yyyy}-{rawCode}";
 
             txtExport.Text = formattedCode;
-            txtExport.Foreground = SolidColorBrush.Parse("#007ACC");
+            txtExport.Foreground = Scheme.BrushTextHighlight2;
             txtExport.FontSize = 14;
             txtExport.FontWeight = FontWeight.Normal;
             txtExport.Width = 300;
@@ -1297,7 +1309,7 @@ public partial class SettingsWindow : Window
             if (shortId != null)
             {
                 txtExport.Text = shortId;
-                txtExport.Foreground = SolidColorBrush.Parse("#32A852"); // green for short code
+                txtExport.Foreground = Scheme.BrushTextTitle; // green for short code
                 txtExport.FontSize = 17;
                 txtExport.FontWeight = FontWeight.Bold;
                 txtExport.Width = 300;
@@ -1327,10 +1339,10 @@ public partial class SettingsWindow : Window
             if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(txtExport.Text))
             {
                 await topLevel.Clipboard.SetTextAsync(txtExport.Text);
-                btnCopyExport.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyExport.Background = Scheme.BrushApprovedBg; // flash green
                 btnCopyExport.Content = _ctx.LoadIcon("assets/icons/ic_success.svg", 18);
                 await Task.Delay(500);
-                btnCopyExport.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyExport.Background = Scheme.BrushBgPanel2;
                 btnCopyExport.Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18);
             }
         };
@@ -1338,7 +1350,7 @@ public partial class SettingsWindow : Window
         var separator = new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#303030"),
+            Background = Scheme.BrushBgPanel16,
             Margin = new Thickness(0, 5, 0, 5)
         };
 
@@ -1355,7 +1367,7 @@ public partial class SettingsWindow : Window
             Width = 300,
             FontFamily = new FontFamily("Consolas, monospace"),
             Background = Brushes.Transparent,
-            BorderBrush = SolidColorBrush.Parse("#555"),
+            BorderBrush = Scheme.BrushBgPanel15,
             CornerRadius = new CornerRadius(4),
             VerticalContentAlignment = VerticalAlignment.Center
         };
@@ -1363,7 +1375,7 @@ public partial class SettingsWindow : Window
         var btnImport = new Button
         {
             Content = _ctx.LoadIcon("assets/icons/ic_load.svg", 18),
-            Background = SolidColorBrush.Parse("#007ACC"),
+            Background = Scheme.BrushTextHighlight2,
             Padding = new Thickness(10),
             CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
@@ -1376,7 +1388,7 @@ public partial class SettingsWindow : Window
         var btnRevert = new Button
         {
             Content = "Letzten Import rückgängig machen",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(15, 8),
@@ -1599,7 +1611,7 @@ public partial class SettingsWindow : Window
                 : _ctx.UpdateAvailable
                     ? $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}"
                     : $"Aktuelle Version: {UpdateManager.CurrentVersion}",
-            Foreground = UpdateManager.IsMaintenanceMode ? Brushes.Orange : (_ctx.UpdateAvailable ? SolidColorBrush.Parse("#32A852") : Brushes.Gray),
+            Foreground = UpdateManager.IsMaintenanceMode ? Brushes.Orange : (_ctx.UpdateAvailable ? Scheme.BrushTextTitle : Brushes.Gray),
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             Margin = new Thickness(0, 10, 0, 10)
         };
@@ -1607,7 +1619,7 @@ public partial class SettingsWindow : Window
         _btnCheckUpdate = new Button
         {
             Content = "Nach Updates suchen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
@@ -1618,7 +1630,7 @@ public partial class SettingsWindow : Window
         _btnUpdateApp = new Button
         {
             Content = "App aktualisieren",
-            Background = SolidColorBrush.Parse("#007ACC"),
+            Background = Scheme.BrushTextHighlight2,
             Foreground = Brushes.White,
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
@@ -1632,8 +1644,8 @@ public partial class SettingsWindow : Window
             Value = 0,
             Height = 10,
             CornerRadius = new CornerRadius(5),
-            Foreground = SolidColorBrush.Parse("#32A852"),
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Foreground = Scheme.BrushTextTitle,
+            Background = Scheme.BrushBgPanel3,
             IsVisible = false,
             Margin = new Thickness(0, 5, 0, 15)
         };
@@ -1696,7 +1708,7 @@ public partial class SettingsWindow : Window
                     _txtVersionInfo.Foreground = Brushes.Orange;
                     _btnUpdateApp.IsEnabled = false;
 
-                    UpdatesBadge.Background = SolidColorBrush.Parse("#B43232");
+                    UpdatesBadge.Background = Scheme.BrushDiffHard;
                     UpdatesBadge.BorderBrush = Brushes.Transparent;
                     if (!UpdatesBadge.Classes.Contains("maintenance-blink"))
                         UpdatesBadge.Classes.Add("maintenance-blink");
@@ -1704,10 +1716,10 @@ public partial class SettingsWindow : Window
                 else
                 {
                     _txtVersionInfo.Text = $"Eine neue Version ist verfügbar: {_ctx.LatestVersion}\nAktuelle Version: {UpdateManager.CurrentVersion}";
-                    _txtVersionInfo.Foreground = SolidColorBrush.Parse("#32A852");
+                    _txtVersionInfo.Foreground = Scheme.BrushTextTitle;
                     _btnUpdateApp.IsEnabled = true;
 
-                    UpdatesBadge.Background = SolidColorBrush.Parse("#32A852");
+                    UpdatesBadge.Background = Scheme.BrushTextTitle;
                     UpdatesBadge.BorderBrush = Brushes.Transparent;
                     UpdatesBadge.Classes.Remove("maintenance-blink");
                 }
@@ -1786,7 +1798,7 @@ public partial class SettingsWindow : Window
         var separator = new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Margin = new Thickness(0, 10, 0, 0)
         };
 
@@ -1830,7 +1842,7 @@ public partial class SettingsWindow : Window
             Width = 40,
             Height = 40,
             CornerRadius = new CornerRadius(20),
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 15, 25, 0),
@@ -1954,14 +1966,14 @@ public partial class SettingsWindow : Window
             titleText += " (Neu)";
 
         // maintenance releases use red, current version uses green, others use default blue
-        string headerColor = isMaintenance ? "#B43232" : (isCurrentVersion ? "#32A852" : "#007ACC");
+        SolidColorBrush headerColor = isMaintenance ? Scheme.BrushDiffHard : (isCurrentVersion ? Scheme.BrushTextTitle : Scheme.BrushTextHighlight2);
 
         var header = new TextBlock
         {
             Text = titleText,
             FontSize = 16,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse(headerColor),
+            Foreground = headerColor,
             Margin = new Thickness(0, 15, 0, 5)
         };
 
@@ -1977,7 +1989,7 @@ public partial class SettingsWindow : Window
         var separator = new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Margin = new Thickness(0, 5, 0, 5)
         };
 
@@ -2172,7 +2184,7 @@ public partial class SettingsWindow : Window
         innerMiscPanel.Children.Add(new Border
         {
             Height = 1,
-            Background = SolidColorBrush.Parse("#333"),
+            Background = Scheme.BrushBgPanel5,
             Margin = new Thickness(0, 10, 0, 10)
         });
         innerMiscPanel.Children.Add(_chkCommunityFeatures);
@@ -2199,7 +2211,7 @@ public partial class SettingsWindow : Window
             Height = 175,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -2233,14 +2245,14 @@ public partial class SettingsWindow : Window
         var btnConfirm = new Button
         {
             Content = "Ja, abmelden",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
@@ -2274,7 +2286,7 @@ public partial class SettingsWindow : Window
         {
             _txtGithubStatus.Text = "Status: Community Features deaktiviert";
             _btnGithubLogin.Content = "Mit GitHub anmelden";
-            _btnGithubLogin.Background = SolidColorBrush.Parse("#2ea043"); // green
+            _btnGithubLogin.Background = Scheme.BrushTextTitle; // green
             return;
         }
 
@@ -2285,13 +2297,13 @@ public partial class SettingsWindow : Window
                 : AppSettings.GithubUsername;
             _txtGithubStatus.Text = $"Status: Angemeldet als {displayName}";
             _btnGithubLogin.Content = "Abmelden";
-            _btnGithubLogin.Background = SolidColorBrush.Parse("#B43232"); // red
+            _btnGithubLogin.Background = Scheme.BrushDiffHard; // red
         }
         else
         {
             _txtGithubStatus.Text = "Status: Nicht angemeldet";
             _btnGithubLogin.Content = "Mit GitHub anmelden";
-            _btnGithubLogin.Background = SolidColorBrush.Parse("#2ea043"); // green
+            _btnGithubLogin.Background = Scheme.BrushTextTitle; // green
         }
     }
 
@@ -2324,7 +2336,7 @@ public partial class SettingsWindow : Window
             Height = 280,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (_, ev) =>
@@ -2355,7 +2367,7 @@ public partial class SettingsWindow : Window
         {
             Text = "GitHub Authentifizierung",
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#2ea043"),
+            Foreground = Scheme.BrushTextTitle,
             FontSize = 18,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -2365,7 +2377,7 @@ public partial class SettingsWindow : Window
             Content = "?",
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             CornerRadius = new CornerRadius(15),
             Width = 24,
             Height = 24,
@@ -2379,7 +2391,7 @@ public partial class SettingsWindow : Window
         // setup ripple effect
         var rippleBorder = new Border
         {
-            Background = SolidColorBrush.Parse("#2ea043"),
+            Background = Scheme.BrushTextTitle,
             CornerRadius = new CornerRadius(15),
             Width = 24,
             Height = 24,
@@ -2437,7 +2449,7 @@ public partial class SettingsWindow : Window
                 Height = 520,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 SystemDecorations = SystemDecorations.BorderOnly,
-                Background = SolidColorBrush.Parse("#252526"),
+                Background = Scheme.BrushTextNormal3,
                 CornerRadius = new CornerRadius(8)
             };
             infoDialog.KeyDown += (s, ev) =>
@@ -2461,7 +2473,7 @@ public partial class SettingsWindow : Window
                 Text = "Transparenz & Datenschutz",
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
-                Foreground = SolidColorBrush.Parse("#2ea043")
+                Foreground = Scheme.BrushTextTitle
             });
 
             contentStack.Children.Add(new TextBlock
@@ -2486,7 +2498,7 @@ public partial class SettingsWindow : Window
 
                 titlePanel.Children.Add(new Border
                 {
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     CornerRadius = new CornerRadius(12),
                     Width = 24,
                     Height = 24,
@@ -2512,7 +2524,7 @@ public partial class SettingsWindow : Window
                 titlePanel.Children.Add(new TextBlock
                 {
                     Text = $"({code})",
-                    Foreground = SolidColorBrush.Parse("#888888"),
+                    Foreground = Scheme.BrushBgPanel12,
                     FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center
                 });
@@ -2522,7 +2534,7 @@ public partial class SettingsWindow : Window
                 var descText = new TextBlock
                 {
                     Text = desc,
-                    Foreground = SolidColorBrush.Parse("#CCCCCC"),
+                    Foreground = Scheme.BrushTextNormal7,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(34, 0, 0, 0),
                     LineHeight = 18
@@ -2537,8 +2549,8 @@ public partial class SettingsWindow : Window
 
             var promiseCard = new Border
             {
-                Background = SolidColorBrush.Parse("#1A1E1C"),
-                BorderBrush = SolidColorBrush.Parse("#2ea043"),
+                Background = Scheme.BrushBgPanel7,
+                BorderBrush = Scheme.BrushTextTitle,
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 Padding = new Thickness(15),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -2552,7 +2564,7 @@ public partial class SettingsWindow : Window
             {
                 Text = "Unser Versprechen",
                 FontWeight = FontWeight.Bold,
-                Foreground = SolidColorBrush.Parse("#2ea043"),
+                Foreground = Scheme.BrushTextTitle,
                 FontSize = 15
             });
 
@@ -2582,7 +2594,7 @@ public partial class SettingsWindow : Window
                 Content = new TextBlock
                 {
                     Text = repoUrl,
-                    Foreground = SolidColorBrush.Parse("#6495ED"),
+                    Foreground = Scheme.BrushTextHighlight,
                     TextDecorations = TextDecorations.Underline,
                     TextWrapping = TextWrapping.Wrap
                 }
@@ -2633,7 +2645,7 @@ public partial class SettingsWindow : Window
             var btnCloseInfo = new Button
             {
                 Content = "Verstanden",
-                Background = SolidColorBrush.Parse("#2ea043"),
+                Background = Scheme.BrushTextTitle,
                 Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4),
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -2676,9 +2688,9 @@ public partial class SettingsWindow : Window
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             IsReadOnly = true,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
-            Foreground = SolidColorBrush.Parse("#007ACC"),
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            Background = Scheme.BrushBgPanel3,
+            Foreground = Scheme.BrushTextHighlight2,
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(6),
             Padding = new Thickness(8, 4),
             Margin = new Thickness(0, 10, 0, 10)
@@ -2687,7 +2699,7 @@ public partial class SettingsWindow : Window
         var btnCopyCode = new Button
         {
             Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18),
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Padding = new Thickness(10),
             CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
@@ -2699,10 +2711,10 @@ public partial class SettingsWindow : Window
             if (topLevel?.Clipboard != null)
             {
                 await topLevel.Clipboard.SetTextAsync(userCode);
-                btnCopyCode.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyCode.Background = Scheme.BrushApprovedBg; // flash green
                 btnCopyCode.Content = _ctx.LoadIcon("assets/icons/ic_success.svg", 18);
                 await Task.Delay(500);
-                btnCopyCode.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyCode.Background = Scheme.BrushBgPanel2;
                 btnCopyCode.Content = _ctx.LoadIcon("assets/icons/ic_copy.svg", 18);
             }
         };
@@ -2725,14 +2737,14 @@ public partial class SettingsWindow : Window
         var btnOpenBrowser = new Button
         {
             Content = "Im Browser öffnen",
-            Background = SolidColorBrush.Parse("#2ea043"),
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };

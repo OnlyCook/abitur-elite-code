@@ -65,35 +65,35 @@ public class TextMarkerService : IBackgroundRenderer
         if (_markers == null || !textView.VisualLinesValid) return;
 
         foreach (VisualLine line in textView.VisualLines)
-        foreach (TextMarker marker in _markers.FindOverlappingSegments(line.FirstDocumentLine.Offset,
-                     line.LastDocumentLine.EndOffset))
-        foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, marker))
-        {
-            var startPoint = rect.BottomLeft;
-            var endPoint = rect.BottomRight;
-
-            var pen = new Pen(new SolidColorBrush(marker.MarkerColor));
-
-            // draw swirly line
-            var geometry = new StreamGeometry();
-            using (var ctx = geometry.Open())
-            {
-                ctx.BeginFigure(startPoint, false);
-                double x = startPoint.X;
-                double y = startPoint.Y;
-                double squiggleHeight = 2.5;
-
-                while (x < endPoint.X)
+            foreach (TextMarker marker in _markers.FindOverlappingSegments(line.FirstDocumentLine.Offset,
+                         line.LastDocumentLine.EndOffset))
+                foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, marker))
                 {
-                    x += 2;
-                    ctx.LineTo(new Point(x, y - squiggleHeight));
-                    x += 2;
-                    ctx.LineTo(new Point(x, y));
-                }
-            }
+                    var startPoint = rect.BottomLeft;
+                    var endPoint = rect.BottomRight;
 
-            drawingContext.DrawGeometry(null, pen, geometry);
-        }
+                    var pen = new Pen(new SolidColorBrush(marker.MarkerColor));
+
+                    // draw swirly line
+                    var geometry = new StreamGeometry();
+                    using (var ctx = geometry.Open())
+                    {
+                        ctx.BeginFigure(startPoint, false);
+                        double x = startPoint.X;
+                        double y = startPoint.Y;
+                        double squiggleHeight = 2.5;
+
+                        while (x < endPoint.X)
+                        {
+                            x += 2;
+                            ctx.LineTo(new Point(x, y - squiggleHeight));
+                            x += 2;
+                            ctx.LineTo(new Point(x, y));
+                        }
+                    }
+
+                    drawingContext.DrawGeometry(null, pen, geometry);
+                }
     }
 
     public KnownLayer Layer => KnownLayer.Selection;
@@ -106,7 +106,11 @@ public class TextMarkerService : IBackgroundRenderer
 
     public void Add(int offset, int length, Color color, string message = null)
     {
-        _markers.Add(new TextMarker(offset, length) { MarkerColor = color, Message = message });
+        _markers.Add(new TextMarker(offset, length)
+        {
+            MarkerColor = color,
+            Message = message
+        });
     }
 
     public void Clear()
@@ -162,7 +166,7 @@ public class UnusedCodeTransformer : DocumentColorizingTransformer
             ChangeLinePart(start, end,
                 element =>
                 {
-                    element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#60D4D4D4")));
+                    element.TextRunProperties.SetForegroundBrush(Scheme.BrushEditorUnusedCode);
                 });
         }
     }
@@ -177,7 +181,7 @@ public class EscapeSequenceTransformer : DocumentColorizingTransformer
         new(@"\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{1,4}|[0-7]{1,3}|[""\\\0abfnrtvN])",
             RegexOptions.Compiled);
 
-    private static readonly SolidColorBrush EscapeBrush = new(Color.Parse("#D7BA7D"));
+    private static readonly SolidColorBrush EscapeBrush = Scheme.BrushEditorEscapeSequence;
 
     protected override void ColorizeLine(DocumentLine line)
     {
@@ -341,7 +345,7 @@ public class GhostCharacterTransformer : DocumentColorizingTransformer
                     // skip autocompletion
                     if (element is GhostTextElement || element.DocumentLength == 0) return;
 
-                    element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#66D4D4D4")));
+                    element.TextRunProperties.SetForegroundBrush(Scheme.BrushEditorUnusedCode2);
                 });
         }
     }
@@ -357,8 +361,8 @@ public class IndentationGuideRenderer : IBackgroundRenderer
     {
         _editor = editor;
 
-        _guidePen = new Pen(new SolidColorBrush(Color.Parse("#3E3E42")));
-        _activeGuidePen = new Pen(new SolidColorBrush(Color.Parse("#A0A0A0")));
+        _guidePen = new Pen(Scheme.BrushBgPanel17);
+        _activeGuidePen = new Pen(Scheme.BrushEditorGray63);
     }
 
     public KnownLayer Layer => KnownLayer.Background;
@@ -516,8 +520,8 @@ public class BracketHighlightRenderer : IBackgroundRenderer
     public BracketHighlightRenderer(TextEditor editor)
     {
         _editor = editor;
-        _highlightBrush = new SolidColorBrush(Color.Parse("#33007ACC")); // faint blue background
-        _highlightPen = new Pen(new SolidColorBrush(Color.Parse("#007ACC"))); // blue border
+        _highlightBrush = Scheme.BrushEditorSelectionFaded; // faint blue background
+        _highlightPen = new Pen(Scheme.BrushTextHighlight2); // blue border
     }
 
     public KnownLayer Layer => KnownLayer.Selection;
@@ -1024,8 +1028,8 @@ public class AutocompleteService
             else if (expectColumn)
             {
                 foreach (var cols in _sqlSchema.Values)
-                foreach (var col in cols)
-                    possibleMatches.Add(col);
+                    foreach (var col in cols)
+                        possibleMatches.Add(col);
 
                 foreach (var table in _sqlSchema.Keys)
                     if (!isAliased(table))
@@ -1042,8 +1046,8 @@ public class AutocompleteService
                         possibleMatches.Add(table);
                 foreach (var alias in _sqlAliases.Keys) possibleMatches.Add(alias);
                 foreach (var cols in _sqlSchema.Values)
-                foreach (var col in cols)
-                    possibleMatches.Add(col);
+                    foreach (var col in cols)
+                        possibleMatches.Add(col);
                 foreach (var t in _allLocals)
                     if (!isAliased(t))
                         possibleMatches.Add(t);
@@ -1314,7 +1318,7 @@ public class GhostTextElement : VisualLineElement
 
     public override TextRun CreateTextRun(int visualColumn, ITextRunConstructionContext context)
     {
-        TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#808080")));
+        TextRunProperties.SetForegroundBrush(Scheme.BrushEditorGray50);
         TextRunProperties.SetTypeface(new Typeface(_editor.FontFamily, FontStyle.Italic, _editor.FontWeight));
 
         return new TextCharacters(_text, TextRunProperties);
@@ -1323,44 +1327,57 @@ public class GhostTextElement : VisualLineElement
 
 internal class CsharpCodeEditor
 {
+    private static string Hex(SolidColorBrush brush) =>
+        $"#{brush.Color.R:X2}{brush.Color.G:X2}{brush.Color.B:X2}";
+
     public static IHighlightingDefinition GetDarkCsharpHighlighting()
     {
-        string xshd =
-            @"
+        string comment = Hex(Scheme.BrushSqlComment);
+        string str = Hex(Scheme.BrushSqlString);
+        string preproc = Hex(Scheme.BrushEditorGray61);
+        string punct = Hex(Scheme.BrushTextNormal6);
+        string keyword = Hex(Scheme.BrushSqlKeyword);
+        string method = Hex(Scheme.BrushMarkdownInlineCode);
+        string number = Hex(Scheme.BrushSqlNumber);
+        string kwPurple = Hex(Scheme.BrushEditorPurpleKeyword);
+        string semType = Hex(Scheme.BrushSqlType);
+        string todoGray = Hex(Scheme.BrushEditorGray60);
+
+        string xshd = $@"
 <SyntaxDefinition name=""C# Dark"" extensions="".cs"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
-	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""// comment"" />
-	<Color name=""String"" foreground=""#CE9178"" exampleText=""string text = &quot;Hello&quot;"" />
-    <Color name=""Char"" foreground=""#CE9178"" exampleText=""char linefeed = '\n';"" />
-	<Color name=""Preprocessor"" foreground=""#9B9B9B"" exampleText=""#region Title"" />
-	<Color name=""Punctuation"" foreground=""#D4D4D4"" exampleText=""a(b.c);"" />
-	<Color name=""ValueTypeKeywords"" foreground=""#569CD6"" exampleText=""bool b = true;"" />
-	<Color name=""ReferenceTypeKeywords"" foreground=""#569CD6"" exampleText=""object o;"" />
-	<Color name=""MethodCall"" foreground=""#DCDCAA"" exampleText=""o.ToString();""/>
-	<Color name=""NumberLiteral"" foreground=""#B5CEA8"" exampleText=""3.1415f""/>
-	<Color name=""ThisOrBaseReference"" foreground=""#569CD6"" exampleText=""this.Do(); base.Do();""/>
-	<Color name=""NullOrValueKeywords"" foreground=""#569CD6"" exampleText=""if (value == null)""/>
-	<Color name=""Keywords"" foreground=""#C586C0"" exampleText=""if (a) {} else {}""/>
-	<Color name=""GotoKeywords"" foreground=""#C586C0"" exampleText=""continue; return;""/>
-	<Color name=""ContextKeywords"" foreground=""#569CD6"" exampleText=""var a = from x in y select z;""/>
-	<Color name=""ExceptionKeywords"" foreground=""#C586C0"" exampleText=""try {} catch {} finally {}""/>
-	<Color name=""CheckedKeyword"" foreground=""#569CD6"" exampleText=""checked {}""/>
-	<Color name=""UnsafeKeywords"" foreground=""#569CD6"" exampleText=""unsafe { fixed (..) {} }"" />
-	<Color name=""OperatorKeywords"" foreground=""#569CD6"" exampleText=""public static implicit operator..."" />
-	<Color name=""ParameterModifiers"" foreground=""#569CD6"" exampleText=""(ref int a, params int[] b)"" />
-	<Color name=""Modifiers"" foreground=""#569CD6"" exampleText=""public static override"" />
-	<Color name=""Visibility"" foreground=""#569CD6"" exampleText=""public internal"" />
-	<Color name=""NamespaceKeywords"" foreground=""#569CD6"" exampleText=""namespace A.B { using System; }"" />
-	<Color name=""GetSetAddRemove"" foreground=""#569CD6"" exampleText=""int Prop { get; set; }"" />
-	<Color name=""TrueFalse"" foreground=""#569CD6"" exampleText=""b = false; a = true;"" />
-	<Color name=""TypeKeywords"" foreground=""#569CD6"" exampleText=""if (x is int) { a = x as int; type = typeof(int); size = sizeof(int); c = new object(); }"" />
-    <Color name=""SemanticType"" foreground=""#4EC9B0"" exampleText=""List&lt;int&gt; list;"" />
+	<Color name=""Comment"" foreground=""{comment}"" exampleText=""// comment"" />
+	<Color name=""String"" foreground=""{str}"" exampleText=""string text = &quot;Hello&quot;"" />
+    <Color name=""Char"" foreground=""{str}"" exampleText=""char linefeed = '\n';"" />
+	<Color name=""Preprocessor"" foreground=""{preproc}"" exampleText=""#region Title"" />
+	<Color name=""Punctuation"" foreground=""{punct}"" exampleText=""a(b.c);"" />
+	<Color name=""ValueTypeKeywords"" foreground=""{keyword}"" exampleText=""bool b = true;"" />
+	<Color name=""ReferenceTypeKeywords"" foreground=""{keyword}"" exampleText=""object o;"" />
+	<Color name=""MethodCall"" foreground=""{method}"" exampleText=""o.ToString();""/>
+	<Color name=""NumberLiteral"" foreground=""{number}"" exampleText=""3.1415f""/>
+	<Color name=""ThisOrBaseReference"" foreground=""{keyword}"" exampleText=""this.Do(); base.Do();""/>
+	<Color name=""NullOrValueKeywords"" foreground=""{keyword}"" exampleText=""if (value == null)""/>
+	<Color name=""Keywords"" foreground=""{kwPurple}"" exampleText=""if (a) {{}} else {{}}""/>
+	<Color name=""GotoKeywords"" foreground=""{kwPurple}"" exampleText=""continue; return;""/>
+	<Color name=""ContextKeywords"" foreground=""{keyword}"" exampleText=""var a = from x in y select z;""/>
+	<Color name=""ExceptionKeywords"" foreground=""{kwPurple}"" exampleText=""try {{}} catch {{}} finally {{}}""/>
+	<Color name=""CheckedKeyword"" foreground=""{keyword}"" exampleText=""checked {{}}""/>
+	<Color name=""UnsafeKeywords"" foreground=""{keyword}"" exampleText=""unsafe {{ fixed (..) {{}} }}"" />
+	<Color name=""OperatorKeywords"" foreground=""{keyword}"" exampleText=""public static implicit operator..."" />
+	<Color name=""ParameterModifiers"" foreground=""{keyword}"" exampleText=""(ref int a, params int[] b)"" />
+	<Color name=""Modifiers"" foreground=""{keyword}"" exampleText=""public static override"" />
+	<Color name=""Visibility"" foreground=""{keyword}"" exampleText=""public internal"" />
+	<Color name=""NamespaceKeywords"" foreground=""{keyword}"" exampleText=""namespace A.B {{ using System; }}"" />
+	<Color name=""GetSetAddRemove"" foreground=""{keyword}"" exampleText=""int Prop {{ get; set; }}"" />
+	<Color name=""TrueFalse"" foreground=""{keyword}"" exampleText=""b = false; a = true;"" />
+	<Color name=""TypeKeywords"" foreground=""{keyword}"" exampleText=""if (x is int) {{ a = x as int; type = typeof(int); size = sizeof(int); c = new object(); }}"" />
+    <Color name=""SemanticType"" foreground=""{semType}"" exampleText=""List&lt;int&gt; list;"" />
 
 	<RuleSet name=""CommentMarkerSet"">
-		<Keywords fontWeight=""bold"" foreground=""#969696"">
+		<Keywords fontWeight=""bold"" foreground=""{todoGray}"">
 			<Word>TODO</Word>
 			<Word>FIXME</Word>
 		</Keywords>
-		<Keywords fontWeight=""bold"" foreground=""#969696"">
+		<Keywords fontWeight=""bold"" foreground=""{todoGray}"">
 			<Word>HACK</Word>
 			<Word>UNDONE</Word>
 		</Keywords>
@@ -1577,11 +1594,11 @@ internal class CsharpCodeEditor
             <Begin>\$""</Begin>
             <End>""</End>
             <RuleSet>
-                <Span begin=""\{\{"" end=""""/>
+                <Span begin=""\{{"" end=""""/>
                 <Span begin=""}}"" end=""""/>
                 <Span color=""Punctuation"">
-                    <Begin>\{</Begin>
-                    <End>}</End>
+                    <Begin>\{{</Begin>
+                    <End>}}</End>
                     <RuleSet>
                         <Import ruleSet=""CSharpCode""/>
                     </RuleSet>
@@ -1720,7 +1737,7 @@ public class SemanticClassHighlightingTransformer : DocumentColorizingTransforme
                     ChangeLinePart(lineStart + match.Index, lineStart + match.Index + match.Length,
                         element =>
                         {
-                            element.TextRunProperties.SetForegroundBrush(new SolidColorBrush(Color.Parse("#4EC9B0")));
+                            element.TextRunProperties.SetForegroundBrush(Scheme.BrushSqlType);
                         });
             }
     }
@@ -1734,7 +1751,7 @@ public class SpaceTabIndicatorRenderer : IBackgroundRenderer
     public SpaceTabIndicatorRenderer(TextEditor editor)
     {
         _editor = editor;
-        _indicatorPen = new Pen(new SolidColorBrush(Color.Parse("#30FFFFFF")), 1.5);
+        _indicatorPen = new Pen(Scheme.BrushEditorWhiteAlpha30, 1.5);
     }
 
     public KnownLayer Layer => KnownLayer.Background;
@@ -1785,8 +1802,8 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
     public SelectionHighlightRenderer(TextEditor editor)
     {
         _editor = editor;
-        _highlightBrush = new SolidColorBrush(Color.Parse("#35FFFFFF"));
-        _mainSelectionBrush = new SolidColorBrush(Color.Parse("#264F78"));
+        _highlightBrush = Scheme.BrushEditorWhiteAlpha35;
+        _mainSelectionBrush = Scheme.BrushEditorSelection;
 
         _editor.TextArea.SelectionChanged += (s, e) =>
         {
@@ -2163,7 +2180,7 @@ public class VimBlockCaretRenderer : IBackgroundRenderer
     public VimBlockCaretRenderer(TextEditor editor)
     {
         _editor = editor;
-        _brush = new SolidColorBrush(Color.Parse("#88FFFFFF"));
+        _brush = Scheme.BrushEditorVimCaret;
     }
 
     public bool IsEnabled { get; set; } = false;

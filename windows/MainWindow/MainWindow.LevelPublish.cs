@@ -101,7 +101,7 @@ public partial class MainWindow
             Height = 450,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#202124"),
+            Background = Scheme.BrushBgPanel,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -120,7 +120,7 @@ public partial class MainWindow
             Text = isEditMode ? "Veröffentlichtes Level Bearbeiten" : "Level Veröffentlichen",
             FontSize = 22,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#1c9c9c")
+            Foreground = Scheme.BrushGlobalFg
         });
         contentStack.Children.Add(new TextBlock
         {
@@ -151,7 +151,7 @@ public partial class MainWindow
         {
             Text = defaultTitle,
             MaxLength = 100,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White
         };
         txtTitle.TextChanged += (s, e) => isDirty = true;
@@ -171,7 +171,7 @@ public partial class MainWindow
         {
             Text = AppSettings.GithubUsername,
             IsReadOnly = true,
-            Background = SolidColorBrush.Parse("#111111"),
+            Background = Scheme.BrushBgPanel11,
             Foreground = Brushes.Gray,
             Margin = new Thickness(0, 15, 0, 0)
         };
@@ -191,7 +191,7 @@ public partial class MainWindow
         Grid.SetRow(lblDiff, 2);
         var cmbDiff = new ComboBox
         {
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
             Margin = new Thickness(0, 15, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Stretch
@@ -229,7 +229,7 @@ public partial class MainWindow
         {
             Watermark = "Keine Tags ausgewählt",
             IsReadOnly = true,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.Gray
         };
         Grid.SetColumn(txtTags, 0);
@@ -247,7 +247,7 @@ public partial class MainWindow
         var btnTags = new Button
         {
             Content = "Tags wählen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             Margin = new Thickness(10, 0, 0, 0),
@@ -268,7 +268,7 @@ public partial class MainWindow
                 Height = 450,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 SystemDecorations = SystemDecorations.BorderOnly,
-                Background = SolidColorBrush.Parse("#252526"),
+                Background = Scheme.BrushTextNormal3,
                 CornerRadius = new CornerRadius(8)
             };
 
@@ -336,7 +336,7 @@ public partial class MainWindow
             {
                 Content = "Übernehmen",
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Background = SolidColorBrush.Parse("#1d8080"),
+                Background = Scheme.BrushGlobalBg,
                 Foreground = Brushes.White,
                 Margin = new Thickness(0, 15, 0, 0),
                 CornerRadius = new CornerRadius(4)
@@ -376,7 +376,7 @@ public partial class MainWindow
         var lnkCommunity = new TextBlock
         {
             Text = "Community-Richtlinien",
-            Foreground = SolidColorBrush.Parse("#6495ED"),
+            Foreground = Scheme.BrushTextHighlight,
             TextDecorations = TextDecorations.Underline,
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
             Margin = new Thickness(0, 0, 4, 0)
@@ -446,7 +446,7 @@ public partial class MainWindow
             var btnDelete = new Button
             {
                 Content = "Level löschen",
-                Background = SolidColorBrush.Parse("#B43232"),
+                Background = Scheme.BrushDiffHard,
                 Foreground = Brushes.White,
                 CornerRadius = new CornerRadius(4)
             };
@@ -461,7 +461,7 @@ public partial class MainWindow
                     Height = 205,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     SystemDecorations = SystemDecorations.BorderOnly,
-                    Background = SolidColorBrush.Parse("#252526"),
+                    Background = Scheme.BrushTextNormal3,
                     CornerRadius = new CornerRadius(8)
                 };
 
@@ -481,7 +481,7 @@ public partial class MainWindow
 
                 var txtConfirm = new TextBox
                 {
-                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    Background = Scheme.BrushBgPanel3,
                     Foreground = Brushes.White,
                     Margin = new Thickness(0, 15, 0, 15)
                 };
@@ -499,14 +499,14 @@ public partial class MainWindow
                 var btnCancelDel = new Button
                 {
                     Content = "Abbrechen",
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     Foreground = Brushes.White,
                     CornerRadius = new CornerRadius(4)
                 };
                 var btnConfirmDel = new Button
                 {
                     Content = "Endgültig Löschen",
-                    Background = SolidColorBrush.Parse("#B43232"),
+                    Background = Scheme.BrushDiffHard,
                     Foreground = Brushes.White,
                     CornerRadius = new CornerRadius(4),
                     IsEnabled = false
@@ -638,14 +638,14 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4)
         };
         var btnPublish = new Button
         {
             Content = isEditMode ? "Aktualisieren" : "Veröffentlichen",
-            Background = SolidColorBrush.Parse("#1d8080"),
+            Background = Scheme.BrushGlobalBg,
             Foreground = Brushes.White,
             CornerRadius = new CornerRadius(4),
             IsEnabled = false
@@ -665,7 +665,7 @@ public partial class MainWindow
                     Height = 130,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     SystemDecorations = SystemDecorations.BorderOnly,
-                    Background = SolidColorBrush.Parse("#252526"),
+                    Background = Scheme.BrushTextNormal3,
                     CornerRadius = new CornerRadius(8)
                 };
                 var dGrid = new Grid
@@ -690,13 +690,13 @@ public partial class MainWindow
                 var btnYes = new Button
                 {
                     Content = "Ja",
-                    Background = SolidColorBrush.Parse("#B43232"),
+                    Background = Scheme.BrushDiffHard,
                     Foreground = Brushes.White
                 };
                 var btnNo = new Button
                 {
                     Content = "Nein",
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     Foreground = Brushes.White
                 };
                 btnYes.Click += (_, __) =>
@@ -1019,7 +1019,7 @@ public partial class MainWindow
             Height = 280,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
 
@@ -1035,7 +1035,7 @@ public partial class MainWindow
             Text = "Upload-Limit erreicht",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = SolidColorBrush.Parse("#FF5555")
+            Foreground = Scheme.BrushDeniedFg
         });
         stack.Children.Add(new TextBlock
         {
@@ -1050,16 +1050,16 @@ public partial class MainWindow
             AcceptsReturn = true,
             MaxHeight = 80,
             Height = 80,
-            Background = SolidColorBrush.Parse("#1A1A1A"),
+            Background = Scheme.BrushBgPanel3,
             Foreground = Brushes.White,
-            BorderBrush = SolidColorBrush.Parse("#333"),
+            BorderBrush = Scheme.BrushBgPanel5,
             CornerRadius = new CornerRadius(4)
         };
         stack.Children.Add(txtMessage);
 
         var txtError = new TextBlock
         {
-            Foreground = SolidColorBrush.Parse("#FF5555"),
+            Foreground = Scheme.BrushDeniedFg,
             FontWeight = FontWeight.SemiBold,
             IsVisible = false,
             TextWrapping = TextWrapping.Wrap
@@ -1076,12 +1076,12 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C")
+            Background = Scheme.BrushBgPanel2
         };
         var btnSend = new Button
         {
             Content = "Beantragen",
-            Background = SolidColorBrush.Parse("#007ACC")
+            Background = Scheme.BrushTextHighlight2
         };
 
         btnCancel.Click += (s, e) => dialog.Close();

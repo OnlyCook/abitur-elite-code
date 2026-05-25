@@ -4,12 +4,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        xmlns:local="clr-namespace:AbiturEliteCode;assembly=AbiturEliteCode"
         mc:Ignorable="d" d:DesignWidth="1250" d:DesignHeight="850"
         x:Class="AbiturEliteCode.MainWindow"
         Title="Abitur Elite Code"
         Width="1250" Height="850"
         WindowStartupLocation="CenterScreen"
-        Background="#121212"
+        Background="{x:Static local:Scheme.BrushBgPanel19}"
         RequestedThemeVariant="Dark">
 
 	<Window.Styles>
@@ -22,7 +23,7 @@
 		<!-- tabs -->
 		<Style Selector="TabItem">
 			<Setter Property="FontSize" Value="15" />
-			<Setter Property="Foreground" Value="#CCCCCC" />
+			<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextNormal7}" />
 			<Setter Property="Margin" Value="0,2,2,2" />
 			<Setter Property="Background" Value="Transparent" />
 			<Setter Property="VerticalAlignment" Value="Center" />
@@ -44,20 +45,20 @@
 		</Style>
 
 		<Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
-			<Setter Property="Background" Value="#2D2D30" />
+			<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel13}" />
 		</Style>
 		<Style Selector="TabItem:pointerover">
-			<Setter Property="Foreground" Value="#CCCCCC" />
+			<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextNormal7}" />
 		</Style>
 
 		<Style Selector="TabItem:selected">
-			<Setter Property="Foreground" Value="#32A852" />
+			<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextTitle}" />
 			<Setter Property="FontWeight" Value="SemiBold" />
 			<Setter Property="Margin" Value="0,2,2,2" />
 		</Style>
 
 		<Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
-			<Setter Property="Background" Value="#202124" />
+			<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel}" />
 			<Setter Property="CornerRadius" Value="8" />
 			<Setter Property="Padding" Value="16,13" />
 		</Style>
@@ -72,10 +73,10 @@
 		</Style>
 
 		<Style Selector="TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-			<Setter Property="Background" Value="#202124" />
+			<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel}" />
 		</Style>
 		<Style Selector="TabItem:selected:pointerover">
-			<Setter Property="Foreground" Value="#32A852" />
+			<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextTitle}" />
 		</Style>
 
 		<!-- grid splitters -->
@@ -86,8 +87,8 @@
 			<Setter Property="Template">
 				<ControlTemplate>
 					<Grid Background="Transparent">
-						<Border Name="HoverLine" Background="#32A852" Width="2" HorizontalAlignment="Center" Opacity="0" />
-						<Border Name="Handle" Background="#555555" Width="2" Height="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+						<Border Name="HoverLine" Background="{x:Static local:Scheme.BrushTextTitle}" Width="2" HorizontalAlignment="Center" Opacity="0" />
+						<Border Name="Handle" Background="{x:Static local:Scheme.BrushTextNormal2}" Width="2" Height="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
 					</Grid>
 				</ControlTemplate>
 			</Setter>
@@ -100,8 +101,8 @@
 			<Setter Property="Template">
 				<ControlTemplate>
 					<Grid Background="Transparent">
-						<Border Name="HoverLine" Background="#32A852" Height="2" VerticalAlignment="Center" Opacity="0" />
-						<Border Name="Handle" Background="#555555" Height="2" Width="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+						<Border Name="HoverLine" Background="{x:Static local:Scheme.BrushTextTitle}" Height="2" VerticalAlignment="Center" Opacity="0" />
+						<Border Name="Handle" Background="{x:Static local:Scheme.BrushTextNormal2}" Height="2" Width="30" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
 					</Grid>
 				</ControlTemplate>
 			</Setter>
@@ -164,7 +165,7 @@
 		
 		<!-- editor border -->
 		<Style Selector="Border.editor-focus-border">
-			<Setter Property="BorderBrush" Value="#333" />
+			<Setter Property="BorderBrush" Value="{x:Static local:Scheme.BrushBgPanel5}" />
 			<Setter Property="Transitions">
 				<Transitions>
 					<BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
@@ -172,7 +173,7 @@
 			</Setter>
 		</Style>
 		<Style Selector="Border.editor-focus-border:focus-within">
-			<Setter Property="BorderBrush" Value="#007ACC" />
+			<Setter Property="BorderBrush" Value="{x:Static local:Scheme.BrushTextHighlight2}" />
 		</Style>
 	</Window.Styles>
 
@@ -180,36 +181,36 @@
 		<Grid>
 			<Grid Name="RootGrid" RowDefinitions="60,*">
 
-				<Border Grid.Row="0" Background="#202124" BorderBrush="#333" BorderThickness="0,0,0,1">
+				<Border Grid.Row="0" Background="{x:Static local:Scheme.BrushBgPanel}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="0,0,0,1">
 					<Grid ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
 						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="30,0">
-							<TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="18" />
-							<TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="18" />
+							<TextBlock Text="ABITUR" Foreground="{x:Static local:Scheme.BrushTextNormal}" FontWeight="Bold" FontSize="18" />
+							<TextBlock Text=" ELITE CODE" Foreground="{x:Static local:Scheme.BrushTextTitle}" FontWeight="Bold" FontSize="18" />
 						</StackPanel>
 
 						<Button Grid.Column="1" Name="BtnModeSwitch" Content="MODUS: C#"
-								Background="#202124" Foreground="#6495ED"
-								BorderBrush="#6495ED" BorderThickness="1"
+								Background="{x:Static local:Scheme.BrushBgPanel}" Foreground="{x:Static local:Scheme.BrushTextHighlight}"
+								BorderBrush="{x:Static local:Scheme.BrushTextHighlight}" BorderThickness="1"
 								CornerRadius="4" Padding="15,8"
 								VerticalAlignment="Center" Margin="0,0,20,0"
 								FontWeight="Bold"
 								Click="BtnModeSwitch_Click" />
 
 						<Button Grid.Column="2" Name="BtnLevelSelect" Content="LEVEL WÄHLEN"
-								Background="#2D2D30" Foreground="White"
+								Background="{x:Static local:Scheme.BrushBgPanel13}" Foreground="White"
 								CornerRadius="4" Padding="15,8"
 								VerticalAlignment="Center" Margin="0,0,5,0"
 								Click="BtnLevelSelect_Click" />
 
 						<Button Grid.Column="3" Name="BtnCustomLevelReturn" IsVisible="false"
-								Background="#2D2D30" ToolTip.Tip="Eigenes Level gespeichert verlassen"
+								Background="{x:Static local:Scheme.BrushBgPanel13}" ToolTip.Tip="Eigenes Level gespeichert verlassen"
 								CornerRadius="4" VerticalAlignment="Center" Margin="0,0,20,0"
 								Click="BtnCustomLevelReturn_Click">
 							<svg:Svg Path="/assets/icons/ic_return.svg" Width="20" Height="20" />
 						</Button>
 						
 						<Button Grid.Column="4" Name="BtnPrevLevel" Content="←"
-								Background="#333" Foreground="White"
+								Background="{x:Static local:Scheme.BrushBgPanel5}" Foreground="White"
 								CornerRadius="4" Padding="15,8" FontWeight="Bold"
 								VerticalAlignment="Center" Margin="0,0,10,0"
 								Click="BtnPrevLevel_Click" />
@@ -221,7 +222,7 @@
 								Click="BtnNextLevel_Click" />
 
 						<Button Grid.Column="6" Name="BtnExitDesigner" Content="DESIGNER VERLASSEN"
-								Background="#B43232" Foreground="White" IsVisible="False"
+								Background="{x:Static local:Scheme.BrushDiffHard}" Foreground="White" IsVisible="False"
 								CornerRadius="4" Padding="15,8" FontWeight="Bold"
 								VerticalAlignment="Center" Margin="0,0,20,0"
 								Click="BtnExitDesigner_Click" />
@@ -235,7 +236,7 @@
 							<TabControl.Styles>
 								<Style Selector="TabItem">
 									<Setter Property="FontSize" Value="15" />
-									<Setter Property="Foreground" Value="#CCCCCC" />
+									<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextNormal7}" />
 									<Setter Property="Margin" Value="0,2,2,2" />
 									<Setter Property="Background" Value="Transparent" />
 									<Setter Property="VerticalAlignment" Value="Center" />
@@ -257,20 +258,20 @@
 								</Style>
 
 								<Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
-									<Setter Property="Background" Value="#2D2D30" />
+									<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel13}" />
 								</Style>
 								<Style Selector="TabItem:pointerover">
-									<Setter Property="Foreground" Value="#CCCCCC" />
+									<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextNormal7}" />
 								</Style>
 
 								<Style Selector="TabItem:selected">
-									<Setter Property="Foreground" Value="#32A852" />
+									<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextTitle}" />
 									<Setter Property="FontWeight" Value="SemiBold" />
 									<Setter Property="Margin" Value="0,2,2,2" />
 								</Style>
 
 								<Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
-									<Setter Property="Background" Value="#202124" />
+									<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel}" />
 									<Setter Property="CornerRadius" Value="8" />
 									<Setter Property="Padding" Value="16,13" />
 								</Style>
@@ -285,15 +286,15 @@
 								</Style>
 
 								<Style Selector="TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-									<Setter Property="Background" Value="#202124" />
+									<Setter Property="Background" Value="{x:Static local:Scheme.BrushBgPanel}" />
 								</Style>
 								<Style Selector="TabItem:selected:pointerover">
-									<Setter Property="Foreground" Value="#32A852" />
+									<Setter Property="Foreground" Value="{x:Static local:Scheme.BrushTextTitle}" />
 								</Style>
 							</TabControl.Styles>
 
 							<TabItem Name="TabTask" Header="Aufgabe">
-								<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
+								<Border Background="{x:Static local:Scheme.BrushBgPanel}" CornerRadius="8" Margin="0" ClipToBounds="True">
 									<Grid RowDefinitions="*, Auto">
 
 										<ScrollViewer Grid.Row="0" Name="TaskScrollViewer" ScrollChanged="TaskScrollViewer_ScrollChanged">
@@ -302,12 +303,12 @@
 												<StackPanel Name="PnlTaskRelationalModel" Spacing="10" Margin="0,20,0,0" />
 
 												<StackPanel Name="PnlCommentsSection" IsVisible="False" Margin="0,40,0,0">
-													<Separator Background="#333" Margin="0,0,0,20" />
+													<Separator Background="{x:Static local:Scheme.BrushBgPanel5}" Margin="0,0,0,20" />
 													<Grid ColumnDefinitions="*, Auto" Margin="0,0,0,15">
-														<TextBlock Text="Kommentare" FontSize="18" FontWeight="Bold" Foreground="#6495ED" VerticalAlignment="Center" />
+														<TextBlock Text="Kommentare" FontSize="18" FontWeight="Bold" Foreground="{x:Static local:Scheme.BrushTextHighlight}" VerticalAlignment="Center" />
 														<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 															<TextBlock Text="Sortieren:" Foreground="Gray" VerticalAlignment="Center" />
-															<ComboBox Name="CmbCommentSort" Background="#1A1A1A" Foreground="White" SelectedIndex="0" SelectionChanged="CmbCommentSort_SelectionChanged">
+															<ComboBox Name="CmbCommentSort" Background="{x:Static local:Scheme.BrushBgPanel3}" Foreground="White" SelectedIndex="0" SelectionChanged="CmbCommentSort_SelectionChanged">
 																<ComboBoxItem Content="Beste" />
 																<ComboBoxItem Content="Top" />
 																<ComboBoxItem Content="Neuste" />
@@ -319,17 +320,17 @@
 														</StackPanel>
 													</Grid>
 
-													<Border Background="#1A1A1A" CornerRadius="6" Padding="15" Margin="0,0,0,20" BorderBrush="#333" BorderThickness="1">
+													<Border Background="{x:Static local:Scheme.BrushBgPanel3}" CornerRadius="6" Padding="15" Margin="0,0,0,20" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1">
 														<Grid RowDefinitions="Auto, *">
 
 															<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto" Margin="0,0,0,10">
 																<Button Grid.Column="0" Name="BtnTabEdit" Content="Editieren"
-																		Background="#202124" Foreground="#32A852" FontWeight="SemiBold"
+																		Background="{x:Static local:Scheme.BrushBgPanel}" Foreground="{x:Static local:Scheme.BrushTextTitle}" FontWeight="SemiBold"
 																		CornerRadius="6" Padding="12,6" Margin="0,0,5,0"
 																		Click="BtnTabComment_Click" />
 
 																<Button Grid.Column="1" Name="BtnTabPreview" Content="Vorschau"
-																		Background="Transparent" Foreground="#CCCCCC"
+																		Background="Transparent" Foreground="{x:Static local:Scheme.BrushTextNormal7}"
 																		CornerRadius="6" Padding="12,6"
 																		Click="BtnTabComment_Click" />
 
@@ -379,7 +380,7 @@
 																	</Button.Flyout>
 																</Button>
 
-																<ComboBox Grid.Column="4" Name="CmbCommentTag" Background="#252526" Foreground="White" SelectedIndex="0" Margin="10,0,0,0">
+																<ComboBox Grid.Column="4" Name="CmbCommentTag" Background="{x:Static local:Scheme.BrushTextNormal3}" Foreground="White" SelectedIndex="0" Margin="10,0,0,0">
 																	<ComboBoxItem Content="–" />
 																	<ComboBoxItem Content="Feedback" />
 																	<ComboBoxItem Content="Frage" />
@@ -390,9 +391,9 @@
 
 															<Grid Grid.Row="1" RowDefinitions="*, Auto">
 
-																<TextBox Grid.Row="0" Name="TxtCommentInput" MinHeight="80" MaxHeight="200" AcceptsReturn="True" TextWrapping="Wrap" Background="#141414" Foreground="White" BorderBrush="#333" Watermark="Schreibe einen Kommentar..." TextChanged="TxtCommentInput_TextChanged" />
+																<TextBox Grid.Row="0" Name="TxtCommentInput" MinHeight="80" MaxHeight="200" AcceptsReturn="True" TextWrapping="Wrap" Background="{x:Static local:Scheme.BrushBgPanel7}" Foreground="White" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" Watermark="Schreibe einen Kommentar..." TextChanged="TxtCommentInput_TextChanged" />
 
-																<Border Grid.Row="0" Name="PnlCommentPreview" MinHeight="80" MaxHeight="200" IsVisible="False" Background="#141414" CornerRadius="4" BorderBrush="#333" BorderThickness="1" Padding="10">
+																<Border Grid.Row="0" Name="PnlCommentPreview" MinHeight="80" MaxHeight="200" IsVisible="False" Background="{x:Static local:Scheme.BrushBgPanel7}" CornerRadius="4" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1" Padding="10">
 																	<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 																		<StackPanel Name="PnlCommentPreviewContent" Spacing="5" />
 																	</ScrollViewer>
@@ -400,8 +401,8 @@
 
 																<Grid Grid.Row="1" ColumnDefinitions="*, Auto, Auto" Margin="0,10,0,0">
 																	<TextBlock Name="TxtCommentCharCount" Text="0 / 5000" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
-																	<TextBlock Grid.Column="1" Name="TxtCooldownMessage" Foreground="#FF6B6B" FontWeight="Bold" Margin="0,0,15,0" VerticalAlignment="Center" IsVisible="False" />
-																	<Button Grid.Column="2" Name="BtnSendComment" Background="#3C3C3C" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
+																	<TextBlock Grid.Column="1" Name="TxtCooldownMessage" Foreground="{x:Static local:Scheme.BrushStatusErrorText}" FontWeight="Bold" Margin="0,0,15,0" VerticalAlignment="Center" IsVisible="False" />
+																	<Button Grid.Column="2" Name="BtnSendComment" Background="{x:Static local:Scheme.BrushBgPanel2}" CornerRadius="4" Cursor="Hand" Click="BtnSendComment_Click" IsEnabled="False" Opacity="0.5">
 																		<svg:Svg Name="IconSendComment" Path="/assets/icons/ic_send_disabled.svg" Width="20" Height="20" />
 																	</Button>
 																</Grid>
@@ -414,49 +415,49 @@
 													<TextBlock Name="TxtCommentsEmpty" Text="Noch keine Kommentare vorhanden. Sei der Erste! " Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLocked" Text="Diese Diskussion ist derzeit gesperrt oder nicht verfügbar " Foreground="Gray" FontStyle="Italic" IsVisible="False" Margin="0,10,0,0" />
 													<TextBlock Name="TxtCommentsLoading" Text="Lädt..." Foreground="Gray" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" />
-													<Button Name="BtnLoadMoreComments" Content="Weitere Kommentare laden..." Background="Transparent" Foreground="#6495ED" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
+													<Button Name="BtnLoadMoreComments" Content="Weitere Kommentare laden..." Background="Transparent" Foreground="{x:Static local:Scheme.BrushTextHighlight}" HorizontalAlignment="Center" IsVisible="False" Margin="0,10,0,0" Click="BtnLoadMoreComments_Click" />
 												</StackPanel>
 											</StackPanel>
 										</ScrollViewer>
 
 										<Button Grid.Row="0" Name="BtnScrollTopComments"
-												Width="40" Height="40" CornerRadius="20" Background="#3C3C3C"
+												Width="40" Height="40" CornerRadius="20" Background="{x:Static local:Scheme.BrushBgPanel2}"
 												HorizontalAlignment="Right" VerticalAlignment="Bottom"
 												Margin="0,0,25,25" IsVisible="False"
 												Click="BtnScrollTopComments_Click">
 											<svg:Svg Name="IconScrollTop" Path="/assets/icons/ic_arrow_up.svg" Width="28" Height="28" />
 										</Button>
 
-										<Border Grid.Row="1" Name="PnlCommunityActions" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0" IsVisible="False">
+										<Border Grid.Row="1" Name="PnlCommunityActions" Background="{x:Static local:Scheme.BrushBadgeDefault}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="0,1,0,0" IsVisible="False">
 											<StackPanel>
-												<TextBlock Name="TxtCommunityOutdatedStatus" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityMaintenanceStatus" Text="Wartungsarbeiten sind derzeit aktiv " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityNotFoundStatus" Text="Level-Diskussion nicht gefunden " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
-												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen " Foreground="#FF6B6B" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityOutdatedStatus" Text="Du musst auf der neusten Version sein, um an Community-Features teilzunehmen " Foreground="{x:Static local:Scheme.BrushStatusErrorText}" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityMaintenanceStatus" Text="Wartungsarbeiten sind derzeit aktiv " Foreground="{x:Static local:Scheme.BrushStatusErrorText}" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityOfflineStatus" Text="Keine Internetverbindung " Foreground="{x:Static local:Scheme.BrushStatusErrorText}" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityNotFoundStatus" Text="Level-Diskussion nicht gefunden " Foreground="{x:Static local:Scheme.BrushStatusErrorText}" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
+												<TextBlock Name="TxtCommunityFullQueueStatus" Text="Du sendest zu viele Anfragen " Foreground="{x:Static local:Scheme.BrushStatusErrorText}" Margin="15,8,0,0" IsVisible="False" FontStyle="Italic" HorizontalAlignment="Center" />
 												<Button Name="BtnCommunityLoggedOutStatus" Background="Transparent" Padding="0" Margin="15,8,0,0" IsVisible="False" HorizontalAlignment="Center" Cursor="Hand" Click="BtnCommunityLoggedOutStatus_Click">
-													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen " Foreground="#6495ED" FontStyle="Italic" TextDecorations="Underline" />
+													<TextBlock Text="Melde dich an, um an Community-Features teilzunehmen " Foreground="{x:Static local:Scheme.BrushTextHighlight}" FontStyle="Italic" TextDecorations="Underline" />
 												</Button>
 												<Grid ColumnDefinitions="Auto, Auto, *, Auto" Margin="15,10">
 													<Button Grid.Column="0" Name="BtnLike" Background="Transparent" Margin="0,0,10,0" Click="BtnLike_Click">
 														<StackPanel Orientation="Horizontal" Spacing="5">
 															<svg:Svg Path="/assets/icons/ic_like.svg" Name="IconLike" Width="20" Height="20" />
-															<TextBlock Name="TxtLikeCount" Text="0" VerticalAlignment="Center" Foreground="#E6E6E6" IsVisible="False" />
-															<Border Name="SkeletonLike" Width="20" Height="14" CornerRadius="2" Background="#3C3C3C" VerticalAlignment="Center" />
+															<TextBlock Name="TxtLikeCount" Text="0" VerticalAlignment="Center" Foreground="{x:Static local:Scheme.BrushTextNormal}" IsVisible="False" />
+															<Border Name="SkeletonLike" Width="20" Height="14" CornerRadius="2" Background="{x:Static local:Scheme.BrushBgPanel2}" VerticalAlignment="Center" />
 														</StackPanel>
 													</Button>
 													<Button Grid.Column="1" Name="BtnDislike" Background="Transparent" Margin="0,0,10,0" Click="BtnDislike_Click">
 														<StackPanel Orientation="Horizontal" Spacing="5">
 															<svg:Svg Path="/assets/icons/ic_dislike.svg" Name="IconDislike" Width="20" Height="20" />
-															<TextBlock Name="TxtDislikeCount" Text="0" VerticalAlignment="Center" Foreground="#E6E6E6" IsVisible="False" />
-															<Border Name="SkeletonDislike" Width="20" Height="14" CornerRadius="2" Background="#3C3C3C" VerticalAlignment="Center" />
+															<TextBlock Name="TxtDislikeCount" Text="0" VerticalAlignment="Center" Foreground="{x:Static local:Scheme.BrushTextNormal}" IsVisible="False" />
+															<Border Name="SkeletonDislike" Width="20" Height="14" CornerRadius="2" Background="{x:Static local:Scheme.BrushBgPanel2}" VerticalAlignment="Center" />
 														</StackPanel>
 													</Button>
 													<Button Grid.Column="3" Name="BtnToggleComments" Background="Transparent" Click="BtnToggleComments_Click">
 														<StackPanel Orientation="Horizontal" Spacing="5">
 															<svg:Svg Name="IconToggleComments" Path="/assets/icons/ic_comment.svg" Width="20" Height="20" />
-															<TextBlock Name="TxtCommentCount" Text="0" VerticalAlignment="Center" Foreground="#E6E6E6" IsVisible="False" />
-															<Border Name="SkeletonComment" Width="20" Height="14" CornerRadius="2" Background="#3C3C3C" VerticalAlignment="Center" />
+															<TextBlock Name="TxtCommentCount" Text="0" VerticalAlignment="Center" Foreground="{x:Static local:Scheme.BrushTextNormal}" IsVisible="False" />
+															<Border Name="SkeletonComment" Width="20" Height="14" CornerRadius="2" Background="{x:Static local:Scheme.BrushBgPanel2}" VerticalAlignment="Center" />
 														</StackPanel>
 													</Button>
 												</Grid>
@@ -468,7 +469,7 @@
 							</TabItem>
 
 							<TabItem Name="TabUml" Header="UML/Diagramme">
-								<Border Background="#202124" CornerRadius="8" ClipToBounds="True" Margin="0">
+								<Border Background="{x:Static local:Scheme.BrushBgPanel}" CornerRadius="8" ClipToBounds="True" Margin="0">
 									<Grid Name="UmlTabGrid" RowDefinitions="*, 8, Auto">
 										<Panel Name="DiagramPanel" Grid.Row="0" Background="Transparent"
 											   PointerWheelChanged="Diagram_PointerWheelChanged"
@@ -478,7 +479,7 @@
 
 											<TextBlock Name="TxtNoDiagram"
 													   Text="Kein Diagramm vorhanden.&#x0a;Siehe 'Materialien' für Details."
-													   Foreground="#444" FontSize="16" FontWeight="Bold"
+													   Foreground="{x:Static local:Scheme.BrushBgPanel8}" FontSize="16" FontWeight="Bold"
 													   HorizontalAlignment="Center" VerticalAlignment="Center"
 													   TextAlignment="Center" IsVisible="False" />
 
@@ -497,24 +498,24 @@
 														HorizontalAlignment="Left" VerticalAlignment="Bottom"
 														Margin="15,0,0,60" IsVisible="False">
 												<Button Name="BtnDiagram1" Width="40" Height="40" CornerRadius="15"
-														Click="BtnDiagramSwitch_Click" Tag="0" Background="#3C3C3C"
+														Click="BtnDiagramSwitch_Click" Tag="0" Background="{x:Static local:Scheme.BrushBgPanel2}"
 														ToolTip.Tip="Diagramm 1">
 													<svg:Svg Path="/assets/icons/ic_one.svg" Width="20" Height="20" />
 												</Button>
 												<Button Name="BtnDiagram2" Width="40" Height="40" CornerRadius="15"
-														Click="BtnDiagramSwitch_Click" Tag="1" Background="#3C3C3C"
+														Click="BtnDiagramSwitch_Click" Tag="1" Background="{x:Static local:Scheme.BrushBgPanel2}"
 														ToolTip.Tip="Diagramm 2">
 													<svg:Svg Path="/assets/icons/ic_two.svg" Width="20" Height="20" />
 												</Button>
 												<Button Name="BtnDiagram3" Width="40" Height="40" CornerRadius="15"
-														Click="BtnDiagramSwitch_Click" Tag="2" Background="#3C3C3C"
+														Click="BtnDiagramSwitch_Click" Tag="2" Background="{x:Static local:Scheme.BrushBgPanel2}"
 														ToolTip.Tip="Diagramm 3">
 													<svg:Svg Path="/assets/icons/ic_three.svg" Width="20" Height="20" />
 												</Button>
 											</StackPanel>
 
 											<Button Name="BtnResetDiagram"
-													Background="#3C3C3C"
+													Background="{x:Static local:Scheme.BrushBgPanel2}"
 													Width="40" Height="40"
 													CornerRadius="5"
 													ToolTip.Tip="Diagramm zurücksetzen"
@@ -526,7 +527,7 @@
 											</Button>
 
 											<TextBlock Text="Mausrad: Zoom | Drag: Bewegen"
-													   Foreground="#666" FontSize="12"
+													   Foreground="{x:Static local:Scheme.BrushBgPanel9}" FontSize="12"
 													   HorizontalAlignment="Right" VerticalAlignment="Bottom"
 													   Margin="10,10,15,10" />
 										</Panel>
@@ -539,9 +540,9 @@
 											<GridSplitter.Template>
 												<ControlTemplate>
 													<Grid Background="Transparent">
-														<Border Name="HoverLine" Background="#32A852" Height="2"
+														<Border Name="HoverLine" Background="{x:Static local:Scheme.BrushTextTitle}" Height="2"
 																VerticalAlignment="Center" Opacity="0" />
-														<Border Name="Handle" Background="#555555" Height="2" Width="30"
+														<Border Name="Handle" Background="{x:Static local:Scheme.BrushTextNormal2}" Height="2" Width="30"
 																CornerRadius="2" HorizontalAlignment="Center"
 																VerticalAlignment="Center" />
 													</Grid>
@@ -586,7 +587,7 @@
 										</GridSplitter>
 
 										<Border Name="UmlRelationalBorder" IsVisible="False" Grid.Row="2"
-												Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,1,0,0">
+												Background="{x:Static local:Scheme.BrushBadgeDefault}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="0,1,0,0">
 											<ScrollViewer MaxHeight="350">
 												<StackPanel Name="PnlUmlRelationalModel" Margin="20" Spacing="10" />
 											</ScrollViewer>
@@ -596,7 +597,7 @@
 							</TabItem>
 
 							<TabItem Header="Materialien">
-								<Border Background="#202124" CornerRadius="8" Margin="0" ClipToBounds="True">
+								<Border Background="{x:Static local:Scheme.BrushBgPanel}" CornerRadius="8" Margin="0" ClipToBounds="True">
 									<ScrollViewer>
 										<StackPanel Name="PnlMaterials" Spacing="10" Margin="20" />
 									</ScrollViewer>
@@ -604,25 +605,25 @@
 							</TabItem>
 
 							<TabItem Header="Level Designer" Name="TabDesigner" IsVisible="False">
-								<Border Background="#202124" CornerRadius="8" Padding="20" Margin="0" ClipToBounds="True">
+								<Border Background="{x:Static local:Scheme.BrushBgPanel}" CornerRadius="8" Padding="20" Margin="0" ClipToBounds="True">
 									<Grid RowDefinitions="Auto, *">
 										<Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, Auto, *, Auto, Auto" Margin="0,0,0,15">
 
-											<Button Grid.Column="0" Name="BtnDesignerExport" Background="#32A852"
+											<Button Grid.Column="0" Name="BtnDesignerExport" Background="{x:Static local:Scheme.BrushTextTitle}"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerExport_Click" IsEnabled="False"
 													ToolTip.Tip="Level Exportieren" Margin="0,0,10,0">
 												<svg:Svg Path="/assets/icons/ic_export.svg" Width="20" Height="20" />
 											</Button>
 
-											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="#1d8080"
+											<Button Grid.Column="1" Name="BtnDesignerPublish" Background="{x:Static local:Scheme.BrushGlobalBg}"
 													Width="40" Height="40" CornerRadius="5"
 													Click="BtnDesignerPublish_Click" IsEnabled="False"
 													ToolTip.Tip="Level Veröffentlichen" Margin="0,0,10,0">
 												<svg:Svg Path="/assets/icons/ic_publish.svg" Width="20" Height="20" />
 											</Button>
 
-											<Button Grid.Column="2" Name="BtnDesignerSave" Background="#464646" Width="40"
+											<Button Grid.Column="2" Name="BtnDesignerSave" Background="{x:Static local:Scheme.BrushBgPanel18}" Width="40"
 													Height="40" CornerRadius="5"
 													Click="BtnDesignerSave_Click" ToolTip.Tip="Entwurf Speichern">
 												<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20" />
@@ -635,7 +636,7 @@
 											<TextBlock Grid.Column="5" Name="TxtDesignerStatus" Text="Bereit"
 													   VerticalAlignment="Center" Foreground="Gray" Margin="10,0,0,0" />
 
-											<Button Grid.Column="6" Name="BtnDesignerGuide" Background="#007ACC" Width="40"
+											<Button Grid.Column="6" Name="BtnDesignerGuide" Background="{x:Static local:Scheme.BrushTextHighlight2}" Width="40"
 													Height="40" CornerRadius="5"
 													Click="BtnDesignerGuide_Click" ToolTip.Tip="Guide / Hilfe (GitHub)"
 													Margin="10,0,0,0">
@@ -648,13 +649,13 @@
 												<Grid ColumnDefinitions="*, 10, *">
 													<StackPanel Grid.Column="0" Spacing="5">
 														<TextBlock Text="Level Name" Foreground="Gray" />
-														<TextBox Name="TxtDesignName" Background="#1E1E1E"
-																 Foreground="White" BorderThickness="1" BorderBrush="#333" />
+														<TextBox Name="TxtDesignName" Background="{x:Static local:Scheme.BrushBadgeDefault}"
+																 Foreground="White" BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 													</StackPanel>
 													<StackPanel Grid.Column="2" Spacing="5">
 														<TextBlock Text="Autor" Foreground="Gray" />
-														<TextBox Name="TxtDesignAuthor" Background="#1E1E1E"
-																 Foreground="White" BorderThickness="1" BorderBrush="#333" />
+														<TextBox Name="TxtDesignAuthor" Background="{x:Static local:Scheme.BrushBadgeDefault}"
+																 Foreground="White" BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 													</StackPanel>
 												</Grid>
 
@@ -662,16 +663,16 @@
 													<TextBlock Text="Aufgabe" Foreground="Gray" />
 													<TextBox Name="TxtDesignDesc" AcceptsReturn="True" TextWrapping="Wrap"
 															 Height="150"
-															 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="White" FontFamily="Consolas"
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
-												<Separator Background="#333" Margin="0,15" />
+												<Separator Background="{x:Static local:Scheme.BrushBgPanel5}" Margin="0,15" />
 
 												<StackPanel Spacing="5">
 													<TextBlock Text="UML/Diagramme (PlantUML)" Foreground="Gray" />
 
-													<Border Background="#252526" CornerRadius="4" Padding="2">
+													<Border Background="{x:Static local:Scheme.BrushTextNormal3}" CornerRadius="4" Padding="2">
 														<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
 															<ScrollViewer Grid.Column="0"
 																		  HorizontalScrollBarVisibility="Auto"
@@ -719,17 +720,17 @@
 
 													<TextBox Name="TxtDesignPlantUml" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Spacing="5">
 													<TextBlock Text="Materialien" Foreground="Gray" />
 													<TextBox Name="TxtDesignMaterials" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="White" FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="White" FontFamily="Consolas"
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Spacing="5" ZIndex="10">
@@ -740,15 +741,15 @@
 													<Grid>
 														<TextBox Name="TxtDesignPrereqInput"
 																 Watermark="z.B. If statements..."
-																 Background="#1E1E1E" Foreground="White"
-																 BorderThickness="1" BorderBrush="#333" />
+																 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="White"
+																 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 
 														<Border Name="PopupPrereqSuggestions" IsVisible="False"
-																Background="#252526" BorderBrush="#333" BorderThickness="1"
+																Background="{x:Static local:Scheme.BrushTextNormal3}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1"
 																CornerRadius="4" ClipToBounds="True"
 																Margin="0,32,0,0" VerticalAlignment="Top" MaxHeight="175">
 															<ListBox Name="LstPrereqSuggestions" Background="Transparent"
-																	 Foreground="#CCCCCC">
+																	 Foreground="{x:Static local:Scheme.BrushTextNormal7}">
 																<ListBox.Styles>
 																	<Style Selector="ListBoxItem">
 																		<Setter Property="Padding" Value="10,8" />
@@ -762,7 +763,7 @@
 													<StackPanel Name="PnlDesignPrereqsList" Spacing="2" Margin="0,5,0,0" />
 												</StackPanel>
 
-												<Separator Background="#333" Margin="0,15" />
+												<Separator Background="{x:Static local:Scheme.BrushBgPanel5}" Margin="0,15" />
 
 												<StackPanel Name="PnlDesignStarter" Spacing="5">
 													<Grid ColumnDefinitions="*, Auto">
@@ -778,9 +779,9 @@
 													</Grid>
 													<TextBox Name="TxtDesignStarter" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Name="PnlDesignTesting" Spacing="5">
@@ -798,9 +799,9 @@
 													</Grid>
 													<TextBox Name="TxtDesignTesting" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Name="PnlDesignValidation" Spacing="5">
@@ -825,9 +826,9 @@
 													</Grid>
 													<TextBox Name="TxtDesignValidation" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Name="PnlDesignSqlSetup" Spacing="5" IsVisible="False">
@@ -845,15 +846,15 @@
 													</Grid>
 													<TextBox Name="TxtDesignSqlSetup" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Name="PnlDesignSqlMode" Spacing="5" IsVisible="False">
 													<TextBlock Text="Validierungs-Modus" Foreground="Gray"
 															   VerticalAlignment="Center" ToolTip.Tip="Dies entscheidet, ob du die 'SELECT'-Anweisung angibst, die die zu überprüfene Tabelle erzeugt oder der Nutzer selbst" />
-													<ComboBox Name="CmbSqlValidationMode" Background="#1E1E1E"
+													<ComboBox Name="CmbSqlValidationMode" Background="{x:Static local:Scheme.BrushBadgeDefault}"
 															  Foreground="White" SelectedIndex="0"
 															  HorizontalAlignment="Stretch">
 														<ComboBoxItem Content="SELECT Abfrage (Standard)" />
@@ -864,7 +865,7 @@
 												<StackPanel Name="PnlDesignExpectedTable" Spacing="5" IsVisible="False">
 													<TextBlock Text="Erwartetes Ergebnis (Tabelle)" Foreground="Gray"
 															   VerticalAlignment="Center" ToolTip.Tip="Dies ist die Tabelle, die durch die entgültige 'SELECT'-Anweisung enstehen soll. Tipp: Nutze ' für strenge erwartete Spaltennamen" />
-													<Border Background="#1E1E1E" BorderBrush="#333" BorderThickness="1"
+													<Border Background="{x:Static local:Scheme.BrushBadgeDefault}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1"
 															CornerRadius="4" Padding="5">
 														<ScrollViewer HorizontalScrollBarVisibility="Auto"
 																	  VerticalScrollBarVisibility="Auto" MaxHeight="250">
@@ -887,9 +888,9 @@
 													</Grid>
 													<TextBox Name="TxtDesignSqlSample" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 
 												<StackPanel Name="PnlDesignSqlVerify" Spacing="5" IsVisible="False">
@@ -906,9 +907,9 @@
 													</Grid>
 													<TextBox Name="TxtDesignSqlVerify" AcceptsReturn="True"
 															 TextWrapping="Wrap" Height="150"
-															 Background="#1E1E1E" Foreground="#D4D4D4"
+															 Background="{x:Static local:Scheme.BrushBadgeDefault}" Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 															 FontFamily="Consolas"
-															 BorderThickness="1" BorderBrush="#333" />
+															 BorderThickness="1" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" />
 												</StackPanel>
 											</StackPanel>
 										</ScrollViewer>
@@ -917,7 +918,7 @@
 							</TabItem>
 
 							<TabItem Header="Vim Hilfe" Name="TabVim" IsVisible="False">
-								<Border Background="#202124" CornerRadius="8" Padding="0" Margin="0" ClipToBounds="True">
+								<Border Background="{x:Static local:Scheme.BrushBgPanel}" CornerRadius="8" Padding="0" Margin="0" ClipToBounds="True">
 									<Grid RowDefinitions="*, Auto">
 
 										<ScrollViewer Name="PnlVimCheatSheet" Grid.Row="0">
@@ -927,7 +928,7 @@
 
 													<Button Grid.Column="2" Name="BtnStartTutorial"
 															Content="Starte Vim Tutorial"
-															Background="#007ACC" Foreground="White" CornerRadius="4"
+															Background="{x:Static local:Scheme.BrushTextHighlight2}" Foreground="White" CornerRadius="4"
 															Padding="10,5" FontWeight="Bold"
 															Click="BtnStartTutorial_Click" />
 												</Grid>
@@ -943,10 +944,10 @@
 												<StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,15">
 													<Grid ColumnDefinitions="*, Auto">
 														<TextBlock Text="Vim Tutorial" FontSize="20" FontWeight="Bold"
-																   Foreground="#32A852" VerticalAlignment="Center" />
+																   Foreground="{x:Static local:Scheme.BrushTextTitle}" VerticalAlignment="Center" />
 														<Button Grid.Column="1" Name="BtnExitTutorial"
 																Content="Tutorial Beenden"
-																Background="#B43232" Foreground="White" CornerRadius="4"
+																Background="{x:Static local:Scheme.BrushDiffHard}" Foreground="White" CornerRadius="4"
 																Padding="10,5" FontWeight="Bold"
 																Click="BtnExitTutorial_Click" />
 													</Grid>
@@ -955,7 +956,7 @@
 																		 VerticalAlignment="Center" />
 												</StackPanel>
 												<Border Grid.Row="1" Classes="editor-focus-border" CornerRadius="8" ClipToBounds="True"
-														BorderThickness="1" Background="#1E1E1E">
+														BorderThickness="1" Background="{x:Static local:Scheme.BrushBadgeDefault}">
 													<Grid RowDefinitions="*, Auto">
 														<ae:TextEditor Name="TutorialEditor"
 																	   Grid.Row="0"
@@ -963,7 +964,7 @@
 																	   VerticalScrollBarVisibility="Auto"
 																	   ShowLineNumbers="True"
 																	   Padding="0,0,18,0" />
-														<Border Grid.Row="1" Background="#007ACC"
+														<Border Grid.Row="1" Background="{x:Static local:Scheme.BrushTextHighlight2}"
 																Name="TutorialVimStatusBorder" Padding="5,2">
 															<TextBlock Name="TutorialVimStatusBar" Text="-- NORMAL --"
 																	   FontFamily="Consolas" FontSize="12"
@@ -972,7 +973,7 @@
 													</Grid>
 												</Border>
 												<Border Grid.Row="2" Name="PnlTutorialStats" IsVisible="False"
-														Background="#2D2D30" CornerRadius="8" Padding="15"
+														Background="{x:Static local:Scheme.BrushBgPanel13}" CornerRadius="8" Padding="15"
 														Margin="0,15,0,0">
 													<StackPanel Name="PnlTutorialStatsContent" HorizontalAlignment="Center"
 																Spacing="10" />
@@ -981,7 +982,7 @@
 										</Panel>
 
 										<TextBlock Grid.Row="1" Text="Hinweis: Dies ist eine vereinfachte Simulation."
-												   Foreground="#666" FontSize="12" Margin="0,20,0,20"
+												   Foreground="{x:Static local:Scheme.BrushBgPanel9}" FontSize="12" Margin="0,20,0,20"
 												   HorizontalAlignment="Center" />
 									</Grid>
 								</Border>
@@ -990,8 +991,8 @@
 						</TabControl>
 
 						<Border Name="PnlTabTip" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Left"
-								Margin="0,-25,0,0" Background="#32A852" CornerRadius="4" Padding="10,5"
-								BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100"
+								Margin="0,-25,0,0" Background="{x:Static local:Scheme.BrushTextTitle}" CornerRadius="4" Padding="10,5"
+								BorderBrush="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1" ZIndex="100"
 								PointerEntered="PnlTabTip_PointerEntered" PointerExited="PnlTabTip_PointerExited">
 							<StackPanel Orientation="Horizontal" Spacing="8">
 								<TextBlock Text="Tipp: Nutze F1 - F4 zum Wechseln der Tabs" Foreground="White"
@@ -1005,8 +1006,8 @@
 
 						<Border Name="PnlRelationalTip" IsVisible="False" VerticalAlignment="Bottom"
 								HorizontalAlignment="Left"
-								Margin="50,0,0,30" Background="#32A852" CornerRadius="4" Padding="10,5"
-								BorderBrush="#1E1E1E" BorderThickness="1" ZIndex="100"
+								Margin="50,0,0,30" Background="{x:Static local:Scheme.BrushTextTitle}" CornerRadius="4" Padding="10,5"
+								BorderBrush="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1" ZIndex="100"
 								PointerEntered="PnlRelationalTip_PointerEntered" PointerExited="PnlRelationalTip_PointerExited">
 							<StackPanel Orientation="Horizontal" Spacing="8">
 								<TextBlock
@@ -1027,9 +1028,9 @@
 						<GridSplitter.Template>
 							<ControlTemplate>
 								<Grid Background="Transparent">
-									<Border Name="HoverLine" Background="#32A852" Width="2" HorizontalAlignment="Center"
+									<Border Name="HoverLine" Background="{x:Static local:Scheme.BrushTextTitle}" Width="2" HorizontalAlignment="Center"
 											Opacity="0" />
-									<Border Name="Handle" Background="#555555" Width="2" Height="30" CornerRadius="2"
+									<Border Name="Handle" Background="{x:Static local:Scheme.BrushTextNormal2}" Width="2" Height="30" CornerRadius="2"
 											HorizontalAlignment="Center" VerticalAlignment="Center" />
 								</Grid>
 							</ControlTemplate>
@@ -1078,13 +1079,13 @@
 								Grid.RowSpan="4"
 								VerticalAlignment="Top" HorizontalAlignment="Center"
 								Margin="-100,-50,100,20"
-								Background="#3C3C41" CornerRadius="4" Padding="12,8"
-								BorderBrush="#FFD700" BorderThickness="1" ZIndex="100">
+								Background="{x:Static local:Scheme.BrushTextNormal4}" CornerRadius="4" Padding="12,8"
+								BorderBrush="{x:Static local:Scheme.BrushDopamineEnducingGold}" BorderThickness="1" ZIndex="100">
 							<StackPanel Orientation="Horizontal" Spacing="10">
 								<TextBlock
 									Text="Tipp: Die Level-Namen können Lösungsansätze verraten.&#x0a;Möchtest du diese verbergen? (Zurücksetzbar)"
 									Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-								<Button Name="BtnEnableSpoilerMode" Content="Ja" Background="#32A852" Foreground="White"
+								<Button Name="BtnEnableSpoilerMode" Content="Ja" Background="{x:Static local:Scheme.BrushTextTitle}" Foreground="White"
 										Padding="10,5" Margin="5,0,0,0" CornerRadius="4" VerticalAlignment="Center"
 										FontWeight="Bold" Cursor="Hand"
 										Click="BtnEnableSpoilerMode_Click" />
@@ -1101,41 +1102,41 @@
 
 								<Panel>
 									<Button Name="BtnInbox"
-											Background="#464646" Width="40"
+											Background="{x:Static local:Scheme.BrushBgPanel18}" Width="40"
 											CornerRadius="5" Click="BtnInbox_Click" ToolTip.Tip="Posteingang">
 										<svg:Svg Path="/assets/icons/ic_inbox.svg" Width="20" Height="20" />
 									</Button>
 
-									<Border Name="BadgeInbox" IsVisible="False" Background="#007ACC" Width="10"
+									<Border Name="BadgeInbox" IsVisible="False" Background="{x:Static local:Scheme.BrushTextHighlight2}" Width="10"
 											Height="10" CornerRadius="5"
 											HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0"
-											BorderBrush="#1E1E1E" BorderThickness="1" IsHitTestVisible="False" />
+											BorderBrush="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1" IsHitTestVisible="False" />
 								</Panel>
 
 								<Panel>
 									<Button Name="BtnSettings"
-											Background="#464646" Width="40"
+											Background="{x:Static local:Scheme.BrushBgPanel18}" Width="40"
 											CornerRadius="5" Click="BtnSettings_Click" ToolTip.Tip="Einstellungen">
 										<svg:Svg Path="/assets/icons/ic_settings.svg" Width="20" Height="20" />
 									</Button>
 
-									<Border Name="BadgeSettings" IsVisible="False" Background="#B43232" Width="10"
+									<Border Name="BadgeSettings" IsVisible="False" Background="{x:Static local:Scheme.BrushDiffHard}" Width="10"
 											Height="10" CornerRadius="5"
 											HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0"
-											BorderBrush="#1E1E1E" BorderThickness="1" IsHitTestVisible="False" />
+											BorderBrush="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1" IsHitTestVisible="False" />
 								</Panel>
 
-								<Button Name="BtnReset" Background="#B43232" Width="40"
+								<Button Name="BtnReset" Background="{x:Static local:Scheme.BrushDiffHard}" Width="40"
 										CornerRadius="5" Click="BtnReset_Click" ToolTip.Tip="Code zurücksetzen">
 									<svg:Svg Path="/assets/icons/ic_restart.svg" Width="20" Height="20" />
 								</Button>
 
-								<Button Name="BtnSave" Background="#464646" Width="50"
+								<Button Name="BtnSave" Background="{x:Static local:Scheme.BrushBgPanel18}" Width="50"
 										CornerRadius="5" Click="BtnSave_Click" ToolTip.Tip="Code speichern (Ctrl + S)">
 									<svg:Svg Path="/assets/icons/ic_save.svg" Width="20" Height="20" />
 								</Button>
 
-								<Button Name="BtnRun" Background="#32A852" Foreground="White"
+								<Button Name="BtnRun" Background="{x:Static local:Scheme.BrushTextTitle}" Foreground="White"
 										FontWeight="Bold"
 										Padding="15,8" CornerRadius="5" Click="BtnRun_Click" Width="135"
 										HorizontalContentAlignment="Center">
@@ -1149,7 +1150,7 @@
 						</Grid>
 
 						<Panel Grid.Row="1" Name="PnlCsharpEditor">
-							<Border Classes="editor-focus-border" CornerRadius="10" ClipToBounds="True" Background="#1E1E1E" BorderThickness="1">
+							<Border Classes="editor-focus-border" CornerRadius="10" ClipToBounds="True" Background="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1">
 								<Grid RowDefinitions="*, Auto">
 									<ae:TextEditor Name="CodeEditor"
 												   Grid.Row="0"
@@ -1157,12 +1158,12 @@
 												   FontSize="16"
 												   ShowLineNumbers="True"
 												   Background="Transparent"
-												   Foreground="#D4D4D4"
+												   Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 												   Padding="0,0,18,0"
 												   HorizontalScrollBarVisibility="Auto"
 												   VerticalScrollBarVisibility="Auto" />
 
-									<Border Grid.Row="1" Background="#007ACC" Name="VimStatusBorder" IsVisible="False"
+									<Border Grid.Row="1" Background="{x:Static local:Scheme.BrushTextHighlight2}" Name="VimStatusBorder" IsVisible="False"
 											Padding="5,2">
 										<TextBlock Name="VimStatusBar"
 												   Text="-- NORMAL --"
@@ -1182,9 +1183,9 @@
 							<GridSplitter.Template>
 								<ControlTemplate>
 									<Grid Background="Transparent">
-										<Border Name="HoverLine" Background="#32A852" Height="2" VerticalAlignment="Center"
+										<Border Name="HoverLine" Background="{x:Static local:Scheme.BrushTextTitle}" Height="2" VerticalAlignment="Center"
 												Opacity="0" />
-										<Border Name="Handle" Background="#555555" Height="2" Width="30" CornerRadius="2"
+										<Border Name="Handle" Background="{x:Static local:Scheme.BrushTextNormal2}" Height="2" Width="30" CornerRadius="2"
 												HorizontalAlignment="Center" VerticalAlignment="Center" />
 									</Grid>
 								</ControlTemplate>
@@ -1228,7 +1229,7 @@
 						</GridSplitter>
 
 						<Panel Grid.Row="3">
-							<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
+							<Border Name="PnlCsharpConsole" CornerRadius="10" ClipToBounds="True" Background="{x:Static local:Scheme.BrushConsoleBg}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1">
 								<ae:TextEditor Name="ConsoleEditor"
 											   FontFamily="Consolas, Menlo, Monaco, DejaVu Sans Mono, Roboto Mono, Courier New, monospace"
 											   FontSize="13"
@@ -1237,13 +1238,13 @@
 											   WordWrap="True"
 											   ShowLineNumbers="False"
 											   Background="Transparent"
-											   Foreground="#E6E6E6"
+											   Foreground="{x:Static local:Scheme.BrushTextNormal}"
 											   HorizontalScrollBarVisibility="Disabled"
 											   VerticalScrollBarVisibility="Auto" />
 							</Border>
 
 							<Border Name="PnlSqlQueryEditor" Classes="editor-focus-border" IsVisible="False" CornerRadius="10" ClipToBounds="True"
-									Background="#1E1E1E" BorderThickness="1">
+									Background="{x:Static local:Scheme.BrushBadgeDefault}" BorderThickness="1">
 								<Grid RowDefinitions="Auto, *, Auto">
 									<TextBlock Text="SQL QUERY EDITOR" FontSize="10" Foreground="Gray" Margin="10,5"
 											   FontWeight="Bold" />
@@ -1253,12 +1254,12 @@
 												   FontSize="16"
 												   ShowLineNumbers="True"
 												   Background="Transparent"
-												   Foreground="#D4D4D4"
+												   Foreground="{x:Static local:Scheme.BrushTextNormal6}"
 												   Padding="0,0,18,0"
 												   HorizontalScrollBarVisibility="Auto"
 												   VerticalScrollBarVisibility="Auto" />
 
-									<Border Grid.Row="2" Background="#007ACC" Name="SqlVimStatusBorder" IsVisible="False"
+									<Border Grid.Row="2" Background="{x:Static local:Scheme.BrushTextHighlight2}" Name="SqlVimStatusBorder" IsVisible="False"
 											Padding="5,2">
 										<TextBlock Name="SqlVimStatusBar"
 												   Text="-- NORMAL --"
@@ -1272,7 +1273,7 @@
 						</Panel>
 
 						<Border Name="PnlSqlOutputContainer" Grid.Row="1" IsVisible="False" CornerRadius="10"
-								ClipToBounds="True" Background="#101010" BorderBrush="#333" BorderThickness="1">
+								ClipToBounds="True" Background="{x:Static local:Scheme.BrushConsoleBg}" BorderBrush="{x:Static local:Scheme.BrushBgPanel5}" BorderThickness="1">
 							<ScrollViewer Name="SqlOutputScroller">
 								<StackPanel Name="PnlSqlOutput" Spacing="10" Margin="10" />
 							</ScrollViewer>
@@ -1285,8 +1286,8 @@
 			<Canvas Name="DropIndicatorsCanvas" IsHitTestVisible="False" ZIndex="999">
 				<Panel Width="{Binding $parent[Canvas].Bounds.Width}" Height="{Binding $parent[Canvas].Bounds.Height}">
 					<Border Name="DropPreviewOverlay"
-					        Background="#256495ED"
-					        BorderBrush="#6495ED"
+					        Background="{x:Static local:Scheme.BrushTabDockHighlight2}"
+					        BorderBrush="{x:Static local:Scheme.BrushTextHighlight}"
 					        BorderThickness="2"
 					        CornerRadius="8"
 					        Opacity="0"
@@ -1301,7 +1302,7 @@
 					</Border>
 				</Panel>
 
-				<Border Name="TabReorderIndicator" Background="#6495ED" Width="2" CornerRadius="1" Opacity="0">
+				<Border Name="TabReorderIndicator" Background="{x:Static local:Scheme.BrushTextHighlight}" Width="2" CornerRadius="1" Opacity="0">
 					<Border.Transitions>
 						<Transitions>
 							<DoubleTransition Property="Canvas.Left" Duration="0:0:0.1" Easing="QuadraticEaseOut" />

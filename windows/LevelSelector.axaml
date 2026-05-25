@@ -1,15 +1,24 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        xmlns:scheme="clr-namespace:AbiturEliteCode"
         x:Class="AbiturEliteCode.LevelSelector"
         Title="Level Wählen"
         Width="450" Height="700"
         WindowStartupLocation="CenterOwner"
-        Background="#202124"
+        Background="{x:Static scheme:Scheme.BrushBgPanel}"
         SystemDecorations="BorderOnly"
         KeyDown="Window_KeyDown">
 
-	<Border CornerRadius="8" Background="#202124" BorderBrush="Transparent" BorderThickness="1">
+	<Window.Styles>
+		<!-- easier text selection -->
+		<Style Selector="SelectableTextBlock">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="HorizontalAlignment" Value="Stretch" />
+		</Style>
+	</Window.Styles>
+
+		<Border CornerRadius="8" Background="{x:Static scheme:Scheme.BrushBgPanel}" BorderBrush="Transparent" BorderThickness="1">
 		<Grid RowDefinitions="Auto, Auto, *, Auto, Auto" Margin="15">
 
 			<!-- header -->
@@ -18,8 +27,8 @@
 				<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 					<TextBlock Name="TxtTitle" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
 					<!-- badge level counter -->
-					<Border Name="CountBadge" Background="#2D2D30" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
-						<TextBlock Name="BadgeText" Foreground="#32A852" FontWeight="Bold" FontSize="14" />
+					<Border Name="CountBadge" Background="{x:Static scheme:Scheme.BrushBgPanel13}" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
+						<TextBlock Name="BadgeText" Foreground="{x:Static scheme:Scheme.BrushTextTitle}" FontWeight="Bold" FontSize="14" />
 					</Border>
 				</StackPanel>
 
@@ -33,7 +42,7 @@
 			<!-- filters / sorting for community browser -->
 			<Grid Name="CommunityToolsGrid" Grid.Row="1" ColumnDefinitions="*, Auto, Auto" Margin="0,0,0,10" IsVisible="False">
 				<ComboBox Name="CmbCommunitySort" Grid.Column="1" Width="110" Height="34" Margin="0,0,8,0"
-						  VerticalAlignment="Center" Background="#141414" Foreground="White" BorderBrush="#333" SelectedIndex="0">
+						  VerticalAlignment="Center" Background="{x:Static scheme:Scheme.BrushBgPanel7}" Foreground="White" BorderBrush="{x:Static scheme:Scheme.BrushBgPanel5}" SelectedIndex="0">
 					<ComboBoxItem Content="Beste" />
 					<ComboBoxItem Content="Top" />
 					<ComboBoxItem Content="Neuste" />
@@ -41,7 +50,7 @@
 				</ComboBox>
 
 				<Button Name="BtnCommunityFilter" Grid.Column="2" Width="34" Height="34"
-						Background="#141414" BorderBrush="#333" BorderThickness="1" Padding="0" CornerRadius="4"
+						Background="{x:Static scheme:Scheme.BrushBgPanel7}" BorderBrush="{x:Static scheme:Scheme.BrushBgPanel5}" BorderThickness="1" Padding="0" CornerRadius="4"
 						Cursor="Hand" VerticalAlignment="Center"
 						HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
 					<svg:Svg Path="/assets/icons/ic_filter.svg" Width="16" Height="16" />
@@ -53,8 +62,8 @@
 				<!-- drop indicator -->
 				<Canvas Name="DragIndicatorsCanvas" IsHitTestVisible="False">
 					<Border Name="DropPreviewOverlay"
-					        Background="#3332A852"
-					        BorderBrush="#32A852"
+					        Background="{x:Static scheme:Scheme.BrushTextTitleAlpha}"
+					        BorderBrush="{x:Static scheme:Scheme.BrushTextTitle}"
 					        BorderThickness="2"
 					        CornerRadius="4"
 					        Opacity="0">
@@ -75,17 +84,17 @@
 
 				<!-- loading indicator for browser -->
 				<StackPanel Name="CommunityLoadingPanel" IsVisible="False" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
-					<ProgressBar IsIndeterminate="True" Width="150" Foreground="#6495ED" />
+					<ProgressBar IsIndeterminate="True" Width="150" Foreground="{x:Static scheme:Scheme.BrushTextHighlight}" />
 					<TextBlock Text="Lade Community Levels..." Foreground="Gray" HorizontalAlignment="Center" />
 				</StackPanel>
 			</Grid>
 
 			<!-- mini console panel for quick generator logs -->
-			<Border Name="MiniConsolePanel" Grid.Row="3" IsVisible="False" Background="#141414" BorderBrush="#333" BorderThickness="1" CornerRadius="4" Margin="0,15,0,0" Padding="10">
+			<Border Name="MiniConsolePanel" Grid.Row="3" IsVisible="False" Background="{x:Static scheme:Scheme.BrushBgPanel7}" BorderBrush="{x:Static scheme:Scheme.BrushBgPanel5}" BorderThickness="1" CornerRadius="4" Margin="0,15,0,0" Padding="10">
 				<Grid RowDefinitions="Auto, *">
 					<Grid ColumnDefinitions="*, Auto, Auto" Margin="0,0,0,5">
-						<TextBlock Text="Quick Generate Log" Foreground="Gray" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-						<Button Name="BtnMiniConsoleCopy" Grid.Column="1" Background="#3C3C3C" CornerRadius="4" Padding="6" Cursor="Hand" Margin="0,0,8,0" IsVisible="False" ToolTip.Tip="Error kopieren">
+						<TextBlock Text="Quick Generate Log" Name="MiniConsoleTitle" Foreground="Gray" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+						<Button Name="BtnMiniConsoleCopy" Grid.Column="1" Background="{x:Static scheme:Scheme.BrushBgPanel2}" CornerRadius="4" Padding="6" Cursor="Hand" Margin="0,0,8,0" IsVisible="False" ToolTip.Tip="Error kopieren">
 							<svg:Svg Path="/assets/icons/ic_copy.svg" Width="14" Height="14" />
 						</Button>
 						<Button Name="BtnMiniConsoleClose" Grid.Column="2" Background="Transparent" Padding="4" Cursor="Hand">
@@ -100,18 +109,18 @@
 
 			<!-- footer -->
 			<Grid Grid.Row="4" ColumnDefinitions="Auto, Auto, *, Auto" Margin="0,15,0,0">
-				<Button Name="BtnToggleMode" Grid.Column="0" HorizontalAlignment="Left" Padding="15,10" CornerRadius="4" Background="#2D2D30" Foreground="White" Margin="0,0,10,0">
+				<Button Name="BtnToggleMode" Grid.Column="0" HorizontalAlignment="Left" Padding="15,10" CornerRadius="4" Background="{x:Static scheme:Scheme.BrushBgPanel13}" Foreground="White" Margin="0,0,10,0">
 					<StackPanel Orientation="Horizontal" Spacing="8">
 						<svg:Svg Name="IconToggleMode" Path="/assets/icons/ic_folder_custom.svg" Width="18" Height="18" />
 						<TextBlock Name="TxtToggleMode" Text="Eigene Levels" VerticalAlignment="Center" />
 					</StackPanel>
 				</Button>
 
-				<Button Name="BtnToggleCommunity" Grid.Column="1" HorizontalAlignment="Left" Padding="14,9" CornerRadius="4" Background="#1d8080" Margin="0,0,10,0" IsVisible="False" ToolTip.Tip="Öffne Community Browser">
+				<Button Name="BtnToggleCommunity" Grid.Column="1" HorizontalAlignment="Left" Padding="14,9" CornerRadius="4" Background="{x:Static scheme:Scheme.BrushGlobalBg}" Margin="0,0,10,0" IsVisible="False" ToolTip.Tip="Öffne Community Browser">
 					<svg:Svg Name="IconToggleCommunity" Path="/assets/icons/ic_publish.svg" Width="20" Height="20" />
 				</Button>
 
-				<Button Name="BtnClose" Grid.Column="3" Content="Schließen" HorizontalContentAlignment="Center" Padding="15,10" CornerRadius="4" Background="#3C3C3C" Foreground="White" />
+				<Button Name="BtnClose" Grid.Column="3" Content="Schließen" HorizontalContentAlignment="Center" Padding="15,10" CornerRadius="4" Background="{x:Static scheme:Scheme.BrushBgPanel2}" Foreground="White" />
 			</Grid>
 			<!-- drag overlay spanning all rows -->
 			<Canvas Name="DragOverlayCanvas" Grid.Row="0" Grid.RowSpan="5" IsHitTestVisible="False" ZIndex="1000" />

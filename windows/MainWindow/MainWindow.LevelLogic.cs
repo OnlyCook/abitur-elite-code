@@ -373,7 +373,7 @@ public partial class MainWindow
             Height = 420,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#202124"),
+            Background = Scheme.BrushBgPanel,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
@@ -396,7 +396,7 @@ public partial class MainWindow
                 Text = "🎉 Herzlichen Glückwunsch! 🎉",
                 FontSize = 22,
                 FontWeight = FontWeight.Bold,
-                Foreground = SolidColorBrush.Parse("#6495ED"),
+                Foreground = Scheme.BrushTextHighlight,
                 HorizontalAlignment = HorizontalAlignment.Center
             }
         );
@@ -429,7 +429,7 @@ public partial class MainWindow
         var btnClose = new Button
         {
             Content = "Schließen",
-            Background = SolidColorBrush.Parse("#6495ED"),
+            Background = Scheme.BrushTextHighlight,
             Foreground = Brushes.Black,
             FontWeight = FontWeight.Bold,
             FontSize = 14,
@@ -458,7 +458,7 @@ public partial class MainWindow
             Height = 410,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#202124"),
+            Background = Scheme.BrushBgPanel,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
@@ -481,7 +481,7 @@ public partial class MainWindow
                 Text = "🎉 Herzlichen Glückwunsch! 🎉",
                 FontSize = 22,
                 FontWeight = FontWeight.Bold,
-                Foreground = SolidColorBrush.Parse("#FFD700"),
+                Foreground = Scheme.BrushDopamineEnducingGold,
                 HorizontalAlignment = HorizontalAlignment.Center
             }
         );
@@ -515,7 +515,7 @@ public partial class MainWindow
         var btnClose = new Button
         {
             Content = "Schließen",
-            Background = SolidColorBrush.Parse("#FFD700"),
+            Background = Scheme.BrushDopamineEnducingGold,
             Foreground = Brushes.Black,
             FontWeight = FontWeight.Bold,
             FontSize = 14,
@@ -547,7 +547,7 @@ public partial class MainWindow
             Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#202124"),
+            Background = Scheme.BrushBgPanel,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
@@ -560,7 +560,7 @@ public partial class MainWindow
             Text = "🎉 Gut gemacht!",
             FontSize = 22,
             FontWeight = FontWeight.Bold,
-            Foreground = BrushTextTitle,
+            Foreground = Scheme.BrushTextTitle,
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
@@ -577,7 +577,7 @@ public partial class MainWindow
         var btnClose = new Button
         {
             Content = "Schließen",
-            Background = BrushTextTitle,
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White,
             Padding = new Thickness(20, 8),
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -643,8 +643,8 @@ public partial class MainWindow
 
                     _dragGhost = new Border
                     {
-                        Background = SolidColorBrush.Parse("#2D2D30"),
-                        BorderBrush = SolidColorBrush.Parse("#32A852"),
+                        Background = Scheme.BrushBgPanel13,
+                        BorderBrush = Scheme.BrushTextTitle,
                         BorderThickness = new Thickness(1),
                         CornerRadius = new CornerRadius(4),
                         Padding = new Thickness(15, 8),
@@ -874,7 +874,7 @@ public partial class MainWindow
                 }
                 catch (Exception ex)
                 {
-                    LogToMiniConsole($"> Fehler beim Umbenennen: {ex.Message}", Brushes.Red, true);
+                    LogToMiniConsole($"> Fehler beim Umbenennen: {ex.Message}", Brushes.Red, true, false, null, false);
                 }
             }
         }
@@ -903,7 +903,7 @@ public partial class MainWindow
             isCommunityMode = !isCommunityMode;
 
             iconToggleCommunity.Path = isCommunityMode ? "/assets/icons/ic_return.svg" : "/assets/icons/ic_publish.svg";
-            btnToggleCommunity.Background = SolidColorBrush.Parse(isCommunityMode ? "#3C3C3C" : "#1d8080");
+            btnToggleCommunity.Background = isCommunityMode ? Scheme.BrushBgPanel2 : Scheme.BrushGlobalBg;
             ToolTip.SetTip(btnToggleCommunity, isCommunityMode ? "Zurück zu eigenen Levels" : "Öffne Community Browser");
 
             RefreshUI();
@@ -930,7 +930,7 @@ public partial class MainWindow
                     {
                         if (wasOffline)
                         {
-                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false);
+                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false, false, null, false);
                         }
                         RenderCommunityBrowser(win, searchTxt);
                     }
@@ -1004,20 +1004,21 @@ public partial class MainWindow
             if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(currentMiniConsoleError))
             {
                 await topLevel.Clipboard.SetTextAsync("Error: " + currentMiniConsoleError);
-                win.BtnMiniConsoleCopy.Background = SolidColorBrush.Parse("#2E8B57");
+                win.BtnMiniConsoleCopy.Background = Scheme.BrushApprovedBg;
                 win.BtnMiniConsoleCopy.Content = LoadIcon("assets/icons/ic_success.svg", 14);
                 await Task.Delay(500);
-                win.BtnMiniConsoleCopy.Background = SolidColorBrush.Parse("#3C3C3C");
+                win.BtnMiniConsoleCopy.Background = Scheme.BrushBgPanel2;
                 win.BtnMiniConsoleCopy.Content = LoadIcon("assets/icons/ic_copy.svg", 14);
             }
         };
 
-        void LogToMiniConsole(string msg, IBrush color, bool append = true, bool isError = false, string fullError = null)
+        void LogToMiniConsole(string msg, IBrush color, bool append = true, bool isError = false, string fullError = null, bool isQuickGen = true)
         {
             Dispatcher.UIThread.Post(() =>
             {
                 win.MiniConsolePanel.IsVisible = true;
                 if (!append) win.MiniConsoleText.Inlines?.Clear();
+                win.MiniConsoleTitle.Text = isQuickGen ? "Quick Generate Log" : "Error Log";
 
                 win.MiniConsoleText.Inlines ??= new Avalonia.Controls.Documents.InlineCollection();
 
@@ -1073,9 +1074,9 @@ public partial class MainWindow
 
                 var cmbSort = new ComboBox
                 {
-                    Background = SolidColorBrush.Parse("#1A1A1A"),
+                    Background = Scheme.BrushBgPanel3,
                     Foreground = Brushes.White,
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     CornerRadius = new CornerRadius(4),
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 5, 0),
@@ -1097,7 +1098,7 @@ public partial class MainWindow
 
                 var btnFilter = new Button
                 {
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     Width = 34,
                     Height = 34,
                     Padding = new Thickness(0),
@@ -1183,10 +1184,10 @@ public partial class MainWindow
                     Height = 34,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Center,
-                    Background = SolidColorBrush.Parse("#141414"),
+                    Background = Scheme.BrushBgPanel7,
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(1),
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     CornerRadius = new CornerRadius(4)
                 };
                 txtSearch.TextChanged += (s, e) => RenderCommunityBrowser(win, txtSearch.Text);
@@ -1232,9 +1233,9 @@ public partial class MainWindow
                     Watermark = "–––",
                     Width = 60,
                     MaxLength = 3,
-                    Background = SolidColorBrush.Parse("#141414"),
+                    Background = Scheme.BrushBgPanel7,
                     Foreground = Brushes.White,
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     CornerRadius = new CornerRadius(4),
                     HorizontalContentAlignment = HorizontalAlignment.Center,
                     VerticalContentAlignment = VerticalAlignment.Center,
@@ -1286,7 +1287,7 @@ public partial class MainWindow
                 var btnLevelGuide = new Button
                 {
                     Content = LoadIcon("assets/icons/ic_guide.svg", 16),
-                    Background = SolidColorBrush.Parse("#007ACC"),
+                    Background = Scheme.BrushTextHighlight2,
                     Padding = new Thickness(8),
                     CornerRadius = new CornerRadius(4)
                 };
@@ -1328,7 +1329,7 @@ public partial class MainWindow
                         headerPanel.Children.Add(new TextBlock
                         {
                             Text = group.Key,
-                            Foreground = BrushTextTitle,
+                            Foreground = Scheme.BrushTextTitle,
                             FontWeight = FontWeight.Bold,
                             VerticalAlignment = VerticalAlignment.Center
                         });
@@ -1367,8 +1368,8 @@ public partial class MainWindow
                                 HorizontalContentAlignment = HorizontalAlignment.Left,
                                 Padding = new Thickness(10, 10),
                                 Background = unlocked
-                                    ? SolidColorBrush.Parse("#313133")
-                                    : SolidColorBrush.Parse("#191919"),
+                                    ? Scheme.BrushBgPanel14
+                                    : Scheme.BrushDiffFallbackBg,
                                 Foreground = unlocked ? Brushes.White : Brushes.Gray,
                                 CornerRadius = new CornerRadius(4)
                             };
@@ -1407,7 +1408,7 @@ public partial class MainWindow
                         headerPanel.Children.Add(new TextBlock
                         {
                             Text = group.Key,
-                            Foreground = BrushTextTitle,
+                            Foreground = Scheme.BrushTextTitle,
                             FontWeight = FontWeight.Bold,
                             VerticalAlignment = VerticalAlignment.Center
                         });
@@ -1446,8 +1447,8 @@ public partial class MainWindow
                                 HorizontalContentAlignment = HorizontalAlignment.Left,
                                 Padding = new Thickness(10, 10),
                                 Background = unlocked
-                                    ? SolidColorBrush.Parse("#313133")
-                                    : SolidColorBrush.Parse("#191919"),
+                                    ? Scheme.BrushBgPanel14
+                                    : Scheme.BrushDiffFallbackBg,
                                 Foreground = unlocked ? Brushes.White : Brushes.Gray,
                                 CornerRadius = new CornerRadius(4)
                             };
@@ -1492,10 +1493,10 @@ public partial class MainWindow
                     MinWidth = 150,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Center,
-                    Background = SolidColorBrush.Parse("#141414"),
+                    Background = Scheme.BrushBgPanel7,
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(1),
-                    BorderBrush = SolidColorBrush.Parse("#333"),
+                    BorderBrush = Scheme.BrushBgPanel5,
                     CornerRadius = new CornerRadius(4)
                 };
 
@@ -1534,7 +1535,7 @@ public partial class MainWindow
                 var btnOpenFolder = new Button
                 {
                     Content = LoadIcon("assets/icons/ic_folder_open.svg", 18),
-                    Background = SolidColorBrush.Parse("#3C3C3C"),
+                    Background = Scheme.BrushBgPanel2,
                     Padding = new Thickness(8),
                     CornerRadius = new CornerRadius(4)
                 };
@@ -1545,7 +1546,7 @@ public partial class MainWindow
                 var btnAdd = new Button
                 {
                     Content = LoadIcon("assets/icons/ic_add.svg", 18),
-                    Background = SolidColorBrush.Parse("#32A852"),
+                    Background = Scheme.BrushTextTitle,
                     Padding = new Thickness(8),
                     CornerRadius = new CornerRadius(4)
                 };
@@ -1654,7 +1655,7 @@ public partial class MainWindow
                         if (cl.HasCommunityId && !string.IsNullOrEmpty(AppSettings.GithubUsername) && cl.Author.Equals(AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase))
                         {
                             // highlight author name if community browser level and user is author
-                            authorForeground = SolidColorBrush.Parse("#6495ED");
+                            authorForeground = Scheme.BrushTextHighlight;
                         }
 
                         var authorTextBlock = new TextBlock
@@ -1677,8 +1678,8 @@ public partial class MainWindow
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                             HorizontalContentAlignment = HorizontalAlignment.Left,
                             Background = cl.FilePath == _newlyCreatedLevelPath
-                                ? SolidColorBrush.Parse("#2E8B57")
-                                : SolidColorBrush.Parse("#313133"),
+                                ? Scheme.BrushApprovedBg
+                                : Scheme.BrushBgPanel14,
                             CornerRadius = new CornerRadius(4),
                             Padding = new Thickness(10)
                         };
@@ -1703,7 +1704,7 @@ public partial class MainWindow
                             };
                             timer.Tick += (s, args) =>
                             {
-                                btnMain.Background = SolidColorBrush.Parse("#313133");
+                                btnMain.Background = Scheme.BrushBgPanel14;
                                 _newlyCreatedLevelPath = null;
                                 timer.Stop();
                             };
@@ -2172,7 +2173,7 @@ public partial class MainWindow
                         var txtFolder = new TextBox
                         {
                             Text = group.Key,
-                            Foreground = BrushTextTitle,
+                            Foreground = Scheme.BrushTextTitle,
                             FontWeight = FontWeight.Bold,
                             Background = Brushes.Transparent,
                             BorderBrush = Brushes.Transparent,
@@ -2184,8 +2185,8 @@ public partial class MainWindow
 
                         txtFolder.PointerEntered += (s, ev) =>
                         {
-                            txtFolder.BorderBrush = SolidColorBrush.Parse("#555");
-                            txtFolder.Background = SolidColorBrush.Parse("#1A1A1A");
+                            txtFolder.BorderBrush = Scheme.BrushBgPanel15;
+                            txtFolder.Background = Scheme.BrushBgPanel3;
                         };
                         txtFolder.PointerExited += (s, ev) =>
                         {
@@ -2197,8 +2198,8 @@ public partial class MainWindow
                         };
                         txtFolder.GotFocus += (s, ev) =>
                         {
-                            txtFolder.BorderBrush = SolidColorBrush.Parse("#555");
-                            txtFolder.Background = SolidColorBrush.Parse("#1A1A1A");
+                            txtFolder.BorderBrush = Scheme.BrushBgPanel15;
+                            txtFolder.Background = Scheme.BrushBgPanel3;
                         };
                         txtFolder.LostFocus += (s, ev) =>
                         {
@@ -2262,7 +2263,7 @@ public partial class MainWindow
         if (isCommunityMode)
         {
             iconToggleCommunity.Path = "/assets/icons/ic_return.svg";
-            btnToggleCommunity.Background = SolidColorBrush.Parse("#3C3C3C");
+            btnToggleCommunity.Background = Scheme.BrushBgPanel2;
             ToolTip.SetTip(btnToggleCommunity, "Zurück zu eigenen Levels");
 
             Dispatcher.UIThread.Post(async () =>
@@ -2287,7 +2288,7 @@ public partial class MainWindow
                     {
                         if (wasOffline)
                         {
-                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false);
+                            LogToMiniConsole($"> Cooldown aktiv. Bitte warte noch {Math.Ceiling(remaining)} Sekunden.", Brushes.Orange, false, false, null, false);
                         }
                         RenderCommunityBrowser(win, searchTxt);
                     }
@@ -2345,9 +2346,9 @@ public partial class MainWindow
                 BtnDiagram2.IsVisible = true;
 
                 // highlight first button
-                BtnDiagram1.Background = SolidColorBrush.Parse("#007ACC");
-                BtnDiagram2.Background = SolidColorBrush.Parse("#3C3C3C");
-                BtnDiagram3.Background = SolidColorBrush.Parse("#3C3C3C");
+                BtnDiagram1.Background = Scheme.BrushTextHighlight2;
+                BtnDiagram2.Background = Scheme.BrushBgPanel2;
+                BtnDiagram3.Background = Scheme.BrushBgPanel2;
 
                 if (level.DiagramPaths.Count >= 3) BtnDiagram3.IsVisible = true;
             }
@@ -2426,7 +2427,7 @@ public partial class MainWindow
                     Text = GetCleanLevelName(level.Title),
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextNormal,
+                    Foreground = Scheme.BrushTextNormal,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0)
                 }
@@ -2458,7 +2459,7 @@ public partial class MainWindow
                     Text = $"{level.Id}. {GetCleanLevelName(level.Title)}",
                     FontSize = 20,
                     FontWeight = FontWeight.Bold,
-                    Foreground = BrushTextNormal,
+                    Foreground = Scheme.BrushTextNormal,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 0, 0, 15)
                 }
@@ -2569,7 +2570,7 @@ public partial class MainWindow
                 Height = 18,
                 CornerRadius = new CornerRadius(3),
                 BorderThickness = new Thickness(2),
-                BorderBrush = SolidColorBrush.Parse("#888"),
+                BorderBrush = Scheme.BrushBgPanel12,
                 Background = Brushes.Transparent
             };
 
@@ -2580,7 +2581,7 @@ public partial class MainWindow
                 CornerRadius = new CornerRadius(3),
                 BorderThickness = new Thickness(2),
                 BorderBrush = Brushes.Transparent,
-                Background = SolidColorBrush.Parse("#22FFFFFF"),
+                Background = Scheme.BrushTriCheckEnlight,
                 IsVisible = false,
                 IsHitTestVisible = false
             };
@@ -2598,7 +2599,7 @@ public partial class MainWindow
             var crossPath = new Avalonia.Controls.Shapes.Path
             {
                 Data = Geometry.Parse("M 4,4 L 14,14 M 14,4 L 4,14"),
-                Stroke = SolidColorBrush.Parse("#E05555"),
+                Stroke = Scheme.BrushTriCheckIgnoreFg,
                 StrokeThickness = 2,
                 StrokeLineCap = PenLineCap.Round,
                 IsVisible = false,
@@ -2626,20 +2627,20 @@ public partial class MainWindow
                 switch (checkBox.IsChecked)
                 {
                     case true:
-                        border.Background = SolidColorBrush.Parse("#6495ED");
-                        border.BorderBrush = SolidColorBrush.Parse("#6495ED");
+                        border.Background = Scheme.BrushTextHighlight;
+                        border.BorderBrush = Scheme.BrushTextHighlight;
                         checkPath.IsVisible = true;
                         crossPath.IsVisible = false;
                         break;
                     case null:
-                        border.Background = SolidColorBrush.Parse("#3C1A1A");
-                        border.BorderBrush = SolidColorBrush.Parse("#E05555");
+                        border.Background = Scheme.BrushTriCheckIgnoreBg;
+                        border.BorderBrush = Scheme.BrushTriCheckIgnoreFg;
                         checkPath.IsVisible = false;
                         crossPath.IsVisible = true;
                         break;
                     default:
                         border.Background = Brushes.Transparent;
-                        border.BorderBrush = SolidColorBrush.Parse("#888");
+                        border.BorderBrush = Scheme.BrushBgPanel12;
                         checkPath.IsVisible = false;
                         crossPath.IsVisible = false;
                         break;
@@ -2651,9 +2652,9 @@ public partial class MainWindow
                 hoverBorder.IsVisible = true;
                 border.BorderBrush = checkBox.IsChecked switch
                 {
-                    true => SolidColorBrush.Parse("#88B4F0"),
-                    null => SolidColorBrush.Parse("#F07070"),
-                    _ => SolidColorBrush.Parse("#BBBBBB")
+                    true => Scheme.BrushTriCheckIncludeHoverFg,
+                    null => Scheme.BrushCheckIgnoreHoverFg,
+                    _ => Scheme.BrushTriCheckBg
                 };
             };
 
@@ -2802,7 +2803,7 @@ public partial class MainWindow
             Height = 320,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) => { if (ev.Key == Key.Escape) dialog.Close(); };
@@ -2841,7 +2842,7 @@ public partial class MainWindow
         var txtName = new TextBox
         {
             Watermark = "Level Name",
-            Background = SolidColorBrush.Parse("#1E1E1E"),
+            Background = Scheme.BrushBadgeDefault,
             Foreground = Brushes.White,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(8)
@@ -2856,7 +2857,7 @@ public partial class MainWindow
         var txtAuthor = new TextBox
         {
             Watermark = "Autor Name",
-            Background = SolidColorBrush.Parse("#1E1E1E"),
+            Background = Scheme.BrushBadgeDefault,
             Foreground = Brushes.White,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(8)
@@ -2875,7 +2876,7 @@ public partial class MainWindow
         var txtJson = new TextBox
         {
             Watermark = "Füge hier den JSON-Code der KI ein...",
-            Background = SolidColorBrush.Parse("#1E1E1E"),
+            Background = Scheme.BrushBadgeDefault,
             Foreground = Brushes.Gray,
             BorderThickness = new Thickness(1),
             AcceptsReturn = true,
@@ -2909,7 +2910,7 @@ public partial class MainWindow
         var txtErrorMsg = new TextBlock
         {
             Text = "Ungültiges JSON", // placeholder
-            Foreground = SolidColorBrush.Parse("#FF5555"),
+            Foreground = Scheme.BrushDeniedFg,
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = 11,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -2922,7 +2923,7 @@ public partial class MainWindow
         var btnCopyError = new Button
         {
             Content = LoadIcon("assets/icons/ic_copy.svg", 14),
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Padding = new Thickness(6),
             CornerRadius = new CornerRadius(4)
         };
@@ -2933,10 +2934,10 @@ public partial class MainWindow
             if (topLevel?.Clipboard != null && !string.IsNullOrEmpty(fullErrorText))
             {
                 await topLevel.Clipboard.SetTextAsync(fullErrorText);
-                btnCopyError.Background = SolidColorBrush.Parse("#2E8B57"); // flash green
+                btnCopyError.Background = Scheme.BrushApprovedBg; // flash green
                 btnCopyError.Content = LoadIcon("assets/icons/ic_success.svg", 14); // temporarily change icon to success
                 await Task.Delay(500);
-                btnCopyError.Background = SolidColorBrush.Parse("#3C3C3C");
+                btnCopyError.Background = Scheme.BrushBgPanel2;
                 btnCopyError.Content = LoadIcon("assets/icons/ic_copy.svg", 14);
             }
         };
@@ -2957,7 +2958,7 @@ public partial class MainWindow
         var btnGuide = new Button
         {
             Content = LoadIcon("assets/icons/ic_guide.svg", 18),
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Padding = new Thickness(8),
             CornerRadius = new CornerRadius(4)
         };
@@ -2983,7 +2984,7 @@ public partial class MainWindow
         var btnPaste = new Button
         {
             Content = LoadIcon("assets/icons/ic_import.svg", 18),
-            Background = SolidColorBrush.Parse("#007ACC"),
+            Background = Scheme.BrushTextHighlight2,
             Padding = new Thickness(8),
             CornerRadius = new CornerRadius(4)
         };
@@ -3023,7 +3024,7 @@ public partial class MainWindow
         {
             Content = "KI Import Modus",
             Background = Brushes.Transparent,
-            Foreground = SolidColorBrush.Parse("#0088e3"),
+            Foreground = Scheme.BrushAiModeFg,
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
@@ -3048,7 +3049,7 @@ public partial class MainWindow
             else
             {
                 btnSwitchMode.Content = "KI Import Modus";
-                btnSwitchMode.Foreground = SolidColorBrush.Parse("#0088e3");
+                btnSwitchMode.Foreground = Scheme.BrushAiModeFg;
                 txtName.Focus();
             }
         };
@@ -3066,13 +3067,13 @@ public partial class MainWindow
         var btnCancel = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White
         };
         var btnCreate = new Button
         {
             Content = "Erstellen",
-            Background = SolidColorBrush.Parse("#32A852"),
+            Background = Scheme.BrushTextTitle,
             Foreground = Brushes.White
         };
 
@@ -3222,7 +3223,7 @@ public partial class MainWindow
             Height = hasSubscriptions ? 220 : 150,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             SystemDecorations = SystemDecorations.BorderOnly,
-            Background = SolidColorBrush.Parse("#252526"),
+            Background = Scheme.BrushTextNormal3,
             CornerRadius = new CornerRadius(8)
         };
         dialog.KeyDown += (s, ev) =>
@@ -3261,13 +3262,13 @@ public partial class MainWindow
         var btnYes = new Button
         {
             Content = "Löschen",
-            Background = SolidColorBrush.Parse("#B43232"),
+            Background = Scheme.BrushDiffHard,
             Foreground = Brushes.White
         };
         var btnNo = new Button
         {
             Content = "Abbrechen",
-            Background = SolidColorBrush.Parse("#3C3C3C"),
+            Background = Scheme.BrushBgPanel2,
             Foreground = Brushes.White
         };
 
@@ -3780,7 +3781,7 @@ public partial class MainWindow
                 Text = GetCleanLevelName(level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled)),
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
-                Foreground = BrushTextNormal,
+                Foreground = Scheme.BrushTextNormal,
                 Margin = new Thickness(0)
             });
 
@@ -3807,7 +3808,7 @@ public partial class MainWindow
                 Text = $"S{level.Id}. {GetCleanLevelName(level.GetDisplayTitle(AppSettings.IsSqlAntiSpoilerEnabled))}",
                 FontSize = 20,
                 FontWeight = FontWeight.Bold,
-                Foreground = BrushTextNormal,
+                Foreground = Scheme.BrushTextNormal,
                 Margin = new Thickness(0, 0, 0, 15)
             });
         }

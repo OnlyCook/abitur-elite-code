@@ -9,17 +9,25 @@ internal class SqlCodeEditor
 {
     public static IHighlightingDefinition GetDarkSqlHighlighting()
     {
-        string xshd =
-            @"
+        string comment = Scheme.BrushSqlComment.Color.ToString();
+        string str = Scheme.BrushSqlString.Color.ToString();
+        string number = Scheme.BrushSqlNumber.Color.ToString();
+        string punctuation = Scheme.BrushTextNormal6.Color.ToString();
+        string keywords = Scheme.BrushSqlKeyword.Color.ToString();
+        string functions = Scheme.BrushMarkdownInlineCode.Color.ToString();
+        string variables = Scheme.BrushSqlVariable.Color.ToString();
+        string types = Scheme.BrushSqlType.Color.ToString();
+
+        string xshd = $@"
 <SyntaxDefinition name=""SQL Dark"" extensions="".sql"" xmlns=""http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008"">
-	<Color name=""Comment"" foreground=""#6A9955"" exampleText=""-- comment"" />
-	<Color name=""String"" foreground=""#CE9178"" exampleText=""'text'"" />
-	<Color name=""Number"" foreground=""#B5CEA8"" exampleText=""42"" />
-	<Color name=""Punctuation"" foreground=""#D4D4D4"" exampleText=""a(b);"" />
-	<Color name=""Keywords"" foreground=""#569CD6"" fontWeight=""bold"" exampleText=""SELECT FROM"" />
-	<Color name=""Functions"" foreground=""#DCDCAA"" exampleText=""COUNT()"" />
-	<Color name=""Variables"" foreground=""#9CDCFE"" exampleText=""@myvar"" />
-    <Color name=""Types"" foreground=""#4EC9B0"" exampleText=""INT VARCHAR"" />
+	<Color name=""Comment"" foreground=""{comment}"" exampleText=""-- comment"" />
+	<Color name=""String"" foreground=""{str}"" exampleText=""'text'"" />
+	<Color name=""Number"" foreground=""{number}"" exampleText=""42"" />
+	<Color name=""Punctuation"" foreground=""{punctuation}"" exampleText=""a(b);"" />
+	<Color name=""Keywords"" foreground=""{keywords}"" fontWeight=""bold"" exampleText=""SELECT FROM"" />
+	<Color name=""Functions"" foreground=""{functions}"" exampleText=""COUNT()"" />
+	<Color name=""Variables"" foreground=""{variables}"" exampleText=""@myvar"" />
+    <Color name=""Types"" foreground=""{types}"" exampleText=""INT VARCHAR"" />
 
 	<RuleSet ignoreCase=""true"">
         <Span color=""Comment"">

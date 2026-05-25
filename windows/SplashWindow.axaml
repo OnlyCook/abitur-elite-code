@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AbiturEliteCode"
         x:Class="AbiturEliteCode.SplashWindow"
         Width="400" Height="200"
         WindowStartupLocation="CenterScreen"
@@ -9,21 +10,21 @@
         Title="Abitur Elite Code"
         RequestedThemeVariant="Dark">
 
-    <Border Background="#121212" CornerRadius="8" ClipToBounds="True">
-        <Grid RowDefinitions="*, Auto, *" Margin="30">
-            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="ABITUR" Foreground="#E6E6E6" FontWeight="Bold" FontSize="24" />
-                <TextBlock Text=" ELITE CODE" Foreground="#32A852" FontWeight="Bold" FontSize="24" />
-            </StackPanel>
+	<Border Background="{x:Static local:Scheme.BrushBgPanel19}" CornerRadius="8" ClipToBounds="True">
+		<Grid RowDefinitions="*, Auto, *" Margin="30">
+			<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+				<TextBlock Text="ABITUR" Foreground="{x:Static local:Scheme.BrushTextNormal}" FontWeight="Bold" FontSize="24" />
+				<TextBlock Text=" ELITE CODE" Foreground="{x:Static local:Scheme.BrushTextTitle}" FontWeight="Bold" FontSize="24" />
+			</StackPanel>
 
-            <TextBlock Grid.Row="1" Text="wird geladen..." Foreground="Gray" FontSize="14"
+			<TextBlock Grid.Row="1" Text="wird geladen..." Foreground="Gray" FontSize="14"
                        HorizontalAlignment="Center" Margin="0,20,0,10" />
 
-            <ProgressBar x:Name="LoadingBar" Grid.Row="2" Height="4"
+			<ProgressBar x:Name="LoadingBar" Grid.Row="2" Height="4"
                          Minimum="0" Maximum="100" Value="1"
-                         Foreground="#32A852" Background="#202124"
+                         Foreground="{x:Static local:Scheme.BrushTextTitle}" Background="{x:Static local:Scheme.BrushBgPanel}"
                          HorizontalAlignment="Stretch" VerticalAlignment="Top"
 						 IsIndeterminate="False" />
-        </Grid>
-    </Border>
+		</Grid>
+	</Border>
 </Window>
