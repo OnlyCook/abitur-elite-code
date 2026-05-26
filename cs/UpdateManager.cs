@@ -23,6 +23,10 @@ public static class UpdateManager
         RateLimitExceeded
     }
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AllocConsole();
+
     public const string CurrentVersion = "1.0.0";
     private const string GithubApiUrl = "https://api.github.com/repos/OnlyCook/abitur-elite-code/releases";
 
@@ -31,6 +35,161 @@ public static class UpdateManager
     public static bool HasCheckedForUpdates { get; private set; } = false;
     public static bool IsOutdated { get; private set; } = false;
     public static bool IsMaintenanceMode { get; private set; } = false;
+
+    public static void ProcessCommandLineArgs(string[] args)
+    {
+        if (args == null || args.Length == 0) return;
+
+        if (args.Length >= 4 && args[0] == "--apply-update")
+        {
+            if (int.TryParse(args[1], out int targetPid))
+            {
+                string targetDir = args[2];
+                string sourceDir = args[3];
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    try
+                    {
+                        AllocConsole();
+                        // explicitly redirect output so a ui app can write to the console
+                        var stdOut = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
+                        Console.SetOut(stdOut);
+                        Console.SetError(stdOut);
+                    }
+                    catch { }
+                }
+
+                Console.WriteLine("==================================================");
+                Console.WriteLine("      Abitur Elite Code wird aktualisiert...");
+                Console.WriteLine("==================================================");
+                Console.WriteLine();
+
+                ApplyUpdateAndRestart(targetPid, targetDir, sourceDir);
+            }
+        }
+        else if (args.Length >= 2 && args[0] == "--cleanup-update")
+        {
+            string tempDir = args[1];
+            Task.Run(() =>
+            {
+                try
+                {
+                    // wait a bit to ensure the updater process fully released locks
+                    System.Threading.Thread.Sleep(3000);
+                    if (Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                }
+                catch { }
+            });
+        }
+    }
+
+    private static void ApplyUpdateAndRestart(int targetPid, string targetDir, string sourceDir)
+    {
+        try
+        {
+            Console.WriteLine("[1/3] Warte darauf, dass die App geschlossen wird...");
+            try
+            {
+                var oldProcess = Process.GetProcessById(targetPid);
+                if (!oldProcess.HasExited)
+                {
+                    oldProcess.WaitForExit(5000); // wait up to 5 seconds
+                }
+
+                // force kill if the process is stubbornly hanging in the background
+                if (!oldProcess.HasExited)
+                {
+                    Console.WriteLine("Schliesse alte Applikation erzwingend...");
+                    oldProcess.Kill();
+                }
+            }
+            catch { }
+
+            // give the os a moment to fully release file locks
+            System.Threading.Thread.Sleep(1000);
+
+            Console.WriteLine("[2/3] Installiere neue Dateien (Speicherstaende sind sicher)...");
+
+            // safely recreate the directory structure
+            foreach (string dirPath in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                string relPath = Path.GetRelativePath(sourceDir, dirPath);
+                Directory.CreateDirectory(Path.Combine(targetDir, relPath));
+            }
+
+            // safely copy files with retry logic
+            foreach (string newPath in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
+            {
+                string relPath = Path.GetRelativePath(sourceDir, newPath);
+                string destPath = Path.Combine(targetDir, relPath);
+
+                bool copied = false;
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        File.Copy(newPath, destPath, true);
+                        copied = true;
+                        break;
+                    }
+                    catch
+                    {
+                        System.Threading.Thread.Sleep(500);
+                    }
+                }
+
+                if (!copied)
+                {
+                    Console.WriteLine($"Warnung: '{relPath}' konnte nicht ueberschrieben werden (Gesperrt?).");
+                }
+            }
+
+            Console.WriteLine("[3/3] Raeume temporaere Dateien auf und starte neu...");
+            string targetExe = Path.Combine(targetDir, "AbiturEliteCode.exe");
+            if (!File.Exists(targetExe))
+            {
+                string friendlyName = AppDomain.CurrentDomain.FriendlyName;
+                if (!friendlyName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    friendlyName += ".exe";
+                targetExe = Path.Combine(targetDir, friendlyName);
+            }
+
+            string rootTempDir = sourceDir;
+            int idx = rootTempDir.IndexOf("AbiturEliteCodeUpdate", StringComparison.OrdinalIgnoreCase);
+            if (idx != -1)
+            {
+                rootTempDir = rootTempDir.Substring(0, idx + "AbiturEliteCodeUpdate".Length);
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = targetExe,
+                Arguments = $"--cleanup-update \"{rootTempDir}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("\nEin Fehler ist aufgetreten: " + ex.Message);
+            Console.WriteLine("Starte Ziel-Applikation als Fallback in 4 Sekunden...");
+
+            // pause so the user can read the error message in the console
+            System.Threading.Thread.Sleep(4000);
+
+            try
+            {
+                string targetExe = Path.Combine(targetDir, "AbiturEliteCode.exe");
+                Process.Start(new ProcessStartInfo { FileName = targetExe, UseShellExecute = true });
+            }
+            catch { }
+        }
+
+        Environment.Exit(0);
+    }
 
     public static async Task<(UpdateStatus Status, bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
     {
@@ -235,50 +394,45 @@ public static class UpdateManager
 
             progress?.Report(("Starte Installer...", 100));
 
-            int currentPid = Process.GetCurrentProcess().Id;
-            string currentExe = Process.GetCurrentProcess().MainModule?.FileName ??
-                                Path.Combine(currentAppDir, "AbiturEliteCode.exe");
+            // we clone ourselves to act as the updater to guarantee the update logic exists
+            string updaterDir = Path.Combine(tempDir, "updater");
+            Directory.CreateDirectory(updaterDir);
 
-            // build visible background script
-            string batPath = Path.Combine(tempDir, "update.bat");
-            string batContent = $@"
-@echo off
-title Abitur Elite Code Updater
-color 0A
-echo ===================================================
-echo     Abitur Elite Code wird aktualisiert...
-echo ===================================================
-echo.
-echo [1/3] Warte darauf, dass die App geschlossen wird...
-:loop
-tasklist /FI ""PID eq {currentPid}"" | find /i ""{currentPid}"" >nul
-if not errorlevel 1 (
-    timeout /t 1 >nul
-    goto loop
-)
-
-echo [2/3] Installiere neue Dateien (Speicherstaende sind sicher)...
-xcopy ""{sourceFolder}\*"" ""{currentAppDir}"" /E /Y /C /H >nul
-
-echo [3/3] Raeume temporaere Dateien auf und starte neu...
-start """" ""{currentExe}""
-rmdir /S /Q ""{tempDir}""
-del ""%~f0""
-";
-            File.WriteAllText(batPath, batContent);
-
-            // start script visibly
-            var psi = new ProcessStartInfo
+            foreach (string dirPath in Directory.GetDirectories(currentAppDir, "*", SearchOption.AllDirectories))
             {
-                FileName = batPath,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-            Process.Start(psi);
+                string relPath = Path.GetRelativePath(currentAppDir, dirPath);
+                Directory.CreateDirectory(Path.Combine(updaterDir, relPath));
+            }
+            foreach (string filePath in Directory.GetFiles(currentAppDir, "*.*", SearchOption.AllDirectories))
+            {
+                string relPath = Path.GetRelativePath(currentAppDir, filePath);
+                File.Copy(filePath, Path.Combine(updaterDir, relPath), true);
+            }
 
-            // self destruct
-            Environment.Exit(0);
-            return UpdateStatus.Success;
+            int currentPid = Process.GetCurrentProcess().Id;
+            string currentExeName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName ?? "AbiturEliteCode.exe");
+            string updaterExePath = Path.Combine(updaterDir, currentExeName);
+
+            if (File.Exists(updaterExePath))
+            {
+                // launch the clone we just created and feed it the arguments it needs
+                var psi = new ProcessStartInfo
+                {
+                    FileName = updaterExePath,
+                    Arguments = $"--apply-update {currentPid} \"{currentAppDir.TrimEnd('\\')}\" \"{sourceFolder.TrimEnd('\\')}\"",
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Normal
+                };
+                Process.Start(psi);
+
+                // self destruct the old instance
+                Environment.Exit(0);
+                return UpdateStatus.Success;
+            }
+            else
+            {
+                return UpdateStatus.NetworkError;
+            }
         }
         catch (Exception)
         {

@@ -12,6 +12,8 @@ namespace AbiturEliteCode
         [STAThread]
         public static void Main(string[] args)
         {
+            UpdateManager.ProcessCommandLineArgs(args);
+
             SandboxRunner.InterceptSandbox(args);
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
