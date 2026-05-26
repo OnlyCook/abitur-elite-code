@@ -1605,7 +1605,7 @@ public partial class SettingsWindow : Window
         autoUpdateWrapper.Children.Add(_chkAutoUpdate);
         if (AppSettings.IsCommunityFeaturesEnabled)
         {
-            ToolTip.SetTip(autoUpdateWrapper, "Community Features benötigen die aktuellste App-Version. Die automatische Update-Suche ist daher erzwungen.");
+            ToolTip.SetTip(autoUpdateWrapper, "Community Features benötigen die aktuellste App-Version. Die automatische Update-Suche ist daher erzwungen");
         }
 
         _txtVersionInfo = new TextBlock

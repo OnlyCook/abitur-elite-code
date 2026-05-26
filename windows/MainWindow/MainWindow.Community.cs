@@ -160,6 +160,9 @@ public partial class MainWindow
         PnlCommentsSection.IsVisible = false;
         SetCommunitySkeletonsVisible(true);
 
+        if (BtnCommunityDiscussionMenu != null)
+            BtnCommunityDiscussionMenu.IsVisible = false;
+
         PnlCommunityActions.IsVisible = true;
         if (TxtCommunityOfflineStatus != null)
             TxtCommunityOfflineStatus.IsVisible = false;
@@ -2865,6 +2868,7 @@ public partial class MainWindow
 
     private async void ShowCommunityHint()
     {
+        if (UpdateManager.IsOutdated) return;
         if (playerData.Settings.CommunityHintShown || !string.IsNullOrEmpty(AppSettings.GithubToken)) return;
 
         playerData.Settings.CommunityHintShown = true;
@@ -3103,7 +3107,7 @@ public partial class MainWindow
         _notificationPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
         _notificationPollTimer.Tick += (s, e) =>
         {
-            if (AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken))
+            if (AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken) && !UpdateManager.IsOutdated)
             {
                 // only poll if the queue is completely idle
                 if (_apiQueue.Count == 0 && _apiQueueInFlight == 0)
@@ -3117,12 +3121,24 @@ public partial class MainWindow
         // trigger initial poll shortly after startup
         if (AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken))
         {
-            // start animation immediately
-            _isInitialNotificationCheckRunning = true;
-            Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
-
             Task.Run(async () =>
             {
+                // wait for the initial update check to finish before starting any polling or animations
+                while (!UpdateManager.HasCheckedForUpdates)
+                {
+                    await Task.Delay(100);
+                }
+
+                // completely abort if the app is outdated
+                if (UpdateManager.IsOutdated)
+                {
+                    _hasCompletedInitialNotificationCheck = true;
+                    return;
+                }
+
+                _isInitialNotificationCheckRunning = true;
+                await Dispatcher.UIThread.InvokeAsync(UpdateInboxUI);
+
                 await Task.Delay(5000);
 
                 // force the initial fetch regardless of queue state to ensure the animation finishes correctly
@@ -3512,7 +3528,8 @@ public partial class MainWindow
 
         if (BtnInbox != null)
         {
-            BtnInbox.IsVisible = isCommunityEnabled && isLoggedIn;
+            // hide inbox button if the app is outdated
+            BtnInbox.IsVisible = isCommunityEnabled && isLoggedIn && !UpdateManager.IsOutdated;
 
             if (BtnInbox.IsVisible)
             {
@@ -3540,6 +3557,8 @@ public partial class MainWindow
             else
             {
                 StopInboxAnimation();
+                // ensure flyout is closed if the button becomes hidden while open
+                _inboxFlyout?.Hide();
             }
         }
     }
@@ -3577,6 +3596,8 @@ public partial class MainWindow
 
     private void BtnInbox_Click(object sender, RoutedEventArgs e)
     {
+        if (UpdateManager.IsOutdated) return;
+
         // mark all as read
         bool changed = false;
         foreach (var n in _communityCache.Notifications)
@@ -3599,7 +3620,7 @@ public partial class MainWindow
 
     private void ShowInboxFlyout()
     {
-        if (BtnInbox == null) return;
+        if (BtnInbox == null || UpdateManager.IsOutdated) return;
 
         var rootStack = new StackPanel
         {
