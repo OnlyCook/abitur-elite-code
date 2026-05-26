@@ -1355,7 +1355,7 @@ public partial class MainWindow : Window
         return resultImage;
     }
 
-    private WrapPanel? BuildTagsPanel(string? difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
+    private WrapPanel? BuildTagsPanel(string? difficulty, LevelDifficultyStats? difficultyStats, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
     {
         if (difficulty == "" && (topics == null || topics.Count == 0) &&
             (diagrams == null || diagrams.Count == 0)) return null;
@@ -1370,46 +1370,51 @@ public partial class MainWindow : Window
         if (!string.IsNullOrEmpty(difficulty))
         {
             IBrush diffColor = Brushes.Gray;
-            string tooltip = "";
+            string fallbackTooltip = "";
 
             switch (difficulty.ToLower())
             {
                 case "einfach":
                     diffColor = Scheme.BrushDiffEasy;
-                    tooltip = isSql
-                        ? "Einfache SELECT-Abfragen, meist auf einer einzelnen Tabelle."
+                    fallbackTooltip = isSql
+                        ? "Grundlegende Abfragen, meist auf einer einzelnen Tabelle."
                         : "Grundlegende Programmierkonzepte, wenig Vernetzung.";
                     break;
                 case "mittel":
                     diffColor = Scheme.BrushDiffMid;
-                    tooltip = isSql
+                    fallbackTooltip = isSql
                         ? "Abfragen mit JOINs, GROUP BY und einfachen Unterabfragen."
                         : "Komplexere Logik, erste Objektinteraktionen und Datenstrukturen.";
                     break;
                 case "schwer":
                     diffColor = Scheme.BrushDiffHard;
-                    tooltip = isSql
-                        ? "Komplexe Unterabfragen, aggregierte Joins und Verschachtelungen."
-                        : "Komplexe Algorithmen, Datenstrukturen (Listen/Arrays) und Architektur.";
+                    fallbackTooltip = isSql
+                        ? "Komplexe Unterabfragen, aggregierte JOINs und Verschachtelungen."
+                        : "Komplexe Algorithmen, Datenstrukturen und Architektur.";
                     break;
                 case "abitur":
                     diffColor = Scheme.BrushDiffAbi;
-                    tooltip = isSql
+                    fallbackTooltip = isSql
                         ? "Auf Abitur-Niveau: Komplexe Auswertungen über viele Relationen."
                         : "Auf Abitur-Niveau: Netzwerkkommunikation, Parsing, komplexe Objektgeflechte.";
                     break;
             }
 
             var diffBorder = CreateTagBorder(difficulty.ToUpper(), diffColor);
-            ToolTip.SetTip(diffBorder, tooltip);
+
+            if (difficultyStats != null)
+                ToolTip.SetTip(diffBorder, BuildDifficultyStatsTooltip(difficultyStats, diffColor));
+            else if (!string.IsNullOrEmpty(fallbackTooltip))
+                ToolTip.SetTip(diffBorder, fallbackTooltip);
+
             panel.Children.Add(diffBorder);
         }
 
         var tagsContainer = new WrapPanel { Orientation = Orientation.Horizontal };
         bool hasAnyTags = false;
 
-        // topic tags (max of 3)
-        if (topics != null && (!isSql || isCommunityCustomLevel))
+        // topic tags (max 3)
+        if (topics != null && (isCommunityCustomLevel || !isSql || topics.Count > 0))
         {
             foreach (var topic in topics.Take(3))
             {
@@ -1418,54 +1423,127 @@ public partial class MainWindow : Window
             }
         }
 
-        // diagram tags (max of 3)
+        // diagram tags (max 3)
         if (diagrams != null)
         {
             foreach (var diag in diagrams.Take(3))
             {
-                tagsContainer.Children.Add(CreateTagBorder(diag, Scheme.BrushTextNormal2));
+                tagsContainer.Children.Add(CreateTagBorder(diag, Scheme.BrushGlobalFg));
                 hasAnyTags = true;
             }
         }
 
         if (hasAnyTags)
         {
-            // wrap tags inside a toggle if its a downloaded community level
-            if (isCommunityCustomLevel)
+            tagsContainer.IsVisible = false;
+
+            var toggleBtn = new Button
             {
-                tagsContainer.IsVisible = false;
+                Background = Brushes.Transparent,
+                Padding = new Thickness(4),
+                Margin = new Thickness(0, 0, 5, 5),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursor.Parse("Hand")
+            };
 
-                var toggleBtn = new Button
-                {
-                    Background = Brushes.Transparent,
-                    Padding = new Thickness(4),
-                    Margin = new Thickness(0, 0, 5, 5),
-                    CornerRadius = new CornerRadius(4),
-                    Cursor = Cursor.Parse("Hand")
-                };
+            var iconImg = LoadIcon("assets/icons/ic_eye_open.svg", 16);
+            toggleBtn.Content = iconImg;
 
-                var iconImg = LoadIcon("assets/icons/ic_eye_open.svg", 16);
-                toggleBtn.Content = iconImg;
+            ToolTip.SetTip(toggleBtn, "Tags anzeigen");
 
-                ToolTip.SetTip(toggleBtn, "Tags anzeigen");
+            toggleBtn.Click += (s, e) =>
+            {
+                bool isVisible = tagsContainer.IsVisible;
+                tagsContainer.IsVisible = !isVisible;
 
-                toggleBtn.Click += (s, e) =>
-                {
-                    bool isVisible = tagsContainer.IsVisible;
-                    tagsContainer.IsVisible = !isVisible;
+                string newIcon = !isVisible ? "assets/icons/ic_eye_closed.svg" : "assets/icons/ic_eye_open.svg";
+                iconImg.Source = LoadIcon(newIcon, 16).Source;
+                ToolTip.SetTip(toggleBtn, !isVisible ? "Tags verbergen" : "Tags anzeigen");
+            };
 
-                    string newIcon = !isVisible ? "assets/icons/ic_eye_closed.svg" : "assets/icons/ic_eye_open.svg";
-                    iconImg.Source = LoadIcon(newIcon, 16).Source;
-                    ToolTip.SetTip(toggleBtn, !isVisible ? "Tags verbergen" : "Tags anzeigen");
-                };
-
-                panel.Children.Add(toggleBtn);
-            }
-
+            panel.Children.Add(toggleBtn);
             panel.Children.Add(tagsContainer);
         }
 
         return panel;
+    }
+
+    private Control BuildDifficultyStatsTooltip(LevelDifficultyStats stats, IBrush accentColor)
+    {
+        var root = new StackPanel
+        {
+            Spacing = 5,
+            Margin = new Thickness(2, 2, 6, 2)
+        };
+
+        root.Children.Add(new TextBlock
+        {
+            Text = "Schwierigkeitsanalyse",
+            FontSize = 11,
+            FontWeight = FontWeight.Bold,
+            Foreground = Scheme.BrushTextNormal,
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        void AddRow(string label, int value)
+        {
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            row.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontSize = 11,
+                Foreground = Scheme.BrushTextNormal6,
+                Width = 125,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            double fillWidth = 80.0 * (Math.Clamp(value, 0, 5) / 5.0);
+            var fill = new Border
+            {
+                Width = fillWidth,
+                Height = 6,
+                CornerRadius = new CornerRadius(3),
+                Background = accentColor,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+
+            var track = new Border
+            {
+                Width = 80,
+                Height = 6,
+                CornerRadius = new CornerRadius(3),
+                Background = Scheme.BrushBgPanel4,
+                VerticalAlignment = VerticalAlignment.Center,
+                ClipToBounds = true,
+                Child = fill
+            };
+
+            row.Children.Add(track);
+
+            row.Children.Add(new TextBlock
+            {
+                Text = $"{value}/5",
+                FontSize = 11,
+                Foreground = Scheme.BrushTextNormal7,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = 28
+            });
+
+            root.Children.Add(row);
+        }
+
+        AddRow("Neuheit", stats.NewContent);
+        AddRow("Komplexität", stats.Complexity);
+        AddRow("Umfang", stats.Extent);
+        AddRow("Eigenständigkeit", stats.Independence);
+
+        return root;
     }
 
     private Border CreateTagBorder(string text, IBrush bgColor)

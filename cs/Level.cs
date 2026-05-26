@@ -30,6 +30,23 @@ namespace AbiturEliteCode.cs;
 
 // on the final levels (24+) the user should just get all the diagrams at all times so that they can get what they need themselves (less handholding, higher expected indepedence from the user)
 
+public class LevelDifficultyStats
+{
+    // 1-5 (higher = harder on that dimension)
+    public int NewContent { get; set; }   // scale of new information introduced in this level
+    public int Complexity { get; set; }   // how complex the programming mechanics are
+    public int Extent { get; set; }       // how extensive the expected solution is
+    public int Independence { get; set; } // how much independence is expected from the user
+
+    public LevelDifficultyStats(int newContent, int complexity, int extent, int independence)
+    {
+        NewContent = newContent;
+        Complexity = complexity;
+        Extent = extent;
+        Independence = independence;
+    }
+}
+
 public class Level
 {
     public int Id { get; set; }
@@ -38,6 +55,7 @@ public class Level
     public string NextLevelCode { get; set; } = "";
     public string? Title { get; set; } = "";
     public string? Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
+    public LevelDifficultyStats? DifficultyStats { get; set; }
     public List<string> Topics { get; set; } = new(); // max of 3
     public List<string> DiagramTags { get; set; } = new(); // max of 3: "Klassen", "Strukto", "Sequenz"
     public string? Description { get; set; } = "";
@@ -63,6 +81,31 @@ public static class LevelCodes
         "NET", "HUB", "MUL", "SEC",
         "INF", "PAK", "ABR",
         ""
+    };
+}
+
+public static class LevelTags
+{
+    // topic tags -> describe what the level is about; max 3 per level
+    public static readonly string[] TopicTags =
+    {
+        "Klassen", "Felder & Konstruktoren", "Getter & Setter", "Kapselung",
+        "Vererbung", "Abstraktion", "Polymorphismus",
+        "Listen", "Arrays", "Verkettete Liste", "Datenstrukturen",
+        "Algorithmen", "Suche", "Sortierung", "Filtern",
+        "Schleifen", "Bedingte Logik", "Geschachtelte Navigation",
+        "Datum & Zeit", "String-Verarbeitung", "Zeichen & ASCII",
+        "Protokoll-Parsing", "Prüfsummen", "Switch",
+        "Serielle Schnittstelle", "Netzwerk & Sockets",
+        "Threading", "Systemintegration", "Statische Felder", "OOP"
+    };
+
+    // diagram tags -> which diagram types appear in the level; max 3 per level
+    public static readonly string[] DiagramTypeTags =
+    {
+        "KD", // uml class diagram
+        "SD", // uml sequence diagram
+        "ST" // nassi-shneiderman diagram (struktogramm)
     };
 }
 
@@ -479,6 +522,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[0],
                 NextLevelCode = LevelCodes.CodesList[1],
                 Title = "Klasse Tier Implementieren",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(5, 1, 1, 1),
+                Topics = new List<string> { "Klassen", "Felder & Konstruktoren" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Überführen Sie die Klasse [Tier] aus dem UML-Klassendiagramm in C#-Code.\n\n" +
                               "Das Diagramm zeigt die Java-Notation. Beachten Sie die Unterschiede zu C#.",
                 StarterCode = "public class Tier\n{\n    // Implementation hier\n}",
@@ -508,6 +555,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[1],
                 NextLevelCode = LevelCodes.CodesList[2],
                 Title = "Kapselung und Validierung",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
+                Topics = new List<string> { "Getter & Setter", "Kapselung" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie Datenkapselung für das Attribut [alter].\n\n" +
                               "Aufgaben:\n" +
                               "1. Ergänzen Sie einen Getter [GetAlter()] und einen Setter [SetAlter(int neuesAlter)].\n" +
@@ -540,6 +591,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[2],
                 NextLevelCode = LevelCodes.CodesList[3],
                 Title = "Abstrakte Klassen und Vererbung",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(4, 2, 2, 2),
+                Topics = new List<string> { "Vererbung", "Abstraktion" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie die abstrakte Klasse [Tier] und die abgeleitete Klasse [Loewe].\n\n" +
                               "Anforderungen:\n" +
                               "1. [Tier] ist eine abstrakte Klasse mit einem geschützten Attribut [name].\n" +
@@ -577,6 +632,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[3],
                 NextLevelCode = LevelCodes.CodesList[4],
                 Title = "Gehege-Verwaltung mit List",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 2, 2),
+                Topics = new List<string> { "Listen", "Klassen" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Erstellen Sie die Klassen [Tier] sowie [Gehege], letztere soll eine Liste von Tieren verwalten.\n\n" +
                     "Die Klasse [Gehege] soll folgende Funktionalität bieten:\n" +
@@ -607,6 +666,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[4],
                 NextLevelCode = LevelCodes.CodesList[5],
                 Title = "Algorithmus: Das Älteste Tier",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 3),
+                Topics = new List<string> { "Algorithmen", "Suche", "Listen" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie die Methode [ErmittleAeltestes()] in der Klasse [Gehege].\n\n" +
                               "Die Methode soll:\n" +
                               "• Das Tier mit dem höchsten Alter zurückgeben\n" +
@@ -646,6 +709,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[5],
                 NextLevelCode = LevelCodes.CodesList[6],
                 Title = "Das Warenlager (Suche)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 2),
+                Topics = new List<string> { "Suche", "Listen" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Das Logistik-Zentrum benötigt eine Funktion, um das **leichteste** Paket für Eil-Kurierfahrten zu finden.\n\n" +
                     "Aufgabe:\n" +
@@ -678,6 +745,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[6],
                 NextLevelCode = LevelCodes.CodesList[7],
                 Title = "Die Inventur (Filtern)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 1, 2),
+                Topics = new List<string> { "Filtern", "Listen" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Für den Versand müssen Pakete gefiltert werden.\n\n" +
                               "Aufgabe:\n" +
                               "Implementieren Sie die Klasse [Lager].\n" +
@@ -711,6 +782,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[7],
                 NextLevelCode = LevelCodes.CodesList[8],
                 Title = "Die Sortiermaschine (Bubble Sort)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 3, 2, 2),
+                Topics = new List<string> { "Sortierung", "Algorithmen" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Die Pakete müssen vor dem Verladen nach Gewicht aufsteigend sortiert werden.\n\n" +
                               "Aufgabe:\n" +
                               "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [SortiereNachGewicht()].\n" +
@@ -748,6 +823,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[8],
                 NextLevelCode = LevelCodes.CodesList[9],
                 Title = "Der Güterzug (Verkettete Liste)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 2, 2),
+                Topics = new List<string> { "Verkettete Liste", "Datenstrukturen" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Das Logistik-Zentrum transportiert Pakete nun mit einem Güterzug. Dieser Zug wird im Code als 'einfach verkettete Liste' modelliert.\n\n" +
                     "Ein Zug besteht aus einer Lokomotive (der allererste Waggon, in der Informatik 'Head' oder 'Kopf' genannt) und weiteren angehängten Waggons. Jeder Waggon transportiert genau ein [Paket] (als Ladung) und kennt nur seinen direkten [naechster] Waggon.\n\n" +
@@ -810,6 +889,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[9],
                 NextLevelCode = LevelCodes.CodesList[10],
                 Title = "Die Express-Lieferung",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(1, 3, 3, 4),
+                Topics = new List<string> { "Algorithmen", "Filtern", "Sortierung" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Dies ist die Abschlussprüfung für Sektion 2.\n\n" +
                               "Aufgabe:\n" +
                               "1. Ergänzen Sie den Konstruktor der Klasse [LogistikZentrum], um die Liste [allePakete] zu initialisieren.\n" +
@@ -851,6 +934,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[10],
                 NextLevelCode = LevelCodes.CodesList[11],
                 Title = "Das Klassenzimmer (Bedingte Logik)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 2),
+                Topics = new List<string> { "Filtern", "Listen", "Bedingte Logik" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Wir analysieren die Leistung einer Schulklasse.\n\n" +
                               "Aufgabe:\n" +
                               "1. Implementieren Sie die Klasse [Schueler].\n" +
@@ -887,6 +974,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[11],
                 NextLevelCode = LevelCodes.CodesList[12],
                 Title = "Das Kollegium (Geschachtelte Listen)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(2, 3, 3, 2),
+                Topics = new List<string> { "Listen", "Geschachtelte Navigation" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Die Schulverwaltung muss Lehrer identifizieren, die überlastet sind.\n\n" +
                               "Aufgabe:\n" +
                               "1. Implementieren Sie die Klassen [Lehrer] und [Schule] (inkl. Konstruktoren!).\n" +
@@ -921,6 +1012,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[12],
                 NextLevelCode = LevelCodes.CodesList[13],
                 Title = "Zeugniskonferenz (Datumslogik)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 3, 2, 2),
+                Topics = new List<string> { "Datum & Zeit", "Filtern" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Das System muss prüfen, ob Schüler im letzten Monat unentschuldigt gefehlt haben.\n\n" +
                               "Aufgabe:\n" +
                               "1. Implementieren Sie die Klasse [Fehltag] und [Schueler].\n" +
@@ -953,6 +1048,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[13],
                 NextLevelCode = LevelCodes.CodesList[14],
                 Title = "Der Elternbrief",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(1, 3, 3, 3),
+                Topics = new List<string> { "Geschachtelte Navigation", "String-Verarbeitung" },
+                DiagramTags = new List<string> { "KD" },
                 Description = "Abschlussprüfung Sektion 3: Generieren Sie Warnbriefe für gefährdete Schüler.\n\n" +
                               "Aufgabe:\n" +
                               "1. Implementieren Sie die Struktur: [Schule] -> [Klasse] -> [Schueler].\n" +
@@ -990,6 +1089,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[14],
                 NextLevelCode = LevelCodes.CodesList[15],
                 Title = "Protokoll-Parser (Switch)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 3, 3),
+                Topics = new List<string> { "Protokoll-Parsing", "Switch", "String-Verarbeitung" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Das Kontrollzentrum sendet Befehle an den Mars Rover. Das Protokoll unterstützt verschiedene Kommandotypen.\n\n" +
                     "Aufgabe:\n" +
@@ -1031,6 +1134,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 SkipCode = LevelCodes.CodesList[15],
                 NextLevelCode = LevelCodes.CodesList[16],
                 Title = "Paket-Validierung (Struktogramm)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 3, 3, 3),
+                Topics = new List<string> { "Prüfsummen", "Arrays" },
+                DiagramTags = new List<string> { "KD", "ST" },
                 Description =
                     "Um Übertragungsfehler in Netzwerken zu vermeiden, werden Datenpakete beim Empfang validiert.\n\n" +
                     "Ein Paket-Array ist wie folgt aufgebaut:\n" +
@@ -1111,6 +1218,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[16],
                 NextLevelCode = LevelCodes.CodesList[17],
                 Title = "RFID-Scanner (Serielle Schnittstelle)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(4, 4, 3, 3),
+                Topics = new List<string> { "Serielle Schnittstelle", "Prüfsummen", "Protokoll-Parsing" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. In diesem ersten Teil implementieren Sie nur das Auslesen der Hardware auf unterster Ebene.\n\n" +
                     "Aufgabe: Implementieren Sie die Klasse [RFIDReader].\n" +
@@ -1178,6 +1289,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[17],
                 NextLevelCode = LevelCodes.CodesList[18],
                 Title = "Die Sicherheitsschleuse (System-Integration)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(3, 4, 4, 3),
+                Topics = new List<string> { "Systemintegration", "Statische Felder" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Nun integrieren wir den [RFIDReader] in das Gesamtsystem, um den Rover freizugeben.\n\n" +
                     "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
@@ -1216,6 +1331,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[18],
                 NextLevelCode = LevelCodes.CodesList[19],
                 Title = "Missions-Zentrale",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(2, 4, 4, 4),
+                Topics = new List<string> { "Systemintegration", "Protokoll-Parsing" },
+                DiagramTags = new List<string> { "KD", "ST" },
                 Description = "Abschlussprüfung Sektion 4: Objekt-Kollaboration und Zustandsverwaltung.\n\n" +
                               "Die Kommunikation mit der Mars-Basis wurde um einen Wartungsdienst erweitert. " +
                               "Der Datenstrom enthält nun Status-Updates, die den Zustand der Rover verändern.\n\n" +
@@ -1302,6 +1421,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[19],
                 NextLevelCode = LevelCodes.CodesList[20],
                 Title = "Smart Home Hub (Verbindungsaufbau)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(5, 4, 3, 3),
+                Topics = new List<string> { "Netzwerk & Sockets", "String-Verarbeitung" },
+                DiagramTags = new List<string> { "KD", "SD" },
                 Description =
                     "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
                     "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
@@ -1358,6 +1481,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[20],
                 NextLevelCode = LevelCodes.CodesList[21],
                 Title = "Gerätesteuerung (Command-Parsing)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(2, 4, 4, 3),
+                Topics = new List<string> { "Netzwerk & Sockets", "Protokoll-Parsing", "Zeichen & ASCII" },
+                DiagramTags = new List<string> { "KD", "SD" },
                 Description = "Der Smart Home Server muss nun Steuerbefehle für verbundene Geräte verarbeiten.\n\n" +
                               "Aufgabe:\n" +
                               "1. Implementieren Sie die Klassen [Licht] und [SmartHomeServer].\n" +
@@ -1409,6 +1536,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[21],
                 NextLevelCode = LevelCodes.CodesList[22],
                 Title = "Multi-User Hub (Threads)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(5, 4, 4, 4),
+                Topics = new List<string> { "Threading", "Netzwerk & Sockets" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Der Smart Home Server soll nun mehrere Clients (z. B. verschiedene Smart-Panels) gleichzeitig bedienen können. Dazu wird die Client-Verwaltung in einen eigenen Thread ausgelagert.\n\n" +
                     "Aufgaben:\n" +
@@ -1452,6 +1583,10 @@ END.",
                 SkipCode = LevelCodes.CodesList[22],
                 NextLevelCode = LevelCodes.CodesList[23],
                 Title = "Das Sicherheitssystem",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(1, 4, 5, 5),
+                Topics = new List<string> { "Systemintegration", "Threading", "Netzwerk & Sockets" },
+                DiagramTags = new List<string> { "KD", "SD" },
                 Description =
                     "Dies ist die Abschlussprüfung für Sektion 5. Eine hohe Eigenständigkeit wird vorausgesetzt.\n\n" +
                     "Aufgabe 1: Implementieren Sie die Klasse [SicherheitsServer].\n" +
@@ -1500,6 +1635,9 @@ END.",
                 NextLevelCode = LevelCodes.CodesList[24],
                 Title = "Flughafen-Infrastruktur (Teil 1)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(3, 5, 4, 5),
+                Topics = new List<string> { "OOP", "Abstraktion", "Verkettete Liste" },
+                DiagramTags = new List<string> { "KD" },
                 Description =
                     "Der Flughafen Frankfurt-Nord modernisiert seine Gepäckabfertigungsanlage. Im Rahmen dieses Projekts soll eine objektorientierte Software entwickelt werden, die sowohl die Verwaltung von Passagieren und Flügen als auch die hardwarenahe Steuerung einer automatisierten Gepäckschleuse übernimmt. Die Gepäckstücke werden dabei über einen Barcode-Scanner mit serieller Schnittstelle erfasst und anschließend softwareseitig verarbeitet. Ein erstes UML-Klassendiagramm sowie ein Sequenz- und ein Struktogramm sind den Materialien zu entnehmen.\n\n" +
                     "1.1 Überführen Sie die Klassen [Flug], [Passagier] und [GepaeckWagen] in Anweisungen einer objektorientierten Programmiersprache.\n\n" +
@@ -1595,6 +1733,9 @@ END.",
                 NextLevelCode = LevelCodes.CodesList[25],
                 Title = "Gepäckaufgabe & Hardware (Teil 2)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(2, 5, 4, 5),
+                Topics = new List<string> { "Serielle Schnittstelle", "Systemintegration" },
+                DiagramTags = new List<string> { "KD", "SD" },
                 Description =
                     "1.3 Der Barcode auf den Gepäckstücken wird im Format \"|[passID|]_|[gewicht|]\" eingelesen (z.B. '14_23.5'). Implementieren Sie die Methode [ReadBarcode()] der Klasse [BarcodeScanner] sowie die Klasse selbst unter Berücksichtigung des RS232-Protokolls mit XOR-Prüfsumme.\n\n" +
                     "Um den Code modular zu halten, lagern Sie die Logik zur Bestimmung der Prüfsumme in die private Hilfsmethode [CalcChecksum(char|[|] data)] aus. Diese Methode iteriert über das übergebene Array, verknüpft diese via XOR und gibt das resultierende Zeichen zurück, wo es dann für den finalen Abgleich genutzt wird.\n\n" +
@@ -1632,6 +1773,9 @@ END.",
                 NextLevelCode = LevelCodes.CodesList[26],
                 Title = "Das Abrechnungssystem (Teil 3)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(1, 4, 3, 5),
+                Topics = new List<string> { "Algorithmen", "Datum & Zeit" },
+                DiagramTags = new List<string> { "KD", "ST" },
                 Description =
                     "1.5 Die Methode [VerarbeiteGepaeckString(daten : String)] der Klasse [FlughafenVerwaltung] wertet eingehende Datensätze aus und berechnet fällige Gepäckzuschläge. Entwickeln Sie die Methode exakt anhand des vorliegenden Struktogramms.\n\n" +
                     "Die Hilfsmethode [SuchePassagier(id : int)] liefert das Passagier-Objekt oder null und soll ebenfalls implementiert werden.",

@@ -2468,7 +2468,8 @@ public partial class MainWindow
             );
         }
 
-        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
+        var csDiffStats = _isCustomLevelMode ? null : level.DifficultyStats;
+        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, csDiffStats, level.Topics, level.DiagramTags, false, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);
@@ -3881,7 +3882,8 @@ public partial class MainWindow
         else if (MainTabs.SelectedIndex == 1)
             RenderRelationalModel(PnlUmlRelationalModel, level.IsRelationalModelReadOnly);
 
-        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, true, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
+        var sqlDiffStats = _isCustomLevelMode ? null : level.DifficultyStats;
+        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, sqlDiffStats, level.Topics, level.DiagramTags, true, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);

@@ -45,6 +45,7 @@ public class SqlLevel
     public string NextLevelCode { get; set; } = "";
     public string? Title { get; set; } = "";
     public string? Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
+    public LevelDifficultyStats? DifficultyStats { get; set; }
     public List<string> Topics { get; set; } = new(); // max of 3
     public List<string> DiagramTags { get; set; } = new(); // "ER"
     public string? Description { get; set; } = "";
@@ -89,6 +90,37 @@ public static class SqlLevelCodes
     };
 }
 
+public static class SqlLevelTags
+{
+    // topic tags -> describe what the level is about; max 3 per level
+    public static readonly string[] TopicTags =
+    {
+        // dml fundamentals
+        "SELECT & Projektion", "WHERE & Selektion", "ORDER BY", "GROUP BY",
+        "INSERT", "UPDATE", "DELETE",
+        // joins
+        "Implicit Join", "INNER JOIN", "LEFT JOIN", "n:m Beziehungen",
+        // filtering & aggregation
+        "Aggregation", "HAVING", "DISTINCT", "LIMIT",
+        // null
+        "NULL-Handling",
+        // date
+        "Datumsfunktionen", "BETWEEN",
+        // subqueries
+        "Subquery",
+        // schema & modeling
+        "Normalisierung", "ER-Modellierung", "Primär- & Fremdschlüssel",
+        // expressions
+        "Arithmetik", "Aliase"
+    };
+
+    // diagram tags -> which diagram types appear in the level; max 3 per level
+    public static readonly string[] DiagramTypeTags =
+    {
+        "ER" // entity-relationship diagram (in chen notation)
+    };
+}
+
 public static class SqlSharedDiagrams
 {
     // placeholder
@@ -128,6 +160,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[0],
                 NextLevelCode = SqlLevelCodes.CodesList[1],
                 Title = "Projektion (SELECT)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(5, 1, 1, 1),
+                Topics = new List<string> { "SELECT & Projektion" },
                 Description = "In der Datenbank der Schulbibliothek existiert eine Tabelle [Buch].\n\n" +
                               "Aufgabe:\n" +
                               "Wählen Sie nur den [titel] und den [preis] aller Bücher aus.",
@@ -177,6 +212,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[1],
                 NextLevelCode = SqlLevelCodes.CodesList[2],
                 Title = "Selektion (WHERE)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
+                Topics = new List<string> { "WHERE & Selektion" },
                 Description = "Die Bibliotheksleitung sucht nach günstigen Büchern für den Ausverkauf.\n\n" +
                               "Aufgabe:\n" +
                               "Ermitteln Sie alle Spalten ([*]) aller Bücher der Tabelle [Buch], deren Preis **kleiner als 9.00** Euro ist.",
@@ -232,6 +270,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[2],
                 NextLevelCode = SqlLevelCodes.CodesList[3],
                 Title = "Sortierung (ORDER BY)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 1, 1, 2),
+                Topics = new List<string> { "ORDER BY", "WHERE & Selektion" },
                 Description = "Wir suchen alle Bücher eines bestimmten Autors, sortiert nach dem Titel.\n\n" +
                               "Aufgabe:\n" +
                               "Wählen Sie [titel] und [erscheinungsjahr] aller Bücher von 'Kafka' aus der Tabelle [Buch].\n" +
@@ -285,6 +326,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[3],
                 NextLevelCode = SqlLevelCodes.CodesList[4],
                 Title = "Gruppierung (GROUP BY)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(4, 2, 2, 2),
+                Topics = new List<string> { "GROUP BY", "Aggregation", "Aliase" },
                 Description =
                     "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
                     "Aufgabe:\n" +
@@ -343,6 +387,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[4],
                 NextLevelCode = SqlLevelCodes.CodesList[5],
                 Title = "Daten Einfügen (INSERT)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
+                Topics = new List<string> { "INSERT" },
                 Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
                               "Aufgabe:\n" +
                               "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
@@ -389,6 +436,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[5],
                 NextLevelCode = SqlLevelCodes.CodesList[6],
                 Title = "Daten Ändern (UPDATE)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
+                Topics = new List<string> { "UPDATE" },
                 Description = "Der Schüler 'Max' mit der ID 1 ist in die Klasse 13 versetzt worden.\n\n" +
                               "Aufgabe:\n" +
                               "Aktualisieren Sie den Eintrag von Max in der Tabelle [Schueler], sodass seine Klasse nun 13 ist.\n" +
@@ -436,6 +486,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[6],
                 NextLevelCode = SqlLevelCodes.CodesList[7],
                 Title = "Daten Löschen (DELETE)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
+                Topics = new List<string> { "DELETE" },
                 Description = "Alle Schüler der Klasse 13 haben die Schule verlassen (Abitur bestanden).\n\n" +
                               "Aufgabe:\n" +
                               "Löschen Sie alle Einträge aus der Tabelle [Schueler], bei denen die Klasse 13 ist.",
@@ -480,6 +533,9 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[7],
                 NextLevelCode = SqlLevelCodes.CodesList[8],
                 Title = "Klausurphase",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 3),
+                Topics = new List<string> { "WHERE & Selektion", "ORDER BY" },
                 Description = "Dies ist eine komplexe Abfrage zum Abschluss der Grundlagen.\n\n" +
                               "Aufgabe:\n" +
                               "Ermitteln Sie [schueler] und [notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** sind.\n" +
@@ -535,6 +591,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[8],
                 NextLevelCode = SqlLevelCodes.CodesList[9],
                 Title = "Der Schlüssel zum Erfolg (PK & FK)",
+                Difficulty = "Einfach",
+                DifficultyStats = new LevelDifficultyStats(5, 1, 1, 1),
+                Topics = new List<string> { "Primär- & Fremdschlüssel", "ER-Modellierung" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Wir befinden uns in der Datenbank einer Schulbibliothek. Um Redundanzen zu vermeiden, wurden Bücher und Autoren in zwei getrennte Tabellen aufgeteilt (Normalisierung).\n\n" +
                     "Das Buch 'Faust' speichert nicht mehr den Namen 'Goethe', sondern referenziert diesen über eine ID (Fremdschlüssel).\n\n" +
@@ -598,6 +658,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[9],
                 NextLevelCode = SqlLevelCodes.CodesList[10],
                 Title = "Die erste Verbindung (Implicit Join)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 2, 2, 2),
+                Topics = new List<string> { "Implicit Join", "Primär- & Fremdschlüssel" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
                     "**Aufgabe:**\n" +
@@ -667,6 +731,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[10],
                 NextLevelCode = SqlLevelCodes.CodesList[11],
                 Title = "Modernes Verbinden (INNER JOIN)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 2, 2, 2),
+                Topics = new List<string> { "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Der SQL-Standard sieht für Verknüpfungen den [JOIN]-Operator vor. Dieser trennt die Verknüpfungslogik sauber von der Filterlogik.\n\n" +
                     "**Aufgabe:**\n" +
@@ -729,6 +797,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[11],
                 NextLevelCode = SqlLevelCodes.CodesList[12],
                 Title = "Wer liest was? (3-Wege Join)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 3, 2),
+                Topics = new List<string> { "INNER JOIN", "n:m Beziehungen" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Die Datenbank wurde erweitert. Schüler können nun Bücher ausleihen. Da ein Schüler viele Bücher leiht und ein Buch (über die Zeit) von vielen Schülern geliehen wird, existiert eine Relationstabelle.\n\n" +
                     "**Aufgabe:**\n" +
@@ -809,6 +881,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[12],
                 NextLevelCode = SqlLevelCodes.CodesList[13],
                 Title = "Klasse 10b",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 3, 3, 3),
+                Topics = new List<string> { "INNER JOIN", "ER-Modellierung", "WHERE & Selektion" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
                     "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus ableiten.\n\n" +
@@ -862,6 +938,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[13],
                 NextLevelCode = SqlLevelCodes.CodesList[14],
                 Title = "VIPs ohne Tisch (LEFT JOIN)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 2, 2, 2),
+                Topics = new List<string> { "LEFT JOIN", "NULL-Handling" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Wir verwalten ein exklusives Konzert. Es gibt eine Liste von VIPs und eine separate Tabelle für Tischreservierungen.\n\n" +
                     "Das Problem: Ein normaler [INNER JOIN] würde VIPs, die noch keine Reservierung haben, einfach 'verschlucken' (nicht anzeigen).\n\n" +
@@ -912,6 +992,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[14],
                 NextLevelCode = SqlLevelCodes.CodesList[15],
                 Title = "Die Geister-Gäste (IS NULL)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 2),
+                Topics = new List<string> { "NULL-Handling", "LEFT JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Das Event-Team muss dringend wissen, welche VIPs noch **keinen** Sitzplatz haben, um ihnen einen zuzuweisen.\n\n" +
                     "Dies ist eine der häufigsten Abitur-Aufgabenstellungen: 'Finden Sie Datensätze, die keine Entsprechung haben'.\n\n" +
@@ -955,6 +1039,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[15],
                 NextLevelCode = SqlLevelCodes.CodesList[16],
                 Title = "Doppelte Einträge (DISTINCT)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(2, 3, 2, 3),
+                Topics = new List<string> { "DISTINCT", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Für eine gezielte Marketingkampagne benötigen wir eine Liste aller Städte, aus denen unsere VIP-Gäste anreisen.\n\n" +
                     "In der Tabelle [Gast] kommen Städte mehrfach vor (z.B. kommen viele Gäste aus Berlin). Zudem gibt es nun eine Tabelle [Ticket], die angibt, welchen Bereich ein Gast gebucht hat.\n\n" +
@@ -1009,6 +1097,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[16],
                 NextLevelCode = SqlLevelCodes.CodesList[17],
                 Title = "Die Problem-Gäste",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(2, 4, 3, 4),
+                Topics = new List<string> { "LEFT JOIN", "NULL-Handling", "DISTINCT" },
+                DiagramTags = new List<string> { "ER" },
                 Description = "Dies ist die Abschlussprüfung für Sektion 3.\n\n" +
                               "Das Event-Team ist in Panik: Einige VIPs hängen 'in der Luft' und könnten unzufrieden sein. Wir brauchen eine Liste dieser Personen.\n\n" +
                               "**Regeln:**\n" +
@@ -1070,6 +1162,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[17],
                 NextLevelCode = SqlLevelCodes.CodesList[18],
                 Title = "Der Warenkorb (Rechnen im Select)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 2, 2, 2),
+                Topics = new List<string> { "Arithmetik", "INNER JOIN", "Aliase" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Wir werten die Datenbank eines E-Commerce-Shops aus. Im ersten Schritt müssen wir den Wert einzelner Warenkorb-Positionen berechnen.\n\n" +
                     "Zur Erklärung: Eine **Position** (oder Bestellposition) repräsentiert eine einzelne Zeile auf einem Kassenbon oder in einem Warenkorb (z.B. '3x Socken'). Sie verknüpft das eigentliche Produkt mit der gekauften Menge.\n\n" +
@@ -1121,6 +1217,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[18],
                 NextLevelCode = SqlLevelCodes.CodesList[19],
                 Title = "Der Tagesumsatz (SUM)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 2, 3),
+                Topics = new List<string> { "Aggregation", "Datumsfunktionen", "Normalisierung" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Die Geschäftsführung möchte wissen, wie viel Geld heute insgesamt eingenommen wurde.\n\n" +
                     "**Hinweis:** Ab diesem Level werden Fremdschlüssel nicht mehr im ER-Diagramm angezeigt. Sie müssen anhand der Kardinalitäten selbst ableiten, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
@@ -1174,6 +1274,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[19],
                 NextLevelCode = SqlLevelCodes.CodesList[20],
                 Title = "Topseller (GROUP & ORDER BY)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(1, 3, 3, 3),
+                Topics = new List<string> { "GROUP BY", "Aggregation", "ORDER BY" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Welches Produkt wurde wie oft verkauft? Wir wollen unsere Verkaufsschlager identifizieren.\n\n" +
                     "Denken Sie daran: Überlegen Sie sich, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
@@ -1227,6 +1331,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[20],
                 NextLevelCode = SqlLevelCodes.CodesList[21],
                 Title = "Die Ladenhüter (HAVING)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 3, 3),
+                Topics = new List<string> { "HAVING", "GROUP BY", "Aggregation" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Wir möchten unser Sortiment bereinigen und Kategorien finden, die sich schlecht verkaufen.\n\n" +
                     "**Aufgabe:**\n" +
@@ -1282,6 +1390,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[21],
                 NextLevelCode = SqlLevelCodes.CodesList[22],
                 Title = "Die Umsatzanalyse",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(1, 4, 3, 4),
+                Topics = new List<string> { "HAVING", "GROUP BY", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Der Abteilungsleiter verlangt einen umfassenden Bericht zum aktuellen Geschäftsjahr.\n\n" +
                     "**Aufgabe:**\n" +
@@ -1337,6 +1449,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[22],
                 NextLevelCode = SqlLevelCodes.CodesList[23],
                 Title = "Der Check-in (YEAR & MONTH)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(4, 2, 2, 3),
+                Topics = new List<string> { "Datumsfunktionen", "Normalisierung", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description = "Willkommen im Hotel-Management-System!\n\n" +
                               "**WICHTIG:** Ab sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n" +
                               "Ebenfalls werden die Aufgabenstellungen verständlich anspruchsvoller, da nichts mehr hervorgehoben wird und die Sprache mehr den Abiturstandards entspricht.\n\n" +
@@ -1386,6 +1502,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[23],
                 NextLevelCode = SqlLevelCodes.CodesList[24],
                 Title = "Die Hochsaison (BETWEEN)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 2, 2, 3),
+                Topics = new List<string> { "Datumsfunktionen", "BETWEEN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Wir erwarten in den Sommerferien einen großen Ansturm und müssen das Personal planen.\n\n" +
                     "**Aufgabe:**\n" +
@@ -1429,6 +1549,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[24],
                 NextLevelCode = SqlLevelCodes.CodesList[25],
                 Title = "Überfällig (NOW / Datumsvergleich)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(2, 2, 2, 3),
+                Topics = new List<string> { "Datumsfunktionen", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description = "Das System soll prüfen, ob Gäste vergessen haben auszuchecken.\n\n" +
                               "**Aufgabe:**\n" +
                               "Ermitteln Sie die Identifikationsnummer der Buchung und den Namen des Gastes für alle Buchungen, deren Abreisedatum bereits in der Vergangenheit liegt.",
@@ -1468,6 +1592,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[25],
                 NextLevelCode = SqlLevelCodes.CodesList[26],
                 Title = "Aufenthaltsdauer (DATEDIFF)",
+                Difficulty = "Mittel",
+                DifficultyStats = new LevelDifficultyStats(3, 1, 1, 2),
+                Topics = new List<string> { "Datumsfunktionen", "Aliase" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Um Rechnungen stellen zu können, müssen wir wissen, wie viele Nächte ein Gast bei uns verbringt.\n\n" +
                     "**Aufgabe:**\n" +
@@ -1515,6 +1643,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[26],
                 NextLevelCode = SqlLevelCodes.CodesList[27],
                 Title = "Feedback-Mails (DATE_ADD & LIMIT)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 3, 3),
+                Topics = new List<string> { "Datumsfunktionen", "LIMIT", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
                     "**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.\n\n" +
@@ -1573,6 +1705,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[27],
                 NextLevelCode = SqlLevelCodes.CodesList[28],
                 Title = "Die Hotel-Bilanz",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(2, 5, 4, 4),
+                Topics = new List<string> { "Aggregation", "Datumsfunktionen", "GROUP BY" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Der Chef möchte zum Jahresabschluss die treuesten Kunden belohnen. Diese Mini-Prüfung verlangt alles aus Sektion 4 und 5!\n\n" +
                     "**Aufgabe:**\n" +
@@ -1639,6 +1775,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[28],
                 NextLevelCode = SqlLevelCodes.CodesList[29],
                 Title = "Filmabend (Subquery mit IN)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(5, 3, 3, 3),
+                Topics = new List<string> { "Subquery", "n:m Beziehungen" },
+                DiagramTags = new List<string> { "ER" },
                 Description = "Wir analysieren die Datenbank eines Streaming-Dienstes.\n\n" +
                               "**Hinweis zur Namenskonvention:** Ab dieser Sektion passen wir die Benennung der Primär- und Fremdschlüssel an die realen Abiturprüfungen an. Primärschlüssel heißen nicht mehr pauschal 'id', sondern tragen ein Kürzel der Entität (z.B. 'nid' für Nutzer, 'fid' für Film). Fremdschlüssel haben kein '_FK'-Suffix mehr, sondern heißen exakt so wie der Primärschlüssel der referenzierten Tabelle.\n\n" +
                               "Formulieren Sie eine SQL-Anweisung, welche die Namen aller Nutzer ausgibt, die in ihrem Verlauf mindestens einen Film angeschaut haben, der dem Genre 'Action' zugeordnet ist.\n\n" +
@@ -1692,6 +1832,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[29],
                 NextLevelCode = SqlLevelCodes.CodesList[30],
                 Title = "Die Unberührten (Subquery mit NOT IN)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(2, 3, 2, 3),
+                Topics = new List<string> { "Subquery" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Für eine Aufräumaktion auf den Servern sollen Filme identifiziert werden, die von der Nutzerschaft ignoriert werden.\n\n" +
                     "Entwickeln Sie einen SQL-Befehl, der die Titel aller Filme ermittelt, die noch nie von einem Nutzer angeschaut wurden (die also nicht im Verlauf auftauchen).\n" +
@@ -1734,6 +1878,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[30],
                 NextLevelCode = SqlLevelCodes.CodesList[31],
                 Title = "Intelligentes Einfügen (INSERT mit Subselect)",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(4, 3, 3, 2),
+                Topics = new List<string> { "INSERT", "Subquery" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Das System erhält eine Anfrage von der Frontend-Applikation. Ein neuer Eintrag soll in die Watchlist eines spezifischen Nutzers eingefügt werden. Die App übermittelt jedoch nur den Namen des Nutzers, nicht dessen ID.\n\n" +
                     "Entwickeln Sie die SQL-Anweisung, um einen neuen Datensatz in die Watchlist einzufügen.\n" +
@@ -1779,6 +1927,10 @@ public static class SqlCurriculum
                 SkipCode = SqlLevelCodes.CodesList[31],
                 NextLevelCode = SqlLevelCodes.CodesList[32],
                 Title = "Die Abo-Analyse",
+                Difficulty = "Schwer",
+                DifficultyStats = new LevelDifficultyStats(1, 5, 4, 5),
+                Topics = new List<string> { "Subquery", "INNER JOIN", "DISTINCT" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "Das Management verlangt eine komplexe Datenanalyse zum aktuellen Nutzerverhalten bezüglich bestimmter Filmgenres.\n\n" +
                     "Implementieren Sie eine SQL-Anweisung für die Ermittlung der Namen der Nutzer und die Bezeichnung ihres jeweiligen Abonnements unter folgenden Bedingungen:\n" +
@@ -1841,6 +1993,9 @@ public static class SqlCurriculum
                 NextLevelCode = SqlLevelCodes.CodesList[33],
                 Title = "Die Ladenhüter der Medizin (Teil 1)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(1, 4, 3, 5),
+                Topics = new List<string> { "Subquery", "Normalisierung" },
+                DiagramTags = new List<string> { "ER" },
                 Description = "Zur Verwaltung der Logistik eines Krankenhauses wurde eine Datenbank entwickelt. " +
                               "In ihr werden Bestellungen von medizinischen Artikeln durch Mitarbeiterinnen und Mitarbeiter " +
                               "(im Folgenden Mitarbeiter genannt) erfasst sowie die zugehörigen Lagerstandorte und Artikelbestände verwaltet. " +
@@ -1902,6 +2057,9 @@ public static class SqlCurriculum
                 NextLevelCode = SqlLevelCodes.CodesList[34],
                 Title = "Die Kostenkontrolle (Teil 2)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(1, 4, 3, 5),
+                Topics = new List<string> { "Aggregation", "HAVING", "INNER JOIN" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "2.2 Das Controlling des Krankenhauses führt eine Kostenanalyse der getätigten Bestellungen durch. " +
                     "Entwickeln Sie einen SQL-Befehl, der für jede Bestellung die Bestellnummer sowie das Datum ausgibt und " +
@@ -1960,6 +2118,9 @@ public static class SqlCurriculum
                 NextLevelCode = SqlLevelCodes.CodesList[35],
                 Title = "Stornierung (Teil 3)",
                 Difficulty = "Abitur",
+                DifficultyStats = new LevelDifficultyStats(4, 4, 4, 5),
+                Topics = new List<string> { "DELETE", "Subquery" },
+                DiagramTags = new List<string> { "ER" },
                 Description =
                     "2.3 Aufgrund eines Systemfehlers wurde die zuletzt erfasste Bestellung der Mitarbeiterin Schmidt " +
                     "für den Standort Notaufnahme irrtümlich in die Datenbank eingetragen und muss vollständig entfernt werden.\n\n" +
