@@ -55,7 +55,7 @@ public partial class MainWindow
         SqlQueryEditor.TextArea.GotFocus += (s, e) => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
         SqlQueryEditor.TextArea.LostFocus += (s, e) => SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
 
-        var sqlSelectionHighlightRenderer = new SelectionHighlightRenderer(SqlQueryEditor);
+        var sqlSelectionHighlightRenderer = new SelectionHighlightRenderer(SqlQueryEditor, true);
         SqlQueryEditor.TextArea.TextView.BackgroundRenderers.Add(sqlSelectionHighlightRenderer);
 
         SqlQueryEditor.TextChanged += (s, e) =>

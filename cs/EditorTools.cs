@@ -1799,11 +1799,11 @@ public class SelectionHighlightRenderer : IBackgroundRenderer
 
     public bool EnableMatchingWordHighlight { get; set; } = true;
 
-    public SelectionHighlightRenderer(TextEditor editor)
+    public SelectionHighlightRenderer(TextEditor editor, bool mainEditor = false)
     {
         _editor = editor;
         _highlightBrush = Scheme.BrushEditorWhiteAlpha35;
-        _mainSelectionBrush = Scheme.BrushEditorSelection;
+        _mainSelectionBrush = mainEditor ? Scheme.BrushEditorSelection : Scheme.BrushEditorWhiteFallback;
 
         _editor.TextArea.SelectionChanged += (s, e) =>
         {

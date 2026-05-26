@@ -59,7 +59,7 @@ public partial class MainWindow
         CodeEditor.TextArea.GotFocus += (s, e) => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
         CodeEditor.TextArea.LostFocus += (s, e) => CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
 
-        var csSelectionHighlightRenderer = new SelectionHighlightRenderer(CodeEditor);
+        var csSelectionHighlightRenderer = new SelectionHighlightRenderer(CodeEditor, true);
         CodeEditor.TextArea.TextView.BackgroundRenderers.Add(csSelectionHighlightRenderer);
 
         _csharpAutocompleteService = new AutocompleteService(AutocompleteService.CsharpKeywords);

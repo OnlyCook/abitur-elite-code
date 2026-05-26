@@ -952,14 +952,17 @@ public partial class MainWindow
             _tutorialBlockCaret.IsHalfHeight = isCommandPending;
         }
 
-        var caretBrush = (isNormal || isCommandPending) ? Brushes.Transparent : Brushes.White;
-        CodeEditor.TextArea.Caret.CaretBrush = caretBrush;
-        SqlQueryEditor.TextArea.Caret.CaretBrush = caretBrush;
-        if (TutorialEditor != null) TutorialEditor.TextArea.Caret.CaretBrush = caretBrush;
+        if (TutorialEditor != null)
+        {
+            var caretBrush = (isNormal || isCommandPending) ? Brushes.Transparent : Brushes.White;
+            CodeEditor.TextArea.Caret.CaretBrush = caretBrush;
+            SqlQueryEditor.TextArea.Caret.CaretBrush = caretBrush;
+            TutorialEditor.TextArea.Caret.CaretBrush = caretBrush;
 
-        CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
-        SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
-        if (TutorialEditor != null) TutorialEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+            CodeEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+            SqlQueryEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+            TutorialEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        }
 
         Border activeBorder = _isTutorialMode ? TutorialVimStatusBorder :
             _isSqlMode ? SqlVimStatusBorder : VimStatusBorder;
@@ -1473,12 +1476,16 @@ public partial class MainWindow
         TutorialEditor.Options.ShowSpaces = false;
         TutorialEditor.Options.ShowTabs = false;
         TutorialEditor.Options.HighlightCurrentLine = true;
+        TutorialEditor.TextArea.SelectionBrush = Brushes.Transparent;
 
         TutorialEditor.FontFamily = new FontFamily(MonospaceFontFamily);
         TutorialEditor.FontSize = AppSettings.EditorFontSize;
         TutorialEditor.Background = Brushes.Transparent;
         TutorialEditor.Foreground = Scheme.BrushTextNormal6;
         TutorialEditor.SyntaxHighlighting = CsharpCodeEditor.GetDarkCsharpHighlighting();
+
+        var vtSelectionHighlightRenderer = new SelectionHighlightRenderer(TutorialEditor, true);
+        TutorialEditor.TextArea.TextView.BackgroundRenderers.Add(vtSelectionHighlightRenderer);
 
         _tutorialBlockCaret = new VimBlockCaretRenderer(TutorialEditor);
         TutorialEditor.TextArea.TextView.BackgroundRenderers.Add(_tutorialBlockCaret);

@@ -81,6 +81,7 @@ internal static class Scheme
     public static readonly SolidColorBrush BrushEditorEscapeSequence = SolidColorBrush.Parse("#D7BA7D"); // escape sequence gold
     public static readonly SolidColorBrush BrushEditorVimCaret = SolidColorBrush.Parse("#88FFFFFF"); // semi-transparent white (vim block caret)
     public static readonly SolidColorBrush BrushEditorSelection = SolidColorBrush.Parse("#264F78"); // selection blue
+    public static readonly SolidColorBrush BrushEditorWhiteFallback = SolidColorBrush.Parse("#4a5459"); // its a color?
     public static readonly SolidColorBrush BrushEditorSelectionFaded = SolidColorBrush.Parse("#33007ACC"); // faded selection blue
     public static readonly SolidColorBrush BrushEditorWhiteAlpha30 = SolidColorBrush.Parse("#30FFFFFF"); // 30-alpha white overlay
     public static readonly SolidColorBrush BrushEditorWhiteAlpha35 = SolidColorBrush.Parse("#35FFFFFF"); // 35-alpha white overlay
