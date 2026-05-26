@@ -19,21 +19,21 @@ namespace AbiturEliteCode.cs;
 
 public class RTable
 {
-    public string Name { get; set; } = "";
+    public string? Name { get; set; } = "";
     public List<RColumn> Columns { get; set; } = new();
 }
 
 public class RColumn
 {
-    public string Name { get; set; } = "id";
+    public string? Name { get; set; } = "id";
     public bool IsPk { get; set; }
     public bool IsFk { get; set; }
 }
 
 public class SqlExpectedColumn
 {
-    public string Name { get; set; } = "";
-    public string Type { get; set; } = "";
+    public string? Name { get; set; } = "";
+    public string? Type { get; set; } = "";
     public bool StrictName { get; set; }
 }
 
@@ -43,16 +43,16 @@ public class SqlLevel
     public string Section { get; set; } = "";
     public string SkipCode { get; set; } = "";
     public string NextLevelCode { get; set; } = "";
-    public string Title { get; set; } = "";
-    public string Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
+    public string? Title { get; set; } = "";
+    public string? Difficulty { get; set; } = ""; // "Einfach", "Mittel", "Schwer", "Abitur"
     public List<string> Topics { get; set; } = new(); // max of 3
     public List<string> DiagramTags { get; set; } = new(); // "ER"
-    public string Description { get; set; } = "";
-    public string SetupScript { get; set; } = "";
-    public string VerificationQuery { get; set; } = "";
+    public string? Description { get; set; } = "";
+    public string? SetupScript { get; set; } = "";
+    public string? VerificationQuery { get; set; } = "";
     public List<SqlExpectedColumn> ExpectedSchema { get; set; } = new();
     public List<string[]> ExpectedResult { get; set; } = new();
-    public string MaterialDocs { get; set; } = "";
+    public string? MaterialDocs { get; set; } = "";
 
     public bool IsRelationalModelReadOnly { get; set; }
     public List<RTable> InitialRelationalModel { get; set; } = new();
@@ -66,7 +66,7 @@ public class SqlLevel
 
     public bool IsRelationalModelSectionShared { get; set; }
 
-    public string GetDisplayTitle(bool antiSpoilerEnabled)
+    public string? GetDisplayTitle(bool antiSpoilerEnabled)
     {
         if (!antiSpoilerEnabled) return Title;
         if (!string.IsNullOrEmpty(Section) && Section.StartsWith("Sektion 7")) return Title; // ignore section 7

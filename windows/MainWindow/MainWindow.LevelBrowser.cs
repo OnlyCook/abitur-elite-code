@@ -1,5 +1,4 @@
-﻿#nullable disable
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -26,7 +25,7 @@ public partial class MainWindow
     private bool _isCommunityLoading = false;
     private bool _isOffline = false;
 
-    private string _currentCustomDiscussionNodeId = null;
+    private string? _currentCustomDiscussionNodeId = null;
     private int _currentCustomDiscussionNumber = -1;
     private List<CommunityLevelMeta> _communityMetadataCacheCs = new();
     private List<CommunityLevelMeta> _communityMetadataCacheSql = new();
@@ -45,12 +44,12 @@ public partial class MainWindow
 
     private class CommunityLevelMeta
     {
-        public string NodeId { get; set; }
-        public int Number { get; set; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public string Difficulty { get; set; }
-        public List<string> Tags { get; set; }
+        public string? NodeId { get; set; }
+        public int? Number { get; set; }
+        public string? Title { get; set; }
+        public string? Author { get; set; }
+        public string? Difficulty { get; set; }
+        public List<string>? Tags { get; set; }
         public int Upvotes { get; set; }
         public int Downvotes { get; set; }
         public bool ViewerHasLiked { get; set; }
@@ -125,7 +124,7 @@ public partial class MainWindow
 
         RenderCommunityBrowser(win);
 
-        string categoryId = _isSqlMode ? "DIC_kwDOSZnz_M4C9Il3" : "DIC_kwDOSZnz_M4C9Il2";
+        string? categoryId = _isSqlMode ? "DIC_kwDOSZnz_M4C9Il3" : "DIC_kwDOSZnz_M4C9Il2";
 
         try
         {
@@ -171,7 +170,7 @@ public partial class MainWindow
 
                 foreach (var node in catNodes.EnumerateArray())
                 {
-                    string slug = node.GetProperty("slug").GetString();
+                    string? slug = node.GetProperty("slug").GetString();
                     // safely check for both singular and plural slugs
                     if (slug != null && slug.StartsWith(targetSlugBase, StringComparison.OrdinalIgnoreCase))
                     {
@@ -188,7 +187,7 @@ public partial class MainWindow
             }
 
             // fetch discussions using categoryId (bulk fetch all so we can properly sort)
-            string cursor = null;
+            string? cursor = null;
             bool hasNext = true;
 
             while (hasNext)
@@ -327,27 +326,27 @@ public partial class MainWindow
         }
     }
 
-    private void RenderCommunityBrowser(Window win, string searchQuery = "")
+    private void RenderCommunityBrowser(Window win, string? searchQuery = "")
     {
         var commScroll = win.FindControl<ScrollViewer>("CommunityScroll");
-        if (!commScroll.IsVisible) return;
+        if (commScroll == null || !commScroll.IsVisible) return;
 
         string sortMode = _communitySortMode;
 
         var filtered = _communityMetadataCache.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
-            filtered = filtered.Where(m => m.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) || m.Author.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(m => (m.Title?.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ?? false) || (m.Author?.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
 
         if (_communitySelectedDifficulties.Any())
-            filtered = filtered.Where(m => _communitySelectedDifficulties.Contains(m.Difficulty));
+            filtered = filtered.Where(m => _communitySelectedDifficulties.Contains(m.Difficulty!));
         if (_communityBlacklistDifficulties.Any())
-            filtered = filtered.Where(m => !_communityBlacklistDifficulties.Contains(m.Difficulty));
+            filtered = filtered.Where(m => !_communityBlacklistDifficulties.Contains(m.Difficulty!));
 
         if (_communitySelectedTags.Any())
-            filtered = filtered.Where(m => _communitySelectedTags.All(t => m.Tags.Contains(t)));
+            filtered = filtered.Where(m => m.Tags != null && _communitySelectedTags.All(t => m.Tags.Contains(t)));
         if (_communityBlacklistTags.Any())
-            filtered = filtered.Where(m => !_communityBlacklistTags.Any(t => m.Tags.Contains(t)));
+            filtered = filtered.Where(m => m.Tags == null || !_communityBlacklistTags.Any(t => m.Tags.Contains(t)));
 
         if (sortMode == "Beste") filtered = filtered.OrderByDescending(m => m.Score);
         else if (sortMode == "Top") filtered = filtered.OrderByDescending(m => m.Upvotes).ThenByDescending(m => m.CreatedAt);
@@ -370,11 +369,11 @@ public partial class MainWindow
             };
 
             // calculate unique scrambled name to ensure backward and forward compatibility
-            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(m.NodeId)).Replace("=", "").Replace("+", "-").Replace("/", "_");
+            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(m.NodeId!)).Replace("=", "").Replace("+", "-").Replace("/", "_");
             string uniqueName = $"{m.Title} - {scrambledId}";
 
             bool isDownloaded = localCustomLevels.Any(cl => (cl.Name == uniqueName || cl.Name == m.Title) && cl.Author == m.Author);
-            bool isCompleted = completedList.Contains(uniqueName) || completedList.Contains(m.Title);
+            bool isCompleted = completedList.Contains(uniqueName) || completedList.Contains(m.Title!);
 
             string iconPath = isCompleted ? "assets/icons/ic_check.svg" : (isDownloaded ? "assets/icons/ic_lock_open.svg" : "assets/icons/ic_download.svg");
             var iconImage = LoadIcon(iconPath, 16);
@@ -411,7 +410,7 @@ public partial class MainWindow
                 Margin = new Thickness(-2, 0)
             });
 
-            if (m.Tags.Any())
+            if (m.Tags?.Any() == true)
                 subText.Children.Add(new TextBlock
                 {
                     Text = "• " + string.Join(", ", m.Tags),
@@ -620,10 +619,10 @@ public partial class MainWindow
             if (!response.IsSuccessStatusCode) throw new Exception("Netzwerkfehler");
 
             var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            string fullBody = doc.RootElement.GetProperty("data").GetProperty("node").GetProperty("body").GetString();
+            string? fullBody = doc.RootElement.GetProperty("data").GetProperty("node").GetProperty("body").GetString();
 
             // extract encrypted base64 payload directly
-            string encryptedData = fullBody.Trim();
+            string? encryptedData = fullBody?.Trim();
             if (string.IsNullOrEmpty(encryptedData)) throw new Exception("Ungültiges Level Format");
 
             string rawJson;
@@ -642,13 +641,13 @@ public partial class MainWindow
             var mutableDict = JsonSerializer.Deserialize<Dictionary<string, object>>(rawJson);
 
             // inject discussion id -> re-encrypt (prevents students from modifying json directly to bypass restrictions)
-            mutableDict["DiscussionNodeId"] = meta.NodeId;
-            mutableDict["DiscussionNumber"] = meta.Number;
-            mutableDict["Difficulty"] = meta.Difficulty;
-            mutableDict["Tags"] = meta.Tags;
+            mutableDict!["DiscussionNodeId"] = meta.NodeId!;
+            mutableDict["DiscussionNumber"] = meta.Number!;
+            mutableDict["Difficulty"] = meta.Difficulty!;
+            mutableDict["Tags"] = meta.Tags!;
 
             // generate scrambled id and append it to make level unique across downloads
-            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(meta.NodeId)).Replace("=", "").Replace("+", "-").Replace("/", "_");
+            string scrambledId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(meta.NodeId!)).Replace("=", "").Replace("+", "-").Replace("/", "_");
             if (mutableDict.ContainsKey("Name")) mutableDict["Name"] = $"{meta.Title} - {scrambledId}";
             if (mutableDict.ContainsKey("Title")) mutableDict["Title"] = $"{meta.Title} - {scrambledId}";
 
@@ -656,7 +655,7 @@ public partial class MainWindow
             string reEncrypted = LevelEncryption.Encrypt(updatedJson);
 
             // save to files (include scrambledId in filename to prevent os file conflicts)
-            string safeName = string.Join("_", meta.Title.Split(Path.GetInvalidFileNameChars()));
+            string safeName = string.Join("_", meta.Title!.Split(Path.GetInvalidFileNameChars()));
             string filename = $"{safeName}_{scrambledId}.{(_isSqlMode ? "eliteslvl" : "elitelvl")}";
 
             string levelsDir = SaveSystem.GetLevelsDirectory();

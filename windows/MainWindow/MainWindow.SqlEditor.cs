@@ -1,5 +1,4 @@
-﻿#nullable disable
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -170,7 +169,7 @@ public partial class MainWindow
                 lineMargin.Margin = new Thickness(0, 1, 0, 0);
     }
 
-    private void SqlQueryEditor_KeyDown(object sender, KeyEventArgs e)
+    private void SqlQueryEditor_KeyDown(object? sender, KeyEventArgs e)
     {
         if (_isTutorialMode)
         {
@@ -179,7 +178,7 @@ public partial class MainWindow
         }
 
         // escape key to clear suggestions
-        if (e.Key == Key.Escape && _sqlAutocompleteService.HasSuggestion)
+        if (e.Key == Key.Escape && _sqlAutocompleteService != null && _sqlAutocompleteService.HasSuggestion)
         {
             _sqlAutocompleteService.ClearSuggestion();
             SqlQueryEditor.TextArea.TextView.Redraw();
@@ -189,7 +188,7 @@ public partial class MainWindow
 
         // up and down arrows for autocompletion cycling
         if (AppSettings.IsSqlAutocompleteEnabled && (e.Key == Key.Up || e.Key == Key.Down) &&
-            _sqlAutocompleteService.HasSuggestion)
+            _sqlAutocompleteService != null && _sqlAutocompleteService.HasSuggestion)
         {
             if (e.Key == Key.Up) _sqlAutocompleteService.CyclePrevious();
             else _sqlAutocompleteService.CycleNext();
@@ -255,9 +254,9 @@ public partial class MainWindow
         }
 
         // tab => confirm autocompletion
-        if (AppSettings.IsSqlAutocompleteEnabled && e.Key == Key.Tab && _sqlAutocompleteService.HasSuggestion)
+        if (AppSettings.IsSqlAutocompleteEnabled && e.Key == Key.Tab && _sqlAutocompleteService != null && _sqlAutocompleteService.HasSuggestion)
         {
-            string fullText = _sqlAutocompleteService.CurrentSuggestionFull;
+            string? fullText = _sqlAutocompleteService.CurrentSuggestionFull;
             int wordLen = _sqlAutocompleteService.CurrentWordLength;
             if (!string.IsNullOrEmpty(fullText))
             {
@@ -273,7 +272,7 @@ public partial class MainWindow
         }
 
         // temporarily disable autocompletion if moving to the right
-        if (e.Key == Key.Right && _sqlAutocompleteService.HasSuggestion)
+        if (e.Key == Key.Right && _sqlAutocompleteService != null && _sqlAutocompleteService.HasSuggestion)
         {
             _sqlAutocompleteService.ClearSuggestion();
             SqlQueryEditor.TextArea.TextView.Redraw();
@@ -282,7 +281,7 @@ public partial class MainWindow
 
         if (e.Key == Key.Back)
         {
-            if (AppSettings.IsSqlAutocompleteEnabled && _sqlAutocompleteService.HasSuggestion)
+            if (AppSettings.IsSqlAutocompleteEnabled && _sqlAutocompleteService != null && _sqlAutocompleteService.HasSuggestion)
             {
                 _sqlAutocompleteService.ClearSuggestion();
                 SqlQueryEditor.TextArea.TextView.Redraw();
@@ -366,7 +365,7 @@ public partial class MainWindow
         HandleVimNormalInput(e);
     }
 
-    private void SqlQueryEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+    private void SqlQueryEditor_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         // zoom via ctrl + mwheel
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
@@ -379,9 +378,9 @@ public partial class MainWindow
         }
     }
 
-    private void SqlEditor_TextEntering(object sender, TextInputEventArgs e)
+    private void SqlEditor_TextEntering(object? sender, TextInputEventArgs e)
     {
-        if (string.IsNullOrEmpty(e.Text))
+        if (string.IsNullOrEmpty(e.Text) || sender == null)
             return;
 
         char charTyped = e.Text[0];
@@ -436,14 +435,14 @@ public partial class MainWindow
 
     private void UpdateSqlAutocompleteSchema()
     {
-        if (_sqlAutocompleteService == null) return;
+        if (_sqlAutocompleteService == null || _currentRelationalModel == null) return;
         var schema = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         // check if current level is an abitur similar level (>= 29)
         bool isAbiturLevel = currentSqlLevel != null && currentSqlLevel.Id >= 29;
 
         foreach (var t in _currentRelationalModel)
-            schema[t.Name] = t.Columns.Select(c => c.IsFk && !isAbiturLevel ? c.Name + "_FK" : c.Name).ToList();
+            schema[t.Name!] = t.Columns.Select(c => c.IsFk && !isAbiturLevel ? (c.Name ?? "") + "_FK" : c.Name ?? "").ToList();
         _sqlAutocompleteService.SetSqlSchema(schema);
     }
 
@@ -456,7 +455,7 @@ public partial class MainWindow
     }
 
     private void AddSqlOutput(string author, string text, IBrush color, bool isCode = false,
-        DataTable expectedTable = null)
+        DataTable? expectedTable = null)
     {
         // prevent avalonia selection end bug by appending a space to trailing newlines
         if (text != null && text.EndsWith("\n")) text += " ";
@@ -464,7 +463,7 @@ public partial class MainWindow
         // remove old output if exceeds soft limit
         if (PnlSqlOutput.Children.Count > 20) PnlSqlOutput.Children.RemoveAt(0);
 
-        StackPanel targetContainer = null;
+        StackPanel? targetContainer = null;
 
         // grouping for system
         if (author == "System" && PnlSqlOutput.Children.Count > 0)
@@ -584,7 +583,7 @@ public partial class MainWindow
             content.TextArea.TextView.ElementGenerators.Add(new EmojiElementGenerator(LoadIcon, 14));
             content.TextArea.SelectionChanged += (s, e) => ClearOtherSelections(content);
 
-            if (expectedTable != null && _consecutiveSqlFails >= 3 &&
+            if (expectedTable != null && text != null && _consecutiveSqlFails >= 3 &&
                 text.Contains("Das Ergebnis stimmt nicht mit der Erwartung überein"))
             {
                 var stack = new StackPanel
@@ -631,7 +630,7 @@ public partial class MainWindow
                     ClipToBounds = true
                 };
                 toolTipBorder.Child = BuildTableGrid(expectedTable,
-                    currentSqlLevel.ExpectedSchema?.Select(c => c.Type).ToList());
+                    currentSqlLevel?.ExpectedSchema?.Select(c => c.Type!).ToList());
 
                 ToolTip.SetTip(btnExpected, toolTipBorder);
                 ToolTip.SetShowDelay(btnExpected, 0);

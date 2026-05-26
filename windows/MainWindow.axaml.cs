@@ -72,14 +72,14 @@ public partial class MainWindow : Window
     private AutocompleteGhostGenerator? _csharpAutocompleteGenerator;
     private AutocompleteService? _csharpAutocompleteService;
     private VimBlockCaretRenderer? _csharpBlockCaret;
-    private string _currentCustomAuthor = "";
+    private string? _currentCustomAuthor = "";
     private List<string>? _currentCustomSvgs;
 
     private string? _currentCustomValidationCode;
     private int _currentDiagramIndex;
     private LevelDraft _currentDraft = new();
     private string _currentDraftPath = "";
-    private List<RTable> _currentRelationalModel = new();
+    private List<RTable>? _currentRelationalModel = new();
     private double _currentScale = 1.0;
 
     private SqlLevelDraft _currentSqlDraft = new();
@@ -167,7 +167,7 @@ public partial class MainWindow : Window
 
     private readonly ScaleTransform? ImgScale;
     private readonly TranslateTransform? ImgTranslate;
-    private List<Level> levels;
+    private List<Level>? levels;
     private readonly PlayerData playerData;
     private List<SqlLevel>? sqlLevels;
 
@@ -1206,7 +1206,7 @@ public partial class MainWindow : Window
         {
             string codeToSave = SqlQueryEditor.Text;
 
-            if (_isCustomLevelMode)
+            if (_isCustomLevelMode && currentSqlLevel.Title != null)
             {
                 if (customPlayerData.UserSqlCode.ContainsKey(currentSqlLevel.Title))
                     customPlayerData.UserSqlCode[currentSqlLevel.Title] = codeToSave;
@@ -1264,10 +1264,10 @@ public partial class MainWindow : Window
         if (_isCustomLevelMode && currentLevel != null)
         {
             // save custom level code
-            if (customPlayerData.UserCode.ContainsKey(currentLevel.Title))
-                customPlayerData.UserCode[currentLevel.Title] = CodeEditor.Text;
+            if (customPlayerData.UserCode.ContainsKey(currentLevel.Title!))
+                customPlayerData.UserCode[currentLevel.Title!] = CodeEditor.Text;
             else
-                customPlayerData.UserCode.Add(currentLevel.Title, CodeEditor.Text);
+                customPlayerData.UserCode.Add(currentLevel.Title!, CodeEditor.Text);
 
             SaveSystem.SaveCustom(customPlayerData);
             return;
@@ -1355,7 +1355,7 @@ public partial class MainWindow : Window
         return resultImage;
     }
 
-    private WrapPanel? BuildTagsPanel(string difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
+    private WrapPanel? BuildTagsPanel(string? difficulty, List<string> topics, List<string> diagrams, bool isSql, bool isCommunityCustomLevel = false)
     {
         if (difficulty == "" && (topics == null || topics.Count == 0) &&
             (diagrams == null || diagrams.Count == 0)) return null;
@@ -1487,7 +1487,7 @@ public partial class MainWindow : Window
         };
     }
 
-    private void RenderRichText(StackPanel panel, string text)
+    private void RenderRichText(StackPanel panel, string? text)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -2884,9 +2884,9 @@ public partial class MainWindow : Window
 
             if (_isCustomLevelMode)
             {
-                if (!customPlayerData.CompletedCustomLevels.Contains(levelContext.Title))
+                if (!customPlayerData.CompletedCustomLevels.Contains(levelContext.Title!))
                 {
-                    customPlayerData.CompletedCustomLevels.Add(levelContext.Title);
+                    customPlayerData.CompletedCustomLevels.Add(levelContext.Title!);
                     SaveSystem.SaveCustom(customPlayerData);
                 }
 
@@ -2922,7 +2922,7 @@ public partial class MainWindow : Window
                 }
             }
 
-            var nextLvl = levels.FirstOrDefault(l => l.SkipCode == levelContext.NextLevelCode);
+            var nextLvl = levels?.FirstOrDefault(l => l.SkipCode == levelContext.NextLevelCode);
 
             if (nextLvl != null)
             {
@@ -3388,7 +3388,7 @@ public partial class MainWindow : Window
 
                 if (_isCustomLevelMode)
                 {
-                    if (levelContext != null && !customPlayerData.CompletedCustomSqlLevels.Contains(levelContext.Title))
+                    if (levelContext != null && levelContext.Title != null && !customPlayerData.CompletedCustomSqlLevels.Contains(levelContext.Title))
                     {
                         customPlayerData.CompletedCustomSqlLevels.Add(levelContext.Title);
                         SaveSystem.SaveCustom(customPlayerData);

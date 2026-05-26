@@ -1,5 +1,4 @@
-﻿#nullable disable
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -105,7 +104,7 @@ public partial class MainWindow
 
             // get relevant custom levels for current mode, excluding drafts
             var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
-            string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+            string? currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
             var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
 
             if (currentInfo != null)
@@ -167,19 +166,19 @@ public partial class MainWindow
 
         if (_isSqlMode && currentSqlLevel != null)
         {
-            int idx = sqlLevels.IndexOf(currentSqlLevel);
+            int idx = sqlLevels != null ? sqlLevels.IndexOf(currentSqlLevel) : -1;
             isFirst = idx <= 0;
-            isLast = idx >= sqlLevels.Count - 1;
+            isLast = idx >= sqlLevels?.Count - 1;
             isCurrentCompleted = playerData.CompletedSqlLevelIds.Contains(currentSqlLevel.Id);
 
             // check if next level exists and is unlocked
-            if (!isLast)
+            if (!isLast && sqlLevels != null && idx != -1)
             {
                 var next = sqlLevels[idx + 1];
                 nextIsUnlocked = playerData.UnlockedSqlLevelIds.Contains(next.Id);
             }
         }
-        else if (currentLevel != null)
+        else if (currentLevel != null && levels != null)
         {
             int idx = levels.IndexOf(currentLevel);
             isFirst = idx <= 0;
@@ -215,7 +214,7 @@ public partial class MainWindow
         if (_isCustomLevelMode)
         {
             var allCustoms = GetCustomLevels().Where(c => !c.IsDraft).ToList();
-            string currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
+            string? currentTitle = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
             var currentInfo = allCustoms.FirstOrDefault(c => c.Name == currentTitle);
 
             if (currentInfo != null)
@@ -243,8 +242,8 @@ public partial class MainWindow
 
         if (_isSqlMode && currentSqlLevel != null)
         {
-            int idx = sqlLevels.IndexOf(currentSqlLevel);
-            if (idx > 0)
+            int idx = sqlLevels != null ? sqlLevels.IndexOf(currentSqlLevel) : -1;
+            if (idx > 0 && sqlLevels != null)
             {
                 LoadSqlLevel(sqlLevels[idx - 1]);
                 Dispatcher.UIThread.Post(() =>
@@ -256,7 +255,7 @@ public partial class MainWindow
                 }, DispatcherPriority.Render);
             }
         }
-        else if (currentLevel != null)
+        else if (currentLevel != null && levels != null)
         {
             int idx = levels.IndexOf(currentLevel);
             if (idx > 0)
@@ -280,7 +279,7 @@ public partial class MainWindow
             if (currentSqlLevel != null && currentSqlLevel.Id == (sqlLevels?.Count ?? SqlCurriculum.GetLevelCount()))
             {
                 // restrict course completion if not all levels are solved
-                bool allSolved = sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
+                bool allSolved = sqlLevels != null && sqlLevels.All(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
                 if (!allSolved)
                 {
                     AddSqlOutput("System", "> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
@@ -293,7 +292,7 @@ public partial class MainWindow
             if (currentLevel != null && currentLevel.Id == (levels?.Count ?? Curriculum.GetLevelCount()))
             {
                 // restrict course completion if not all levels are solved
-                bool allSolved = levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
+                bool allSolved = levels != null && levels.All(l => playerData.CompletedLevelIds.Contains(l.Id));
                 if (!allSolved)
                 {
                     AddToConsole("\n> Du musst alle Level lösen, um den Kurs abzuschließen.", Brushes.Orange);
@@ -340,7 +339,7 @@ public partial class MainWindow
 
         if (_isSqlMode)
         {
-            var nextSqlLvl = sqlLevels.FirstOrDefault(l => l.SkipCode == currentSqlLevel.NextLevelCode);
+            var nextSqlLvl = sqlLevels?.FirstOrDefault(l => l.SkipCode == currentSqlLevel?.NextLevelCode);
             if (nextSqlLvl != null)
                 LoadSqlLevel(nextSqlLvl);
             Dispatcher.UIThread.Post(() =>
@@ -353,7 +352,7 @@ public partial class MainWindow
             return;
         }
 
-        var nextLvl = levels.FirstOrDefault(l => l.SkipCode == currentLevel.NextLevelCode);
+        var nextLvl = levels?.FirstOrDefault(l => l.SkipCode == currentLevel?.NextLevelCode);
         if (nextLvl != null)
             LoadLevel(nextLvl);
         Dispatcher.UIThread.Post(() =>
@@ -538,7 +537,7 @@ public partial class MainWindow
 
     private async void ShowCustomSectionCompletedDialog()
     {
-        string section = _isSqlMode ? currentSqlLevel?.Section : currentLevel?.Section;
+        string? section = _isSqlMode ? currentSqlLevel?.Section : currentLevel?.Section;
         bool isSingleLevel = section == "Einzelne Levels";
 
         var dialog = new Window
@@ -605,14 +604,14 @@ public partial class MainWindow
         var iconToggleCommunity = win.FindControl<Avalonia.Svg.Skia.Svg>("IconToggleCommunity");
 
         // drag and drag fields
-        CustomLevelInfo _draggedCustomLevel = null;
-        Button _draggedButton = null;
+        CustomLevelInfo? _draggedCustomLevel = null;
+        Button? _draggedButton = null;
         Point _dragStartPos = default;
         bool _isDraggingLevel = false;
-        Border _dragGhost = null;
-        CustomLevelInfo _dropTargetLevel = null;
-        string _dropTargetFolder = null;
-        string _folderToFocus = null;
+        Border? _dragGhost = null;
+        CustomLevelInfo? _dropTargetLevel = null;
+        string? _dropTargetFolder = null;
+        string? _folderToFocus = null;
 
         var overlay = win.FindControl<Canvas>("DragOverlayCanvas");
         var indicators = win.FindControl<Canvas>("DragIndicatorsCanvas");
@@ -673,7 +672,7 @@ public partial class MainWindow
 
                 _dropTargetLevel = null;
                 _dropTargetFolder = null;
-                Control hoveredElement = null;
+                Control? hoveredElement = null;
 
                 var pos = ev.GetPosition(win);
                 var visuals = win.GetVisualsAt(pos);
@@ -698,7 +697,7 @@ public partial class MainWindow
                             if (info != _draggedCustomLevel)
                             {
                                 // only target specific levels when both are inside the standard root selection
-                                if (info.Section == "Einzelne Levels" && _draggedCustomLevel.Section == "Einzelne Levels")
+                                if (info.Section == "Einzelne Levels" && _draggedCustomLevel?.Section == "Einzelne Levels")
                                 {
                                     _dropTargetLevel = info;
                                     hoveredElement = row;
@@ -709,7 +708,7 @@ public partial class MainWindow
                     }
                 }
 
-                if (hoveredElement != null && dropPreview != null)
+                if (hoveredElement != null && dropPreview != null && indicators != null)
                 {
                     var boundsPos = hoveredElement.TranslatePoint(new Point(0, 0), indicators);
                     if (boundsPos.HasValue)
@@ -721,16 +720,16 @@ public partial class MainWindow
                         Canvas.SetTop(dropPreview, boundsPos.Value.Y);
                     }
                 }
-                else if (dropPreview != null)
+                else if (dropPreview != null && indicators != null)
                 {
                     var contentScroll = win.FindControl<ScrollViewer>("ContentScroll");
-                    var contentPos = contentScroll.TranslatePoint(new Point(0, 0), indicators);
+                    var contentPos = contentScroll?.TranslatePoint(new Point(0, 0), indicators);
 
                     // root zone bounds
-                    if (contentPos.HasValue && pos.Y > contentPos.Value.Y && pos.Y < contentPos.Value.Y + contentScroll.Bounds.Height)
+                    if (contentPos.HasValue && pos.Y > contentPos.Value.Y && pos.Y < contentPos.Value.Y + contentScroll?.Bounds.Height)
                     {
                         // only highlight standard root space if its not already in it
-                        if (_draggedCustomLevel.Section != "Einzelne Levels")
+                        if (_draggedCustomLevel?.Section != "Einzelne Levels" && contentScroll != null)
                         {
                             dropPreview.Opacity = 1;
 
@@ -789,7 +788,7 @@ public partial class MainWindow
                 string rootPath = SaveSystem.GetLevelsDirectory();
                 string prefix = _isSqlMode ? "sql_" : "cs_";
 
-                if (_dropTargetLevel != null && _dropTargetLevel.Section == "Einzelne Levels" && _draggedCustomLevel.Section == "Einzelne Levels")
+                if (_dropTargetLevel != null && _dropTargetLevel.Section == "Einzelne Levels" && _draggedCustomLevel?.Section == "Einzelne Levels")
                 {
                     int folderIdx = 1;
                     string newFolderName;
@@ -807,7 +806,7 @@ public partial class MainWindow
 
                     _folderToFocus = newFolderName;
                 }
-                else if (_dropTargetFolder != null)
+                else if (_dropTargetFolder != null && _draggedCustomLevel != null)
                 {
                     // only move if dropped on a different folder
                     if (_draggedCustomLevel.Section != _dropTargetFolder)
@@ -821,7 +820,7 @@ public partial class MainWindow
                             MoveLevelFile(_draggedCustomLevel.FilePath, targetDir);
                     }
                 }
-                else if (_dropTargetLevel == null && _dropTargetFolder == null && _draggedCustomLevel.Section != "Einzelne Levels")
+                else if (_dropTargetLevel == null && _dropTargetFolder == null && _draggedCustomLevel != null && _draggedCustomLevel.Section != "Einzelne Levels")
                 {
                     MoveLevelFile(_draggedCustomLevel.FilePath, rootPath);
                 }
@@ -899,11 +898,11 @@ public partial class MainWindow
             RefreshUI();
         };
 
-        btnToggleCommunity.Click += async (_, __) =>
+        btnToggleCommunity?.Click += async (_, __) =>
         {
             isCommunityMode = !isCommunityMode;
 
-            iconToggleCommunity.Path = isCommunityMode ? "/assets/icons/ic_return.svg" : "/assets/icons/ic_publish.svg";
+            iconToggleCommunity?.Path = isCommunityMode ? "/assets/icons/ic_return.svg" : "/assets/icons/ic_publish.svg";
             btnToggleCommunity.Background = isCommunityMode ? Scheme.BrushBgPanel2 : Scheme.BrushGlobalBg;
             ToolTip.SetTip(btnToggleCommunity, isCommunityMode ? "Zurück zu eigenen Levels" : "Öffne Community Browser");
 
@@ -919,7 +918,7 @@ public partial class MainWindow
                 double remaining = 60 - (DateTime.Now - lastFetch).TotalSeconds;
 
                 var txtSearchBox = win.SearchContainer.Child as TextBox;
-                string searchTxt = txtSearchBox?.Text;
+                string? searchTxt = txtSearchBox?.Text;
 
                 if (_isOffline)
                 {
@@ -943,7 +942,7 @@ public partial class MainWindow
             }
         };
 
-        string currentMiniConsoleError = null;
+        string? currentMiniConsoleError = null;
 
         win.BtnMiniConsoleClose.Click += (_, __) => win.MiniConsolePanel.IsVisible = false;
 
@@ -994,9 +993,9 @@ public partial class MainWindow
         };
         filterStack.Children.Add(tagPanel);
         filterFlyout.Content = filterStack;
-        win.FindControl<Button>("BtnCommunityFilter").Flyout = filterFlyout;
+        win.FindControl<Button>("BtnCommunityFilter")?.Flyout = filterFlyout;
 
-        win.FindControl<ComboBox>("CmbCommunitySort").SelectionChanged += (s, ev) => RenderCommunityBrowser(win);
+        win.FindControl<ComboBox>("CmbCommunitySort")?.SelectionChanged += (s, ev) => RenderCommunityBrowser(win);
 
         win.BtnMiniConsoleClose.Click += (_, __) => win.MiniConsolePanel.IsVisible = false;
         win.BtnMiniConsoleCopy.Click += async (_, __) =>
@@ -1013,7 +1012,7 @@ public partial class MainWindow
             }
         };
 
-        void LogToMiniConsole(string msg, IBrush color, bool append = true, bool isError = false, string fullError = null, bool isQuickGen = true)
+        void LogToMiniConsole(string msg, IBrush color, bool append = true, bool isError = false, string? fullError = null, bool isQuickGen = true)
         {
             Dispatcher.UIThread.Post(() =>
             {
@@ -1049,7 +1048,7 @@ public partial class MainWindow
             var toolsGrid = win.FindControl<Grid>("CommunityToolsGrid");
             var commScroll = win.FindControl<ScrollViewer>("CommunityScroll");
             if (toolsGrid != null) toolsGrid.IsVisible = false; // hiding original tools row
-            commScroll.IsVisible = isCommunityMode;
+            commScroll?.IsVisible = isCommunityMode;
 
             win.HeaderRightPanel.Children.Clear();
 
@@ -1064,14 +1063,14 @@ public partial class MainWindow
                 win.TxtToggleMode.Text = isCustomMode ? "Standard Levels" : "Eigene Levels";
             }
 
-            btnToggleCommunity.IsVisible = !UpdateManager.IsOutdated && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken) && isCustomMode;
+            btnToggleCommunity?.IsVisible = !UpdateManager.IsOutdated && AppSettings.IsCommunityFeaturesEnabled && !string.IsNullOrEmpty(AppSettings.GithubToken) && isCustomMode;
 
             if (isCommunityMode)
             {
                 win.TxtTitle.Text = "Browser";
                 win.CountBadge.IsVisible = false;
 
-                TextBox txtSearch = null;
+                TextBox? txtSearch = null;
 
                 var cmbSort = new ComboBox
                 {
@@ -1088,12 +1087,12 @@ public partial class MainWindow
                 cmbSort.Items.Add(new ComboBoxItem { Content = "Neuste" });
                 cmbSort.Items.Add(new ComboBoxItem { Content = "Älteste" });
 
-                var selectedItem = cmbSort.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Content.ToString() == _communitySortMode);
+                var selectedItem = cmbSort.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Content?.ToString() == _communitySortMode);
                 cmbSort.SelectedItem = selectedItem ?? cmbSort.Items.ElementAt(0);
 
                 cmbSort.SelectionChanged += (s, ev) =>
                 {
-                    _communitySortMode = (cmbSort.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Beste";
+                    _communitySortMode = (cmbSort.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Beste";
                     RenderCommunityBrowser(win, txtSearch?.Text);
                 };
 
@@ -1201,13 +1200,13 @@ public partial class MainWindow
             if (!isCustomMode)
             {
                 // title and badge
-                if (_isSqlMode)
+                if (_isSqlMode && sqlLevels != null)
                 {
                     win.TxtTitle.Text = "SQL Levels";
                     int completedCount = sqlLevels.Count(l => playerData.CompletedSqlLevelIds.Contains(l.Id));
                     win.BadgeText.Text = $"{completedCount}/{sqlLevels.Count}";
                 }
-                else
+                else if (levels != null)
                 {
                     win.TxtTitle.Text = "C# Levels";
                     int completedCount = levels.Count(l => playerData.CompletedLevelIds.Contains(l.Id));
@@ -1251,7 +1250,7 @@ public partial class MainWindow
                         string code = txtLevelCode.Text.ToUpper();
                         if (_isSqlMode)
                         {
-                            var lvl = sqlLevels.FirstOrDefault(l => l.SkipCode == code);
+                            var lvl = sqlLevels?.FirstOrDefault(l => l.SkipCode == code);
                             if (lvl != null)
                             {
                                 // actually unlock the level (permanently)
@@ -1267,7 +1266,7 @@ public partial class MainWindow
                         }
                         else
                         {
-                            var lvl = levels.FirstOrDefault(l => l.SkipCode == code);
+                            var lvl = levels?.FirstOrDefault(l => l.SkipCode == code);
                             if (lvl != null)
                             {
                                 // actually unlock the level (permanently)
@@ -1314,7 +1313,7 @@ public partial class MainWindow
                 // level list
                 var levelStack = new StackPanel { Spacing = 8 };
 
-                if (_isSqlMode)
+                if (_isSqlMode && sqlLevels != null)
                 {
                     // sql levels
                     var groups = sqlLevels.GroupBy(l => l.Section);
@@ -1393,7 +1392,7 @@ public partial class MainWindow
                         });
                     }
                 }
-                else
+                else if (levels != null)
                 {
                     // c# levels
                     var groups = levels.GroupBy(l => l.Section);
@@ -1513,8 +1512,9 @@ public partial class MainWindow
                                 if (item is Grid row && row.Tag is CustomLevelInfo info)
                                 {
                                     // use clean name for search
-                                    bool match = GetCleanLevelName(info.Name).ToLower().Contains(query) ||
-                                                 info.Author.ToLower().Contains(query);
+                                    var cleanName = GetCleanLevelName(info.Name);
+                                    bool match = cleanName != null && (cleanName.ToLower().Contains(query) ||
+                                                 info.Author.ToLower().Contains(query));
                                     row.IsVisible = match;
                                     if (match) groupHasMatch = true;
                                 }
@@ -1525,8 +1525,10 @@ public partial class MainWindow
                         }
                         else if (child is Grid row && row.Tag is CustomLevelInfo info)
                         {
-                            // use clean name for search
-                            bool match = GetCleanLevelName(info.Name).ToLower().Contains(query) || info.Author.ToLower().Contains(query);
+                            // use clean name for searchv
+                            var cleanName = GetCleanLevelName(info.Name);
+                            bool match =cleanName != null && (cleanName.ToLower().Contains(query) ||
+                                info.Author.ToLower().Contains(query));
                             row.IsVisible = match;
                         }
                 };
@@ -1554,7 +1556,7 @@ public partial class MainWindow
                 ToolTip.SetTip(btnAdd, "Neues Level erstellen");
                 btnAdd.Click += async (_, __) =>
                 {
-                    string newPath = await ShowAddLevelDialog(win);
+                    string? newPath = await ShowAddLevelDialog(win);
                     if (!string.IsNullOrEmpty(newPath))
                     {
                         _newlyCreatedLevelPath = newPath;
@@ -1609,9 +1611,9 @@ public partial class MainWindow
                         Grid.SetColumn(textStack, 1);
 
                         // use clean name for ui rendering
-                        string displayName = GetCleanLevelName(cl.Name);
+                        string? displayName = GetCleanLevelName(cl.Name);
                         if (_isSqlMode && AppSettings.IsSqlAntiSpoilerEnabled && cl.Section != null &&
-                            !cl.Section.StartsWith("Sektion 7"))
+                            displayName != null && !cl.Section.StartsWith("Sektion 7"))
                             displayName = Regex.Replace(displayName, @"\s*\(.*?\)", "").Trim();
 
                         // title panel to place the publish icon before the title
@@ -1829,7 +1831,7 @@ public partial class MainWindow
                                                             throw new Exception(
                                                                 "Die Erwartungstabelle (Expected Table) darf nicht komplett leer sein.");
 
-                                                        DataTable actualDt = null;
+                                                        DataTable? actualDt = null;
                                                         string sampleSolution =
                                                             SqlLevelTester.ConvertMysqlToSqlite(connection,
                                                                 draft.SampleSolution);
@@ -2017,15 +2019,15 @@ public partial class MainWindow
                                                         valMs.Seek(0, SeekOrigin.Begin);
                                                         var valAssembly = Assembly.Load(valMs.ToArray());
                                                         var valType = valAssembly.GetType("DesignerValidator");
-                                                        var valMethod = valType.GetMethods(BindingFlags.Public |
+                                                        var valMethod = valType?.GetMethods(BindingFlags.Public |
                                                                 BindingFlags.NonPublic | BindingFlags.Static)
                                                             .FirstOrDefault(m =>
                                                                 m.ReturnType == typeof(bool) &&
                                                                 m.GetParameters().Length == 2);
 
                                                         // run validation
-                                                        object[] args = new object[] { assembly, null };
-                                                        bool passed = (bool)valMethod.Invoke(null, args);
+                                                        object?[] args = { assembly, null };
+                                                        bool passed = (bool)valMethod!.Invoke(null, args)!;
 
                                                         if (!passed)
                                                             throw new Exception(
@@ -2263,9 +2265,9 @@ public partial class MainWindow
         // fetch data initially if contextual community mode was evaluated to true
         if (isCommunityMode)
         {
-            iconToggleCommunity.Path = "/assets/icons/ic_return.svg";
-            btnToggleCommunity.Background = Scheme.BrushBgPanel2;
-            ToolTip.SetTip(btnToggleCommunity, "Zurück zu eigenen Levels");
+            iconToggleCommunity?.Path = "/assets/icons/ic_return.svg";
+            btnToggleCommunity?.Background = Scheme.BrushBgPanel2;
+            if (btnToggleCommunity != null) ToolTip.SetTip(btnToggleCommunity, "Zurück zu eigenen Levels");
 
             Dispatcher.UIThread.Post(async () =>
             {
@@ -2277,7 +2279,7 @@ public partial class MainWindow
                 double remaining = 60 - (DateTime.Now - lastFetch).TotalSeconds;
 
                 var txtSearchBox = win.SearchContainer.Child as TextBox;
-                string searchTxt = txtSearchBox?.Text;
+                string? searchTxt = txtSearchBox?.Text;
 
                 if (_isOffline)
                 {
@@ -2360,11 +2362,11 @@ public partial class MainWindow
             TxtNoDiagram.IsVisible = true;
         }
 
-        string rawCode = level.StarterCode;
+        string rawCode = level.StarterCode ?? "";
         if (_isCustomLevelMode)
         {
             // custom levels
-            if (customPlayerData.UserCode.ContainsKey(level.Title)) rawCode = customPlayerData.UserCode[level.Title];
+            if (customPlayerData.UserCode.ContainsKey(level.Title!)) rawCode = customPlayerData.UserCode[level.Title!];
         }
         else
         {
@@ -2467,7 +2469,7 @@ public partial class MainWindow
             );
         }
 
-        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
+        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, false, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);
@@ -2476,18 +2478,18 @@ public partial class MainWindow
         {
             if (level.DiagramPaths != null && level.DiagramPaths.Count > 0)
             {
-                ImgDiagram.Source = LoadDiagramImage(level.DiagramPaths[0]);
+                ImgDiagram?.Source = LoadDiagramImage(level.DiagramPaths[0]);
                 TxtNoDiagram.IsVisible = false;
             }
             else
             {
-                ImgDiagram.Source = null;
+                ImgDiagram?.Source = null;
                 TxtNoDiagram.IsVisible = true;
             }
         }
         catch
         {
-            ImgDiagram.Source = null;
+            ImgDiagram?.Source = null;
             TxtNoDiagram.IsVisible = true;
         }
 
@@ -2709,7 +2711,7 @@ public partial class MainWindow
 
         if (!Directory.Exists(rootPath)) return list;
 
-        (string name, string author, bool quickGen, bool hasCommunityId) GetMetadata(string file)
+        (string? name, string? author, bool quickGen, bool hasCommunityId) GetMetadata(string file)
         {
             try
             {
@@ -2723,17 +2725,17 @@ public partial class MainWindow
                     var root = doc.RootElement;
 
                     // check for both name (c#) and title (sql) before falling back to filename
-                    string name = root.TryGetProperty("Name", out var n) ? n.GetString() :
+                    string? name = root.TryGetProperty("Name", out var n) ? n.GetString() :
                                   root.TryGetProperty("Title", out var t) ? t.GetString() :
                                   Path.GetFileNameWithoutExtension(file);
 
-                    string author = root.TryGetProperty("Author", out var a) ? a.GetString() : "Unbekannt";
+                    string? author = root.TryGetProperty("Author", out var a) ? a.GetString() : "Unbekannt";
 
                     bool quickGen = false;
                     if (root.TryGetProperty("QuickGenerate", out var qg))
                     {
                         if (qg.ValueKind == JsonValueKind.True) quickGen = true;
-                        if (qg.ValueKind == JsonValueKind.String && qg.GetString().ToLower() == "true") quickGen = true;
+                        if (qg.ValueKind == JsonValueKind.String && qg.GetString()?.ToLower() == "true") quickGen = true;
                     }
 
                     bool hasCommId = root.TryGetProperty("DiscussionNumber", out _) || root.TryGetProperty("DiscussionNodeId", out _);
@@ -2754,30 +2756,36 @@ public partial class MainWindow
             foreach (var file in Directory.GetFiles(dir, _isSqlMode ? "*.eliteslvl" : "*.elitelvl"))
             {
                 var meta = GetMetadata(file);
-                list.Add(new CustomLevelInfo
+                if (meta.name != null && meta.author != null)
                 {
-                    Name = meta.name,
-                    Author = meta.author,
-                    FilePath = file,
-                    Section = sectionName,
-                    IsDraft = false,
-                    HasCommunityId = meta.hasCommunityId
-                });
+                    list.Add(new CustomLevelInfo
+                    {
+                        Name = meta.name,
+                        Author = meta.author,
+                        FilePath = file,
+                        Section = sectionName,
+                        IsDraft = false,
+                        HasCommunityId = meta.hasCommunityId
+                    });
+                }
             }
 
             foreach (var file in Directory.GetFiles(dir, _isSqlMode ? "*.eliteslvldraft" : "*.elitelvldraft"))
             {
                 var meta = GetMetadata(file);
-                list.Add(new CustomLevelInfo
+                if (meta.name != null && meta.author != null)
                 {
-                    Name = meta.name,
-                    Author = meta.author,
-                    FilePath = file,
-                    Section = sectionName,
-                    IsDraft = true,
-                    QuickGenerate = meta.quickGen,
-                    HasCommunityId = meta.hasCommunityId
-                });
+                    list.Add(new CustomLevelInfo
+                    {
+                        Name = meta.name,
+                        Author = meta.author,
+                        FilePath = file,
+                        Section = sectionName,
+                        IsDraft = true,
+                        QuickGenerate = meta.quickGen,
+                        HasCommunityId = meta.hasCommunityId
+                    });
+                }
             }
         }
 
@@ -2795,7 +2803,7 @@ public partial class MainWindow
         return list;
     }
 
-    private async Task<string> ShowAddLevelDialog(Window owner)
+    private async Task<string?> ShowAddLevelDialog(Window owner)
     {
         var dialog = new Window
         {
@@ -2996,7 +3004,7 @@ public partial class MainWindow
             if (topLevel?.Clipboard != null)
             {
 #pragma warning disable CS0618
-                string text = await topLevel.Clipboard.GetTextAsync();
+                string? text = await topLevel.Clipboard.GetTextAsync();
 #pragma warning restore CS0618
                 if (!string.IsNullOrWhiteSpace(text))
                 {
@@ -3080,7 +3088,7 @@ public partial class MainWindow
             Foreground = Brushes.White
         };
 
-        string resultPath = null;
+        string? resultPath = null;
 
         btnCancel.Click += (_, __) => dialog.Close();
         btnCreate.Click += (_, __) =>
@@ -3099,8 +3107,8 @@ public partial class MainWindow
                             !doc.RootElement.TryGetProperty("Author", out var authProp))
                             throw new Exception("JSON muss 'Name' und 'Author' enthalten.");
 
-                        string name = nameProp.GetString();
-                        string safeName = string.Join("_", name.Split(Path.GetInvalidFileNameChars()));
+                        string? name = nameProp.GetString();
+                        string safeName = string.Join("_", (name ?? "").Split(Path.GetInvalidFileNameChars()));
                         string filename = $"{safeName}.{(_isSqlMode ? "eliteslvldraft" : "elitelvldraft")}";
                         string dir = SaveSystem.GetLevelsDirectory();
                         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
@@ -3130,17 +3138,20 @@ public partial class MainWindow
 
                     string path = Path.Combine(dir, filename);
 
-                    var newDraft = new LevelDraft
+                    if (txtAuthor.Text != null)
                     {
-                        Name = txtName.Text,
-                        Author = txtAuthor.Text
-                    };
+                        var newDraft = new LevelDraft
+                        {
+                            Name = txtName.Text,
+                            Author = txtAuthor.Text
+                        };
 
-                    var options = new JsonSerializerOptions { WriteIndented = true };
-                    string json = JsonSerializer.Serialize(newDraft, options);
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        string json = JsonSerializer.Serialize(newDraft, options);
 
-                    File.WriteAllText(path, json);
-                    resultPath = path;
+                        File.WriteAllText(path, json);
+                        resultPath = path;
+                    }
 
                     dialog.Close();
                 }
@@ -3180,7 +3191,7 @@ public partial class MainWindow
                 {
                     if (doc.RootElement.TryGetProperty("DiscussionNodeId", out var dNodeId))
                     {
-                        string nodeId = dNodeId.GetString();
+                        string? nodeId = dNodeId.GetString();
                         if (!string.IsNullOrEmpty(nodeId))
                         {
                             // check if the main level thread is subscribed
@@ -3200,9 +3211,11 @@ public partial class MainWindow
                                     {
                                         foreach (var comment in kvp.Value.Comments)
                                         {
+                                            if (comment.Id == null) continue;
                                             if (_communityCache.Subscriptions.ContainsKey(comment.Id)) return true;
                                             foreach (var reply in comment.Replies)
                                             {
+                                                if (reply.Id == null) continue;
                                                 if (_communityCache.Subscriptions.ContainsKey(reply.Id)) return true;
                                             }
                                         }
@@ -3295,7 +3308,7 @@ public partial class MainWindow
                         {
                             if (doc.RootElement.TryGetProperty("DiscussionNodeId", out var dNodeId))
                             {
-                                string nodeId = dNodeId.GetString();
+                                string? nodeId = dNodeId.GetString();
                                 if (!string.IsNullOrEmpty(nodeId))
                                 {
                                     bool cacheChanged = false;
@@ -3314,9 +3327,11 @@ public partial class MainWindow
                                     {
                                         foreach (var comment in kvp.Value.Comments)
                                         {
+                                            if (comment.Id == null) continue;
                                             if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
                                             foreach (var reply in comment.Replies)
                                             {
+                                                if (reply.Id == null) continue;
                                                 if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
                                             }
                                         }
@@ -3329,9 +3344,11 @@ public partial class MainWindow
                                     {
                                         foreach (var comment in kvp.Value.Comments)
                                         {
+                                            if (comment.Id == null) continue;
                                             if (_communityCache.Subscriptions.Remove(comment.Id)) cacheChanged = true;
                                             foreach (var reply in comment.Replies)
                                             {
+                                                if (reply.Id == null) continue;
                                                 if (_communityCache.Subscriptions.Remove(reply.Id)) cacheChanged = true;
                                             }
                                         }
@@ -3412,7 +3429,7 @@ public partial class MainWindow
 
     private void LoadCustomLevelFromFile(string path)
     {
-        string parentDirName = new DirectoryInfo(Path.GetDirectoryName(path)).Name;
+        string parentDirName = new DirectoryInfo(Path.GetDirectoryName(path)!).Name;
         string sectionName = parentDirName.Equals("levels", StringComparison.OrdinalIgnoreCase) ? "Einzelne Levels" : parentDirName;
 
         if (path.EndsWith(".eliteslvl", StringComparison.OrdinalIgnoreCase))
@@ -3487,12 +3504,12 @@ public partial class MainWindow
 
                 if (root.TryGetProperty("Prerequisites", out var prereqElem))
                     foreach (var p in prereqElem.EnumerateArray())
-                        loadedLevel.Prerequisites.Add(p.GetString());
+                        loadedLevel.Prerequisites.Add(p.GetString()!);
 
                 loadedLevel.Topics = new List<string>();
                 if (root.TryGetProperty("Tags", out var tagsElem))
                     foreach (var t in tagsElem.EnumerateArray())
-                        loadedLevel.Topics.Add(t.GetString());
+                        loadedLevel.Topics.Add(t.GetString()!);
 
                 if (root.TryGetProperty("ExpectedSchema", out var schemaElem))
                     foreach (var col in schemaElem.EnumerateArray())
@@ -3509,7 +3526,7 @@ public partial class MainWindow
                         var arr = new string[row.GetArrayLength()];
                         int i = 0;
                         // replace commas with periods cuz globalization issues
-                        foreach (var cell in row.EnumerateArray()) arr[i++] = cell.GetString()?.Replace(",", ".");
+                        foreach (var cell in row.EnumerateArray()) arr[i++] = cell.GetString()?.Replace(",", ".") ?? "";
                         loadedLevel.ExpectedResult.Add(arr);
                     }
 
@@ -3521,7 +3538,7 @@ public partial class MainWindow
                     int idx = 0;
                     foreach (var svgElem1 in svgsListElem.EnumerateArray())
                     {
-                        string svgContent = svgElem1.GetString();
+                        string? svgContent = svgElem1.GetString();
                         if (!string.IsNullOrEmpty(svgContent))
                         {
                             string tempSvgPath = Path.Combine(Path.GetTempPath(),
@@ -3536,7 +3553,7 @@ public partial class MainWindow
 
                 if (root.TryGetProperty("PlantUMLSources", out var srcListElem))
                     foreach (var s in srcListElem.EnumerateArray())
-                        loadedLevel.PlantUMLSources.Add(s.GetString());
+                        loadedLevel.PlantUMLSources.Add(s.GetString()!);
 
                 if (root.TryGetProperty("DiscussionNodeId", out var dNodeId))
                     _currentCustomDiscussionNodeId = dNodeId.GetString();
@@ -3610,16 +3627,16 @@ public partial class MainWindow
 
             if (root.TryGetProperty("Prerequisites", out var prereqElem))
                 foreach (var p in prereqElem.EnumerateArray())
-                    loadedLevel.Prerequisites.Add(p.GetString());
+                    loadedLevel.Prerequisites.Add(p.GetString()!);
 
             loadedLevel.Topics = new List<string>();
             if (root.TryGetProperty("Tags", out var tagsElem))
                 foreach (var t in tagsElem.EnumerateArray())
-                    loadedLevel.Topics.Add(t.GetString());
+                    loadedLevel.Topics.Add(t.GetString()!);
 
             if (root.TryGetProperty("PlantUmlSvg", out var svgElem))
             {
-                string svgContent = svgElem.GetString();
+                string? svgContent = svgElem.GetString();
                 if (!string.IsNullOrEmpty(svgContent))
                 {
                     string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
@@ -3633,14 +3650,14 @@ public partial class MainWindow
             _currentCustomSvgs = new List<string>();
             if (root.TryGetProperty("MaterialDiagramSvgs", out var svgsElem))
                 foreach (var s in svgsElem.EnumerateArray())
-                    _currentCustomSvgs.Add(s.GetString());
+                    _currentCustomSvgs.Add(s.GetString()!);
 
             if (root.TryGetProperty("PlantUmlSvgs", out var svgsListElem))
             {
                 int idx = 0;
                 foreach (var svgElem1 in svgsListElem.EnumerateArray())
                 {
-                    string svgContent = svgElem1.GetString();
+                    string? svgContent = svgElem1.GetString();
                     if (!string.IsNullOrEmpty(svgContent))
                     {
                         string tempSvgPath = Path.Combine(Path.GetTempPath(),
@@ -3654,7 +3671,7 @@ public partial class MainWindow
             }
             else if (root.TryGetProperty("PlantUmlSvg", out var singleSvgElem)) // fallback
             {
-                string svgContent = singleSvgElem.GetString();
+                string? svgContent = singleSvgElem.GetString();
                 if (!string.IsNullOrEmpty(svgContent))
                 {
                     string tempSvgPath = Path.Combine(Path.GetTempPath(), $"elite_custom_{Math.Abs(customId)}.svg");
@@ -3665,9 +3682,9 @@ public partial class MainWindow
 
             if (root.TryGetProperty("PlantUmlSources", out var srcListElem))
                 foreach (var s in srcListElem.EnumerateArray())
-                    loadedLevel.PlantUMLSources.Add(s.GetString());
+                    loadedLevel.PlantUMLSources.Add(s.GetString()!);
             else if (root.TryGetProperty("PlantUmlSource", out var singleSrcElem)) // fallback
-                loadedLevel.PlantUMLSources.Add(singleSrcElem.GetString());
+                loadedLevel.PlantUMLSources.Add(singleSrcElem.GetString()!);
 
             _currentCustomValidationCode =
                 root.TryGetProperty("ValidationCode", out var valProp) ? valProp.GetString() : "";
@@ -3743,7 +3760,7 @@ public partial class MainWindow
         // properly load custom or standard sql editor text
         if (_isCustomLevelMode)
         {
-            if (customPlayerData.UserSqlCode.ContainsKey(level.Title))
+            if (level.Title != null && customPlayerData.UserSqlCode.ContainsKey(level.Title))
                 SqlQueryEditor.Text = customPlayerData.UserSqlCode[level.Title];
             else
                 SqlQueryEditor.Text = "";
@@ -3819,10 +3836,10 @@ public partial class MainWindow
         PnlTaskRelationalModel.Children.Clear();
         PnlUmlRelationalModel.Children.Clear();
 
-        _currentRelationalModel.Clear();
+        _currentRelationalModel?.Clear();
         if (!level.IsRelationalModelReadOnly)
         {
-            if (_isCustomLevelMode && customPlayerData.UserSqlModels.ContainsKey(level.Title))
+            if (_isCustomLevelMode && level.Title != null && customPlayerData.UserSqlModels.ContainsKey(level.Title))
                 try
                 {
                     _currentRelationalModel =
@@ -3843,7 +3860,7 @@ public partial class MainWindow
                 {
                 }
 
-            if (_currentRelationalModel.Count == 0 && level.InitialRelationalModel != null &&
+            if (_currentRelationalModel?.Count == 0 && level.InitialRelationalModel != null &&
                 level.InitialRelationalModel.Count > 0)
             {
                 string json = JsonSerializer.Serialize(level.InitialRelationalModel);
@@ -3865,7 +3882,7 @@ public partial class MainWindow
         else if (MainTabs.SelectedIndex == 1)
             RenderRelationalModel(PnlUmlRelationalModel, level.IsRelationalModelReadOnly);
 
-        WrapPanel tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, true, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
+        WrapPanel? tagsPanel = BuildTagsPanel(level.Difficulty, level.Topics, level.DiagramTags, true, _isCustomLevelMode && _currentCustomDiscussionNumber != -1);
         if (tagsPanel != null) PnlTask.Children.Add(tagsPanel);
 
         RenderRichText(PnlTask, level.Description);
@@ -3942,7 +3959,7 @@ public partial class MainWindow
     {
         SaveCurrentProgress();
 
-        if (_isSqlMode)
+        if (_isSqlMode && sqlLevels != null)
         {
             // return to the highest unlocked unsolved sql level (or highest overall)
             var unsolvedSqlLevels = sqlLevels.Where(l => playerData.UnlockedSqlLevelIds.Contains(l.Id) && !playerData.CompletedSqlLevelIds.Contains(l.Id)).ToList();
@@ -3952,7 +3969,7 @@ public partial class MainWindow
 
             LoadSqlLevel(startLevel);
         }
-        else
+        else if (levels != null)
         {
             // return to the highest unlocked unsolved c# level (or highest overall)
             var unsolvedLevels = levels.Where(l => playerData.UnlockedLevelIds.Contains(l.Id) && !playerData.CompletedLevelIds.Contains(l.Id)).ToList();
@@ -3964,7 +3981,7 @@ public partial class MainWindow
         }
     }
 
-    private string GetCleanLevelName(string rawName)
+    private string? GetCleanLevelName(string? rawName)
     {
         if (string.IsNullOrEmpty(rawName)) return rawName;
         // removes the appended, scrambled discussionId from display name safely

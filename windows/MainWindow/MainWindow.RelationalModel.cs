@@ -1,7 +1,7 @@
-﻿#nullable disable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -46,12 +46,9 @@ public partial class MainWindow
         if (levelId < 13 || levelId > 27) return false;
 
         // normalize strings (ignore case and whitespaces)
-        string Normalize(string s)
-        {
-            return s?.Trim().ToLower() ?? "";
-        }
+        string Normalize(string? s) => s?.Trim().ToLower() ?? "";
 
-        var currentModel = _currentRelationalModel.Select(t => new
+        var currentModel = _currentRelationalModel?.Select(t => new
         {
             Name = Normalize(t.Name),
             Columns = t.Columns.Select(c => new
@@ -149,7 +146,7 @@ public partial class MainWindow
                 return false;
         }
 
-        if (currentModel.Count != expectedTables.Count) return false;
+        if (currentModel?.Count != expectedTables.Count) return false;
 
         var expectedModel = expectedTables.Select(t => new
         {
@@ -202,7 +199,7 @@ public partial class MainWindow
         }
     }
 
-    private List<RTable> TryParseRelationalModel(string input)
+    private List<RTable>? TryParseRelationalModel(string? input)
     {
         if (string.IsNullOrWhiteSpace(input)) return null;
 
@@ -257,7 +254,7 @@ public partial class MainWindow
         if (_isDesignerMode && _currentSqlDraft != null) showEditControls = _currentSqlDraft.IsRelationalModelReadOnly;
 
         // prevent method being cancelled early by designer
-        if (!_isDesignerMode && !showEditControls && _currentRelationalModel.Count == 0) return;
+        if (!_isDesignerMode && !showEditControls && _currentRelationalModel?.Count == 0) return;
 
         // header with global buttons
         var headerGrid = new Grid
@@ -345,6 +342,7 @@ public partial class MainWindow
         ToolTip.SetTip(btnCopyModel, "Modell kopieren");
         btnCopyModel.Click += async (s, e) =>
         {
+            if (_currentRelationalModel == null) return;
             var sb = new StringBuilder();
             foreach (var table in _currentRelationalModel)
             {
@@ -392,7 +390,7 @@ public partial class MainWindow
             var topLevel = GetTopLevel(this);
             if (topLevel?.Clipboard != null)
             {
-                string clipboardText = await topLevel.Clipboard.TryGetTextAsync();
+                string? clipboardText = await topLevel.Clipboard.TryGetTextAsync();
                 var parsedModel = TryParseRelationalModel(clipboardText);
 
                 if (parsedModel != null)
@@ -403,10 +401,10 @@ public partial class MainWindow
                     await Task.Delay(500);
 
                     // clear and insert new model
-                    _currentRelationalModel.Clear();
+                    _currentRelationalModel?.Clear();
                     foreach (var table in parsedModel)
                     {
-                        _currentRelationalModel.Add(table);
+                        _currentRelationalModel?.Add(table);
                     }
 
                     // reset focus to avoid detached references
@@ -490,10 +488,10 @@ public partial class MainWindow
         targetPanel.Children.Add(headerGrid);
 
         // prevent empty not showing relational model
-        if (_isDesignerMode && !showEditControls && _currentRelationalModel.Count == 0) return;
+        if (_isDesignerMode && !showEditControls && _currentRelationalModel?.Count == 0) return;
 
         // --- READ ONLY MODE ---
-        if (!showEditControls)
+        if (!showEditControls && _currentRelationalModel != null)
         {
             if (_isDesignerMode)
             {
@@ -517,26 +515,48 @@ public partial class MainWindow
                     FontFamily = new FontFamily(MonospaceFontFamily),
                     FontSize = 15
                 };
-                tb.Inlines.Add(new Run
-                    { Text = table.Name, Foreground = Scheme.BrushTextHighlight, FontWeight = FontWeight.Bold });
-                tb.Inlines.Add(new Run { Text = " (", Foreground = Scheme.BrushTextNormal });
+                tb?.Inlines?.Add(new Run
+                {
+                    Text = table.Name,
+                    Foreground = Scheme.BrushTextHighlight,
+                    FontWeight = FontWeight.Bold
+                });
+                tb?.Inlines?.Add(new Run
+                {
+                    Text = " (",
+                    Foreground = Scheme.BrushTextNormal
+                });
 
                 for (int i = 0; i < table.Columns.Count; i++)
                 {
                     var col = table.Columns[i];
-                    var run = new Run { Text = col.Name + (col.IsFk ? "#" : ""), Foreground = Scheme.BrushTextNormal };
+                    var run = new Run
+                    {
+                        Text = col.Name + (col.IsFk ? "#" : ""),
+                        Foreground = Scheme.BrushTextNormal
+                    };
                     if (col.IsPk) run.TextDecorations = TextDecorations.Underline;
-                    tb.Inlines.Add(run);
+                    tb?.Inlines?.Add(run);
                     if (i < table.Columns.Count - 1)
-                        tb.Inlines.Add(new Run { Text = ", ", Foreground = Scheme.BrushTextNormal });
+                        tb?.Inlines?.Add(new Run
+                        {
+                            Text = ", ",
+                            Foreground = Scheme.BrushTextNormal
+                        });
                 }
 
-                tb.Inlines.Add(new Run { Text = ")", Foreground = Scheme.BrushTextNormal });
-                targetPanel.Children.Add(tb);
+                tb?.Inlines?.Add(new Run
+                {
+                    Text = ")",
+                    Foreground = Scheme.BrushTextNormal
+                });
+                if (tb != null) targetPanel.Children.Add(tb);
             }
 
             return;
         }
+
+        if (_currentRelationalModel == null) return;
 
         // --- EDIT MODE ---
         foreach (var table in _currentRelationalModel)
@@ -771,7 +791,7 @@ public partial class MainWindow
                         e.Handled = true;
 
                         // skip if current column textbox is empty
-                        if (table.Columns[capturedIndex] != null && table.Columns[capturedIndex].Name.Length == 0)
+                        if (table.Columns[capturedIndex] != null && table.Columns[capturedIndex].Name?.Length == 0)
                             return;
 
                         if (capturedIndex == table.Columns.Count - 1)
@@ -862,6 +882,7 @@ public partial class MainWindow
             ToolTip.SetTip(btnDelTable, "Tabelle löschen");
             btnDelTable.Click += (s, e) =>
             {
+                if (_focusedRColumn == null) return;
                 _currentRelationalModel.Remove(table);
                 if (table.Columns.Contains(_focusedRColumn) || _focusedRTable == table) UpdateFocusedColumn(null, null);
                 RenderRelationalModel(targetPanel, false);

@@ -1,5 +1,4 @@
-﻿#nullable disable
-using System;
+﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AbiturEliteCode.cs;
@@ -44,7 +43,7 @@ public partial class MainWindow
 
                 // safely fallback to first available tab after cleanup
                 var firstTab = _tabDockManager?.GetAllTabControls()
-                    .SelectMany(tc => tc.Items.OfType<TabItem>())
+                    ?.SelectMany(tc => tc.Items.OfType<TabItem>())
                     .FirstOrDefault(t => t.IsVisible);
 
                 if (firstTab?.Parent is TabControl newParentTc)
@@ -119,7 +118,7 @@ public partial class MainWindow
             CcVimCheatSheetToggle.Content = btnToggleMode;
         }
 
-        void AddCategory(StackPanel col, string title, (string cmd, string desc)[] items, Control customTopContent = null)
+        void AddCategory(StackPanel col, string title, (string cmd, string desc)[] items, Control? customTopContent = null)
         {
             var group = new StackPanel { Spacing = 5 };
             group.Children.Add(
@@ -177,7 +176,7 @@ public partial class MainWindow
             col.Children.Add(group);
         }
 
-        Control hjklVisual = null;
+        Control? hjklVisual = null;
         if (isEasyMode)
         {
             var visGrid = new Grid
@@ -326,7 +325,7 @@ public partial class MainWindow
         );
     }
 
-    private void BtnToggleMode_Click(object sender, RoutedEventArgs e)
+    private void BtnToggleMode_Click(object? sender, RoutedEventArgs e)
     {
         playerData.Settings.IsVimEasyModeEnabled = !playerData.Settings.IsVimEasyModeEnabled;
         SaveSystem.Save(playerData);
@@ -336,7 +335,7 @@ public partial class MainWindow
     private void HandleVimNormalInput(KeyEventArgs e)
     {
         var textArea = ActiveEditor.TextArea;
-        string keyChar = e.KeySymbol;
+        string? keyChar = e.KeySymbol;
 
         if (e.Key == Key.Up) keyChar = "k";
         else if (e.Key == Key.Down) keyChar = "j";
@@ -444,7 +443,7 @@ public partial class MainWindow
                 break;
             case "l":
                 // clear suggestion when moving right
-                if (_csharpAutocompleteService.HasSuggestion)
+                if (_csharpAutocompleteService != null && _csharpAutocompleteService.HasSuggestion)
                 {
                     _csharpAutocompleteService.ClearSuggestion();
                     ActiveEditor.TextArea.TextView.Redraw();
@@ -1132,7 +1131,7 @@ public partial class MainWindow
         UpdateVimUI();
     }
 
-    private void TutorialEditor_KeyDown(object sender, KeyEventArgs e)
+    private void TutorialEditor_KeyDown(object? sender, KeyEventArgs e)
     {
         // ignore standalone modifier keys
         bool isModifier = e.Key == Key.LeftShift || e.Key == Key.RightShift ||
@@ -1217,12 +1216,12 @@ public partial class MainWindow
         CheckTutorialProgress();
     }
 
-    private void TutorialEditor_PointerPressed(object sender, PointerPressedEventArgs e)
+    private void TutorialEditor_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         _tutorialMouseClicks++;
     }
 
-    private void TutorialEditor_PointerWheelChanged(object sender, PointerWheelEventArgs e)
+    private void TutorialEditor_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         // zoom via ctrl + mwheel
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))

@@ -783,7 +783,7 @@ public partial class MainWindow
         };
 
         // draw from the loaded custom level fields
-        string levelAuthor = _currentCustomAuthor;
+        string levelAuthor = _currentCustomAuthor ?? "";
         string? levelName = _isSqlMode ? currentSqlLevel?.Title : currentLevel?.Title;
         bool isAuthor = string.Equals(levelAuthor, AppSettings.GithubUsername, StringComparison.OrdinalIgnoreCase);
 

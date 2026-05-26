@@ -1,5 +1,4 @@
-﻿#nullable disable
-using AbiturEliteCode.cs;
+﻿using AbiturEliteCode.cs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -29,7 +28,7 @@ public partial class MainWindow
         if (_isSqlMode && _verifiedSqlDraftState == null) return;
         if (!_isSqlMode && _verifiedDraftState == null) return;
 
-        string currentDiscussionId = _isSqlMode ? _currentSqlDraft.DiscussionId : _currentDraft.DiscussionId;
+        string? currentDiscussionId = _isSqlMode ? _currentSqlDraft.DiscussionId : _currentDraft.DiscussionId;
         bool isEditMode = !string.IsNullOrEmpty(currentDiscussionId);
         int currentVersion = isEditMode ? (_isSqlMode ? _currentSqlDraft.PublishVersion : _currentDraft.PublishVersion) : 0;
 
@@ -89,7 +88,7 @@ public partial class MainWindow
         return true;
     }
 
-    private async Task OpenPublishDialog(bool isEditMode = false, int editVersion = 1, string currentDiscussionId = null)
+    private async Task OpenPublishDialog(bool isEditMode = false, int editVersion = 1, string? currentDiscussionId = null)
     {
         bool isDirty = false;
         bool isPublishing = false;
@@ -346,7 +345,7 @@ public partial class MainWindow
 
             btnOk.Click += (_, __) =>
             {
-                var selected = checkBoxes.Where(c => c.IsChecked == true).Select(c => c.Content.ToString());
+                var selected = checkBoxes.Where(c => c.IsChecked == true).Select(c => c.Content?.ToString() ?? "");
                 txtTags.Text = string.Join(", ", selected);
                 isDirty = true;
                 tagDialog.Close();
