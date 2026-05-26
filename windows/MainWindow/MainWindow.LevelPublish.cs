@@ -18,8 +18,8 @@ namespace AbiturEliteCode;
 
 public partial class MainWindow
 {
-    public static readonly string[] CSharpTags = { "Arrays", "Loops", "If-Else", "Methods", "Classes", "Recursion", "Strings", "Math", "Algorithms", "Data Structures", "LINQ", "Regex", "File I/O", "Exceptions", "Collections" };
-    public static readonly string[] SqlTags = { "SELECT", "JOIN", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "Subqueries", "DDL", "DML", "Functions", "Views", "Triggers", "Index", "Constraints", "Transactions" };
+    public static readonly string[] CSharpTags = { "Arrays", "Loops", "If-Else", "Methods", "Classes", "Inheritance", "Recursion", "Strings", "Math", "Algorithms", "Data Structures", "LINQ", "Regex", "Exceptions", "Collections" };
+    public static readonly string[] SqlTags = { "SELECT", "JOIN", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "Subqueries", "DDL", "DML", "Functions", "Views", "Triggers", "Index", "Constraints" };
 
     private static DateTime _lastLevelPublishTime = DateTime.MinValue;
 

@@ -614,7 +614,6 @@ public partial class MainWindow
                         }
 
                         var commentsData = discussion.GetProperty("comments");
-                        cache.TotalComments = commentsData.GetProperty("totalCount").GetInt32();
 
                         var pageInfo = commentsData.GetProperty("pageInfo");
                         cache.EndCursor = pageInfo.GetProperty("endCursor").ValueKind != JsonValueKind.Null ? pageInfo.GetProperty("endCursor").GetString() : null;
@@ -623,6 +622,10 @@ public partial class MainWindow
                         foreach (var node in commentsData.GetProperty("nodes").EnumerateArray())
                         {
                             string? commentAuthor = node.GetProperty("author").GetProperty("login").GetString();
+
+                            // ignore comments not posted by the bot or me
+                            if (commentAuthor != "aec-community-bot" && commentAuthor != "OnlyCook") continue;
+
                             string? commentBody = node.GetProperty("body").GetString();
                             bool isBotComment = false;
 
@@ -656,6 +659,10 @@ public partial class MainWindow
                                 foreach (var rep in repNodes.EnumerateArray())
                                 {
                                     string? replyAuthor = rep.GetProperty("author").GetProperty("login").GetString();
+
+                                    // ignore replies not posted by the bot or me
+                                    if (replyAuthor != "aec-community-bot" && replyAuthor != "OnlyCook") continue;
+
                                     string? replyBody = rep.GetProperty("body").GetString();
 
                                     // intercept bot messages for replies as well
@@ -682,6 +689,9 @@ public partial class MainWindow
                             }
                             cache.Comments.Add(newComment);
                         }
+
+                        // update the total comment count to only reflect valid comments
+                        cache.TotalComments = cache.Comments.Count;
 
                         cache.LastFetched = DateTime.Now;
                         SaveSystem.SaveCommunityCache(_communityCache);
@@ -3382,6 +3392,10 @@ public partial class MainWindow
                                                 foreach (var replyNode in newReplies)
                                                 {
                                                     string? replyAuthor = replyNode.GetProperty("author").GetProperty("login").GetString();
+
+                                                    // ignore replies not posted by the bot or me
+                                                    if (replyAuthor != "aec-community-bot" && replyAuthor != "OnlyCook") continue;
+
                                                     string? replyBody = replyNode.GetProperty("body").GetString();
 
                                                     // intercept bot messages for the reply author too
@@ -3451,6 +3465,10 @@ public partial class MainWindow
                                                 foreach (var cNode in newComments)
                                                 {
                                                     string? cAuthor = cNode.GetProperty("author").GetProperty("login").GetString();
+
+                                                    // ignore comments not posted by the bot or me
+                                                    if (cAuthor != "aec-community-bot" && cAuthor != "OnlyCook") continue;
+
                                                     string? cBody = cNode.GetProperty("body").GetString();
 
                                                     // intercept bot messages
