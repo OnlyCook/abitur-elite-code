@@ -354,11 +354,11 @@ public static class SqlCurriculum
                     new[] { "SciFi", "20" }
                 },
                 MaterialDocs = "start-hint: GROUP BY Syntax\n" +
-                               "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:\n" +
+                               "Wenn Sie Aggregatfunktionen wie [AVG()], [COUNT()] oder [SUM()] nutzen und gleichzeitig eine normale Spalte ausgeben wollen, müssen Sie nach dieser Spalte gruppieren:" +
                                "{|SELECT spalte1, AVG(spalte2)\nFROM Tabelle\nGROUP BY spalte1;|}\n" +
                                ":end-hint\n" +
                                "start-hint: Spaltenbenennung\n" +
-                               "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Schlüsselwort:\n" +
+                               "Um Spalten einen eigenen Namen zu geben, nutzen sie das [AS]-Schlüsselwort:" +
                                "{|SELECT AVG(spalte) AS EigenerName\nFROM Tabelle;|}" +
                                "Dies wird häufig zusammen mit Aggregatfunktionen genutzt.\n" +
                                ":end-hint",
@@ -407,11 +407,11 @@ public static class SqlCurriculum
                     new[] { "10", "Leon", "12" }
                 },
                 MaterialDocs = "start-hint: INSERT Syntax\n" +
-                               "Variante 1 (Alle Spalten):\n" +
+                               "Variante 1 (Alle Spalten):" +
                                "{|INSERT INTO Tabelle VALUES (wert1, wert2, ...);|}\n" +
-                               "Variante 2 (Spezifische Spalten):\n" +
+                               "Variante 2 (Spezifische Spalten):" +
                                "{|INSERT INTO Tabelle (spalteA, spalteB) VALUES (wertA, wertB);|}\n" +
-                               "Variante 3 (MySQL SET-Syntax):\n" +
+                               "Variante 3 (MySQL SET-Syntax):" +
                                "{|INSERT INTO Tabelle SET spalteA = wertA, spalteB = wertB;|}\n" +
                                ":end-hint",
                 IsRelationalModelReadOnly = true,
@@ -666,8 +666,8 @@ public static class SqlCurriculum
                     "Nun sollen die Daten aus beiden Tabellen zusammengeführt werden. Wir nutzen dazu zunächst die klassische Schreibweise (impliziter Join) über die [WHERE]-Klausel.\n\n" +
                     "**Aufgabe:**\n" +
                     "Geben Sie eine Liste aller [titel] und der zugehörigen [nachname]n der Autoren aus.\n" +
-                    "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.autorid]) mit dem Primärschlüssel ([Autor.id]) gleichsetzen.\n\n" +
-                    ">|**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptieren, wird stattdessen standardmäßig [_FK] genutzt.|<",
+                    "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.autorid]) mit dem Primärschlüssel ([Autor.id]) gleichsetzen." +
+                    ">|**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptieren, wird stattdessen standardmäßig [_FK] verwendet.|<",
                 SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
                               "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                               "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
@@ -829,13 +829,13 @@ public static class SqlCurriculum
                     new[] { "Lisa", "Faust" }
                 },
                 MaterialDocs = "start-hint: Kette von Joins\n" +
-                               "Sie müssen von Tabelle A nach B und von B nach C springen:\n" +
+                               "Sie müssen von Tabelle A nach B und von B nach C springen:" +
                                "{|FROM Schueler\n" +
                                "JOIN ausleihe ON ...\n" +
                                "JOIN Buch ON ...|}\n" +
                                ":end-hint\n" +
                                "start-tipp: Schreibfaul? (Aliase)\n" +
-                               "Statt immer den vollen Tabellennamen zu tippen, können Sie Kürzel definieren:\n" +
+                               "Statt immer den vollen Tabellennamen zu tippen, können Sie Kürzel definieren:" +
                                "{|FROM Schueler s JOIN ausleihe a ON ...|}" +
                                "Danach können Sie [s.name] statt [Schueler.name] schreiben.\n" +
                                ":end-hint",
@@ -886,7 +886,7 @@ public static class SqlCurriculum
                 Topics = new List<string> { "INNER JOIN", "ER-Modellierung", "WHERE & Selektion" },
                 DiagramTags = new List<string> { "ER" },
                 Description =
-                    "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
+                    "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse." +
                     ">|**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus ableiten.|<" +
                     "**Aufgabe:**\n" +
                     "Nutzen Sie das gegebene ER-Diagramm.\n" +
@@ -947,7 +947,7 @@ public static class SqlCurriculum
                     "Das Problem: Ein normaler [INNER JOIN] würde VIPs, die noch keine Reservierung haben, einfach 'verschlucken' (nicht anzeigen).\n\n" +
                     "**Aufgabe:**\n" +
                     "Erstellen Sie eine Liste aller VIPs und ihrer Tischnummern.\n" +
-                    "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL]).\n\n" +
+                    "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL])." +
                     ">|Tipp: Probieren Sie ruhig auch einmal [INNER JOIN] statt [LEFT JOIN], um zu sehen, wie die VIPs ohne Tisch verschwinden.|<",
                 SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
                               "CREATE TABLE Reservierung (vipid_FK INTEGER, tischNr INTEGER);" +
@@ -971,7 +971,7 @@ public static class SqlCurriculum
                 MaterialDocs = "start-hint: Warum LEFT?\n" +
                                "Der [LEFT JOIN] heißt so, weil er **alle** Datensätze der linken Tabelle (die vor dem JOIN steht, hier: Vip) behält.\n" +
                                "Findet er in der rechten Tabelle (Reservierung) keinen Partner, füllt er die Lücken mit [NULL] auf.\n" +
-                               "Syntax:\n" +
+                               "Syntax:" +
                                "{|SELECT ... \nFROM LinkeTabelle \nLEFT JOIN RechteTabelle ON ...|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1021,7 +1021,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs = "start-hint: Auf NULL prüfen\n" +
                                "In SQL kann man nicht [= NULL] schreiben.\n" +
-                               "Man muss den Operator [IS NULL] verwenden:\n" +
+                               "Man muss den Operator [IS NULL] verwenden:" +
                                "{|WHERE spalte IS NULL|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1072,7 +1072,7 @@ public static class SqlCurriculum
                     new[] { "München" }
                 },
                 MaterialDocs = "start-hint: Duplikate entfernen\n" +
-                               "Nutzen Sie das Schlüsselwort [DISTINCT] direkt nach dem [SELECT]:\n" +
+                               "Nutzen Sie das Schlüsselwort [DISTINCT] direkt nach dem [SELECT]:" +
                                "{|SELECT DISTINCT spalte FROM Tabelle|}\n" +
                                ":end-hint\n" +
                                "start-tipp: Kombination\n" +
@@ -1195,7 +1195,7 @@ public static class SqlCurriculum
                     new[] { "T-Shirt", "19.99" }
                 },
                 MaterialDocs = "start-hint: Rechnen in SQL\n" +
-                               "Sie können in der [SELECT]-Klausel mathematische Operatoren verwenden, um Spalten miteinander zu verrechnen:\n" +
+                               "Sie können in der [SELECT]-Klausel mathematische Operatoren verwenden, um Spalten miteinander zu verrechnen:" +
                                "{|SELECT spalteA, spalteX * spalteY AS AliasName FROM ...|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1222,7 +1222,7 @@ public static class SqlCurriculum
                 Topics = new List<string> { "Aggregation", "Datumsfunktionen", "Normalisierung" },
                 DiagramTags = new List<string> { "ER" },
                 Description =
-                    "Die Geschäftsführung möchte wissen, wie viel Geld heute insgesamt eingenommen wurde.\n\n" +
+                    "Die Geschäftsführung möchte wissen, wie viel Geld heute insgesamt eingenommen wurde." +
                     ">|**Hinweis:** Ab diesem Level werden Fremdschlüssel nicht mehr im ER-Diagramm angezeigt. Sie müssen anhand der Kardinalitäten selbst ableiten, wie die Tabellen verknüpft werden (siehe Material).|<" +
                     "**Aufgabe:**\n" +
                     "Ermitteln Sie den gesamten Umsatz (Summe aus Preis * Menge) für alle Bestellungen, die am '2024-02-28' getätigt wurden.\n" +
@@ -1252,7 +1252,7 @@ public static class SqlCurriculum
                                "Ein Datum wird in SQL standardmäßig als Text im Format ['YYYY-MM-DD'] (Jahr-Monat-Tag) geschrieben, z.B. '2024-02-28'.\n" +
                                ":end-hint\n" +
                                "start-hint: Aggregatfunktionen\n" +
-                               "Nutzen Sie die Funktion [SUM()], um alle Einzelwerte einer Spalte (oder einer Berechnung) zu addieren.\n" +
+                               "Nutzen Sie die Funktion [SUM()], um alle Einzelwerte einer Spalte (oder einer Berechnung) zu addieren." +
                                "{|SELECT SUM(spalteA * spalteB) FROM ...|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1368,7 +1368,7 @@ public static class SqlCurriculum
                                ":end-hint\n" +
                                "start-hint: HAVING vs. WHERE\n" +
                                "Die [WHERE]-Klausel filtert Daten **vor** der Gruppierung.\n" +
-                               "Um nach einem aggregierten Wert wie [SUM()] zu filtern, müssen Sie die [HAVING]-Klausel **nach** dem [GROUP BY] verwenden:\n" +
+                               "Um nach einem aggregierten Wert wie [SUM()] zu filtern, müssen Sie die [HAVING]-Klausel **nach** dem [GROUP BY] verwenden:" +
                                "{|GROUP BY spalteX HAVING SUM(spalteY) < 10|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1453,7 +1453,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(4, 2, 2, 3),
                 Topics = new List<string> { "Datumsfunktionen", "Normalisierung", "INNER JOIN" },
                 DiagramTags = new List<string> { "ER" },
-                Description = "Willkommen im Hotel-Management-System!\n\n" +
+                Description = "Willkommen im Hotel-Management-System!" +
                               ">|WICHTIG:\nAb sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n" +
                               "Ebenfalls werden die Aufgabenstellungen verständlich anspruchsvoller, da nichts mehr hervorgehoben wird und die Sprache mehr den Abiturstandards entspricht.|<" +
                               "**Aufgabe:**\n" +
@@ -1480,7 +1480,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs = "start-hint: Datumsfunktionen\n" +
                                "Mit der Funktion [YEAR(spalte)] können Sie das Jahr aus einem Datum extrahieren, mit [MONTH(spalte)] den Monat.\n" +
-                               "Beispiel:\n" +
+                               "Beispiel:" +
                                "{|WHERE YEAR(Bestelldatum) = \"2023\"|}\n" +
                                ":end-hint\n",
                 DiagramPaths = new List<string>
@@ -1529,8 +1529,8 @@ public static class SqlCurriculum
                     new[] { "Herr Klee" }
                 },
                 MaterialDocs = "start-hint: Zeitraum filtern (BETWEEN)\n" +
-                               "Statt [spalte >= wert1 AND spalte <= wert2] zu schreiben, bietet SQL den eleganteren [BETWEEN]-Operator:\n" +
-                               "Beispiel:\n" +
+                               "Statt [spalte >= wert1 AND spalte <= wert2] zu schreiben, bietet SQL den eleganteren [BETWEEN]-Operator:" +
+                               "Beispiel:" +
                                "{|WHERE kaufdatum BETWEEN '2023-01-01' AND '2023-12-31'|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1648,7 +1648,7 @@ public static class SqlCurriculum
                 Topics = new List<string> { "Datumsfunktionen", "LIMIT", "INNER JOIN" },
                 DiagramTags = new List<string> { "ER" },
                 Description =
-                    "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
+                    "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten." +
                     ">|**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.|<" +
                     "**Aufgabe:**\n" +
                     "Das Hotel verschickt genau 7 Tage nach Abreise eine E-Mail.\n" +
@@ -1680,7 +1680,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs = "start-hint: Datums-Addition (DATE_ADD)\n" +
                                "Mit [DATE_ADD] können Sie einem Datum einen bestimmten Zeitraum hinzufügen:\n" +
-                               "Beispiel (14 Tage zu einem Kaufdatum addieren):\n" +
+                               "Beispiel (14 Tage zu einem Kaufdatum addieren):" +
                                "{|DATE_ADD(kaufdatum, INTERVAL 14 DAY)|}\n" +
                                ":end-hint\n" +
                                "start-hint: Ergebnisse begrenzen (LIMIT)\n" +
@@ -1779,7 +1779,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(5, 3, 3, 3),
                 Topics = new List<string> { "Subquery", "n:m Beziehungen" },
                 DiagramTags = new List<string> { "ER" },
-                Description = "Wir analysieren die Datenbank eines Streaming-Dienstes.\n\n" +
+                Description = "Wir analysieren die Datenbank eines Streaming-Dienstes." +
                               ">|**Hinweis zur Namenskonvention:** Ab dieser Sektion passen wir die Benennung der Primär- und Fremdschlüssel an die realen Abiturprüfungen an. Primärschlüssel heißen nicht mehr pauschal [id], sondern tragen ein Kürzel der Entität (z.B. [nid] für Nutzer, [fid] für Film). Fremdschlüssel haben kein [_FK]-Suffix mehr, sondern heißen exakt so wie der Primärschlüssel der referenzierten Tabelle.|<" +
                               "Formulieren Sie eine SQL-Anweisung, welche die Namen aller Nutzer ausgibt, die in ihrem Verlauf mindestens einen Film angeschaut haben, der dem Genre 'Action' zugeordnet ist.\n\n" +
                               "**Wichtig:** Verwenden Sie für die Lösung zwingend eine Unterabfrage mit dem [IN]-Operator, anstatt einen herkömmlichen [JOIN] über alle Tabellen zu bilden.",
@@ -1806,11 +1806,11 @@ public static class SqlCurriculum
                     new[] { "Charlie" }
                 },
                 MaterialDocs = "start-hint: Subqueries (IN)\n" +
-                               "Eine Unterabfrage wird innerhalb einer anderen Abfrage ausgeführt. Mit dem [IN]-Operator können Sie prüfen, ob ein Wert in der Ergebnismenge der Unterabfrage enthalten ist:\n" +
+                               "Eine Unterabfrage wird innerhalb einer anderen Abfrage ausgeführt. Mit dem [IN]-Operator können Sie prüfen, ob ein Wert in der Ergebnismenge der Unterabfrage enthalten ist:" +
                                "{|SELECT ...\nWHERE fk IN\n    (SELECT ...);|}\n" +
                                ":end-hint\n" +
                                "start-hint: Joins vereinfachen (USING)\n" +
-                               "Da Primär- und Fremdschlüssel nun exakt denselben Namen tragen (z.B. 'fid'), können Sie anstelle von [ON a.fid = b.fid] die kürzere [USING]-Syntax verwenden:\n" +
+                               "Da Primär- und Fremdschlüssel nun exakt denselben Namen tragen (z.B. 'fid'), können Sie anstelle von [ON a.fid = b.fid] die kürzere [USING]-Syntax verwenden:" +
                                "{|JOIN Tabelle b USING (fid)|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1905,7 +1905,7 @@ public static class SqlCurriculum
                     new[] { "Neo", "5" }
                 },
                 MaterialDocs = "start-hint: INSERT mit dynamischen Werten\n" +
-                               "Anstatt feste Werte (Literale) in die [VALUES]-Klammer zu schreiben, können Sie an der entsprechenden Position auch einen Subselect in runden Klammern einfügen, sofern dieser exakt einen Wert zurückliefert:\n" +
+                               "Anstatt feste Werte (Literale) in die [VALUES]-Klammer zu schreiben, können Sie an der entsprechenden Position auch einen Subselect in runden Klammern einfügen, sofern dieser exakt einen Wert zurückliefert:" +
                                "{|INSERT INTO Tabelle (id, wert)\nVALUES ((SELECT ...), 10);|}\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -2034,7 +2034,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs =
                     "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
-                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden." +
                     "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
                 IsRelationalModelSectionShared = true,
                 DiagramPaths = new List<string>
@@ -2098,7 +2098,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs =
                     "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
-                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden." +
                     "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
                 IsRelationalModelSectionShared = true,
                 DiagramPaths = new List<string>
@@ -2163,7 +2163,7 @@ public static class SqlCurriculum
                 },
                 MaterialDocs =
                     "Hinweise: Überführen Sie das Modell gedanklich in das Relationenmodell in der 3. Normalform. Alle Fremdschlüssel tragen exakt den gleichen Namen wie die Primärschlüssel der referenzierten Entitäten.\n\n" +
-                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden.\n" +
+                    "Die referentielle Integrität soll bewahrt bleiben. Es gibt keine kaskadierende Löschung. Mit Variablen kann ein Wert für weitere Anweisungen genutzt werden." +
                     "{|SET @variablenName = (SELECT ... FROM ... LIMIT 1);|}",
                 IsRelationalModelSectionShared = true,
                 DiagramPaths = new List<string>

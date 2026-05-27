@@ -1484,7 +1484,6 @@ public partial class MainWindow : Window
             return;
 
         string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
-        var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|>\|[\s\S]*?\|<|\[.*?\]|\*\*.*?\*\*|(?<!\w)__.*?__(?!\w)|`[^`]+`)");
 
         SelectableTextBlock CreateTextBlock() => new SelectableTextBlock
         {
@@ -1496,7 +1495,7 @@ public partial class MainWindow : Window
 
         void AddInlines(InlineCollection inlines, string textContent)
         {
-            var subParts = Regex.Split(textContent, @"(\[.*?\]|\*\*.*?\*\*|`[^`]+`)");
+            var subParts = Regex.Split(textContent, @"(\[.*?\]|\*\*.*?\*\*|(?<!\w)__.*?__(?!\w)|`[^`]+`)");
             foreach (var sp in subParts)
             {
                 if (string.IsNullOrEmpty(sp)) continue;
@@ -1519,6 +1518,16 @@ public partial class MainWindow : Window
                         Text = c,
                         FontWeight = FontWeight.Bold,
                         Foreground = Scheme.BrushTextNormal
+                    });
+                }
+                else if (sp.StartsWith("__") && sp.EndsWith("__") && sp.Length >= 4)
+                {
+                    string c = sp.Substring(2, sp.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
+                    inlines.Add(new Run
+                    {
+                        Text = c,
+                        Foreground = Scheme.BrushTextNormal,
+                        TextDecorations = TextDecorations.Underline
                     });
                 }
                 else if (sp.StartsWith("`") && sp.EndsWith("`") && sp.Length >= 3)
@@ -1580,16 +1589,48 @@ public partial class MainWindow : Window
             currentTb = CreateTextBlock();
         }
 
-        foreach (var part in parts)
+        void RenderListItem(string marker, string content, double leftIndent = 0)
         {
-            if (string.IsNullOrEmpty(part)) continue;
+            var grid = new Grid { Margin = new Thickness(leftIndent, -10, 0, 0) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            grid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(1, GridUnitType.Star)));
+
+            var markerTb = new TextBlock
+            {
+                Text = marker,
+                FontSize = 15,
+                LineHeight = 24,
+                Foreground = Scheme.BrushTextNormal,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            Grid.SetColumn(markerTb, 0);
+
+            var contentTb = new SelectableTextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 15,
+                LineHeight = 24
+            };
+            AddInlines(contentTb.Inlines!, content);
+            Grid.SetColumn(contentTb, 1);
+
+            grid.Children.Add(markerTb);
+            grid.Children.Add(contentTb);
+            panel.Children.Add(grid);
+        }
+
+        var blockSegments = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|>\|[\s\S]*?\|<)");
+
+        foreach (var segment in blockSegments)
+        {
+            if (string.IsNullOrEmpty(segment)) continue;
 
             // code block
-            if (part.StartsWith("{|") && part.EndsWith("|}") && part.Length >= 4)
+            if (segment.StartsWith("{|") && segment.EndsWith("|}") && segment.Length >= 4)
             {
                 CommitBlock();
 
-                string codeContent = part.Substring(2, part.Length - 4).Trim();
+                string codeContent = segment.Substring(2, segment.Length - 4).Trim();
                 codeContent = codeContent.Replace("\x01", "[").Replace("\x02", "]");
 
                 IHighlightingDefinition highlighting = _isSqlMode
@@ -1627,12 +1668,11 @@ public partial class MainWindow : Window
                 });
             }
             // block quote
-            else if (part.StartsWith(">|") && part.EndsWith("|<") && part.Length >= 4)
+            else if (segment.StartsWith(">|") && segment.EndsWith("|<") && segment.Length >= 4)
             {
                 CommitBlock();
 
-                string quoteContent = part.Substring(2, part.Length - 4).Trim();
-                quoteContent = quoteContent.Replace("\x01", "[").Replace("\x02", "]");
+                string quoteContent = segment.Substring(2, segment.Length - 4).Trim();
 
                 // detect optional title: first line ends with ":" followed by a newline
                 string? quoteTitle = null;
@@ -1643,7 +1683,7 @@ public partial class MainWindow : Window
                     string firstLine = quoteContent.Substring(0, newlineIdx).TrimEnd('\r', '\n');
                     if (firstLine.EndsWith(":"))
                     {
-                        quoteTitle = firstLine.Substring(0, firstLine.Length - 1);
+                        quoteTitle = firstLine.Substring(0, firstLine.Length - 1).Replace("\x01", "[").Replace("\x02", "]");
                         quoteBody = quoteContent.Substring(newlineIdx).TrimStart('\r', '\n');
                     }
                 }
@@ -1683,76 +1723,32 @@ public partial class MainWindow : Window
                     Child = quoteStack
                 });
             }
-            // highlight
-            else if (part.StartsWith("[") && part.EndsWith("]"))
-            {
-                string content = part.Substring(1, part.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
-                currentTb?.Inlines?.Add(new Run
-                {
-                    Text = content,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = Scheme.BrushTextHighlight,
-                    FontFamily = new FontFamily(MonospaceFontFamily)
-                });
-            }
-            // bold text
-            else if (part.StartsWith("**") && part.EndsWith("**") && part.Length >= 4)
-            {
-                string content = part.Substring(2, part.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
-                currentTb?.Inlines?.Add(new Run
-                {
-                    Text = content,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = Scheme.BrushTextNormal
-                });
-            }
-            // underline text
-            else if (part.StartsWith("__") && part.EndsWith("__") && part.Length >= 4)
-            {
-                string content = part.Substring(2, part.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
-                currentTb?.Inlines?.Add(new Run
-                {
-                    Text = content,
-                    Foreground = Scheme.BrushTextNormal,
-                    TextDecorations = TextDecorations.Underline
-                });
-            }
-            // inline code badge
-            else if (part.StartsWith("`") && part.EndsWith("`") && part.Length >= 3)
-            {
-                string content = part.Substring(1, part.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
-                var inlineCodeBorder = new Border
-                {
-                    Background = Scheme.BrushBgPanel13,
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(4, -1),
-                    Margin = new Thickness(1, -10, 1, 1),
-
-                    Child = new TextBlock
-                    {
-                        Text = content,
-                        FontSize = 13,
-                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
-                        Foreground = Scheme.BrushMarkdownInlineCode,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
-                };
-                currentTb?.Inlines?.Add(
-                    new InlineUIContainer(inlineCodeBorder)
-                    {
-                        BaselineAlignment = BaselineAlignment.Bottom
-                    });
-            }
             // normal text
             else
             {
-                string content = part.Replace("\x01", "[").Replace("\x02", "]");
-                if (!string.IsNullOrEmpty(content))
-                    currentTb?.Inlines?.Add(new Run
+                var lines = segment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                bool needsLineBreak = false;
+
+                foreach (var line in lines)
+                {
+                    var listMatch = Regex.Match(line, @"^(\s*)(\d\.\s+|•\s+|-\s+)");
+                    if (listMatch.Success)
                     {
-                        Text = content,
-                        Foreground = Scheme.BrushTextNormal
-                    });
+                        CommitBlock();
+                        needsLineBreak = false;
+                        double leftIndent = listMatch.Groups[1].Length * 5.0;
+                        string marker = listMatch.Groups[2].Value;
+                        string content = line.Substring(listMatch.Length);
+                        RenderListItem(marker, content, leftIndent);
+                    }
+                    else
+                    {
+                        if (needsLineBreak)
+                            currentTb.Inlines!.Add(new LineBreak());
+                        AddInlines(currentTb.Inlines!, line);
+                        needsLineBreak = true;
+                    }
+                }
             }
         }
 
@@ -2140,8 +2136,14 @@ public partial class MainWindow : Window
                     var innerStack = (StackPanel)contentPanel.Child;
                     RenderRichText(innerStack, hintBuffer.ToString().Trim());
 
+                    // inside the hint border (padding=10) that pull up fights the padding and makes consecutive items overlap
+                    foreach (var child in innerStack.Children.OfType<Control>())
+                        if (child.Margin.Top < 0)
+                            child.Margin = new Thickness(child.Margin.Left, 2, child.Margin.Right, child.Margin.Bottom);
+
+                    // remove only the bottom margin of the last child so it doesnt add extra space before the borders bottom padding
                     if (innerStack.Children.Count > 0 && innerStack.Children.Last() is Control lastChild)
-                        lastChild.Margin = new Thickness(0);
+                        lastChild.Margin = new Thickness(lastChild.Margin.Left, lastChild.Margin.Top, lastChild.Margin.Right, 0);
 
                     string capturedTitle = currentHintTitle;
 

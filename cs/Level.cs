@@ -560,7 +560,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Getter & Setter", "Kapselung" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie Datenkapselung für das Attribut [alter].\n\n" +
-                              "Aufgaben:\n" +
+                              "**Aufgaben:**\n" +
                               "1. Ergänzen Sie einen Getter [GetAlter()] und einen Setter [SetAlter(int neuesAlter)].\n" +
                               "2. Der Setter darf das Alter nur ändern, wenn der neue Wert größer als der alte ist.\n" +
                               "3. Der Getter gibt den aktuellen Wert des Alters zurück.",
@@ -596,7 +596,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Vererbung", "Abstraktion" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie die abstrakte Klasse [Tier] und die abgeleitete Klasse [Loewe].\n\n" +
-                              "Anforderungen:\n" +
+                              "**Anforderungen:**\n" +
                               "1. [Tier] ist eine abstrakte Klasse mit einem geschützten Attribut [name].\n" +
                               "2. [Loewe] erbt von [Tier] und implementiert die Methode [Bruellen()].\n" +
                               "3. Der Konstruktor von [Loewe] ruft den Basis-Konstruktor auf.",
@@ -642,7 +642,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     "• Einen Konstruktor, der die Liste initialisiert\n" +
                     "• Eine Methode [Hinzufuegen(Tier t)], die ein Tier zur Liste hinzufügt\n" +
                     "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
-                    ">|Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse [Tier].|<",
+                    ">|**Hinweis:** Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse [Tier].|<",
                 StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
                 MaterialDocs = listDocsHints,
                 DiagramPaths = new List<string>
@@ -671,7 +671,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Algorithmen", "Suche", "Listen" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Implementieren Sie die Methode [ErmittleAeltestes()] in der Klasse [Gehege].\n\n" +
-                              "Die Methode soll:\n" +
+                              "**Die Methode soll:**\n" +
                               "• Das Tier mit dem höchsten Alter zurückgeben\n" +
                               "• Bei mehreren Tieren mit gleichem Höchstalter das erste gefundene zurückgeben\n" +
                               "• Bei leerer Liste [null] zurückgeben\n\n" +
@@ -715,7 +715,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 DiagramTags = new List<string> { "KD" },
                 Description =
                     "Das Logistik-Zentrum benötigt eine Funktion, um das **leichteste** Paket für Eil-Kurierfahrten zu finden.\n\n" +
-                    "Aufgabe:\n" +
+                    "**Aufgabe:**\n" +
                     "1. Überführen Sie das Klassendiagramm exakt in Code (Klasse [Paket] und [Lager]).\n" +
                     "2. Implementieren Sie [ErmittleLeichtestes()], die das Paket mit dem **niedrigsten** Gewicht zurückgibt.\n",
                 StarterCode =
@@ -750,7 +750,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Filtern", "Listen" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Für den Versand müssen Pakete gefiltert werden.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Implementieren Sie die Klasse [Lager].\n" +
                               "Die [FilterePakete(String ort)] Methode soll eine **neue Liste** zurückgeben, die nur Pakete enthält, die:\n" +
                               "1. An den übergebenen [ort] adressiert sind.\n" +
@@ -787,9 +787,9 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Sortierung", "Algorithmen" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Die Pakete müssen vor dem Verladen nach Gewicht aufsteigend sortiert werden.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Implementieren Sie den **Bubble Sort** Algorithmus in der Methode [SortiereNachGewicht()].\n" +
-                              "Sie dürfen **keine** fertigen Sortierfunktionen (wie .Sort() oder .OrderBy()) verwenden.",
+                              "Sie dürfen **keine** fertigen Sortierfunktionen (wie [.Sort()] oder [.OrderBy()]) verwenden.",
                 StarterCode =
                     "public class Lager\n{\n    private List<Paket> pakete;\n\n    public void Sortiere()\n    {\n        // Bubble Sort Implementation\n    }\n}",
                 MaterialDocs = "start-hint: Bubble Sort Logik\n" +
@@ -830,7 +830,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Description =
                     "Das Logistik-Zentrum transportiert Pakete nun mit einem Güterzug. Dieser Zug wird im Code als 'einfach verkettete Liste' modelliert.\n\n" +
                     "Ein Zug besteht aus einer Lokomotive (der allererste Waggon, in der Informatik 'Head' oder 'Kopf' genannt) und weiteren angehängten Waggons. Jeder Waggon transportiert genau ein [Paket] (als Ladung) und kennt nur seinen direkten [naechster] Waggon.\n\n" +
-                    "Aufgabe:\n" +
+                    "**Aufgabe:**\n" +
                     "1. Implementieren Sie die Klasse [Waggon] gemäß Diagramm.\n" +
                     "2. Implementieren Sie die Methode [Anhaengen(Paket p)] in der Klasse [Gueterzug]. Nutzen Sie dafür die Hilfskommentare im Code.",
                 StarterCode = "public class Gueterzug\n" +
@@ -894,11 +894,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Algorithmen", "Filtern", "Sortierung" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Dies ist die Abschlussprüfung für Sektion 2.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Ergänzen Sie den Konstruktor der Klasse [LogistikZentrum], um die Liste [allePakete] zu initialisieren.\n" +
-                              "2. Implementieren Sie [GetTop3Schwere(String ort)].\n" +
-                              "   -> Die Methode gibt die **3 schwersten Pakete** für einen Zielort zurück (absteigend sortiert).\n\n" +
-                              "Anforderungen:\n" +
+                              "2. Implementieren Sie [GetTop3Schwere(String ort)]. Die Methode gibt die **3 schwersten Pakete** für einen Zielort zurück (absteigend sortiert).\n\n" +
+                              "**Anforderungen:**\n" +
                               "• Filtern nach Ort\n" +
                               "• Sortieren nach Gewicht (Absteigend)\n" +
                               "• Maximal 3 Elemente zurückgeben.",
@@ -939,13 +938,13 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Filtern", "Listen", "Bedingte Logik" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Wir analysieren die Leistung einer Schulklasse.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Implementieren Sie die Klasse [Schueler].\n" +
                               "2. Implementieren Sie die Klasse [Klasse].\n" +
                               "3. Schreiben Sie die Methode [BerechneSchnittBestanden()].\n\n" +
-                              "Logik:\n" +
+                              "**Logik:**\n" +
                               "Berechnen Sie den Notendurchschnitt (double), aber berücksichtigen Sie nur Schüler, die **bestanden haben** (Note > 4 Punkte).\n" +
-                              "Gibt es keine bestandenen Prüfungen, geben Sie 0.0 zurück.",
+                              "Gibt es keine bestandenen Prüfungen, geben Sie [0.0] zurück.",
                 StarterCode = "public class Klasse\n{\n}\n\npublic class Schueler\n{\n}\n",
                 MaterialDocs = "start-hint: Initialisierung\n" +
                                "Im Abitur ist es üblich, Listen im Konstruktor zu instanziieren: [liste = new List<T>();]\n" +
@@ -979,12 +978,11 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Listen", "Geschachtelte Navigation" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Die Schulverwaltung muss Lehrer identifizieren, die überlastet sind.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Implementieren Sie die Klassen [Lehrer] und [Schule] (inkl. Konstruktoren!).\n" +
                               "2. Ein Lehrer hat eine Liste von Klassen. Stellen Sie sicher, dass diese Liste von außen abrufbar ist.\n" +
-                              "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n" +
-                              "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
-                              "\n\n>|Hinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.|<",
+                              "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule]. Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
+                              "\n\n>|**Hinweis:** Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.|<",
                 StarterCode =
                     "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben (Hilfsklasse)\n}\n",
                 MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
@@ -1017,10 +1015,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Datum & Zeit", "Filtern" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Das System muss prüfen, ob Schüler im letzten Monat unentschuldigt gefehlt haben.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Implementieren Sie die Klasse [Fehltag] und [Schueler].\n" +
                               "2. Implementieren Sie [HatKritischGefehlt()] in der Klasse [Schueler].\n\n" +
-                              "Logik:\n" +
+                              "**Logik:**\n" +
                               "Die Methode gibt [true] zurück, wenn der Schüler mindestens einen Fehltag hat, der:\n" +
                               "• **Nicht entschuldigt** ist\n" +
                               "• **Und** im letzten Monat lag (Datum ist **nach** [Heute - 1 Monat]).",
@@ -1053,10 +1051,10 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 Topics = new List<string> { "Geschachtelte Navigation", "String-Verarbeitung" },
                 DiagramTags = new List<string> { "KD" },
                 Description = "Abschlussprüfung Sektion 3: Generieren Sie Warnbriefe für gefährdete Schüler.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Implementieren Sie die Struktur: [Schule] -> [Klasse] -> [Schueler].\n" +
                               "2. Implementieren Sie [ErstelleWarnungen()] in der Klasse [Schule].\n\n" +
-                              "Logik:\n" +
+                              "**Logik:**\n" +
                               "Iterieren Sie durch **alle Klassen** und **alle Schüler**.\n" +
                               "Wenn ein Schüler weniger als 5 Punkte hat, fügen Sie folgende Zeile zum Ergebnis-String hinzu:\n" +
                               "\"Warnung an Eltern von [Name] (Klasse [Bezeichnung]): Note [Note] ist kritisch!\\n\"",
@@ -1095,11 +1093,11 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                 DiagramTags = new List<string> { "KD" },
                 Description =
                     "Das Kontrollzentrum sendet Befehle an den Mars Rover. Das Protokoll unterstützt verschiedene Kommandotypen.\n\n" +
-                    "Aufgabe:\n" +
+                    "**Aufgabe:**\n" +
                     "1. Überführen Sie das Klassendiagramm exakt in Code ([Rover] und [Kontrollzentrum]).\n" +
                     "2. Im Konstruktor von [Kontrollzentrum] muss der Rover mit einer beliebigen ID (z.B. \"Curiosity\") initialisiert werden.\n" +
                     "3. Implementieren Sie die Methode [VerarbeiteKommando(string befehl)] im Kontrollzentrum.\n\n" +
-                    "Die Methode empfängt Strings und muss diese am Semikolon [;] zerlegen. Nutzen Sie eine [switch]-Anweisung (oder else-if):\n" +
+                    "Die Methode empfängt Strings und muss diese am Semikolon [;] zerlegen. Nutzen Sie eine [switch]-Anweisung (oder [else-if]):\n" +
                     "• Bei \"TR\" -> Rufen Sie [Turn] mit der übergebenen Richtung auf (z.B. \"TR;LEFT\").\n" +
                     "• Bei \"MV\" -> Rufen Sie [Move] mit den zwei übergebenen Koordinaten auf (z.B. \"MV;50;90\").\n" +
                     "• Bei \"SC\" -> Rufen Sie [Scan] mit dem übergebenen Ziel auf (z.B. \"SC;ROCK\") und speichern Sie den Rückgabewert im Attribut [letzterScan].",
@@ -1142,9 +1140,9 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     "Um Übertragungsfehler in Netzwerken zu vermeiden, werden Datenpakete beim Empfang validiert.\n\n" +
                     "Ein Paket-Array ist wie folgt aufgebaut:\n" +
                     "Index 0: Header (Paket-ID)\n" +
-                    "Index 1 bis Länge-2: Die eigentlichen Nutzdaten (Payload)\n" +
+                    "Index 1 bis Länge[-2]: Die eigentlichen Nutzdaten (Payload)\n" +
                     "Letzter Index: Die übertragene Prüfsumme\n\n" +
-                    "Aufgabe:\n" +
+                    "**Aufgabe:**\n" +
                     "1. Implementieren Sie die Klassen [DatenPaket] und [NetzwerkKnoten] gemäß des Klassendiagramms.\n" +
                     "2. Setzen Sie das Nassi-Shneiderman-Diagramm (Struktogramm) exakt in die Methode [ValidierePaket] um.",
                 StarterCode =
@@ -1224,15 +1222,15 @@ END.",
                 DiagramTags = new List<string> { "KD" },
                 Description =
                     "Der Zugang zum Rover-Hangar wird durch ein RFID-System gesichert. In diesem ersten Teil implementieren Sie nur das Auslesen der Hardware auf unterster Ebene.\n\n" +
-                    "Aufgabe: Implementieren Sie die Klasse [RFIDReader].\n" +
+                    "**Aufgabe:** Implementieren Sie die Klasse [RFIDReader].\n" +
                     "• Der Konstruktor empfängt das Serial-Objekt. Wichtig: Im Abitur muss die serielle Schnittstelle vor der Nutzung zwingend geöffnet werden.\n" +
                     "• [IsCardAvailable()] gibt an, ob Daten (positive Zahl, die nicht 0 ist) an der Schnittstelle bereitstehen (nutzen Sie [serial.DataAvailable()]).\n" +
                     "• [ReadCard()] liest Byte für Byte von der Seriellen Schnittstelle und validiert das Protokoll.\n\n" +
-                    "Protokoll-Spezifikation:\n" +
-                    "1. Warten Sie auf das Start-Byte STX (0x02).\n" +
+                    "**Protokoll-Spezifikation:**\n" +
+                    "1. Warten Sie auf das Start-Byte STX ([0x02]).\n" +
                     "2. Lesen Sie exakt 6 Datenbytes aus und bauen Sie daraus einen String zusammen.\n" +
                     "3. Lesen Sie das nächste Byte: die übertragene Prüfsumme.\n" +
-                    "4. Prüfen Sie auf das End-Byte ETX (0x03).\n" +
+                    "4. Prüfen Sie auf das End-Byte ETX ([0x03]).\n" +
                     "5. Validierung: Verknüpfen Sie alle 6 Datenbytes mit XOR. Das Ergebnis muss mit der übertragenen Prüfsumme übereinstimmen. Ist die Prüfsumme falsch oder fehlt STX/ETX, geben Sie einen Leerstring [\"\"] zurück.\n" +
                     "6. Rückgabe: Wenn alle Prüfungen erfolgreich waren, geben Sie den aus den 6 Datenbytes gebildeten String zurück.",
                 StarterCode = "public class RFIDReader\n{\n    private Serial serial;\n    // Implementation\n}",
@@ -1246,12 +1244,12 @@ END.",
                                "start-hint: String aus Char-Array aufbauen\n" +
                                "Eine gängige Technik zum Aufbau eines Strings aus einzelnen Bytes ist die Nutzung eines [char]-Arrays.\n" +
                                "Deklarieren Sie ein Array passender Größe und füllen Sie es in einer Schleife. Am Ende wandeln Sie es mit [new string(charArray)] in einen String um.\n" +
-                               "Beispiel (Java):\n" +
+                               "Beispiel (Java):" +
                                "{|int[] serialRead = { 72, 73, 33 };\r\n\r\nchar[] data = new char[3];\r\nfor (int i = 0; i < 3; i++) {\r\n    data[i] = (char)serialRead[i];\r\n}\r\nreturn new String(data);|}\n" +
                                ":end-hint\n" +
                                "start-hint: XOR-Prüfsumme akkumulieren\n" +
                                "Um eine XOR-Prüfsumme über mehrere Bytes zu berechnen, beginnt man mit dem Startwert 0 und verknüpft jeden Byte-Wert nacheinander mit XOR.\n" +
-                               "Beispiel: Die Bytes 5, 3 und 6 XOR-verknüpft:\n" +
+                               "Beispiel: Die Bytes 5, 3 und 6 XOR-verknüpft:" +
                                "{|int xor = 0;\n" +
                                "xor ^= 5; // xor = 5\n" +
                                "xor ^= 3; // xor = 6\n" +
@@ -1295,13 +1293,13 @@ END.",
                 DiagramTags = new List<string> { "KD" },
                 Description =
                     "Nun integrieren wir den [RFIDReader] in das Gesamtsystem, um den Rover freizugeben.\n\n" +
-                    "Aufgabe 1: Implementieren Sie die Klasse [Rover].\n" +
+                    "**Aufgabe 1:** Implementieren Sie die Klasse [Rover].\n" +
                     "• Sie benötigt eine ID (String) und eine [fahrzeugNr] (int).\n" +
                     "• Die [fahrzeugNr] wird über einen statischen Zähler ([autowert]) automatisch im Konstruktor vergeben (Start bei 1).\n" +
                     "• [Lock]/[Unlock]: Diese Methoden sollen nur den Status auf der Konsole ausgeben.\n\n" +
-                    "Aufgabe 2: Implementieren Sie [Controller].\n" +
+                    "**Aufgabe 2:** Implementieren Sie [Controller].\n" +
                     "• Der Konstruktor initialisiert [Serial] mit dem übergebenen [port] und den nötigen Werten (siehe Material), öffnet den Port und erstellt den [RFIDReader].\n" +
-                    "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> String 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK (0x06) vom [FunkModul] warten -> [rover.Unlock()] aufrufen.",
+                    "• [Run()] führt eine Endlosschleife aus: Wenn eine Karte verfügbar ist -> ID lesen -> Wenn ID nicht leer -> String 'UNLOCK <FahrzeugNr> <CardID>' per Funk senden -> Auf ACK ([0x06]) vom [FunkModul] warten -> [rover.Unlock()] aufrufen.",
                 StarterCode =
                     "public class Rover\n{\n    // Implementation\n}\n\npublic class Controller\n{\n    // Implementation\n}\n\n// Den RFIDReader haben Sie bereits im letzten Level erfolgreich implementiert!\npublic class RFIDReader\n{\n    private Serial serial;\n    \n    public RFIDReader(Serial s)\n    {\n        this.serial = s;\n        this.serial.Open();\n    }\n    \n    public bool IsCardAvailable()\n    {\n        return serial.DataAvailable() > 0;\n    }\n    \n    public string ReadCard()\n    {\n        if (serial.Read() != 0x02) return \"\";\n        \n        char[] data = new char[6];\n        int xor = 0;\n        for (int i = 0; i < 6; i++)\n        {\n            data[i] = (char)serial.Read();\n            xor ^= data[i];\n        }\n        \n        if (serial.Read() != xor) return \"\";\n        \n        if (serial.Read() != 0x03) return \"\";\n        \n        return new string(data);\n    }\n}",
                 MaterialDocs = "Verwenden Sie zur Initialisierung der seriellen Schnittstelle folgende Parameter:\n" +
@@ -1332,7 +1330,7 @@ END.",
                 NextLevelCode = LevelCodes.CodesList[19],
                 Title = "Missions-Zentrale",
                 Difficulty = "Schwer",
-                DifficultyStats = new LevelDifficultyStats(2, 4, 4, 4),
+                DifficultyStats = new LevelDifficultyStats(2, 4, 5, 4),
                 Topics = new List<string> { "Systemintegration", "Protokoll-Parsing" },
                 DiagramTags = new List<string> { "KD", "ST" },
                 Description = "Abschlussprüfung Sektion 4: Objekt-Kollaboration und Zustandsverwaltung.\n\n" +
@@ -1355,7 +1353,7 @@ END.",
                               "   • Falls der Rover einen kritischen Status meldet, erstellen Sie ein Ticket beim [WartungsDienst].",
                 StarterCode = "// Implementieren Sie alle Klassen selbständig",
                 MaterialDocs = "start-hint: Integer Parsing\n" +
-                               "Um den Wert für \"BAT\" zu setzen, müssen Sie den String in einen Integer umwandeln:\n" +
+                               "Um den Wert für \"BAT\" zu setzen, müssen Sie den String in einen Integer umwandeln:" +
                                "{|int wert = int.Parse(stringWert);|}\n" +
                                ":end-hint\n" +
                                "start-tipp: Wartung\n" +
@@ -1427,13 +1425,13 @@ END.",
                 DiagramTags = new List<string> { "KD", "SD" },
                 Description =
                     "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
-                    "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
-                    ">|Hinweis: Im Abitur werden Sequenzdiagramme in der Regel **gezeichnet** (also von vorhandenem Code abgeleitet), seltener als Code implementiert. Jedoch sollen Sie dies hier umgekehrt tun, dadurch lernen Sie, Diagramme präzise zu lesen, was die Fähigkeit, diese in der Prüfung zu zeichnen deutlich stärken sollte.|<" +
-                    "Aufgabe:\n" +
+                    "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten." +
+                    ">|**Hinweis:** Im Abitur werden Sequenzdiagramme in der Regel **gezeichnet** (also von vorhandenem Code abgeleitet), seltener als Code implementiert. Jedoch sollen Sie dies hier umgekehrt tun, dadurch lernen Sie, Diagramme präzise zu lesen, was die Fähigkeit, diese in der Prüfung zu zeichnen deutlich stärken sollte.|<" +
+                    "**Aufgabe:**\n" +
                     "1. Implementieren Sie die Klasse [SmartHomeServer].\n" +
                     "2. Der Konstruktor initialisiert den Server auf dem übergebenen [port].\n" +
                     "3. Setzen Sie den Ablauf aus dem Sequenzdiagramm **exakt** in der Methode [StartServer()] um.\n\n" +
-                    "Details zur Logik:\n" +
+                    "**Details zur Logik:**\n" +
                     "• Der Server wartet auf **einen** Client ([Accept()]).\n" +
                     "• Er sendet eine Begrüßung (inklusive Zeilenumbruch [\\n]).\n" +
                     "• Er liest Befehle des Clients in einer Schleife (loop), solange der Befehl nicht \"QUIT\" lautet.\n" +
@@ -1486,11 +1484,11 @@ END.",
                 Topics = new List<string> { "Netzwerk & Sockets", "Protokoll-Parsing", "Zeichen & ASCII" },
                 DiagramTags = new List<string> { "KD", "SD" },
                 Description = "Der Smart Home Server muss nun Steuerbefehle für verbundene Geräte verarbeiten.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "1. Implementieren Sie die Klassen [Licht] und [SmartHomeServer].\n" +
                               "2. Der Server hält eine Liste von Lichtern. Fügen Sie im Konstruktor des Servers drei Lichter mit den Bezeichnungen 'A', 'B' und 'C' hinzu.\n" +
                               "3. Implementieren Sie die Methode [StartServer()], die auf Befehle wartet und diese verarbeitet.\n\n" +
-                              "Protokoll-Spezifikation:\n" +
+                              "**Protokoll-Spezifikation:**\n" +
                               "• Client sendet: \"TOGGLE_LIGHT;|[ID|]\" (z.B. \"TOGGLE_LIGHT;A\").\n" +
                               "• Sicherheits-Check: Die ID darf nur ein einzelner Großbuchstabe (A-Z) sein. Nutzen Sie zur Validierung die ASCII-Werte des Zeichens (siehe ASCII-Tabelle).\n" +
                               "• Ist die ID ungültig, senden Sie \"-ERR ungültige ID\\n\".\n" +
@@ -1542,11 +1540,11 @@ END.",
                 DiagramTags = new List<string> { "KD" },
                 Description =
                     "Der Smart Home Server soll nun mehrere Clients (z. B. verschiedene Smart-Panels) gleichzeitig bedienen können. Dazu wird die Client-Verwaltung in einen eigenen Thread ausgelagert.\n\n" +
-                    "Aufgaben:\n" +
+                    "**Aufgaben:**\n" +
                     "1. Überführen Sie das Klassendiagramm exakt in objektorientierten Code.\n" +
                     "2. Implementieren Sie die Methode [RunServer()] in [SmartHomeServer]. Sie soll in einer Endlosschleife auf Clients warten, für jeden Client einen neuen [ServerThread] instanziieren und diesen starten.\n" +
                     "3. Implementieren Sie die Methode [Run()] in [ServerThread]. Diese liest in einer Schleife Kommandos vom Socket.\n\n" +
-                    "Protokoll für [Run()] in [ServerThread]:\n" +
+                    "**Protokoll** für [Run()] in [ServerThread]:\n" +
                     "• Bei Kommando \"PING\" antwortet der Server mit \"+PONG\\n\".\n" +
                     "• Bei Kommando \"INFO\" antwortet der Server mit der IP-Adresse des Clients: \"+IP \" + clientSocketHostIP + \"\\n\".\n" +
                     "• Bei Kommando \"LOGIN\" wird ein zufälliger Session-Token (0 bis 9999) generiert (Nutzen Sie die Klasse [Random]). Der Server antwortet mit \"+TOKEN \" + token + \"\\n\".\n" +
@@ -1589,10 +1587,10 @@ END.",
                 DiagramTags = new List<string> { "KD", "SD" },
                 Description =
                     "Dies ist die Abschlussprüfung für Sektion 5. Eine hohe Eigenständigkeit wird vorausgesetzt.\n\n" +
-                    "Aufgabe 1: Implementieren Sie die Klasse [SicherheitsServer].\n" +
+                    "**Aufgabe 1:** Implementieren Sie die Klasse [SicherheitsServer].\n" +
                     "• Die Methode [RunServer()] enthält **nur** eine Endlosschleife, die dauerhaft Clients akzeptiert.\n" +
                     "• Für jeden Client wird ein neuer [SicherheitsThread] instanziiert und gestartet.\n\n" +
-                    "Aufgabe 2: Implementieren Sie die Klasse [SicherheitsThread].\n" +
+                    "**Aufgabe 2:** Implementieren Sie die Klasse [SicherheitsThread].\n" +
                     "• [VergleicheZugangsdaten(string user, string pin)]: Gibt [true] zurück, wenn die Daten mit den Werten aus der [BenutzerVerwaltung] der Zentrale übereinstimmen.\n" +
                     "• [Run()]: Setzen Sie das Sequenzdiagramm exakt um.\n\n" +
                     ">|Hinweise:\n" +
@@ -1649,10 +1647,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " • Start-Byte: STX (0x02)\n" +
+                               " • Start-Byte: STX ([0x02])\n" +
                                " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
                                " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " • End-Byte: ETX (0x03)",
+                               " • End-Byte: ETX ([0x03])",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1748,10 +1746,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " • Start-Byte: STX (0x02)\n" +
+                               " • Start-Byte: STX ([0x02])\n" +
                                " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
                                " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " • End-Byte: ETX (0x03)",
+                               " • End-Byte: ETX ([0x03])",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1786,10 +1784,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " • Start-Byte: STX (0x02)\n" +
+                               " • Start-Byte: STX ([0x02])\n" +
                                " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
                                " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " • End-Byte: ETX (0x03)",
+                               " • End-Byte: ETX ([0x03])",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram
