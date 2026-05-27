@@ -882,9 +882,8 @@ public partial class MainWindow
             ToolTip.SetTip(btnDelTable, "Tabelle löschen");
             btnDelTable.Click += (s, e) =>
             {
-                if (_focusedRColumn == null) return;
                 _currentRelationalModel.Remove(table);
-                if (table.Columns.Contains(_focusedRColumn) || _focusedRTable == table) UpdateFocusedColumn(null, null);
+                if (_focusedRColumn != null && (table.Columns.Contains(_focusedRColumn) || _focusedRTable == table)) UpdateFocusedColumn(null, null);
                 RenderRelationalModel(targetPanel, false);
                 TriggerRelationalAutoSave();
             };
@@ -976,6 +975,14 @@ public partial class MainWindow
             if (umlGrid != null)
             {
                 umlGrid.RowDefinitions = new RowDefinitions("*, 8, Auto");
+            }
+
+            // re-anchor pk/fk buttons to task panels buttons
+            if (PnlTaskRelationalModel != null && (currentSqlLevel != null || _isDesignerMode))
+            {
+                bool isReadOnly = !_isDesignerMode && currentSqlLevel != null &&
+                                  currentSqlLevel.IsRelationalModelReadOnly;
+                RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
             }
         }
         else if (isUmlVisible)

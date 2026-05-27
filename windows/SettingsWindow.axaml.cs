@@ -2045,7 +2045,7 @@ public partial class SettingsWindow : Window
 
         var communityDescription = new TextBlock
         {
-            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben sowie eigene Level hochzuladen und mit denen anderer Nutzer zu interagieren.",
+            Text = "Aktiviere diese Funktion und melde dich an, um Level zu bewerten und Kommentare zu schreiben sowie eigene Level hochzuladen und mit Levels anderer Nutzer zu interagieren.",
             Foreground = Brushes.LightGray,
             TextWrapping = TextWrapping.Wrap
         };

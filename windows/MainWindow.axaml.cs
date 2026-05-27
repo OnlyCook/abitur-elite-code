@@ -892,8 +892,16 @@ public partial class MainWindow : Window
                 {
                     if (selectedTab.Header?.ToString() == "Aufgabe" && PnlTaskRelationalModel != null)
                         RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
-                    else if (selectedTab.Header?.ToString() == "UML/Diagramme" && PnlUmlRelationalModel != null)
-                        RenderRelationalModel(PnlUmlRelationalModel, isReadOnly);
+                    else if (selectedTab.Header?.ToString() == "UML/Diagramme")
+                    {
+                        // render the task panel so pk/fk buttons stay in the visible panel when both are docked
+                        var tabTask = this.FindControl<TabItem>("TabTask");
+                        bool isTaskAlsoVisible = (tabTask?.Parent as TabControl)?.SelectedItem == tabTask;
+                        if (isTaskAlsoVisible && PnlTaskRelationalModel != null)
+                            RenderRelationalModel(PnlTaskRelationalModel, isReadOnly);
+                        else if (PnlUmlRelationalModel != null)
+                            RenderRelationalModel(PnlUmlRelationalModel, isReadOnly);
+                    }
                 }
             }
         }
