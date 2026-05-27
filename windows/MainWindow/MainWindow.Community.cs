@@ -37,6 +37,7 @@ public partial class MainWindow
     private CancellationTokenSource? _notFoundCts;
 
     private CancellationTokenSource? _cooldownCts;
+    private CancellationTokenSource? _communityUpdateDebounce;
 
     private const int ApiQueueLimit = 10;
 
@@ -344,6 +345,12 @@ public partial class MainWindow
         _notFoundCts?.Cancel();
         _fullQueueCts?.Cancel();
 
+        // reset debounce so rapid level navigation cancels the previous pending fetch
+        _communityUpdateDebounce?.Cancel();
+        _communityUpdateDebounce?.Dispose();
+        _communityUpdateDebounce = new CancellationTokenSource();
+        var debounceToken = _communityUpdateDebounce.Token;
+
         Debug.WriteLine("[Debug] Fetching level " + levelId);
 
         // reset comment section and active discussion, but keep the panel visible
@@ -474,9 +481,13 @@ public partial class MainWindow
             return; // skip ping and fetch, use fresh cache synchronously
         }
 
-        // no valid cache -> show skeletons immediately and ping network
+        // no valid cache -> show skeletons immediately and wait briefly before hitting the network
+        // so rapid level navigation (spam clicking) doesnt fire a request for every level passed through
         PnlCommunityActions.IsVisible = true;
         SetCommunitySkeletonsVisible(true);
+
+        try { await Task.Delay(700, debounceToken); }
+        catch (TaskCanceledException) { return; }
 
         bool isOnline = await CheckRealConnectivityAsync();
 

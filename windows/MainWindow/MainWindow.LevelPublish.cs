@@ -41,28 +41,41 @@ public partial class MainWindow
 
         if (!_isSqlMode)
         {
-            string combinedCode = $"{_currentDraft.StarterCode}\n{_currentDraft.ValidationCode}\n{_currentDraft.TestCode}";
+            string allCode = $"{_currentDraft.StarterCode}\n{_currentDraft.ValidationCode}\n{_currentDraft.TestCode}";
 
             // basic infinite loop fallback check (semantic analyzer handles the rest)
             var infiniteLoopRegex = new Regex(@"while\s*\(\s*true\s*\)|for\s*\(\s*;\s*;\s*\)", RegexOptions.IgnoreCase);
-            if (infiniteLoopRegex.IsMatch(combinedCode))
+            if (infiniteLoopRegex.IsMatch(allCode))
             {
                 errorFeedback = "Sicherheitsrisiko: Offensichtliche Endlosschleifen (z.B. while(true)) sind in veröffentlichten Leveln verboten.";
                 return false;
             }
 
-            // run semantic analysis purely to validate safety
-            var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(combinedCode);
             var refs = GetSafeReferences();
-            var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("Validation", new[] { tree }, refs);
 
-            var semanticModel = compilation.GetSemanticModel(tree);
-            var safetyCheck = SandboxSecurity.AnalyzeUserCode(tree, semanticModel);
-
-            if (!safetyCheck.IsSafe)
+            // strict check: user facing code must not use reflection or blocked types
+            string userCode = $"{_currentDraft.StarterCode}\n{_currentDraft.TestCode}";
+            var userTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(userCode);
+            var userCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("UserValidation", new[] { userTree }, refs);
+            var userSafetyCheck = SandboxSecurity.AnalyzeUserCode(userTree, userCompilation.GetSemanticModel(userTree), false);
+            if (!userSafetyCheck.IsSafe)
             {
-                errorFeedback = safetyCheck.ErrorFeedback;
+                errorFeedback = userSafetyCheck.ErrorFeedback;
                 return false;
+            }
+
+            // relaxed check: validation code may use reflection/'System.Type' for roslyn based checks,
+            // but deep exploit prevention ('Type.GetType', 'Assembly.Load', 'Type.Assembly', etc.) still applies
+            if (!string.IsNullOrWhiteSpace(_currentDraft.ValidationCode))
+            {
+                var valTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(_currentDraft.ValidationCode);
+                var valCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("ValValidation", new[] { valTree }, refs);
+                var valSafetyCheck = SandboxSecurity.AnalyzeUserCode(valTree, valCompilation.GetSemanticModel(valTree), true);
+                if (!valSafetyCheck.IsSafe)
+                {
+                    errorFeedback = valSafetyCheck.ErrorFeedback;
+                    return false;
+                }
             }
         }
         else
