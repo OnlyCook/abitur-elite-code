@@ -642,7 +642,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                     "• Einen Konstruktor, der die Liste initialisiert\n" +
                     "• Eine Methode [Hinzufuegen(Tier t)], die ein Tier zur Liste hinzufügt\n" +
                     "• Eine Methode [AnzahlTiere()], die die Anzahl der Tiere zurückgibt\n\n" +
-                    "Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse Tier.",
+                    ">|Hinweis: Verwenden Sie für dieses Level eine normale (nicht abstrakte) Klasse [Tier].|<",
                 StarterCode = "// Erstellen Sie die Klassen Gehege und Tier vollständig selbst\n",
                 MaterialDocs = listDocsHints,
                 DiagramPaths = new List<string>
@@ -984,7 +984,7 @@ In C# verwenden wir 'string' (kleingeschrieben) anstelle der Java-Klasse 'String
                               "2. Ein Lehrer hat eine Liste von Klassen. Stellen Sie sicher, dass diese Liste von außen abrufbar ist.\n" +
                               "3. Implementieren Sie [FindeVielBeschaeftigte()] in der Klasse [Schule].\n" +
                               "   -> Die Methode iteriert über alle Lehrer und prüft manuell auf der Liste des Lehrers, ob er in **mehr als 2** Klassen unterrichtet." +
-                              "\n\nHinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.",
+                              "\n\n>|Hinweis: Die Klasse [Klasse] dient hier nur als Datenobjekt und kann leer bleiben.|<",
                 StarterCode =
                     "public class Schule\n{\n    public List<Lehrer> FindeVielBeschaeftigte()\n    {\n        return null;\n    }\n}\n\npublic class Lehrer\n{\n}\n\npublic class Klasse\n{\n    // Kann leer bleiben (Hilfsklasse)\n}\n",
                 MaterialDocs = "start-hint: Verschachtelte Navigation\n" +
@@ -1428,7 +1428,7 @@ END.",
                 Description =
                     "Willkommen in Sektion 5! Wir modellieren nun die Netzwerkkommunikation unseres Smart Home Hubs mithilfe von UML-Sequenzdiagrammen.\n\n" +
                     "Sequenzdiagramme zeigen den exakten zeitlichen Ablauf von Methodenaufrufen zwischen Objekten.\n\n" +
-                    "Hinweis: Im Abitur werden Sequenzdiagramme in der Regel **gezeichnet** (also von vorhandenem Code abgeleitet), nicht als Code implementiert. Jedoch sollen Sie dies hier umgekehrt tun, dadurch lernen Sie, Diagramme präzise zu lesen, was die Fähigkeit, diese in der Prüfung zu zeichnen deutlich stärken sollte.\n\n" +
+                    ">|Hinweis: Im Abitur werden Sequenzdiagramme in der Regel **gezeichnet** (also von vorhandenem Code abgeleitet), seltener als Code implementiert. Jedoch sollen Sie dies hier umgekehrt tun, dadurch lernen Sie, Diagramme präzise zu lesen, was die Fähigkeit, diese in der Prüfung zu zeichnen deutlich stärken sollte.|<" +
                     "Aufgabe:\n" +
                     "1. Implementieren Sie die Klasse [SmartHomeServer].\n" +
                     "2. Der Konstruktor initialisiert den Server auf dem übergebenen [port].\n" +
@@ -1595,10 +1595,10 @@ END.",
                     "Aufgabe 2: Implementieren Sie die Klasse [SicherheitsThread].\n" +
                     "• [VergleicheZugangsdaten(string user, string pin)]: Gibt [true] zurück, wenn die Daten mit den Werten aus der [BenutzerVerwaltung] der Zentrale übereinstimmen.\n" +
                     "• [Run()]: Setzen Sie das Sequenzdiagramm exakt um.\n\n" +
-                    "Hinweise:\n" +
+                    ">|Hinweise:\n" +
                     "• Die Klassen [SicherheitsZentrale], [BenutzerVerwaltung], [Alarmanlage] und [ProtokollLog] sind bereits im System implementiert. Sie müssen lediglich über deren Methoden und Getter/Setter auf sie zugreifen.\n" +
                     "• Der Client sendet Login-Anfragen in beispielweise folgendem Format: [\"LOGIN;admin;admin123\"].\n" +
-                    "• Denken Sie daran: Auf alle Attribute kann über die entsprechenden standardmäßigen Get-/Set-Methoden zugegriffen werden, auch wenn diese im Diagramm nicht explizit modelliert sind.",
+                    "• Denken Sie daran: Auf alle Attribute kann über die entsprechenden standardmäßigen Get-/Set-Methoden zugegriffen werden, auch wenn diese im Diagramm nicht explizit modelliert sind.|<",
                 StarterCode =
                     "public class SicherheitsServer\n{\n    // Implementation\n}\n\npublic class SicherheitsThread : Thread\n{\n    // Implementation\n}",
                 MaterialDocs =
@@ -1649,10 +1649,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " - Start-Byte: STX (0x02)\n" +
-                               " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
-                               " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " - End-Byte: ETX (0x03)",
+                               " • Start-Byte: STX (0x02)\n" +
+                               " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                               " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                               " • End-Byte: ETX (0x03)",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1748,10 +1748,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " - Start-Byte: STX (0x02)\n" +
-                               " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
-                               " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " - End-Byte: ETX (0x03)",
+                               " • Start-Byte: STX (0x02)\n" +
+                               " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                               " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                               " • End-Byte: ETX (0x03)",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram
@@ -1786,10 +1786,10 @@ END.",
                                "Auszug aus dem Datenblatt des Barcode-Scanners (RS232-Protokoll):\n" +
                                "Übertragungsparameter: 9600 Baud, 8 Datenbits, 1 Stoppbit, kein Paritätsbit.\n" +
                                "Datenpaket-Aufbau:\n" +
-                               " - Start-Byte: STX (0x02)\n" +
-                               " - Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
-                               " - Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
-                               " - End-Byte: ETX (0x03)",
+                               " • Start-Byte: STX (0x02)\n" +
+                               " • Nutzdaten: 7 Bytes (ASCII-Zeichen)\n" +
+                               " • Prüfsumme: XOR-Verknüpfung aller 7 Nutzdaten-Bytes\n" +
+                               " • End-Byte: ETX (0x03)",
                 DiagramPaths = new List<string>
                 {
                     "img\\sec6\\lvl24-1.svg", // class diagram

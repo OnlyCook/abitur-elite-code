@@ -1020,93 +1020,6 @@ public partial class MainWindow : Window
         ToolTip.SetTip(BtnRun, $"Ausführen (F5{(_isSqlMode ? $" / {ctrlKey} + Enter" : "")})");
     }
 
-    private string ExtractSelectedInlineText(InlineCollection? inlines, int selStart, int selEnd)
-    {
-        var sb = new StringBuilder();
-        int pos = 0;
-        if (inlines != null)
-        {
-            foreach (var inline in inlines)
-            {
-                if (inline is Run run)
-                {
-                    string t = run.Text ?? "";
-                    int overlapStart = Math.Max(selStart, pos);
-                    int overlapEnd = Math.Min(selEnd, pos + t.Length);
-                    if (overlapStart < overlapEnd)
-                        sb.Append(t, overlapStart - pos, overlapEnd - overlapStart);
-                    pos += t.Length;
-                }
-                else if (inline is LineBreak)
-                {
-                    if (pos >= selStart && pos < selEnd) sb.Append('\n');
-                    pos++;
-                }
-                else if (inline is InlineUIContainer)
-                {
-                    // skip svg icon in copied text but advance layout position by 1
-                    pos++;
-                }
-            }
-        }
-        return sb.ToString();
-    }
-
-    private void SetupSelectableBlockCopyFix(SelectableTextBlock block)
-    {
-        // each InlineUIContainer adds +1 to layout positions but not to text, so
-        // Text.Substring(SelectionStart, …) is shifted by the number of svgs before the selection;
-        // remap layout endpoints to text positions by subtracting svg count before each endpoint
-        // this is a temporary fix, may need to work on this later as it works fine now but looks weird
-        block.AddHandler(PointerReleasedEvent, (s, e) =>
-        {
-            if (block.Inlines == null || block.SelectionStart == block.SelectionEnd) return;
-
-            bool isBackward = block.SelectionStart > block.SelectionEnd;
-            int lo = Math.Min(block.SelectionStart, block.SelectionEnd);
-            int hi = Math.Max(block.SelectionStart, block.SelectionEnd);
-
-            int pos = 0, svgsBeforeLo = 0, svgsBeforeHi = 0;
-            foreach (var inline in block.Inlines)
-            {
-                if (inline is Run run) pos += (run.Text ?? "").Length;
-                else if (inline is LineBreak) pos++;
-                else if (inline is InlineUIContainer)
-                {
-                    if (pos < lo) svgsBeforeLo++;
-                    if (pos < hi) svgsBeforeHi++;
-                    pos++;
-                }
-            }
-
-            if (svgsBeforeLo == 0 && svgsBeforeHi == 0) return;
-
-            int adjLo = lo - svgsBeforeLo;
-            int adjHi = hi - svgsBeforeHi;
-
-            if (isBackward) { block.SelectionStart = adjHi; block.SelectionEnd = adjLo; }
-            else            { block.SelectionStart = adjLo; block.SelectionEnd = adjHi; }
-        }, RoutingStrategies.Bubble);
-
-        block.AddHandler(KeyDownEvent, (s, e) =>
-        {
-            if (e.Key == Key.C && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
-            {
-                if (block.SelectionStart == block.SelectionEnd) return;
-
-                string text = !string.IsNullOrEmpty(block.SelectedText)
-                    ? block.SelectedText
-                    : ExtractSelectedInlineText(block.Inlines, block.SelectionStart, block.SelectionEnd);
-
-                if (!string.IsNullOrEmpty(text))
-                {
-                    _ = TopLevel.GetTopLevel(block)?.Clipboard?.SetTextAsync(text);
-                    e.Handled = true;
-                }
-            }
-        }, RoutingStrategies.Tunnel);
-    }
-
     private void AddToConsole(string text, IBrush color, bool clearFirst = false)
     {
         Dispatcher.UIThread.Post(() =>
@@ -1571,20 +1484,101 @@ public partial class MainWindow : Window
             return;
 
         string safeText = text.Replace("|[", "\x01").Replace("|]", "\x02");
-        var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|\[.*?\]|\*\*.*?\*\*|(?<!\w)__.*?__(?!\w))");
+        var parts = Regex.Split(safeText, @"(\{\|[\s\S]*?\|\}|>\|[\s\S]*?\|<|\[.*?\]|\*\*.*?\*\*|(?<!\w)__.*?__(?!\w)|`[^`]+`)");
 
-        SelectableTextBlock CreateTextBlock()
+        SelectableTextBlock CreateTextBlock() => new SelectableTextBlock
         {
-            return new SelectableTextBlock
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 15,
+            LineHeight = 24,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        void AddInlines(InlineCollection inlines, string textContent)
+        {
+            var subParts = Regex.Split(textContent, @"(\[.*?\]|\*\*.*?\*\*|`[^`]+`)");
+            foreach (var sp in subParts)
             {
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 15,
-                LineHeight = 24,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
+                if (string.IsNullOrEmpty(sp)) continue;
+                if (sp.StartsWith("[") && sp.EndsWith("]"))
+                {
+                    string c = sp.Substring(1, sp.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
+                    inlines.Add(new Run
+                    {
+                        Text = c,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = Scheme.BrushTextHighlight,
+                        FontFamily = new FontFamily(MonospaceFontFamily)
+                    });
+                }
+                else if (sp.StartsWith("**") && sp.EndsWith("**") && sp.Length >= 4)
+                {
+                    string c = sp.Substring(2, sp.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
+                    inlines.Add(new Run
+                    {
+                        Text = c,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = Scheme.BrushTextNormal
+                    });
+                }
+                else if (sp.StartsWith("`") && sp.EndsWith("`") && sp.Length >= 3)
+                {
+                    string c = sp.Substring(1, sp.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
+                    var inlineCodeBorder = new Border
+                    {
+                        Background = Scheme.BrushBgPanel13,
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, -1),
+                        Margin = new Thickness(1, -10, 1, -10),
+
+                        Child = new TextBlock
+                        {
+                            Text = c,
+                            FontSize = 13,
+                            FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
+                            Foreground = Scheme.BrushMarkdownInlineCode,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    };
+
+                    inlines.Add(
+                        new InlineUIContainer(inlineCodeBorder)
+                        {
+                            BaselineAlignment = BaselineAlignment.Center
+                        });
+                }
+                else
+                {
+                    string c = sp.Replace("\x01", "[").Replace("\x02", "]");
+                    if (!string.IsNullOrEmpty(c))
+                        inlines.Add(new Run
+                        {
+                            Text = c,
+                            Foreground = Scheme.BrushTextNormal
+                        });
+                }
+            }
         }
 
         var currentTb = CreateTextBlock();
+
+        void CommitBlock()
+        {
+            if (currentTb?.Inlines?.Count > 0)
+            {
+                var lastRun = currentTb.Inlines.LastOrDefault() as Run;
+                if (lastRun != null && !string.IsNullOrEmpty(lastRun.Text)) lastRun.Text = lastRun.Text.TrimEnd();
+
+                bool hasContent = currentTb.Inlines.OfType<Run>().Any(r => !string.IsNullOrEmpty(r.Text))
+                               || currentTb.Inlines.OfType<InlineUIContainer>().Any();
+                if (hasContent)
+                {
+                    currentTb.Margin = new Thickness(0, 0, 0, 2);
+                    panel.Children.Add(currentTb);
+                }
+            }
+            currentTb = CreateTextBlock();
+        }
 
         foreach (var part in parts)
         {
@@ -1593,20 +1587,7 @@ public partial class MainWindow : Window
             // code block
             if (part.StartsWith("{|") && part.EndsWith("|}") && part.Length >= 4)
             {
-                if (currentTb?.Inlines?.Count > 0)
-                {
-                    var lastRun = currentTb.Inlines.LastOrDefault() as Run;
-                    if (lastRun != null && !string.IsNullOrEmpty(lastRun.Text)) lastRun.Text = lastRun.Text.TrimEnd();
-
-                    bool hasContent = currentTb.Inlines.OfType<Run>().Any(r => !string.IsNullOrEmpty(r.Text));
-                    if (hasContent)
-                    {
-                        currentTb.Margin = new Thickness(0, 0, 0, 2);
-                        panel.Children.Add(currentTb);
-                    }
-
-                    currentTb = CreateTextBlock();
-                }
+                CommitBlock();
 
                 string codeContent = part.Substring(2, part.Length - 4).Trim();
                 codeContent = codeContent.Replace("\x01", "[").Replace("\x02", "]");
@@ -1636,23 +1617,76 @@ public partial class MainWindow : Window
                 codeBlockEditor.Options.HighlightCurrentLine = false;
                 codeBlockEditor.TextArea.Caret.CaretBrush = Brushes.Transparent;
 
-                var border = new Border
+                panel.Children.Add(new Border
                 {
                     Background = Scheme.BrushBgPanel3,
                     CornerRadius = new CornerRadius(6),
                     ClipToBounds = true,
                     Margin = new Thickness(0, 0, 0, 10),
                     Child = codeBlockEditor
-                };
+                });
+            }
+            // block quote
+            else if (part.StartsWith(">|") && part.EndsWith("|<") && part.Length >= 4)
+            {
+                CommitBlock();
 
-                panel.Children.Add(border);
+                string quoteContent = part.Substring(2, part.Length - 4).Trim();
+                quoteContent = quoteContent.Replace("\x01", "[").Replace("\x02", "]");
+
+                // detect optional title: first line ends with ":" followed by a newline
+                string? quoteTitle = null;
+                string quoteBody = quoteContent;
+                int newlineIdx = quoteContent.IndexOfAny(new[] { '\n', '\r' });
+                if (newlineIdx > 0)
+                {
+                    string firstLine = quoteContent.Substring(0, newlineIdx).TrimEnd('\r', '\n');
+                    if (firstLine.EndsWith(":"))
+                    {
+                        quoteTitle = firstLine.Substring(0, firstLine.Length - 1);
+                        quoteBody = quoteContent.Substring(newlineIdx).TrimStart('\r', '\n');
+                    }
+                }
+
+                var quoteStack = new StackPanel();
+
+                if (quoteTitle != null)
+                {
+                    quoteStack.Children.Add(new SelectableTextBlock
+                    {
+                        Text = quoteTitle + ":",
+                        FontSize = 14,
+                        FontWeight = FontWeight.SemiBold,
+                        Foreground = Scheme.BrushTextTitle,
+                        Margin = new Thickness(0, 0, 0, 4)
+                    });
+                }
+
+                var quoteBodyTb = new SelectableTextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = 15,
+                    LineHeight = 24,
+                    Foreground = Scheme.BrushTextNormal
+                };
+                AddInlines(quoteBodyTb.Inlines!, quoteBody);
+                quoteStack.Children.Add(quoteBodyTb);
+
+                panel.Children.Add(new Border
+                {
+                    Background = Scheme.BrushBgPanel6,
+                    BorderBrush = Scheme.BrushTextTitle,
+                    BorderThickness = new Thickness(3, 0, 0, 0),
+                    CornerRadius = new CornerRadius(0, 3, 3, 0),
+                    Padding = new Thickness(12, 8, 12, 8),
+                    Margin = new Thickness(0, 10, 0, 10),
+                    Child = quoteStack
+                });
             }
             // highlight
             else if (part.StartsWith("[") && part.EndsWith("]"))
             {
-                string content = part.Substring(1, part.Length - 2);
-                content = content.Replace("\x01", "[").Replace("\x02", "]");
-
+                string content = part.Substring(1, part.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
                 currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
@@ -1664,9 +1698,7 @@ public partial class MainWindow : Window
             // bold text
             else if (part.StartsWith("**") && part.EndsWith("**") && part.Length >= 4)
             {
-                string content = part.Substring(2, part.Length - 4);
-                content = content.Replace("\x01", "[").Replace("\x02", "]");
-
+                string content = part.Substring(2, part.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
                 currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
@@ -1677,15 +1709,39 @@ public partial class MainWindow : Window
             // underline text
             else if (part.StartsWith("__") && part.EndsWith("__") && part.Length >= 4)
             {
-                string content = part.Substring(2, part.Length - 4);
-                content = content.Replace("\x01", "[").Replace("\x02", "]");
-
+                string content = part.Substring(2, part.Length - 4).Replace("\x01", "[").Replace("\x02", "]");
                 currentTb?.Inlines?.Add(new Run
                 {
                     Text = content,
                     Foreground = Scheme.BrushTextNormal,
                     TextDecorations = TextDecorations.Underline
                 });
+            }
+            // inline code badge
+            else if (part.StartsWith("`") && part.EndsWith("`") && part.Length >= 3)
+            {
+                string content = part.Substring(1, part.Length - 2).Replace("\x01", "[").Replace("\x02", "]");
+                var inlineCodeBorder = new Border
+                {
+                    Background = Scheme.BrushBgPanel13,
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(4, -1),
+                    Margin = new Thickness(1, -10, 1, 1),
+
+                    Child = new TextBlock
+                    {
+                        Text = content,
+                        FontSize = 13,
+                        FontFamily = FontFamily.Parse("Consolas, Courier New, monospace"),
+                        Foreground = Scheme.BrushMarkdownInlineCode,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                currentTb?.Inlines?.Add(
+                    new InlineUIContainer(inlineCodeBorder)
+                    {
+                        BaselineAlignment = BaselineAlignment.Bottom
+                    });
             }
             // normal text
             else

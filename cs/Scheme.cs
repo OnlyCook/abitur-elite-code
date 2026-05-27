@@ -8,7 +8,7 @@ internal static class Scheme
     public static readonly SolidColorBrush BrushBgPanel2 = SolidColorBrush.Parse("#3C3C3C"); // lighter dark gray
     public static readonly SolidColorBrush BrushBgPanel3 = SolidColorBrush.Parse("#1A1A1A"); // very dark gray
     public static readonly SolidColorBrush BrushBgPanel4 = SolidColorBrush.Parse("#333333"); // not so very dark gray
-    public static readonly SolidColorBrush BrushBgPanel5 = SolidColorBrush.Parse("#333"); // partially dark gray
+    public static readonly SolidColorBrush BrushBgPanel5 = SolidColorBrush.Parse("#333"); // partially dark gray (same as above why is this here)
     public static readonly SolidColorBrush BrushBgPanel6 = SolidColorBrush.Parse("#2b2b2b"); // pretty dark gray
     public static readonly SolidColorBrush BrushBgPanel7 = SolidColorBrush.Parse("#141414"); // darkest of gray
     public static readonly SolidColorBrush BrushBgPanel8 = SolidColorBrush.Parse("#444"); // partially++ dark gray
@@ -54,7 +54,7 @@ internal static class Scheme
 
     // difficulty colors
     public static readonly SolidColorBrush BrushDiffEasy = SolidColorBrush.Parse("#28a745"); // lighter green
-    public static readonly SolidColorBrush BrushDiffMid = SolidColorBrush.Parse("#d1833b"); // orange
+    public static readonly SolidColorBrush BrushDiffMid = SolidColorBrush.Parse("#b56d2b"); // orange
     public static readonly SolidColorBrush BrushDiffHard = SolidColorBrush.Parse("#B43232"); // red (also general error color)
     public static readonly SolidColorBrush BrushDiffAbi = SolidColorBrush.Parse("#8A2BE2"); // purple
     public static readonly SolidColorBrush BrushDiffEasyBg = SolidColorBrush.Parse("#1a3320"); // darkened lighter green

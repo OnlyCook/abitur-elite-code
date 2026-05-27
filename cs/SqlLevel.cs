@@ -240,10 +240,10 @@ public static class SqlCurriculum
                 MaterialDocs = "start-hint: Filterbedingung\n" +
                                "Nutzen Sie die [WHERE]-Klausel.\n" +
                                "Operatoren:\n" +
-                               "- Kleiner: [<]\n" +
-                               "- Größer: [>]\n" +
-                               "- Gleich: [=]\n" +
-                               "- Ungleich: [!=] oder [<>]\n" +
+                               "• Kleiner: [<]\n" +
+                               "• Größer: [>]\n" +
+                               "• Gleich: [=]\n" +
+                               "• Ungleich: [!=] oder [<>]\n" +
                                ":end-hint",
                 IsRelationalModelReadOnly = true,
                 InitialRelationalModel = new List<RTable>
@@ -295,8 +295,8 @@ public static class SqlCurriculum
                 },
                 MaterialDocs = "start-hint: Sortierung\n" +
                                "Syntax: [ORDER BY spalte ASC|DESC]\n" +
-                               "- [ASC]: Aufsteigend (Standard, A-Z, 0-9)\n" +
-                               "- [DESC]: Absteigend (Z-A, 9-0)\n" +
+                               "• [ASC]: Aufsteigend (Standard, A-Z, 0-9)\n" +
+                               "• [DESC]: Absteigend (Z-A, 9-0)\n" +
                                ":end-hint\n" +
                                "start-tipp: Strings\n" +
                                "Textwerte müssen in einfachen Anführungszeichen stehen: ['Kafka'].\n" +
@@ -667,7 +667,7 @@ public static class SqlCurriculum
                     "**Aufgabe:**\n" +
                     "Geben Sie eine Liste aller [titel] und der zugehörigen [nachname]n der Autoren aus.\n" +
                     "Nutzen Sie die Syntax: [FROM Buch, Autor] und verknüpfen Sie die Tabellen im [WHERE]-Teil, indem Sie den Fremdschlüssel ([Buch.autorid]) mit dem Primärschlüssel ([Autor.id]) gleichsetzen.\n\n" +
-                    "**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptiert, wird stattdessen standardmäßig [_FK] genutzt.",
+                    ">|**Hinweis:** Im relationalen Datenmodell werden Fremdschlüssel mit einer Raute ([#]) dargestellt, da SQL-Datenbanken keine Rauten bei der Benennung akzeptieren, wird stattdessen standardmäßig [_FK] genutzt.|<",
                 SetupScript = "CREATE TABLE Autor (id INTEGER PRIMARY KEY, vorname TEXT, nachname TEXT);" +
                               "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autorid_FK INTEGER);" +
                               "INSERT INTO Autor VALUES (1, 'Johann', 'Goethe');" +
@@ -887,7 +887,7 @@ public static class SqlCurriculum
                 DiagramTags = new List<string> { "ER" },
                 Description =
                     "Der Direktor benötigt eine Übersicht über das Leseverhalten einer spezifischen Klasse.\n\n" +
-                    "**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus ableiten.\n\n" +
+                    ">|**Hinweis:** Ab diesem Level wird das relationale Datenbankmodel (Schema) nicht mehr gegeben sein, stattdessen können Sie es selbst vom gegebenen ER-Diagramm aus ableiten.|<" +
                     "**Aufgabe:**\n" +
                     "Nutzen Sie das gegebene ER-Diagramm.\n" +
                     "Geben Sie [name] und [titel] aller Ausleihen aus, aber **nur** für Schüler der Klasse '10b'.",
@@ -948,7 +948,7 @@ public static class SqlCurriculum
                     "**Aufgabe:**\n" +
                     "Erstellen Sie eine Liste aller VIPs und ihrer Tischnummern.\n" +
                     "Nutzen Sie einen **LEFT JOIN**, damit auch VIPs angezeigt werden, die noch keine Reservierung haben (bei diesen ist die Tischnummer dann [NULL]).\n\n" +
-                    "Tipp: Probieren Sie ruhig auch einmal [INNER JOIN] statt [LEFT JOIN], um zu sehen, wie die VIPs ohne Tisch verschwinden.",
+                    ">|Tipp: Probieren Sie ruhig auch einmal [INNER JOIN] statt [LEFT JOIN], um zu sehen, wie die VIPs ohne Tisch verschwinden.|<",
                 SetupScript = "CREATE TABLE Vip (id INTEGER PRIMARY KEY, name TEXT);" +
                               "CREATE TABLE Reservierung (vipid_FK INTEGER, tischNr INTEGER);" +
                               "INSERT INTO Vip VALUES (1, 'Taylor Swift');" +
@@ -1137,8 +1137,8 @@ public static class SqlCurriculum
                 MaterialDocs = "start-tipp: Strategie\n" +
                                "1. Starten Sie mit der [Vip]-Tabelle und nutzen Sie einen [LEFT JOIN] zur Reservierung. Ein normaler JOIN würde VIPs ohne Reservierung verwerfen!\n" +
                                "2. Im [WHERE]-Teil müssen Sie zwei Fälle mit [OR] kombinieren:\n" +
-                               "   - Fall A: [bereich] ist 'Hauptbereich' UND [tischNr] ist NULL.\n" +
-                               "   - Fall B: Der VIP hat gar keine Reservierung (die FK-Spalte der rechten Tabelle ist [NULL]).\n" +
+                               "   • Fall A: [bereich] ist 'Hauptbereich' UND [tischNr] ist NULL.\n" +
+                               "   • Fall B: Der VIP hat gar keine Reservierung (die FK-Spalte der rechten Tabelle ist [NULL]).\n" +
                                "3. Nutzen Sie Klammern für die UND/ODER Logik und [DISTINCT] gegen Duplikate.\n" +
                                ":end-hint",
                 DiagramPaths = new List<string>
@@ -1223,7 +1223,7 @@ public static class SqlCurriculum
                 DiagramTags = new List<string> { "ER" },
                 Description =
                     "Die Geschäftsführung möchte wissen, wie viel Geld heute insgesamt eingenommen wurde.\n\n" +
-                    "**Hinweis:** Ab diesem Level werden Fremdschlüssel nicht mehr im ER-Diagramm angezeigt. Sie müssen anhand der Kardinalitäten selbst ableiten, wie die Tabellen verknüpft werden (siehe Material).\n\n" +
+                    ">|**Hinweis:** Ab diesem Level werden Fremdschlüssel nicht mehr im ER-Diagramm angezeigt. Sie müssen anhand der Kardinalitäten selbst ableiten, wie die Tabellen verknüpft werden (siehe Material).|<" +
                     "**Aufgabe:**\n" +
                     "Ermitteln Sie den gesamten Umsatz (Summe aus Preis * Menge) für alle Bestellungen, die am '2024-02-28' getätigt wurden.\n" +
                     "Geben Sie das Ergebnis als 'Tagesumsatz' aus.",
@@ -1454,8 +1454,8 @@ public static class SqlCurriculum
                 Topics = new List<string> { "Datumsfunktionen", "Normalisierung", "INNER JOIN" },
                 DiagramTags = new List<string> { "ER" },
                 Description = "Willkommen im Hotel-Management-System!\n\n" +
-                              "**WICHTIG:** Ab sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n" +
-                              "Ebenfalls werden die Aufgabenstellungen verständlich anspruchsvoller, da nichts mehr hervorgehoben wird und die Sprache mehr den Abiturstandards entspricht.\n\n" +
+                              ">|WICHTIG:\nAb sofort müssen Sie das relationale Schema selbst aus dem ER-Diagramm ableiten (Überführung in die 3. Normalform).\n" +
+                              "Ebenfalls werden die Aufgabenstellungen verständlich anspruchsvoller, da nichts mehr hervorgehoben wird und die Sprache mehr den Abiturstandards entspricht.|<" +
                               "**Aufgabe:**\n" +
                               "Zeigen Sie den Namen des Gastes und das Anreisedatum für alle Buchungen an, die im Jahr 2024 stattfinden.",
                 SetupScript = "CREATE TABLE Gast (id INTEGER PRIMARY KEY, name TEXT);" +
@@ -1649,7 +1649,7 @@ public static class SqlCurriculum
                 DiagramTags = new List<string> { "ER" },
                 Description =
                     "Das Hotel bittet Gäste nach der Abreise um Feedback. Ein automatisiertes System soll E-Mails vorbereiten.\n\n" +
-                    "**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.\n\n" +
+                    ">|**ER-Diagramm:** Das ER-Modell wurde deutlich erweitert. Achten Sie auf die Kardinalitäten und setzen Sie diese in das Relationenmodell um.|<" +
                     "**Aufgabe:**\n" +
                     "Das Hotel verschickt genau 7 Tage nach Abreise eine E-Mail.\n" +
                     "Geben Sie die Identifikationsnummer der Buchung, den Namen des Gastes und das berechnete Versanddatum als 'FeedbackDatum' aus.\n" +
@@ -1780,7 +1780,7 @@ public static class SqlCurriculum
                 Topics = new List<string> { "Subquery", "n:m Beziehungen" },
                 DiagramTags = new List<string> { "ER" },
                 Description = "Wir analysieren die Datenbank eines Streaming-Dienstes.\n\n" +
-                              "**Hinweis zur Namenskonvention:** Ab dieser Sektion passen wir die Benennung der Primär- und Fremdschlüssel an die realen Abiturprüfungen an. Primärschlüssel heißen nicht mehr pauschal 'id', sondern tragen ein Kürzel der Entität (z.B. 'nid' für Nutzer, 'fid' für Film). Fremdschlüssel haben kein '_FK'-Suffix mehr, sondern heißen exakt so wie der Primärschlüssel der referenzierten Tabelle.\n\n" +
+                              ">|**Hinweis zur Namenskonvention:** Ab dieser Sektion passen wir die Benennung der Primär- und Fremdschlüssel an die realen Abiturprüfungen an. Primärschlüssel heißen nicht mehr pauschal [id], sondern tragen ein Kürzel der Entität (z.B. [nid] für Nutzer, [fid] für Film). Fremdschlüssel haben kein [_FK]-Suffix mehr, sondern heißen exakt so wie der Primärschlüssel der referenzierten Tabelle.|<" +
                               "Formulieren Sie eine SQL-Anweisung, welche die Namen aller Nutzer ausgibt, die in ihrem Verlauf mindestens einen Film angeschaut haben, der dem Genre 'Action' zugeordnet ist.\n\n" +
                               "**Wichtig:** Verwenden Sie für die Lösung zwingend eine Unterabfrage mit dem [IN]-Operator, anstatt einen herkömmlichen [JOIN] über alle Tabellen zu bilden.",
                 SetupScript = "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT);" +
@@ -1934,8 +1934,8 @@ public static class SqlCurriculum
                 Description =
                     "Das Management verlangt eine komplexe Datenanalyse zum aktuellen Nutzerverhalten bezüglich bestimmter Filmgenres.\n\n" +
                     "Implementieren Sie eine SQL-Anweisung für die Ermittlung der Namen der Nutzer und die Bezeichnung ihres jeweiligen Abonnements unter folgenden Bedingungen:\n" +
-                    "- Der Nutzer hat im Jahr 2024 mindestens einen Film aus dem Genre 'Sci-Fi' in seinem Verlauf verzeichnet.\n" +
-                    "- Der Nutzer hat sich den Film mit dem Titel 'Matrix' jedoch nicht auf seiner Watchlist gemerkt.\n\n" +
+                    "• Der Nutzer hat im Jahr 2024 mindestens einen Film aus dem Genre 'Sci-Fi' in seinem Verlauf verzeichnet.\n" +
+                    "• Der Nutzer hat sich den Film mit dem Titel 'Matrix' jedoch nicht auf seiner Watchlist gemerkt.\n\n" +
                     "Jeder Nutzer soll in der Ergebnisliste eindeutig aufgeführt werden. Leiten Sie das Relationenmodell selbstständig aus dem erweiterten ER-Diagramm ab.",
                 SetupScript = "CREATE TABLE Abo (aboid INTEGER PRIMARY KEY, bezeichnung TEXT);" +
                               "CREATE TABLE Nutzer (nid INTEGER PRIMARY KEY, name TEXT, aboid INTEGER);" +
