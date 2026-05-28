@@ -164,7 +164,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(5, 1, 1, 1),
                 Topics = new List<string> { "SELECT & Projektion" },
                 Description = "In der Datenbank der Schulbibliothek existiert eine Tabelle [Buch].\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Wählen Sie nur den [titel] und den [preis] aller Bücher aus.",
                 SetupScript =
                     "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, Autor TEXT, preis REAL, isbn TEXT);" +
@@ -216,7 +216,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
                 Topics = new List<string> { "WHERE & Selektion" },
                 Description = "Die Bibliotheksleitung sucht nach günstigen Büchern für den Ausverkauf.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Ermitteln Sie alle Spalten ([*]) aller Bücher der Tabelle [Buch], deren Preis **kleiner als 9.00** Euro ist.",
                 SetupScript =
                     "CREATE TABLE Buch (id INTEGER PRIMARY KEY, titel TEXT, autor TEXT, Preis REAL, isbn TEXT);" +
@@ -274,7 +274,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(2, 1, 1, 2),
                 Topics = new List<string> { "ORDER BY", "WHERE & Selektion" },
                 Description = "Wir suchen alle Bücher eines bestimmten Autors, sortiert nach dem Titel.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Wählen Sie [titel] und [erscheinungsjahr] aller Bücher von 'Kafka' aus der Tabelle [Buch].\n" +
                               "Sortieren Sie das Ergebnis **aufsteigend** nach dem Titel.",
                 SetupScript =
@@ -331,7 +331,7 @@ public static class SqlCurriculum
                 Topics = new List<string> { "GROUP BY", "Aggregation", "Aliase" },
                 Description =
                     "Für eine statistische Auswertung sollen Bücher nach ihrem Genre zusammengefasst werden.\n\n" +
-                    "Aufgabe:\n" +
+                    "**Aufgabe:**\n" +
                     "Ermitteln Sie für jedes [genre] den **Durchschnittspreis** als 'Durchschnitt'.\n" +
                     "Das Ergebnis soll das Genre und den berechneten Durchschnittspreis enthalten.",
                 SetupScript =
@@ -391,7 +391,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
                 Topics = new List<string> { "INSERT" },
                 Description = "Ein neuer Schüler hat sich angemeldet.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Fügen Sie den Schüler 'Leon' mit der ID 10 in die Klasse 12 ein.",
                 SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
                               "INSERT INTO Schueler VALUES (1, 'Max', 11);",
@@ -440,7 +440,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
                 Topics = new List<string> { "UPDATE" },
                 Description = "Der Schüler 'Max' mit der ID 1 ist in die Klasse 13 versetzt worden.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Aktualisieren Sie den Eintrag von Max in der Tabelle [Schueler], sodass seine Klasse nun 13 ist.\n" +
                               "Achten Sie unbedingt auf die [WHERE]-Klausel, da sonst alle Schüler betroffen werden!",
                 SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
@@ -490,7 +490,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(3, 1, 1, 1),
                 Topics = new List<string> { "DELETE" },
                 Description = "Alle Schüler der Klasse 13 haben die Schule verlassen (Abitur bestanden).\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Löschen Sie alle Einträge aus der Tabelle [Schueler], bei denen die Klasse 13 ist.",
                 SetupScript = "CREATE TABLE Schueler (id INTEGER PRIMARY KEY, name TEXT, klasse INTEGER);" +
                               "INSERT INTO Schueler VALUES (1, 'AbiAbsolvent', 13); " +
@@ -537,7 +537,7 @@ public static class SqlCurriculum
                 DifficultyStats = new LevelDifficultyStats(2, 2, 2, 3),
                 Topics = new List<string> { "WHERE & Selektion", "ORDER BY" },
                 Description = "Dies ist eine komplexe Abfrage zum Abschluss der Grundlagen.\n\n" +
-                              "Aufgabe:\n" +
+                              "**Aufgabe:**\n" +
                               "Ermitteln Sie [schueler] und [notenpunkte] aller Klausuren im Fach 'Informatik', die **schlechter als 5 Punkte** sind.\n" +
                               "Sortieren Sie das Ergebnis absteigend nach den Notenpunkten.",
                 SetupScript =

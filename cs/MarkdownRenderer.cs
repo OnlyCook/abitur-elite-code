@@ -222,6 +222,7 @@ public static class MarkdownRenderer
         codeBlockEditor.Options.ShowSpaces = false;
         codeBlockEditor.Options.ShowTabs = false;
         codeBlockEditor.Options.HighlightCurrentLine = false;
+        codeBlockEditor.TextArea.Caret.CaretBrush = Brushes.Transparent;
 
         return new Border
         {
