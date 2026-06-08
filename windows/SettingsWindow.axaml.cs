@@ -1638,6 +1638,8 @@ public partial class SettingsWindow : Window
             Foreground = Brushes.White,
             Padding = new Thickness(15, 8),
             CornerRadius = new CornerRadius(4),
+            Width = 150,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
             IsEnabled = _ctx.UpdateAvailable && !UpdateManager.IsMaintenanceMode
         };
 
@@ -1651,7 +1653,7 @@ public partial class SettingsWindow : Window
             Foreground = Scheme.BrushTextTitle,
             Background = Scheme.BrushBgPanel3,
             IsVisible = false,
-            Margin = new Thickness(0, 5, 0, 15)
+            Margin = new Thickness(0, 5, 40, 15)
         };
 
         // event handlers
@@ -1767,6 +1769,7 @@ public partial class SettingsWindow : Window
         _btnUpdateApp.Click += async (_, _) =>
         {
             _btnUpdateApp.Content = "Bereite Update vor...";
+            _btnUpdateApp.Width = 170;
             _btnUpdateApp.IsEnabled = false;
             _btnCheckUpdate.IsEnabled = false;
             _updateProgressBar.IsVisible = true;
@@ -1783,6 +1786,7 @@ public partial class SettingsWindow : Window
             if (updateResult != UpdateManager.UpdateStatus.Success)
             {
                 _btnUpdateApp.Content = "App aktualisieren";
+                _btnUpdateApp.Width = 150;
                 _btnUpdateApp.IsEnabled = true;
                 _btnCheckUpdate.IsEnabled = true;
                 _updateProgressBar.IsVisible = false;
